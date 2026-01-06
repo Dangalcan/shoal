@@ -6,5 +6,8 @@ contextBridge.exposeInMainWorld('electron', {
     createCluster: (name: string, provider: string) => ipcRenderer.invoke('create-cluster', { name, provider }),
     getClusters: () => ipcRenderer.invoke('get-clusters'),
     deleteCluster: (name: string) => ipcRenderer.invoke('delete-cluster', name),
-    getCurrentContext: () => ipcRenderer.invoke('get-current-context')
+    getCurrentContext: () => ipcRenderer.invoke('get-current-context'),
+    getPods: (contextName: string) => ipcRenderer.invoke('get-pods', contextName),
+    getNamespaces: (contextName: string) => ipcRenderer.invoke('get-namespaces', contextName),
+    getResources: (args: { contextName: string; resourceType: string; namespace: string }) => ipcRenderer.invoke('get-resources', args)
 })

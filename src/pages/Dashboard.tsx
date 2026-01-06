@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Server, Box, Plus, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react'
+import { Server, Box, Plus, CheckCircle, AlertCircle, RefreshCw, Eye } from 'lucide-react'
+import { PodViewerModal } from '../components/PodViewerModal'
 
 function StatCard({ label, value, icon: Icon, color, status }: any) {
     const colorMap: any = {
@@ -37,6 +38,8 @@ export function Dashboard() {
     const [podmanStatus, setPodmanStatus] = useState<boolean | null>(null)
     const [clusters, setClusters] = useState<string[]>([])
     const [currentContext, setCurrentContext] = useState<string>('None')
+    const [selectedCluster, setSelectedCluster] = useState<string | null>(null)
+    const [isModalOpen, setIsModalOpen] = useState(false)
 
     const refreshData = () => {
         window.electron.checkTool('docker').then(setDockerStatus)
@@ -112,18 +115,33 @@ export function Dashboard() {
                             {clusters.map((cluster) => (
                                 <li key={cluster} className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${cluster === currentContext ? "bg-blue-50 border-blue-100 shadow-sm" : "bg-slate-50 border-slate-100"
                                     }`}>
-                                    <div className="flex items-center gap-2">
+                                    <div
+                                        onClick={() => navigate(`/cluster/${cluster}`)}
+                                        className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                                    >
                                         <Server size={16} className={cluster === currentContext ? "text-blue-500" : "text-slate-400"} />
-                                        <span className={`font-medium ${cluster === currentContext ? "text-slate-900" : "text-slate-600"}`}>
+                                        <span className={`font-medium ${cluster === currentContext ? "text-slate-900" : "text-slate-600"} hover:text-blue-600 transition-colors`}>
                                             {cluster}
                                         </span>
                                     </div>
-                                    {cluster === currentContext && (
-                                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-semibold">Active</span>
-                                    )}
-                                    {cluster !== currentContext && (
-                                        <span className="text-xs px-2 py-1 bg-slate-100 text-slate-500 rounded-full">Available</span>
-                                    )}
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => {
+                                                setSelectedCluster(cluster)
+                                                setIsModalOpen(true)
+                                            }}
+                                            className="p-1 hover:bg-slate-200 rounded text-slate-500 hover:text-blue-600 transition-colors"
+                                            title="View Pods"
+                                        >
+                                            <Eye size={14} />
+                                        </button>
+                                        {cluster === currentContext && (
+                                            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-semibold">Active</span>
+                                        )}
+                                        {cluster !== currentContext && (
+                                            <span className="text-xs px-2 py-1 bg-slate-100 text-slate-500 rounded-full">Available</span>
+                                        )}
+                                    </div>
                                 </li>
                             ))}
                         </ul>
@@ -134,6 +152,12 @@ export function Dashboard() {
                     )}
                 </div>
             </div>
+
+            <PodViewerModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                clusterName={selectedCluster || ''}
+            />
         </div>
     )
 }

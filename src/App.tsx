@@ -3,6 +3,7 @@ import { Layout } from './layouts/Layout'
 import { Dashboard } from './pages/Dashboard'
 import { CreateCluster } from './pages/CreateCluster'
 import { Clusters } from './pages/Clusters'
+import { ClusterDetails } from './pages/ClusterDetails'
 
 function App() {
     return (
@@ -12,6 +13,7 @@ function App() {
                     <Route index element={<Dashboard />} />
                     <Route path="create-cluster" element={<CreateCluster />} />
                     <Route path="clusters" element={<Clusters />} />
+                    <Route path="cluster/:name" element={<ClusterDetails />} />
                     <Route path="settings" element={<div className="p-8"><h2 className="text-2xl font-bold">Settings</h2></div>} />
                 </Route>
             </Routes>

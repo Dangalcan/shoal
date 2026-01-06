@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react'
-import { Server, Trash2, RefreshCw, Loader2, AlertCircle } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Server, Trash2, RefreshCw, Loader2, AlertCircle, Eye } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
+import { PodViewerModal } from '../components/PodViewerModal'
 
 export function Clusters() {
+    const navigate = useNavigate()
     const [clusters, setClusters] = useState<string[]>([])
     const [loading, setLoading] = useState(true)
     const [deleting, setDeleting] = useState<string | null>(null)
+    const [selectedCluster, setSelectedCluster] = useState<string | null>(null)
+    const [isModalOpen, setIsModalOpen] = useState(false)
 
     const fetchClusters = async () => {
         setLoading(true)
@@ -73,8 +78,11 @@ export function Clusters() {
                                 <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
                                     <Server size={24} />
                                 </div>
-                                <div>
-                                    <h3 className="font-bold text-slate-900 text-lg">{cluster}</h3>
+                                <div
+                                    onClick={() => navigate(`/cluster/${cluster}`)}
+                                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                                >
+                                    <h3 className="font-bold text-slate-900 text-lg hover:text-blue-600 transition-colors">{cluster}</h3>
                                     <div className="flex items-center gap-2 mt-1">
                                         <span className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
                                             <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
@@ -86,6 +94,16 @@ export function Clusters() {
                             </div>
 
                             <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => {
+                                        setSelectedCluster(cluster)
+                                        setIsModalOpen(true)
+                                    }}
+                                    className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                                    title="View Pods"
+                                >
+                                    <Eye size={20} />
+                                </button>
                                 <button
                                     onClick={() => handleDelete(cluster)}
                                     disabled={!!deleting}
@@ -105,6 +123,12 @@ export function Clusters() {
                     <p className="text-sm">Create a new cluster to get started.</p>
                 </div>
             )}
+
+            <PodViewerModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                clusterName={selectedCluster || ''}
+            />
         </div>
     )
 }

@@ -77,6 +77,38 @@ function createWindow() {
         }
     })
 
+    ipcMain.handle('get-pods', async (_event, contextName) => {
+        try {
+            // Use -A for all namespaces and -o json for easier parsing
+            const { stdout } = await execPromise(`kubectl get pods --context ${contextName} -A -o json`)
+            const data = JSON.parse(stdout)
+            return { success: true, pods: data.items || [] }
+        } catch (error: any) {
+            return { success: false, error: error.message }
+        }
+    })
+
+    ipcMain.handle('get-namespaces', async (_event, contextName) => {
+        try {
+            const { stdout } = await execPromise(`kubectl get namespaces --context ${contextName} -o name`)
+            const namespaces = stdout.trim().split('\n').map(ns => ns.replace('namespace/', '')).filter(Boolean)
+            return { success: true, namespaces }
+        } catch (error: any) {
+            return { success: false, error: error.message }
+        }
+    })
+
+    ipcMain.handle('get-resources', async (_event, { contextName, resourceType, namespace }) => {
+        try {
+            const nsFlag = namespace === 'all' ? '-A' : `-n ${namespace}`
+            const { stdout } = await execPromise(`kubectl get ${resourceType} --context ${contextName} ${nsFlag} -o json`)
+            const data = JSON.parse(stdout)
+            return { success: true, items: data.items || [] }
+        } catch (error: any) {
+            return { success: false, error: error.message }
+        }
+    })
+
     ipcMain.handle('delete-cluster', async (_event, name) => {
         try {
             await execPromise(`kind delete cluster --name ${name}`)
