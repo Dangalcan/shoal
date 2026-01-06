@@ -109,6 +109,15 @@ function createWindow() {
         }
     })
 
+    ipcMain.handle('get-logs', async (_event, { contextName, podName, namespace }) => {
+        try {
+            const { stdout } = await execPromise(`kubectl logs ${podName} --context ${contextName} -n ${namespace} --tail=200`)
+            return { success: true, logs: stdout }
+        } catch (error: any) {
+            return { success: false, error: error.message }
+        }
+    })
+
     ipcMain.handle('delete-cluster', async (_event, name) => {
         try {
             await execPromise(`kind delete cluster --name ${name}`)

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Box, List, Shield, Activity, Search, RefreshCw, Loader2, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Box, List, Shield, Activity, Search, RefreshCw, Loader2, AlertCircle, Gauge, Database, Terminal } from 'lucide-react'
+import { LogViewerModal } from '../components/LogViewerModal'
 
-type ResourceType = 'pods' | 'deployments' | 'services' | 'statefulsets'
+type ResourceType = 'pods' | 'deployments' | 'services' | 'statefulsets' | 'hpa' | 'persistentvolumeclaim'
 
 export function ClusterDetails() {
     const { name } = useParams<{ name: string }>()
@@ -13,6 +14,10 @@ export function ClusterDetails() {
     const [items, setItems] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+
+    // Log Viewer State
+    const [selectedPod, setSelectedPod] = useState<{ name: string; ns: string } | null>(null)
+    const [isLogModalOpen, setIsLogModalOpen] = useState(false)
 
     const fetchData = async () => {
         if (!name) return
@@ -49,7 +54,9 @@ export function ClusterDetails() {
         { id: 'pods', label: 'Pods', icon: Box },
         { id: 'deployments', label: 'Deployments', icon: Activity },
         { id: 'services', label: 'Services', icon: Shield },
-        { id: 'statefulsets', label: 'StatefulSets', icon: List }
+        { id: 'statefulsets', label: 'StatefulSets', icon: List },
+        { id: 'hpa', label: 'HPAs', icon: Gauge },
+        { id: 'persistentvolumeclaim', label: 'PVCs', icon: Database }
     ]
 
     return (
@@ -75,8 +82,8 @@ export function ClusterDetails() {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab.id
-                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
-                                        : 'bg-white text-slate-600 border border-slate-200 hover:border-blue-300 hover:text-blue-600'
+                                    ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
+                                    : 'bg-white text-slate-600 border border-slate-200 hover:border-blue-300 hover:text-blue-600'
                                     }`}
                             >
                                 <tab.icon size={16} />
@@ -130,47 +137,104 @@ export function ClusterDetails() {
                     </div>
                 ) : items.length > 0 ? (
                     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                        <table className="w-full text-left">
-                            <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                                <tr>
-                                    <th className="px-6 py-4">Namespace</th>
-                                    <th className="px-6 py-4">Name</th>
-                                    {activeTab === 'pods' && <th className="px-6 py-4">Status</th>}
-                                    {activeTab === 'services' && <th className="px-6 py-4">Type</th>}
-                                    {(activeTab === 'deployments' || activeTab === 'statefulsets') && <th className="px-6 py-4">Ready</th>}
-                                    <th className="px-6 py-4">Creation Time</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {items.map((item, idx) => (
-                                    <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-6 py-4 text-sm font-mono text-slate-500">{item.metadata.namespace}</td>
-                                        <td className="px-6 py-4 text-sm font-bold text-slate-900 truncate max-w-[300px]" title={item.metadata.name}>
-                                            {item.metadata.name}
-                                        </td>
-                                        {activeTab === 'pods' && (
-                                            <td className="px-6 py-4">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-bold ${item.status.phase === 'Running' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                                                    }`}>
-                                                    {item.status.phase}
-                                                </span>
-                                            </td>
-                                        )}
-                                        {activeTab === 'services' && (
-                                            <td className="px-6 py-4 text-sm text-slate-600">{item.spec.type}</td>
-                                        )}
-                                        {(activeTab === 'deployments' || activeTab === 'statefulsets') && (
-                                            <td className="px-6 py-4 text-sm text-slate-600">
-                                                {item.status.readyReplicas || 0} / {item.status.replicas || 0}
-                                            </td>
-                                        )}
-                                        <td className="px-6 py-4 text-sm text-slate-400">
-                                            {new Date(item.metadata.creationTimestamp).toLocaleString()}
-                                        </td>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left min-w-[1000px]">
+                                <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                    <tr>
+                                        <th className="px-6 py-4">Namespace</th>
+                                        <th className="px-6 py-4">Name</th>
+                                        {activeTab === 'pods' && <th className="px-6 py-4">Status</th>}
+                                        {activeTab === 'services' && <th className="px-6 py-4">Type</th>}
+                                        {activeTab === 'services' && <th className="px-6 py-4">Cluster IP</th>}
+                                        {activeTab === 'services' && <th className="px-6 py-4">External IP</th>}
+                                        {(activeTab === 'deployments' || activeTab === 'statefulsets') && <th className="px-6 py-4">Ready</th>}
+                                        {activeTab === 'hpa' && <th className="px-6 py-4">Reference</th>}
+                                        {activeTab === 'hpa' && <th className="px-6 py-4">Targets</th>}
+                                        {activeTab === 'hpa' && <th className="px-6 py-4">MinPods</th>}
+                                        {activeTab === 'hpa' && <th className="px-6 py-4">MaxPods</th>}
+                                        {activeTab === 'hpa' && <th className="px-6 py-4">Replicas</th>}
+                                        {activeTab === 'persistentvolumeclaim' && <th className="px-6 py-4">Status</th>}
+                                        {activeTab === 'persistentvolumeclaim' && <th className="px-6 py-4">Volume</th>}
+                                        {activeTab === 'persistentvolumeclaim' && <th className="px-6 py-4">Capacity</th>}
+                                        {activeTab === 'persistentvolumeclaim' && <th className="px-6 py-4">Access Modes</th>}
+                                        {activeTab === 'persistentvolumeclaim' && <th className="px-6 py-4">StorageClass</th>}
+                                        <th className="px-6 py-4">Creation Time</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {items.map((item, idx) => (
+                                        <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                            <td className="px-6 py-4 text-sm font-mono text-slate-500">{item.metadata.namespace}</td>
+                                            <td className="px-6 py-4 text-sm font-bold text-slate-900 truncate max-w-[300px]" title={item.metadata.name}>
+                                                {activeTab === 'pods' ? (
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedPod({ name: item.metadata.name, ns: item.metadata.namespace })
+                                                            setIsLogModalOpen(true)
+                                                        }}
+                                                        className="flex items-center gap-2 hover:text-blue-600 group transition-colors text-left"
+                                                    >
+                                                        {item.metadata.name}
+                                                        <Terminal size={14} className="opacity-0 group-hover:opacity-100 text-blue-400" />
+                                                    </button>
+                                                ) : item.metadata.name}
+                                            </td>
+                                            {activeTab === 'pods' && (
+                                                <td className="px-6 py-4">
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${item.status.phase === 'Running' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                                                        }`}>
+                                                        {item.status.phase}
+                                                    </span>
+                                                </td>
+                                            )}
+                                            {activeTab === 'services' && (
+                                                <>
+                                                    <td className="px-6 py-4 text-sm text-slate-600">{item.spec.type}</td>
+                                                    <td className="px-6 py-4 text-sm font-mono text-slate-500">{item.spec.clusterIP}</td>
+                                                    <td className="px-6 py-4 text-sm font-mono text-slate-500">{item.status.loadBalancer?.ingress?.[0]?.ip || item.status.loadBalancer?.ingress?.[0]?.hostname || '<none>'}</td>
+                                                </>
+                                            )}
+                                            {(activeTab === 'deployments' || activeTab === 'statefulsets') && (
+                                                <td className="px-6 py-4 text-sm text-slate-600">
+                                                    {item.status.readyReplicas || 0} / {item.status.replicas || 0}
+                                                </td>
+                                            )}
+                                            {activeTab === 'hpa' && (
+                                                <>
+                                                    <td className="px-6 py-4 text-sm text-slate-600">{item.spec.scaleTargetRef?.kind}/{item.spec.scaleTargetRef?.name}</td>
+                                                    <td className="px-6 py-4 text-sm text-slate-600">
+                                                        {item.status.currentMetrics?.[0]?.resource?.current?.averageUtilization ??
+                                                            item.status.currentCPUUtilizationPercentage ?? '0'}% / {
+                                                            item.spec.metrics?.[0]?.resource?.target?.averageUtilization ??
+                                                            item.spec.targetCPUUtilizationPercentage ?? '0'}%
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-slate-600">{item.spec.minReplicas ?? item.spec.minReplicas}</td>
+                                                    <td className="px-6 py-4 text-sm text-slate-600">{item.spec.maxReplicas}</td>
+                                                    <td className="px-6 py-4 text-sm text-slate-600">{item.status.currentReplicas || 0}</td>
+                                                </>
+                                            )}
+                                            {activeTab === 'persistentvolumeclaim' && (
+                                                <>
+                                                    <td className="px-6 py-4">
+                                                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${item.status.phase === 'Bound' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                                                            }`}>
+                                                            {item.status.phase}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm font-mono text-slate-500">{item.spec.volumeName || '<pending>'}</td>
+                                                    <td className="px-6 py-4 text-sm text-slate-600">{item.status.capacity?.storage || 'N/A'}</td>
+                                                    <td className="px-6 py-4 text-sm text-slate-600">{item.spec.accessModes?.join(', ')}</td>
+                                                    <td className="px-6 py-4 text-sm text-slate-600">{item.spec.storageClassName}</td>
+                                                </>
+                                            )}
+                                            <td className="px-6 py-4 text-sm text-slate-400">
+                                                {new Date(item.metadata.creationTimestamp).toLocaleString()}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center h-64 text-slate-400 bg-white rounded-2xl border border-dashed border-slate-200">
@@ -180,6 +244,14 @@ export function ClusterDetails() {
                     </div>
                 )}
             </main>
+
+            <LogViewerModal
+                isOpen={isLogModalOpen}
+                onClose={() => setIsLogModalOpen(false)}
+                clusterName={name || ''}
+                podName={selectedPod?.name || ''}
+                namespace={selectedPod?.ns || ''}
+            />
         </div>
     )
 }

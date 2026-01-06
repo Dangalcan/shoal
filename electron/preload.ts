@@ -9,5 +9,6 @@ contextBridge.exposeInMainWorld('electron', {
     getCurrentContext: () => ipcRenderer.invoke('get-current-context'),
     getPods: (contextName: string) => ipcRenderer.invoke('get-pods', contextName),
     getNamespaces: (contextName: string) => ipcRenderer.invoke('get-namespaces', contextName),
-    getResources: (args: { contextName: string; resourceType: string; namespace: string }) => ipcRenderer.invoke('get-resources', args)
+    getResources: (args: { contextName: string; resourceType: string; namespace: string }) => ipcRenderer.invoke('get-resources', args),
+    getLogs: (args: { contextName: string; podName: string; namespace: string }) => ipcRenderer.invoke('get-logs', args)
 })

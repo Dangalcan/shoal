@@ -8,6 +8,7 @@ export interface ElectronAPI {
     getPods: (contextName: string) => Promise<{ success: boolean; pods?: any[]; error?: string }>
     getNamespaces: (contextName: string) => Promise<{ success: boolean; namespaces?: string[]; error?: string }>
     getResources: (args: { contextName: string; resourceType: string; namespace: string }) => Promise<{ success: boolean; items?: any[]; error?: string }>
+    getLogs: (args: { contextName: string; podName: string; namespace: string }) => Promise<{ success: boolean; logs?: string; error?: string }>
 }
 
 declare global {
