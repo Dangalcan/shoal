@@ -2,3 +2,4 @@ node_modules
 dist
 error.log
 **.log
+dist-electron
