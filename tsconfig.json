@@ -21,7 +21,6 @@
         "noFallthroughCasesInSwitch": true
     },
     "include": [
-        "src",
-        "electron"
+        "src"
     ]
 }

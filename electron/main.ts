@@ -47,6 +47,45 @@ function createWindow() {
         }
     })
 
+    ipcMain.handle('create-cluster', async (_event, { name, provider }) => {
+        // For now we only support 'kind'
+        const command = `kind create cluster --name ${name}`
+        try {
+            await execPromise(command)
+            return { success: true }
+        } catch (error: any) {
+            return { success: false, error: error.message }
+        }
+    })
+
+    ipcMain.handle('get-clusters', async () => {
+        try {
+            const { stdout } = await execPromise('kubectl config get-contexts -o name')
+            const clusters = stdout.trim().split('\n').filter(Boolean)
+            return clusters
+        } catch {
+            return []
+        }
+    })
+
+    ipcMain.handle('get-current-context', async () => {
+        try {
+            const { stdout } = await execPromise('kubectl config current-context')
+            return stdout.trim()
+        } catch {
+            return 'None'
+        }
+    })
+
+    ipcMain.handle('delete-cluster', async (_event, name) => {
+        try {
+            await execPromise(`kind delete cluster --name ${name}`)
+            return { success: true }
+        } catch (error: any) {
+            return { success: false, error: error.message }
+        }
+    })
+
     if (VITE_DEV_SERVER_URL) {
         win.loadURL(VITE_DEV_SERVER_URL)
     } else {

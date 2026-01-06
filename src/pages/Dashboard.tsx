@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Server, Box, Plus, CheckCircle, AlertCircle } from 'lucide-react'
+import { Server, Box, Plus, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react'
 
 function StatCard({ label, value, icon: Icon, color, status }: any) {
     const colorMap: any = {
@@ -35,10 +35,18 @@ export function Dashboard() {
     const navigate = useNavigate()
     const [dockerStatus, setDockerStatus] = useState<boolean | null>(null)
     const [podmanStatus, setPodmanStatus] = useState<boolean | null>(null)
+    const [clusters, setClusters] = useState<string[]>([])
+    const [currentContext, setCurrentContext] = useState<string>('None')
 
-    useEffect(() => {
+    const refreshData = () => {
         window.electron.checkTool('docker').then(setDockerStatus)
         window.electron.checkTool('podman').then(setPodmanStatus)
+        window.electron.getClusters().then(setClusters)
+        window.electron.getCurrentContext().then(setCurrentContext)
+    }
+
+    useEffect(() => {
+        refreshData()
     }, [])
 
     return (
@@ -63,7 +71,13 @@ export function Dashboard() {
                     color={podmanStatus ? 'purple' : 'orange'}
                     status={podmanStatus ? 'running' : 'stopped'}
                 />
-                <StatCard label="Active Clusters" value="0" icon={Server} color="green" />
+                <StatCard
+                    label="Active Context"
+                    value={currentContext}
+                    icon={Server}
+                    color="blue"
+                />
+                <StatCard label="Total Contexts" value={clusters.length} icon={Box} color="green" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -84,10 +98,40 @@ export function Dashboard() {
                 </div>
 
                 <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-                    <h3 className="text-lg font-semibold text-slate-900 mb-4">Recent Activity</h3>
-                    <div className="flex flex-col items-center justify-center h-40 text-slate-400 bg-slate-50 rounded-lg border border-dashed border-slate-200">
-                        <p>No recent activity</p>
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-slate-900">Recent Activity</h3>
+                        <button
+                            onClick={refreshData}
+                            className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded transition-colors"
+                        >
+                            <RefreshCw size={16} />
+                        </button>
                     </div>
+                    {clusters.length > 0 ? (
+                        <ul className="space-y-3">
+                            {clusters.map((cluster) => (
+                                <li key={cluster} className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${cluster === currentContext ? "bg-blue-50 border-blue-100 shadow-sm" : "bg-slate-50 border-slate-100"
+                                    }`}>
+                                    <div className="flex items-center gap-2">
+                                        <Server size={16} className={cluster === currentContext ? "text-blue-500" : "text-slate-400"} />
+                                        <span className={`font-medium ${cluster === currentContext ? "text-slate-900" : "text-slate-600"}`}>
+                                            {cluster}
+                                        </span>
+                                    </div>
+                                    {cluster === currentContext && (
+                                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-semibold">Active</span>
+                                    )}
+                                    {cluster !== currentContext && (
+                                        <span className="text-xs px-2 py-1 bg-slate-100 text-slate-500 rounded-full">Available</span>
+                                    )}
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-40 text-slate-400 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                            <p>No active clusters found</p>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
