@@ -118,6 +118,24 @@ function createWindow() {
         }
     })
 
+    ipcMain.handle('describe-resource', async (_event, { contextName, resourceType, resourceName, namespace }) => {
+        try {
+            const { stdout } = await execPromise(`kubectl describe ${resourceType} ${resourceName} --context ${contextName} -n ${namespace}`)
+            return { success: true, output: stdout }
+        } catch (error: any) {
+            return { success: false, error: error.message }
+        }
+    })
+
+    ipcMain.handle('get-resource-yaml', async (_event, { contextName, resourceType, resourceName, namespace }) => {
+        try {
+            const { stdout } = await execPromise(`kubectl get ${resourceType} ${resourceName} --context ${contextName} -n ${namespace} -o yaml`)
+            return { success: true, yaml: stdout }
+        } catch (error: any) {
+            return { success: false, error: error.message }
+        }
+    })
+
     ipcMain.handle('delete-cluster', async (_event, name) => {
         try {
             await execPromise(`kind delete cluster --name ${name}`)

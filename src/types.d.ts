@@ -9,6 +9,8 @@ export interface ElectronAPI {
     getNamespaces: (contextName: string) => Promise<{ success: boolean; namespaces?: string[]; error?: string }>
     getResources: (args: { contextName: string; resourceType: string; namespace: string }) => Promise<{ success: boolean; items?: any[]; error?: string }>
     getLogs: (args: { contextName: string; podName: string; namespace: string }) => Promise<{ success: boolean; logs?: string; error?: string }>
+    describeResource: (args: { contextName: string; resourceType: string; resourceName: string; namespace: string }) => Promise<{ success: boolean; output?: string; error?: string }>
+    getResourceYaml: (args: { contextName: string; resourceType: string; resourceName: string; namespace: string }) => Promise<{ success: boolean; yaml?: string; error?: string }>
 }
 
 declare global {

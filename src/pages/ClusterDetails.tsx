@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Box, List, Shield, Activity, Search, RefreshCw, Loader2, AlertCircle, Gauge, Database, Terminal, Globe, Settings, X, Check } from 'lucide-react'
+import { ArrowLeft, Box, List, Shield, Activity, Search, RefreshCw, Loader2, AlertCircle, Gauge, Database, Terminal, Globe, Settings, X, Check, Eye, FileCode, Lock, FileText } from 'lucide-react'
 import { LogViewerModal } from '../components/LogViewerModal'
+import { DescribeModal } from '../components/DescribeModal'
+import { YamlModal } from '../components/YamlModal'
 
-type ResourceType = 'pods' | 'deployments' | 'services' | 'statefulsets' | 'hpa' | 'persistentvolumeclaim' | 'ingress'
+type ResourceType = 'pods' | 'deployments' | 'services' | 'statefulsets' | 'hpa' | 'persistentvolumeclaim' | 'ingress' | 'secrets' | 'configmap'
 
 interface ColumnDef {
     id: string;
@@ -25,24 +27,50 @@ export function ClusterDetails() {
     const [selectedPod, setSelectedPod] = useState<{ name: string; ns: string } | null>(null)
     const [isLogModalOpen, setIsLogModalOpen] = useState(false)
 
+    // Describe Modal State
+    const [describeTarget, setDescribeTarget] = useState<{ name: string; ns: string; type: ResourceType } | null>(null)
+    const [isDescribeModalOpen, setIsDescribeModalOpen] = useState(false)
+
+    // YAML Modal State
+    const [yamlTarget, setYamlTarget] = useState<{ name: string; ns: string; type: ResourceType } | null>(null)
+    const [isYamlModalOpen, setIsYamlModalOpen] = useState(false)
+
     // Resource Visibility State
     const [visibleResources, setVisibleResources] = useState<ResourceType[]>(() => {
+        const defaults: ResourceType[] = ['pods', 'deployments', 'services', 'statefulsets', 'hpa', 'persistentvolumeclaim', 'ingress', 'secrets', 'configmap']
         const saved = localStorage.getItem('k8s_desktop_visible_resources')
-        return saved ? JSON.parse(saved) : ['pods', 'deployments', 'services', 'statefulsets', 'hpa', 'persistentvolumeclaim', 'ingress']
+        if (!saved) return defaults
+        try {
+            const parsed = JSON.parse(saved)
+            // Merge defaults to ensure new resources are available even if the user has old saved settings
+            const missing = defaults.filter(d => !parsed.includes(d))
+            return [...parsed, ...missing] as ResourceType[]
+        } catch {
+            return defaults
+        }
     })
     const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
     // Advanced Table State
     const [visibleColumns, setVisibleColumns] = useState<Record<ResourceType, string[]>>(() => {
-        const saved = localStorage.getItem('k8s_desktop_visible_columns')
-        return saved ? JSON.parse(saved) : {
+        const defaults: Record<ResourceType, string[]> = {
             pods: ['namespace', 'name', 'status', 'restarts', 'age'],
             deployments: ['namespace', 'name', 'ready', 'updated', 'age'],
             services: ['namespace', 'name', 'type', 'cluster-ip', 'external-ip', 'ports', 'age'],
             statefulsets: ['namespace', 'name', 'ready', 'age'],
             hpa: ['namespace', 'name', 'reference', 'targets', 'minpods', 'maxpods', 'replicas', 'age'],
             persistentvolumeclaim: ['namespace', 'name', 'status', 'volume', 'capacity', 'access-modes', 'storageclass', 'vac', 'age'],
-            ingress: ['namespace', 'name', 'class', 'hosts', 'address', 'ports', 'age']
+            ingress: ['namespace', 'name', 'class', 'hosts', 'address', 'ports', 'age'],
+            secrets: ['namespace', 'name', 'type', 'data', 'age'],
+            configmap: ['namespace', 'name', 'data', 'age']
+        }
+        const saved = localStorage.getItem('k8s_desktop_visible_columns')
+        if (!saved) return defaults
+        try {
+            const parsed = JSON.parse(saved)
+            return { ...defaults, ...parsed }
+        } catch {
+            return defaults
         }
     })
 
@@ -136,7 +164,9 @@ export function ClusterDetails() {
         { id: 'statefulsets', label: 'StatefulSets', icon: List },
         { id: 'hpa', label: 'HPAs', icon: Gauge },
         { id: 'persistentvolumeclaim', label: 'PVCs', icon: Database },
-        { id: 'ingress', label: 'Ingresses', icon: Globe }
+        { id: 'ingress', label: 'Ingresses', icon: Globe },
+        { id: 'secrets', label: 'Secrets', icon: Lock },
+        { id: 'configmap', label: 'ConfigMaps', icon: FileText }
     ]
 
     const columnDefinitions: Record<ResourceType, ColumnDef[]> = {
@@ -197,6 +227,19 @@ export function ClusterDetails() {
             { id: 'hosts', label: 'Hosts', minWidth: 200 },
             { id: 'address', label: 'Address', minWidth: 150 },
             { id: 'ports', label: 'Ports', minWidth: 100 },
+            { id: 'age', label: 'Age', minWidth: 150 }
+        ],
+        secrets: [
+            { id: 'namespace', label: 'Namespace', minWidth: 120 },
+            { id: 'name', label: 'Name', minWidth: 200 },
+            { id: 'type', label: 'Type', minWidth: 150 },
+            { id: 'data', label: 'Data', minWidth: 80 },
+            { id: 'age', label: 'Age', minWidth: 150 }
+        ],
+        configmap: [
+            { id: 'namespace', label: 'Namespace', minWidth: 120 },
+            { id: 'name', label: 'Name', minWidth: 200 },
+            { id: 'data', label: 'Data', minWidth: 80 },
             { id: 'age', label: 'Age', minWidth: 150 }
         ]
     }
@@ -333,8 +376,8 @@ export function ClusterDetails() {
                                                     onClick={() => toggleColumn(activeTab, col.id)}
                                                     className="w-full flex items-center justify-between px-3 py-1.5 text-sm rounded-lg hover:bg-slate-50 transition-colors group"
                                                 >
-                                                    <span className={visibleColumns[activeTab].includes(col.id) ? 'text-slate-900 font-medium' : 'text-slate-400'}>{col.label}</span>
-                                                    {visibleColumns[activeTab].includes(col.id) && (
+                                                    <span className={visibleColumns[activeTab]?.includes(col.id) ? 'text-slate-900 font-medium' : 'text-slate-400'}>{col.label}</span>
+                                                    {visibleColumns[activeTab]?.includes(col.id) && (
                                                         <Check size={14} className="text-blue-500" />
                                                     )}
                                                 </button>
@@ -373,7 +416,7 @@ export function ClusterDetails() {
                                 <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                                     <tr>
                                         {columnDefinitions[activeTab].map(col => {
-                                            if (!visibleColumns[activeTab].includes(col.id)) return null
+                                            if (!visibleColumns[activeTab]?.includes(col.id)) return null
                                             const width = getColumnWidth(col.id, col.minWidth)
                                             return (
                                                 <th
@@ -396,23 +439,51 @@ export function ClusterDetails() {
                                 <tbody className="divide-y divide-slate-100">
                                     {items.map((item, idx) => (
                                         <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                                            {visibleColumns[activeTab].includes('namespace') && (
+                                            {visibleColumns[activeTab]?.includes('namespace') && (
                                                 <td className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${getColumnWidth('namespace', 120)}px` }}>{item.metadata.namespace}</td>
                                             )}
-                                            {visibleColumns[activeTab].includes('name') && (
+                                            {visibleColumns[activeTab]?.includes('name') && (
                                                 <td className="px-6 py-4 text-sm font-bold text-slate-900 truncate" style={{ width: `${getColumnWidth('name', 200)}px` }} title={item.metadata.name}>
-                                                    {activeTab === 'pods' ? (
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelectedPod({ name: item.metadata.name, ns: item.metadata.namespace })
-                                                                setIsLogModalOpen(true)
-                                                            }}
-                                                            className="flex items-center gap-2 hover:text-blue-600 group transition-colors text-left truncate w-full"
-                                                        >
-                                                            <span className="truncate">{item.metadata.name}</span>
-                                                            <Terminal size={14} className="flex-shrink-0 opacity-0 group-hover:opacity-100 text-blue-400" />
-                                                        </button>
-                                                    ) : <span className="truncate">{item.metadata.name}</span>}
+                                                    <div className="flex items-center gap-2 group/row">
+                                                        {activeTab === 'pods' ? (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setSelectedPod({ name: item.metadata.name, ns: item.metadata.namespace })
+                                                                    setIsLogModalOpen(true)
+                                                                }}
+                                                                className="flex items-center gap-2 hover:text-blue-600 group transition-colors text-left truncate flex-1"
+                                                            >
+                                                                <span className="truncate">{item.metadata.name}</span>
+                                                                <Terminal size={14} className="flex-shrink-0 opacity-0 group-hover:opacity-100 text-blue-400" />
+                                                            </button>
+                                                        ) : (
+                                                            <span className="truncate flex-1">{item.metadata.name}</span>
+                                                        )}
+                                                        <div className="flex items-center gap-1 opacity-0 group-hover/row:opacity-100 transition-all">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    setDescribeTarget({ name: item.metadata.name, ns: item.metadata.namespace, type: activeTab })
+                                                                    setIsDescribeModalOpen(true)
+                                                                }}
+                                                                className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-blue-500 transition-colors"
+                                                                title="Describe Resource"
+                                                            >
+                                                                <Eye size={14} />
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    setYamlTarget({ name: item.metadata.name, ns: item.metadata.namespace, type: activeTab })
+                                                                    setIsYamlModalOpen(true)
+                                                                }}
+                                                                className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-purple-500 transition-colors"
+                                                                title="View YAML"
+                                                            >
+                                                                <FileCode size={14} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 </td>
                                             )}
                                             {activeTab === 'pods' && visibleColumns.pods.includes('status') && (
@@ -503,7 +574,18 @@ export function ClusterDetails() {
                                                     )}
                                                 </>
                                             )}
-                                            {visibleColumns[activeTab].includes('age') && (
+                                            {activeTab === 'secrets' && (
+                                                <>
+                                                    {visibleColumns.secrets?.includes('type') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('type', 150)}px` }}>{item.type}</td>}
+                                                    {visibleColumns.secrets?.includes('data') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('data', 80)}px` }}>{Object.keys(item.data || {}).length}</td>}
+                                                </>
+                                            )}
+                                            {activeTab === 'configmap' && (
+                                                <>
+                                                    {visibleColumns.configmap?.includes('data') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('data', 80)}px` }}>{Object.keys(item.data || {}).length}</td>}
+                                                </>
+                                            )}
+                                            {visibleColumns[activeTab]?.includes('age') && (
                                                 <td className="px-6 py-4 text-sm text-slate-400 truncate" style={{ width: `${getColumnWidth('age', 150)}px` }}>
                                                     {new Date(item.metadata.creationTimestamp).toLocaleString()}
                                                 </td>
@@ -529,6 +611,22 @@ export function ClusterDetails() {
                 clusterName={name || ''}
                 podName={selectedPod?.name || ''}
                 namespace={selectedPod?.ns || ''}
+            />
+            <DescribeModal
+                isOpen={isDescribeModalOpen}
+                onClose={() => setIsDescribeModalOpen(false)}
+                clusterName={name || ''}
+                resourceName={describeTarget?.name || ''}
+                resourceType={describeTarget?.type || activeTab}
+                namespace={describeTarget?.ns || ''}
+            />
+            <YamlModal
+                isOpen={isYamlModalOpen}
+                onClose={() => setIsYamlModalOpen(false)}
+                clusterName={name || ''}
+                resourceName={yamlTarget?.name || ''}
+                resourceType={yamlTarget?.type || activeTab}
+                namespace={yamlTarget?.ns || ''}
             />
         </div>
     )
