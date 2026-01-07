@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Box, List, Shield, Activity, Search, RefreshCw, Loader2, AlertCircle, Gauge, Database, Terminal, Globe } from 'lucide-react'
+import { ArrowLeft, Box, List, Shield, Activity, Search, RefreshCw, Loader2, AlertCircle, Gauge, Database, Terminal, Globe, Settings, X, Check } from 'lucide-react'
 import { LogViewerModal } from '../components/LogViewerModal'
 
 type ResourceType = 'pods' | 'deployments' | 'services' | 'statefulsets' | 'hpa' | 'persistentvolumeclaim' | 'ingress'
+
+interface ColumnDef {
+    id: string;
+    label: string;
+    minWidth: number;
+}
 
 export function ClusterDetails() {
     const { name } = useParams<{ name: string }>()
@@ -18,6 +24,79 @@ export function ClusterDetails() {
     // Log Viewer State
     const [selectedPod, setSelectedPod] = useState<{ name: string; ns: string } | null>(null)
     const [isLogModalOpen, setIsLogModalOpen] = useState(false)
+
+    // Resource Visibility State
+    const [visibleResources, setVisibleResources] = useState<ResourceType[]>(() => {
+        const saved = localStorage.getItem('k8s_desktop_visible_resources')
+        return saved ? JSON.parse(saved) : ['pods', 'deployments', 'services', 'statefulsets', 'hpa', 'persistentvolumeclaim', 'ingress']
+    })
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+
+    // Advanced Table State
+    const [visibleColumns, setVisibleColumns] = useState<Record<ResourceType, string[]>>(() => {
+        const saved = localStorage.getItem('k8s_desktop_visible_columns')
+        return saved ? JSON.parse(saved) : {
+            pods: ['namespace', 'name', 'status', 'restarts', 'age'],
+            deployments: ['namespace', 'name', 'ready', 'updated', 'age'],
+            services: ['namespace', 'name', 'type', 'cluster-ip', 'external-ip', 'ports', 'age'],
+            statefulsets: ['namespace', 'name', 'ready', 'age'],
+            hpa: ['namespace', 'name', 'reference', 'targets', 'minpods', 'maxpods', 'replicas', 'age'],
+            persistentvolumeclaim: ['namespace', 'name', 'status', 'volume', 'capacity', 'access-modes', 'storageclass', 'vac', 'age'],
+            ingress: ['namespace', 'name', 'class', 'hosts', 'address', 'ports', 'age']
+        }
+    })
+
+    const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => {
+        const saved = localStorage.getItem('k8s_desktop_column_widths')
+        return saved ? JSON.parse(saved) : {}
+    })
+
+    const [resizing, setResizing] = useState<{ id: string; startX: number; startWidth: number } | null>(null)
+
+    useEffect(() => {
+        localStorage.setItem('k8s_desktop_visible_resources', JSON.stringify(visibleResources))
+    }, [visibleResources])
+
+    useEffect(() => {
+        localStorage.setItem('k8s_desktop_visible_columns', JSON.stringify(visibleColumns))
+    }, [visibleColumns])
+
+    useEffect(() => {
+        localStorage.setItem('k8s_desktop_column_widths', JSON.stringify(columnWidths))
+    }, [columnWidths])
+
+    // Handle Resize Logic
+    useEffect(() => {
+        if (!resizing) return
+
+        const handleMouseMove = (e: MouseEvent) => {
+            const delta = e.clientX - resizing.startX
+            const newWidth = Math.max(50, resizing.startWidth + delta)
+            setColumnWidths(prev => ({
+                ...prev,
+                [resizing.id]: newWidth
+            }))
+        }
+
+        const handleMouseUp = () => {
+            setResizing(null)
+        }
+
+        window.addEventListener('mousemove', handleMouseMove)
+        window.addEventListener('mouseup', handleMouseUp)
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove)
+            window.removeEventListener('mouseup', handleMouseUp)
+        }
+    }, [resizing])
+
+    // Handle inactive visible tab
+    useEffect(() => {
+        if (!visibleResources.includes(activeTab)) {
+            const nextTab = visibleResources.length > 0 ? visibleResources[0] : 'pods'
+            setActiveTab(nextTab)
+        }
+    }, [visibleResources, activeTab])
 
     const fetchData = async () => {
         if (!name) return
@@ -50,7 +129,7 @@ export function ClusterDetails() {
         fetchData()
     }, [name, activeTab, selectedNamespace])
 
-    const tabs: { id: ResourceType; label: string; icon: any }[] = [
+    const allTabs: { id: ResourceType; label: string; icon: any }[] = [
         { id: 'pods', label: 'Pods', icon: Box },
         { id: 'deployments', label: 'Deployments', icon: Activity },
         { id: 'services', label: 'Services', icon: Shield },
@@ -60,8 +139,102 @@ export function ClusterDetails() {
         { id: 'ingress', label: 'Ingresses', icon: Globe }
     ]
 
+    const columnDefinitions: Record<ResourceType, ColumnDef[]> = {
+        pods: [
+            { id: 'namespace', label: 'Namespace', minWidth: 120 },
+            { id: 'name', label: 'Name', minWidth: 200 },
+            { id: 'status', label: 'Status', minWidth: 100 },
+            { id: 'restarts', label: 'Restarts', minWidth: 80 },
+            { id: 'age', label: 'Age', minWidth: 150 }
+        ],
+        deployments: [
+            { id: 'namespace', label: 'Namespace', minWidth: 120 },
+            { id: 'name', label: 'Name', minWidth: 200 },
+            { id: 'ready', label: 'Ready', minWidth: 100 },
+            { id: 'updated', label: 'Up-To-Date', minWidth: 100 },
+            { id: 'age', label: 'Age', minWidth: 150 }
+        ],
+        services: [
+            { id: 'namespace', label: 'Namespace', minWidth: 120 },
+            { id: 'name', label: 'Name', minWidth: 200 },
+            { id: 'type', label: 'Type', minWidth: 100 },
+            { id: 'cluster-ip', label: 'Cluster IP', minWidth: 150 },
+            { id: 'external-ip', label: 'External IP', minWidth: 150 },
+            { id: 'ports', label: 'Port(s)', minWidth: 150 },
+            { id: 'age', label: 'Age', minWidth: 150 }
+        ],
+        statefulsets: [
+            { id: 'namespace', label: 'Namespace', minWidth: 120 },
+            { id: 'name', label: 'Name', minWidth: 200 },
+            { id: 'ready', label: 'Ready', minWidth: 100 },
+            { id: 'age', label: 'Age', minWidth: 150 }
+        ],
+        hpa: [
+            { id: 'namespace', label: 'Namespace', minWidth: 120 },
+            { id: 'name', label: 'Name', minWidth: 200 },
+            { id: 'reference', label: 'Reference', minWidth: 200 },
+            { id: 'targets', label: 'Targets', minWidth: 150 },
+            { id: 'minpods', label: 'MinPods', minWidth: 80 },
+            { id: 'maxpods', label: 'MaxPods', minWidth: 80 },
+            { id: 'replicas', label: 'Replicas', minWidth: 80 },
+            { id: 'age', label: 'Age', minWidth: 150 }
+        ],
+        persistentvolumeclaim: [
+            { id: 'namespace', label: 'Namespace', minWidth: 120 },
+            { id: 'name', label: 'Name', minWidth: 200 },
+            { id: 'status', label: 'Status', minWidth: 100 },
+            { id: 'volume', label: 'Volume', minWidth: 150 },
+            { id: 'capacity', label: 'Capacity', minWidth: 100 },
+            { id: 'access-modes', label: 'Access Modes', minWidth: 150 },
+            { id: 'storageclass', label: 'StorageClass', minWidth: 150 },
+            { id: 'vac', label: 'VolumeAttributesClass', minWidth: 150 },
+            { id: 'age', label: 'Age', minWidth: 150 }
+        ],
+        ingress: [
+            { id: 'namespace', label: 'Namespace', minWidth: 120 },
+            { id: 'name', label: 'Name', minWidth: 200 },
+            { id: 'class', label: 'Class', minWidth: 120 },
+            { id: 'hosts', label: 'Hosts', minWidth: 200 },
+            { id: 'address', label: 'Address', minWidth: 150 },
+            { id: 'ports', label: 'Ports', minWidth: 100 },
+            { id: 'age', label: 'Age', minWidth: 150 }
+        ]
+    }
+
+    const tabs = allTabs.filter(tab => visibleResources.includes(tab.id))
+
+    const toggleResource = (id: ResourceType) => {
+        setVisibleResources(prev =>
+            prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]
+        )
+    }
+
+    const toggleColumn = (resourceType: ResourceType, columnId: string) => {
+        setVisibleColumns(prev => {
+            const current = prev[resourceType]
+            const updated = current.includes(columnId)
+                ? (current.length > 1 ? current.filter(id => id !== columnId) : current) // Prevent hiding all columns
+                : [...current, columnId]
+            return { ...prev, [resourceType]: updated }
+        })
+    }
+
+    const getColumnWidth = (id: string, defWidth: number) => {
+        const key = `${activeTab}-${id}`
+        return columnWidths[key] || defWidth
+    }
+
+    const startResize = (e: React.MouseEvent, id: string, currentWidth: number) => {
+        e.preventDefault()
+        setResizing({
+            id: `${activeTab}-${id}`,
+            startX: e.clientX,
+            startWidth: currentWidth
+        })
+    }
+
     return (
-        <div className="min-h-full flex flex-col bg-slate-50">
+        <div className={`min-h-full flex flex-col bg-slate-50 ${resizing ? 'select-none' : ''}`}>
             <header className="bg-white border-b border-slate-200 px-8 py-6 sticky top-0 z-10">
                 <div className="flex items-center gap-4 mb-6">
                     <button
@@ -111,9 +284,66 @@ export function ClusterDetails() {
                             onClick={fetchData}
                             disabled={loading}
                             className="p-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:text-blue-600 hover:border-blue-300 transition-all disabled:opacity-50"
+                            title="Refresh"
                         >
                             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
                         </button>
+                        <div className="relative">
+                            <button
+                                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                                className={`p-2 border rounded-lg transition-all ${isSettingsOpen ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-300'}`}
+                                title="Visible Resources"
+                            >
+                                <Settings size={18} />
+                            </button>
+
+                            {isSettingsOpen && (
+                                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-100 z-50 p-2 animate-in fade-in zoom-in duration-200">
+                                    <div className="flex items-center justify-between px-3 py-2 mb-1 border-b border-slate-50">
+                                        <span className="text-sm font-bold text-slate-700">Display Settings</span>
+                                        <button onClick={() => setIsSettingsOpen(false)} className="text-slate-400 hover:text-slate-600">
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                    <div className="max-h-[70vh] overflow-y-auto">
+                                        <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Resources</div>
+                                        <div className="space-y-1 mb-4">
+                                            {allTabs.map(tab => (
+                                                <button
+                                                    key={tab.id}
+                                                    onClick={() => toggleResource(tab.id)}
+                                                    className="w-full flex items-center justify-between px-3 py-1.5 text-sm rounded-lg hover:bg-slate-50 transition-colors group"
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <tab.icon size={14} className="text-slate-400" />
+                                                        <span className={visibleResources.includes(tab.id) ? 'text-slate-900 font-medium' : 'text-slate-400'}>{tab.label}</span>
+                                                    </div>
+                                                    {visibleResources.includes(tab.id) && (
+                                                        <Check size={14} className="text-blue-500" />
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-t border-slate-50 pt-4">Columns for {activeTab}</div>
+                                        <div className="space-y-1">
+                                            {columnDefinitions[activeTab].map(col => (
+                                                <button
+                                                    key={col.id}
+                                                    onClick={() => toggleColumn(activeTab, col.id)}
+                                                    className="w-full flex items-center justify-between px-3 py-1.5 text-sm rounded-lg hover:bg-slate-50 transition-colors group"
+                                                >
+                                                    <span className={visibleColumns[activeTab].includes(col.id) ? 'text-slate-900 font-medium' : 'text-slate-400'}>{col.label}</span>
+                                                    {visibleColumns[activeTab].includes(col.id) && (
+                                                        <Check size={14} className="text-blue-500" />
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </header>
@@ -139,118 +369,145 @@ export function ClusterDetails() {
                 ) : items.length > 0 ? (
                     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left min-w-[1000px]">
+                            <table className="w-full text-left table-fixed" style={{ width: 'max-content', minWidth: '100%' }}>
                                 <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                                     <tr>
-                                        <th className="px-6 py-4">Namespace</th>
-                                        <th className="px-6 py-4">Name</th>
-                                        {activeTab === 'pods' && <th className="px-6 py-4">Status</th>}
-                                        {activeTab === 'services' && <th className="px-6 py-4">Type</th>}
-                                        {activeTab === 'services' && <th className="px-6 py-4">Cluster IP</th>}
-                                        {activeTab === 'services' && <th className="px-6 py-4">External IP</th>}
-                                        {(activeTab === 'deployments' || activeTab === 'statefulsets') && <th className="px-6 py-4">Ready</th>}
-                                        {activeTab === 'hpa' && <th className="px-6 py-4">Reference</th>}
-                                        {activeTab === 'hpa' && <th className="px-6 py-4">Targets</th>}
-                                        {activeTab === 'hpa' && <th className="px-6 py-4">MinPods</th>}
-                                        {activeTab === 'hpa' && <th className="px-6 py-4">MaxPods</th>}
-                                        {activeTab === 'hpa' && <th className="px-6 py-4">Replicas</th>}
-                                        {activeTab === 'persistentvolumeclaim' && <th className="px-6 py-4">Status</th>}
-                                        {activeTab === 'persistentvolumeclaim' && <th className="px-6 py-4">Volume</th>}
-                                        {activeTab === 'persistentvolumeclaim' && <th className="px-6 py-4">Capacity</th>}
-                                        {activeTab === 'persistentvolumeclaim' && <th className="px-6 py-4">Access Modes</th>}
-                                        {activeTab === 'persistentvolumeclaim' && <th className="px-6 py-4">StorageClass</th>}
-                                        {activeTab === 'ingress' && <th className="px-6 py-4">Class</th>}
-                                        {activeTab === 'ingress' && <th className="px-6 py-4">Hosts</th>}
-                                        {activeTab === 'ingress' && <th className="px-6 py-4">Address</th>}
-                                        {activeTab === 'ingress' && <th className="px-6 py-4">Ports</th>}
-                                        <th className="px-6 py-4">Creation Time</th>
+                                        {columnDefinitions[activeTab].map(col => {
+                                            if (!visibleColumns[activeTab].includes(col.id)) return null
+                                            const width = getColumnWidth(col.id, col.minWidth)
+                                            return (
+                                                <th
+                                                    key={col.id}
+                                                    className="px-6 py-4 relative group select-none"
+                                                    style={{ width: `${width}px` }}
+                                                >
+                                                    <div className="truncate pr-2">{col.label}</div>
+                                                    <div
+                                                        onMouseDown={(e) => startResize(e, col.id, width)}
+                                                        className={`absolute right-[-4px] top-0 bottom-0 w-3 cursor-col-resize z-10 transition-colors hover:bg-blue-400/30 ${resizing?.id === `${activeTab}-${col.id}` ? 'bg-blue-500' : 'bg-transparent'}`}
+                                                    >
+                                                        <div className={`absolute right-[5px] top-1/4 bottom-1/4 w-[2px] rounded-full transition-colors ${resizing?.id === `${activeTab}-${col.id}` ? 'bg-white' : 'group-hover:bg-blue-400'}`} />
+                                                    </div>
+                                                </th>
+                                            )
+                                        })}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
                                     {items.map((item, idx) => (
                                         <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                                            <td className="px-6 py-4 text-sm font-mono text-slate-500">{item.metadata.namespace}</td>
-                                            <td className="px-6 py-4 text-sm font-bold text-slate-900 truncate max-w-[300px]" title={item.metadata.name}>
-                                                {activeTab === 'pods' ? (
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedPod({ name: item.metadata.name, ns: item.metadata.namespace })
-                                                            setIsLogModalOpen(true)
-                                                        }}
-                                                        className="flex items-center gap-2 hover:text-blue-600 group transition-colors text-left"
-                                                    >
-                                                        {item.metadata.name}
-                                                        <Terminal size={14} className="opacity-0 group-hover:opacity-100 text-blue-400" />
-                                                    </button>
-                                                ) : item.metadata.name}
-                                            </td>
-                                            {activeTab === 'pods' && (
-                                                <td className="px-6 py-4">
+                                            {visibleColumns[activeTab].includes('namespace') && (
+                                                <td className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${getColumnWidth('namespace', 120)}px` }}>{item.metadata.namespace}</td>
+                                            )}
+                                            {visibleColumns[activeTab].includes('name') && (
+                                                <td className="px-6 py-4 text-sm font-bold text-slate-900 truncate" style={{ width: `${getColumnWidth('name', 200)}px` }} title={item.metadata.name}>
+                                                    {activeTab === 'pods' ? (
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedPod({ name: item.metadata.name, ns: item.metadata.namespace })
+                                                                setIsLogModalOpen(true)
+                                                            }}
+                                                            className="flex items-center gap-2 hover:text-blue-600 group transition-colors text-left truncate w-full"
+                                                        >
+                                                            <span className="truncate">{item.metadata.name}</span>
+                                                            <Terminal size={14} className="flex-shrink-0 opacity-0 group-hover:opacity-100 text-blue-400" />
+                                                        </button>
+                                                    ) : <span className="truncate">{item.metadata.name}</span>}
+                                                </td>
+                                            )}
+                                            {activeTab === 'pods' && visibleColumns.pods.includes('status') && (
+                                                <td className="px-6 py-4" style={{ width: `${getColumnWidth('status', 100)}px` }}>
                                                     <span className={`px-2 py-1 rounded-full text-xs font-bold ${item.status.phase === 'Running' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
                                                         }`}>
                                                         {item.status.phase}
                                                     </span>
                                                 </td>
                                             )}
+                                            {activeTab === 'pods' && visibleColumns.pods.includes('restarts') && (
+                                                <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('restarts', 80)}px` }}>
+                                                    {item.status.containerStatuses?.reduce((acc: number, c: any) => acc + c.restartCount, 0) || 0}
+                                                </td>
+                                            )}
                                             {activeTab === 'services' && (
                                                 <>
-                                                    <td className="px-6 py-4 text-sm text-slate-600">{item.spec.type}</td>
-                                                    <td className="px-6 py-4 text-sm font-mono text-slate-500">{item.spec.clusterIP}</td>
-                                                    <td className="px-6 py-4 text-sm font-mono text-slate-500">{item.status.loadBalancer?.ingress?.[0]?.ip || item.status.loadBalancer?.ingress?.[0]?.hostname || '<none>'}</td>
+                                                    {visibleColumns.services.includes('type') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('type', 100)}px` }}>{item.spec.type}</td>}
+                                                    {visibleColumns.services.includes('cluster-ip') && <td className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${getColumnWidth('cluster-ip', 150)}px` }}>{item.spec.clusterIP}</td>}
+                                                    {visibleColumns.services.includes('external-ip') && <td className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${getColumnWidth('external-ip', 150)}px` }}>{item.status.loadBalancer?.ingress?.[0]?.ip || item.status.loadBalancer?.ingress?.[0]?.hostname || '<none>'}</td>}
+                                                    {visibleColumns.services.includes('ports') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('ports', 150)}px` }}>{item.spec.ports?.map((p: any) => `${p.port}/${p.protocol}`).join(', ') || '<none>'}</td>}
                                                 </>
                                             )}
-                                            {(activeTab === 'deployments' || activeTab === 'statefulsets') && (
-                                                <td className="px-6 py-4 text-sm text-slate-600">
+                                            {(activeTab === 'deployments' || activeTab === 'statefulsets') && visibleColumns[activeTab].includes('ready') && (
+                                                <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('ready', 100)}px` }}>
                                                     {item.status.readyReplicas || 0} / {item.status.replicas || 0}
+                                                </td>
+                                            )}
+                                            {activeTab === 'deployments' && visibleColumns.deployments.includes('updated') && (
+                                                <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('updated', 100)}px` }}>
+                                                    {item.status.updatedReplicas || 0}
                                                 </td>
                                             )}
                                             {activeTab === 'hpa' && (
                                                 <>
-                                                    <td className="px-6 py-4 text-sm text-slate-600">{item.spec.scaleTargetRef?.kind}/{item.spec.scaleTargetRef?.name}</td>
-                                                    <td className="px-6 py-4 text-sm text-slate-600">
-                                                        {item.status.currentMetrics?.[0]?.resource?.current?.averageUtilization ??
-                                                            item.status.currentCPUUtilizationPercentage ?? '0'}% / {
-                                                            item.spec.metrics?.[0]?.resource?.target?.averageUtilization ??
-                                                            item.spec.targetCPUUtilizationPercentage ?? '0'}%
-                                                    </td>
-                                                    <td className="px-6 py-4 text-sm text-slate-600">{item.spec.minReplicas ?? item.spec.minReplicas}</td>
-                                                    <td className="px-6 py-4 text-sm text-slate-600">{item.spec.maxReplicas}</td>
-                                                    <td className="px-6 py-4 text-sm text-slate-600">{item.status.currentReplicas || 0}</td>
+                                                    {visibleColumns.hpa.includes('reference') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('reference', 200)}px` }}>{item.spec.scaleTargetRef?.kind}/{item.spec.scaleTargetRef?.name}</td>}
+                                                    {visibleColumns.hpa.includes('targets') && (
+                                                        <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('targets', 150)}px` }}>
+                                                            {item.status.currentMetrics?.[0]?.resource?.current?.averageUtilization ??
+                                                                item.status.currentCPUUtilizationPercentage ?? '0'}% / {
+                                                                item.spec.metrics?.[0]?.resource?.target?.averageUtilization ??
+                                                                item.spec.targetCPUUtilizationPercentage ?? '0'}%
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.hpa.includes('minpods') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('minpods', 80)}px` }}>{item.spec.minReplicas ?? item.spec.minReplicas}</td>}
+                                                    {visibleColumns.hpa.includes('maxpods') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('maxpods', 80)}px` }}>{item.spec.maxReplicas}</td>}
+                                                    {visibleColumns.hpa.includes('replicas') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('replicas', 80)}px` }}>{item.status.currentReplicas || 0}</td>}
                                                 </>
                                             )}
                                             {activeTab === 'persistentvolumeclaim' && (
                                                 <>
-                                                    <td className="px-6 py-4">
-                                                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${item.status.phase === 'Bound' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                                                            }`}>
-                                                            {item.status.phase}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-sm font-mono text-slate-500">{item.spec.volumeName || '<pending>'}</td>
-                                                    <td className="px-6 py-4 text-sm text-slate-600">{item.status.capacity?.storage || 'N/A'}</td>
-                                                    <td className="px-6 py-4 text-sm text-slate-600">{item.spec.accessModes?.join(', ')}</td>
-                                                    <td className="px-6 py-4 text-sm text-slate-600">{item.spec.storageClassName}</td>
+                                                    {visibleColumns.persistentvolumeclaim.includes('status') && (
+                                                        <td className="px-6 py-4" style={{ width: `${getColumnWidth('status', 100)}px` }}>
+                                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${item.status.phase === 'Bound' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                                                                }`}>
+                                                                {item.status.phase}
+                                                            </span>
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.persistentvolumeclaim.includes('volume') && <td className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${getColumnWidth('volume', 150)}px` }}>{item.spec.volumeName || '<pending>'}</td>}
+                                                    {visibleColumns.persistentvolumeclaim.includes('capacity') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('capacity', 100)}px` }}>{item.status.capacity?.storage || 'N/A'}</td>}
+                                                    {visibleColumns.persistentvolumeclaim.includes('access-modes') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('access-modes', 150)}px` }}>{item.spec.accessModes?.join(', ')}</td>}
+                                                    {visibleColumns.persistentvolumeclaim.includes('storageclass') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('storageclass', 150)}px` }}>{item.spec.storageClassName}</td>}
+                                                    {visibleColumns.persistentvolumeclaim.includes('vac') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('vac', 150)}px` }}>{item.spec.volumeAttributesClassName || '<none>'}</td>}
                                                 </>
                                             )}
                                             {activeTab === 'ingress' && (
                                                 <>
-                                                    <td className="px-6 py-4 text-sm text-slate-600">
-                                                        {item.spec.ingressClassName || item.metadata.annotations?.['kubernetes.io/ingress.class'] || '<none>'}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-sm text-slate-600">
-                                                        {item.spec.rules?.map((r: any) => r.host).filter(Boolean).join(', ') || '*'}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-sm font-mono text-slate-500">
-                                                        {item.status.loadBalancer?.ingress?.map((i: any) => i.ip || i.hostname).filter(Boolean).join(', ') || '<pending>'}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-sm text-slate-600">
-                                                        {item.spec.tls ? '80, 443' : '80'}
-                                                    </td>
+                                                    {visibleColumns.ingress.includes('class') && (
+                                                        <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('class', 120)}px` }}>
+                                                            {item.spec.ingressClassName || item.metadata.annotations?.['kubernetes.io/ingress.class'] || '<none>'}
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.ingress.includes('hosts') && (
+                                                        <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('hosts', 200)}px` }}>
+                                                            {item.spec.rules?.map((r: any) => r.host).filter(Boolean).join(', ') || '*'}
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.ingress.includes('address') && (
+                                                        <td className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${getColumnWidth('address', 150)}px` }}>
+                                                            {item.status.loadBalancer?.ingress?.map((i: any) => i.ip || i.hostname).filter(Boolean).join(', ') || '<pending>'}
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.ingress.includes('ports') && (
+                                                        <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('ports', 100)}px` }}>
+                                                            {item.spec.tls ? '80, 443' : '80'}
+                                                        </td>
+                                                    )}
                                                 </>
                                             )}
-                                            <td className="px-6 py-4 text-sm text-slate-400">
-                                                {new Date(item.metadata.creationTimestamp).toLocaleString()}
-                                            </td>
+                                            {visibleColumns[activeTab].includes('age') && (
+                                                <td className="px-6 py-4 text-sm text-slate-400 truncate" style={{ width: `${getColumnWidth('age', 150)}px` }}>
+                                                    {new Date(item.metadata.creationTimestamp).toLocaleString()}
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>
