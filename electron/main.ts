@@ -136,6 +136,15 @@ function createWindow() {
         }
     })
 
+    ipcMain.handle('rollout-restart', async (_event, { contextName, resourceType, resourceName, namespace }) => {
+        try {
+            await execPromise(`kubectl rollout restart ${resourceType}/${resourceName} --context ${contextName} -n ${namespace}`)
+            return { success: true }
+        } catch (error: any) {
+            return { success: false, error: error.message }
+        }
+    })
+
     ipcMain.handle('delete-cluster', async (_event, name) => {
         try {
             await execPromise(`kind delete cluster --name ${name}`)

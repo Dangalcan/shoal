@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Box, List, Shield, Activity, Search, RefreshCw, Loader2, AlertCircle, Gauge, Database, Terminal, Globe, Settings, X, Check, Eye, FileCode, Lock, FileText } from 'lucide-react'
+import { ArrowLeft, Box, List, Shield, Activity, Search, RefreshCw, Loader2, AlertCircle, Gauge, Database, Terminal, Globe, Settings, X, Check, Eye, FileCode, Lock, FileText, ChevronUp, ChevronDown } from 'lucide-react'
+import { Toaster, toast } from 'sonner'
 import { LogViewerModal } from '../components/LogViewerModal'
 import { DescribeModal } from '../components/DescribeModal'
 import { YamlModal } from '../components/YamlModal'
@@ -79,6 +80,7 @@ export function ClusterDetails() {
         return saved ? JSON.parse(saved) : {}
     })
 
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null)
     const [resizing, setResizing] = useState<{ id: string; startX: number; startWidth: number } | null>(null)
 
     useEffect(() => {
@@ -152,6 +154,96 @@ export function ClusterDetails() {
             setLoading(false)
         }
     }
+
+    const handleRestart = async (resourceName: string, namespace: string, type: ResourceType) => {
+        if (!name) return
+        const toastId = toast.loading(`Restarting ${type}/${resourceName}...`)
+        try {
+            const result = await window.electron.rolloutRestart({
+                contextName: name,
+                resourceType: type,
+                resourceName,
+                namespace
+            })
+            if (result.success) {
+                toast.success(`${type}/${resourceName} restarted successfully`, { id: toastId })
+                setTimeout(fetchData, 2000)
+            } else {
+                toast.error(`Failed to restart: ${result.error}`, { id: toastId })
+            }
+        } catch (err: any) {
+            toast.error(`Error: ${err.message}`, { id: toastId })
+        }
+    }
+
+    const handleSort = (key: string) => {
+        setSortConfig(prev => {
+            if (prev?.key === key) {
+                return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
+            }
+            return { key, direction: 'asc' }
+        })
+    }
+
+    const getSortedItems = () => {
+        if (!sortConfig) return items
+
+        return [...items].sort((a, b) => {
+            let valA: any = ''
+            let valB: any = ''
+
+            // Extract values based on key
+            switch (sortConfig.key) {
+                case 'name':
+                    valA = a.metadata.name
+                    valB = b.metadata.name
+                    break
+                case 'namespace':
+                    valA = a.metadata.namespace
+                    valB = b.metadata.namespace
+                    break
+                case 'age':
+                    valA = new Date(a.metadata.creationTimestamp).getTime()
+                    valB = new Date(b.metadata.creationTimestamp).getTime()
+                    break
+                case 'status':
+                    if (activeTab === 'pods') {
+                        valA = a.status.phase
+                        valB = b.status.phase
+                    } else if (activeTab === 'persistentvolumeclaim') {
+                        valA = a.status.phase
+                        valB = b.status.phase
+                    }
+                    break
+                case 'restarts':
+                    valA = a.status.containerStatuses?.reduce((acc: number, c: any) => acc + c.restartCount, 0) || 0
+                    valB = b.status.containerStatuses?.reduce((acc: number, c: any) => acc + c.restartCount, 0) || 0
+                    break
+                case 'ready':
+                    valA = a.status.readyReplicas || 0
+                    valB = b.status.readyReplicas || 0
+                    break
+                case 'updated':
+                    valA = a.status.updatedReplicas || 0
+                    valB = b.status.updatedReplicas || 0
+                    break
+                case 'data':
+                    valA = Object.keys(a.data || {}).length
+                    valB = Object.keys(b.data || {}).length
+                    break
+                default:
+                    // For other columns, try to find the value (simplified)
+                    valA = a[sortConfig.key] || ''
+                    valB = b[sortConfig.key] || ''
+            }
+
+            if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1
+            if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1
+            return 0
+        })
+    }
+
+    const sortedItems = getSortedItems()
 
     useEffect(() => {
         fetchData()
@@ -418,15 +510,25 @@ export function ClusterDetails() {
                                         {columnDefinitions[activeTab].map(col => {
                                             if (!visibleColumns[activeTab]?.includes(col.id)) return null
                                             const width = getColumnWidth(col.id, col.minWidth)
+                                            const isSorted = sortConfig?.key === col.id
                                             return (
                                                 <th
                                                     key={col.id}
-                                                    className="px-6 py-4 relative group select-none"
+                                                    className="px-6 py-4 relative group select-none cursor-pointer hover:bg-slate-100 transition-colors"
                                                     style={{ width: `${width}px` }}
+                                                    onClick={() => handleSort(col.id)}
                                                 >
-                                                    <div className="truncate pr-2">{col.label}</div>
+                                                    <div className="flex items-center gap-1 pr-2 truncate">
+                                                        <span>{col.label}</span>
+                                                        {isSorted && (
+                                                            sortConfig.direction === 'asc' ? <ChevronUp size={14} className="text-blue-500" /> : <ChevronDown size={14} className="text-blue-500" />
+                                                        )}
+                                                    </div>
                                                     <div
-                                                        onMouseDown={(e) => startResize(e, col.id, width)}
+                                                        onMouseDown={(e) => {
+                                                            e.stopPropagation()
+                                                            startResize(e, col.id, width)
+                                                        }}
                                                         className={`absolute right-[-4px] top-0 bottom-0 w-3 cursor-col-resize z-10 transition-colors hover:bg-blue-400/30 ${resizing?.id === `${activeTab}-${col.id}` ? 'bg-blue-500' : 'bg-transparent'}`}
                                                     >
                                                         <div className={`absolute right-[5px] top-1/4 bottom-1/4 w-[2px] rounded-full transition-colors ${resizing?.id === `${activeTab}-${col.id}` ? 'bg-white' : 'group-hover:bg-blue-400'}`} />
@@ -437,8 +539,8 @@ export function ClusterDetails() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {items.map((item, idx) => (
-                                        <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                    {sortedItems.map((item, idx) => (
+                                        <tr key={idx} className="hover:bg-slate-50 transition-colors border-b border-slate-100 group/row">
                                             {visibleColumns[activeTab]?.includes('namespace') && (
                                                 <td className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${getColumnWidth('namespace', 120)}px` }}>{item.metadata.namespace}</td>
                                             )}
@@ -482,6 +584,31 @@ export function ClusterDetails() {
                                                             >
                                                                 <FileCode size={14} />
                                                             </button>
+                                                            {(activeTab === 'deployments' || activeTab === 'statefulsets') && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation()
+                                                                        handleRestart(item.metadata.name, item.metadata.namespace, activeTab)
+                                                                    }}
+                                                                    className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-green-500 transition-colors"
+                                                                    title="Rollout Restart"
+                                                                >
+                                                                    <RefreshCw size={14} />
+                                                                </button>
+                                                            )}
+                                                            {activeTab === 'pods' && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation()
+                                                                        setSelectedPod({ name: item.metadata.name, ns: item.metadata.namespace })
+                                                                        setIsLogModalOpen(true)
+                                                                    }}
+                                                                    className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-blue-500 transition-colors"
+                                                                    title="View Logs"
+                                                                >
+                                                                    <Terminal size={14} />
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </td>
@@ -628,6 +755,7 @@ export function ClusterDetails() {
                 resourceType={yamlTarget?.type || activeTab}
                 namespace={yamlTarget?.ns || ''}
             />
+            <Toaster position="bottom-right" richColors />
         </div>
     )
 }
