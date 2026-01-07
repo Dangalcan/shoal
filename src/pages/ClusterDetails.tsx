@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Box, List, Shield, Activity, Search, RefreshCw, Loader2, AlertCircle, Gauge, Database, Terminal } from 'lucide-react'
+import { ArrowLeft, Box, List, Shield, Activity, Search, RefreshCw, Loader2, AlertCircle, Gauge, Database, Terminal, Globe } from 'lucide-react'
 import { LogViewerModal } from '../components/LogViewerModal'
 
-type ResourceType = 'pods' | 'deployments' | 'services' | 'statefulsets' | 'hpa' | 'persistentvolumeclaim'
+type ResourceType = 'pods' | 'deployments' | 'services' | 'statefulsets' | 'hpa' | 'persistentvolumeclaim' | 'ingress'
 
 export function ClusterDetails() {
     const { name } = useParams<{ name: string }>()
@@ -56,7 +56,8 @@ export function ClusterDetails() {
         { id: 'services', label: 'Services', icon: Shield },
         { id: 'statefulsets', label: 'StatefulSets', icon: List },
         { id: 'hpa', label: 'HPAs', icon: Gauge },
-        { id: 'persistentvolumeclaim', label: 'PVCs', icon: Database }
+        { id: 'persistentvolumeclaim', label: 'PVCs', icon: Database },
+        { id: 'ingress', label: 'Ingresses', icon: Globe }
     ]
 
     return (
@@ -158,6 +159,10 @@ export function ClusterDetails() {
                                         {activeTab === 'persistentvolumeclaim' && <th className="px-6 py-4">Capacity</th>}
                                         {activeTab === 'persistentvolumeclaim' && <th className="px-6 py-4">Access Modes</th>}
                                         {activeTab === 'persistentvolumeclaim' && <th className="px-6 py-4">StorageClass</th>}
+                                        {activeTab === 'ingress' && <th className="px-6 py-4">Class</th>}
+                                        {activeTab === 'ingress' && <th className="px-6 py-4">Hosts</th>}
+                                        {activeTab === 'ingress' && <th className="px-6 py-4">Address</th>}
+                                        {activeTab === 'ingress' && <th className="px-6 py-4">Ports</th>}
                                         <th className="px-6 py-4">Creation Time</th>
                                     </tr>
                                 </thead>
@@ -225,6 +230,22 @@ export function ClusterDetails() {
                                                     <td className="px-6 py-4 text-sm text-slate-600">{item.status.capacity?.storage || 'N/A'}</td>
                                                     <td className="px-6 py-4 text-sm text-slate-600">{item.spec.accessModes?.join(', ')}</td>
                                                     <td className="px-6 py-4 text-sm text-slate-600">{item.spec.storageClassName}</td>
+                                                </>
+                                            )}
+                                            {activeTab === 'ingress' && (
+                                                <>
+                                                    <td className="px-6 py-4 text-sm text-slate-600">
+                                                        {item.spec.ingressClassName || item.metadata.annotations?.['kubernetes.io/ingress.class'] || '<none>'}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-slate-600">
+                                                        {item.spec.rules?.map((r: any) => r.host).filter(Boolean).join(', ') || '*'}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm font-mono text-slate-500">
+                                                        {item.status.loadBalancer?.ingress?.map((i: any) => i.ip || i.hostname).filter(Boolean).join(', ') || '<pending>'}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-slate-600">
+                                                        {item.spec.tls ? '80, 443' : '80'}
+                                                    </td>
                                                 </>
                                             )}
                                             <td className="px-6 py-4 text-sm text-slate-400">
