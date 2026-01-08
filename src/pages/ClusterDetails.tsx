@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Box, List, Shield, Activity, Search, RefreshCw, Loader2, AlertCircle, Gauge, Database, Terminal, Globe, Settings, X, Check, Eye, FileCode, Lock, FileText, ChevronUp, ChevronDown } from 'lucide-react'
+import { ArrowLeft, Box, List, Shield, Activity, Search, RefreshCw, Loader2, AlertCircle, Gauge, Database, Terminal, Globe, Settings, X, Check, Eye, FileCode, Lock, FileText, ChevronUp, ChevronDown, Server } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
 import { LogViewerModal } from '../components/LogViewerModal'
 import { DescribeModal } from '../components/DescribeModal'
 import { YamlModal } from '../components/YamlModal'
 
-type ResourceType = 'pods' | 'deployments' | 'services' | 'statefulsets' | 'hpa' | 'persistentvolumeclaim' | 'ingress' | 'secrets' | 'configmap'
+type ResourceType = 'pods' | 'deployments' | 'services' | 'statefulsets' | 'hpa' | 'persistentvolumeclaim' | 'ingress' | 'secrets' | 'configmap' | 'nodes'
 
 interface ColumnDef {
     id: string;
@@ -38,7 +38,7 @@ export function ClusterDetails() {
 
     // Resource Visibility State
     const [visibleResources, setVisibleResources] = useState<ResourceType[]>(() => {
-        const defaults: ResourceType[] = ['pods', 'deployments', 'services', 'statefulsets', 'hpa', 'persistentvolumeclaim', 'ingress', 'secrets', 'configmap']
+        const defaults: ResourceType[] = ['pods', 'deployments', 'services', 'statefulsets', 'hpa', 'persistentvolumeclaim', 'ingress', 'secrets', 'configmap', 'nodes']
         const saved = localStorage.getItem('k8s_desktop_visible_resources')
         if (!saved) return defaults
         try {
@@ -63,7 +63,8 @@ export function ClusterDetails() {
             persistentvolumeclaim: ['namespace', 'name', 'status', 'volume', 'capacity', 'access-modes', 'storageclass', 'vac', 'age'],
             ingress: ['namespace', 'name', 'class', 'hosts', 'address', 'ports', 'age'],
             secrets: ['namespace', 'name', 'type', 'data', 'age'],
-            configmap: ['namespace', 'name', 'data', 'age']
+            configmap: ['namespace', 'name', 'data', 'age'],
+            nodes: ['name', 'status', 'roles', 'age', 'version']
         }
         const saved = localStorage.getItem('k8s_desktop_visible_columns')
         if (!saved) return defaults
@@ -216,20 +217,72 @@ export function ClusterDetails() {
                     }
                     break
                 case 'restarts':
-                    valA = a.status.containerStatuses?.reduce((acc: number, c: any) => acc + c.restartCount, 0) || 0
-                    valB = b.status.containerStatuses?.reduce((acc: number, c: any) => acc + c.restartCount, 0) || 0
+                    valA = a.status?.containerStatuses?.reduce((acc: number, c: any) => acc + c.restartCount, 0) || 0
+                    valB = b.status?.containerStatuses?.reduce((acc: number, c: any) => acc + c.restartCount, 0) || 0
                     break
                 case 'ready':
-                    valA = a.status.readyReplicas || 0
-                    valB = b.status.readyReplicas || 0
+                    valA = a.status?.readyReplicas || 0
+                    valB = b.status?.readyReplicas || 0
                     break
                 case 'updated':
-                    valA = a.status.updatedReplicas || 0
-                    valB = b.status.updatedReplicas || 0
+                    valA = a.status?.updatedReplicas || 0
+                    valB = b.status?.updatedReplicas || 0
+                    break
+                case 'available':
+                    valA = a.status?.availableReplicas || 0
+                    valB = b.status?.availableReplicas || 0
                     break
                 case 'data':
                     valA = Object.keys(a.data || {}).length
                     valB = Object.keys(b.data || {}).length
+                    break
+                case 'roles':
+                    valA = Object.keys(a.metadata?.labels || {}).filter(l => l.startsWith('node-role.kubernetes.io/')).join(', ')
+                    valB = Object.keys(b.metadata?.labels || {}).filter(l => l.startsWith('node-role.kubernetes.io/')).join(', ')
+                    break
+                case 'version':
+                    valA = a.status?.nodeInfo?.kubeletVersion || ''
+                    valB = b.status?.nodeInfo?.kubeletVersion || ''
+                    break
+                case 'internal-ip':
+                    valA = a.status?.addresses?.find((addr: any) => addr.type === 'InternalIP')?.address || ''
+                    valB = b.status?.addresses?.find((addr: any) => addr.type === 'InternalIP')?.address || ''
+                    break
+                case 'external-ip':
+                    valA = a.status?.addresses?.find((addr: any) => addr.type === 'ExternalIP')?.address || ''
+                    valB = b.status?.addresses?.find((addr: any) => addr.type === 'ExternalIP')?.address || ''
+                    break
+                case 'os-image':
+                    valA = a.status?.nodeInfo?.osImage || ''
+                    valB = b.status?.nodeInfo?.osImage || ''
+                    break
+                case 'kernel-version':
+                    valA = a.status?.nodeInfo?.kernelVersion || ''
+                    valB = b.status?.nodeInfo?.kernelVersion || ''
+                    break
+                case 'container-runtime':
+                    valA = a.status?.nodeInfo?.containerRuntimeVersion || ''
+                    valB = b.status?.nodeInfo?.containerRuntimeVersion || ''
+                    break
+                case 'ip':
+                    valA = a.status?.podIP || ''
+                    valB = b.status?.podIP || ''
+                    break
+                case 'node':
+                    valA = a.spec?.nodeName || ''
+                    valB = b.spec?.nodeName || ''
+                    break
+                case 'containers':
+                    valA = (a.spec?.template || a.spec)?.spec?.containers?.map((c: any) => c.name).join(', ') || ''
+                    valB = (b.spec?.template || b.spec)?.spec?.containers?.map((c: any) => c.name).join(', ') || ''
+                    break
+                case 'images':
+                    valA = (a.spec?.template || a.spec)?.spec?.containers?.map((c: any) => c.image).join(', ') || ''
+                    valB = (b.spec?.template || b.spec)?.spec?.containers?.map((c: any) => c.image).join(', ') || ''
+                    break
+                case 'selector':
+                    valA = JSON.stringify(a.spec?.selector?.matchLabels || a.spec?.selector || {})
+                    valB = JSON.stringify(b.spec?.selector?.matchLabels || b.spec?.selector || {})
                     break
                 default:
                     // For other columns, try to find the value (simplified)
@@ -258,7 +311,8 @@ export function ClusterDetails() {
         { id: 'persistentvolumeclaim', label: 'PVCs', icon: Database },
         { id: 'ingress', label: 'Ingresses', icon: Globe },
         { id: 'secrets', label: 'Secrets', icon: Lock },
-        { id: 'configmap', label: 'ConfigMaps', icon: FileText }
+        { id: 'configmap', label: 'ConfigMaps', icon: FileText },
+        { id: 'nodes', label: 'Nodes', icon: Server }
     ]
 
     const columnDefinitions: Record<ResourceType, ColumnDef[]> = {
@@ -267,14 +321,22 @@ export function ClusterDetails() {
             { id: 'name', label: 'Name', minWidth: 200 },
             { id: 'status', label: 'Status', minWidth: 100 },
             { id: 'restarts', label: 'Restarts', minWidth: 80 },
-            { id: 'age', label: 'Age', minWidth: 150 }
+            { id: 'age', label: 'Age', minWidth: 150 },
+            { id: 'ip', label: 'IP', minWidth: 120 },
+            { id: 'node', label: 'Node', minWidth: 150 },
+            { id: 'nominated-node', label: 'Nominated Node', minWidth: 150 },
+            { id: 'readiness-gates', label: 'Readiness Gates', minWidth: 150 }
         ],
         deployments: [
             { id: 'namespace', label: 'Namespace', minWidth: 120 },
             { id: 'name', label: 'Name', minWidth: 200 },
             { id: 'ready', label: 'Ready', minWidth: 100 },
             { id: 'updated', label: 'Up-To-Date', minWidth: 100 },
-            { id: 'age', label: 'Age', minWidth: 150 }
+            { id: 'available', label: 'Available', minWidth: 100 },
+            { id: 'age', label: 'Age', minWidth: 150 },
+            { id: 'containers', label: 'Containers', minWidth: 150 },
+            { id: 'images', label: 'Images', minWidth: 200 },
+            { id: 'selector', label: 'Selector', minWidth: 200 }
         ],
         services: [
             { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -283,13 +345,16 @@ export function ClusterDetails() {
             { id: 'cluster-ip', label: 'Cluster IP', minWidth: 150 },
             { id: 'external-ip', label: 'External IP', minWidth: 150 },
             { id: 'ports', label: 'Port(s)', minWidth: 150 },
-            { id: 'age', label: 'Age', minWidth: 150 }
+            { id: 'age', label: 'Age', minWidth: 150 },
+            { id: 'selector', label: 'Selector', minWidth: 200 }
         ],
         statefulsets: [
             { id: 'namespace', label: 'Namespace', minWidth: 120 },
             { id: 'name', label: 'Name', minWidth: 200 },
             { id: 'ready', label: 'Ready', minWidth: 100 },
-            { id: 'age', label: 'Age', minWidth: 150 }
+            { id: 'age', label: 'Age', minWidth: 150 },
+            { id: 'containers', label: 'Containers', minWidth: 150 },
+            { id: 'images', label: 'Images', minWidth: 200 }
         ],
         hpa: [
             { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -333,6 +398,18 @@ export function ClusterDetails() {
             { id: 'name', label: 'Name', minWidth: 200 },
             { id: 'data', label: 'Data', minWidth: 80 },
             { id: 'age', label: 'Age', minWidth: 150 }
+        ],
+        nodes: [
+            { id: 'name', label: 'Name', minWidth: 200 },
+            { id: 'status', label: 'Status', minWidth: 100 },
+            { id: 'roles', label: 'Roles', minWidth: 120 },
+            { id: 'age', label: 'Age', minWidth: 150 },
+            { id: 'version', label: 'Version', minWidth: 120 },
+            { id: 'internal-ip', label: 'Internal IP', minWidth: 150 },
+            { id: 'external-ip', label: 'External IP', minWidth: 150 },
+            { id: 'os-image', label: 'OS Image', minWidth: 200 },
+            { id: 'kernel-version', label: 'Kernel Version', minWidth: 200 },
+            { id: 'container-runtime', label: 'Container Runtime', minWidth: 200 }
         ]
     }
 
@@ -541,182 +618,255 @@ export function ClusterDetails() {
                                 <tbody className="divide-y divide-slate-100">
                                     {sortedItems.map((item, idx) => (
                                         <tr key={idx} className="hover:bg-slate-50 transition-colors border-b border-slate-100 group/row">
-                                            {visibleColumns[activeTab]?.includes('namespace') && (
-                                                <td className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${getColumnWidth('namespace', 120)}px` }}>{item.metadata.namespace}</td>
-                                            )}
-                                            {visibleColumns[activeTab]?.includes('name') && (
-                                                <td className="px-6 py-4 text-sm font-bold text-slate-900 truncate" style={{ width: `${getColumnWidth('name', 200)}px` }} title={item.metadata.name}>
-                                                    <div className="flex items-center gap-2 group/row">
-                                                        {activeTab === 'pods' ? (
-                                                            <button
-                                                                onClick={() => {
-                                                                    setSelectedPod({ name: item.metadata.name, ns: item.metadata.namespace })
-                                                                    setIsLogModalOpen(true)
-                                                                }}
-                                                                className="flex items-center gap-2 hover:text-blue-600 group transition-colors text-left truncate flex-1"
-                                                            >
-                                                                <span className="truncate">{item.metadata.name}</span>
-                                                                <Terminal size={14} className="flex-shrink-0 opacity-0 group-hover:opacity-100 text-blue-400" />
-                                                            </button>
-                                                        ) : (
-                                                            <span className="truncate flex-1">{item.metadata.name}</span>
-                                                        )}
-                                                        <div className="flex items-center gap-1 opacity-0 group-hover/row:opacity-100 transition-all">
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation()
-                                                                    setDescribeTarget({ name: item.metadata.name, ns: item.metadata.namespace, type: activeTab })
-                                                                    setIsDescribeModalOpen(true)
-                                                                }}
-                                                                className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-blue-500 transition-colors"
-                                                                title="Describe Resource"
-                                                            >
-                                                                <Eye size={14} />
-                                                            </button>
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation()
-                                                                    setYamlTarget({ name: item.metadata.name, ns: item.metadata.namespace, type: activeTab })
-                                                                    setIsYamlModalOpen(true)
-                                                                }}
-                                                                className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-purple-500 transition-colors"
-                                                                title="View YAML"
-                                                            >
-                                                                <FileCode size={14} />
-                                                            </button>
-                                                            {(activeTab === 'deployments' || activeTab === 'statefulsets') && (
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation()
-                                                                        handleRestart(item.metadata.name, item.metadata.namespace, activeTab)
-                                                                    }}
-                                                                    className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-green-500 transition-colors"
-                                                                    title="Rollout Restart"
-                                                                >
-                                                                    <RefreshCw size={14} />
-                                                                </button>
-                                                            )}
-                                                            {activeTab === 'pods' && (
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation()
-                                                                        setSelectedPod({ name: item.metadata.name, ns: item.metadata.namespace })
-                                                                        setIsLogModalOpen(true)
-                                                                    }}
-                                                                    className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-blue-500 transition-colors"
-                                                                    title="View Logs"
-                                                                >
-                                                                    <Terminal size={14} />
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            )}
-                                            {activeTab === 'pods' && visibleColumns.pods.includes('status') && (
-                                                <td className="px-6 py-4" style={{ width: `${getColumnWidth('status', 100)}px` }}>
-                                                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${item.status.phase === 'Running' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                                                        }`}>
-                                                        {item.status.phase}
-                                                    </span>
-                                                </td>
-                                            )}
-                                            {activeTab === 'pods' && visibleColumns.pods.includes('restarts') && (
-                                                <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('restarts', 80)}px` }}>
-                                                    {item.status.containerStatuses?.reduce((acc: number, c: any) => acc + c.restartCount, 0) || 0}
-                                                </td>
-                                            )}
-                                            {activeTab === 'services' && (
-                                                <>
-                                                    {visibleColumns.services.includes('type') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('type', 100)}px` }}>{item.spec.type}</td>}
-                                                    {visibleColumns.services.includes('cluster-ip') && <td className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${getColumnWidth('cluster-ip', 150)}px` }}>{item.spec.clusterIP}</td>}
-                                                    {visibleColumns.services.includes('external-ip') && <td className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${getColumnWidth('external-ip', 150)}px` }}>{item.status.loadBalancer?.ingress?.[0]?.ip || item.status.loadBalancer?.ingress?.[0]?.hostname || '<none>'}</td>}
-                                                    {visibleColumns.services.includes('ports') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('ports', 150)}px` }}>{item.spec.ports?.map((p: any) => `${p.port}/${p.protocol}`).join(', ') || '<none>'}</td>}
-                                                </>
-                                            )}
-                                            {(activeTab === 'deployments' || activeTab === 'statefulsets') && visibleColumns[activeTab].includes('ready') && (
-                                                <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('ready', 100)}px` }}>
-                                                    {item.status.readyReplicas || 0} / {item.status.replicas || 0}
-                                                </td>
-                                            )}
-                                            {activeTab === 'deployments' && visibleColumns.deployments.includes('updated') && (
-                                                <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('updated', 100)}px` }}>
-                                                    {item.status.updatedReplicas || 0}
-                                                </td>
-                                            )}
-                                            {activeTab === 'hpa' && (
-                                                <>
-                                                    {visibleColumns.hpa.includes('reference') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('reference', 200)}px` }}>{item.spec.scaleTargetRef?.kind}/{item.spec.scaleTargetRef?.name}</td>}
-                                                    {visibleColumns.hpa.includes('targets') && (
-                                                        <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('targets', 150)}px` }}>
-                                                            {item.status.currentMetrics?.[0]?.resource?.current?.averageUtilization ??
-                                                                item.status.currentCPUUtilizationPercentage ?? '0'}% / {
-                                                                item.spec.metrics?.[0]?.resource?.target?.averageUtilization ??
-                                                                item.spec.targetCPUUtilizationPercentage ?? '0'}%
+                                            {columnDefinitions[activeTab].map(col => {
+                                                if (!visibleColumns[activeTab]?.includes(col.id)) return null
+                                                const width = getColumnWidth(col.id, col.minWidth)
+
+                                                // Column rendering switch
+                                                switch (col.id) {
+                                                    case 'namespace':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.metadata.namespace}</td>
+
+                                                    case 'name':
+                                                        return (
+                                                            <td key={col.id} className="px-6 py-4 text-sm font-bold text-slate-900 truncate" style={{ width: `${width}px` }} title={item.metadata.name}>
+                                                                <div className="flex items-center gap-2 group/row">
+                                                                    {activeTab === 'pods' ? (
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setSelectedPod({ name: item.metadata.name, ns: item.metadata.namespace })
+                                                                                setIsLogModalOpen(true)
+                                                                            }}
+                                                                            className="flex items-center gap-2 hover:text-blue-600 group transition-colors text-left truncate flex-1"
+                                                                        >
+                                                                            <span className="truncate">{item.metadata.name}</span>
+                                                                            <Terminal size={14} className="flex-shrink-0 opacity-0 group-hover:opacity-100 text-blue-400" />
+                                                                        </button>
+                                                                    ) : (
+                                                                        <span className="truncate flex-1">{item.metadata.name}</span>
+                                                                    )}
+                                                                    <div className="flex items-center gap-1 opacity-0 group-hover/row:opacity-100 transition-all">
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation()
+                                                                                setDescribeTarget({ name: item.metadata.name, ns: item.metadata.namespace, type: activeTab })
+                                                                                setIsDescribeModalOpen(true)
+                                                                            }}
+                                                                            className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-blue-500 transition-colors"
+                                                                            title="Describe Resource"
+                                                                        >
+                                                                            <Eye size={14} />
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation()
+                                                                                setYamlTarget({ name: item.metadata.name, ns: item.metadata.namespace, type: activeTab })
+                                                                                setIsYamlModalOpen(true)
+                                                                            }}
+                                                                            className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-purple-500 transition-colors"
+                                                                            title="View YAML"
+                                                                        >
+                                                                            <FileCode size={14} />
+                                                                        </button>
+                                                                        {(activeTab === 'deployments' || activeTab === 'statefulsets') && (
+                                                                            <button
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation()
+                                                                                    handleRestart(item.metadata.name, item.metadata.namespace, activeTab)
+                                                                                }}
+                                                                                className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-green-500 transition-colors"
+                                                                                title="Rollout Restart"
+                                                                            >
+                                                                                <RefreshCw size={14} />
+                                                                            </button>
+                                                                        )}
+                                                                        {activeTab === 'pods' && (
+                                                                            <button
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation()
+                                                                                    setSelectedPod({ name: item.metadata.name, ns: item.metadata.namespace })
+                                                                                    setIsLogModalOpen(true)
+                                                                                }}
+                                                                                className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-blue-500 transition-colors"
+                                                                                title="View Logs"
+                                                                            >
+                                                                                <Terminal size={14} />
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                        )
+
+                                                    case 'status':
+                                                        if (activeTab === 'pods') {
+                                                            return <td key={col.id} className="px-6 py-4" style={{ width: `${width}px` }}>
+                                                                <span className={`px-2 py-1 rounded-full text-xs font-bold ${item.status?.phase === 'Running' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                                    {item.status?.phase || 'Unknown'}
+                                                                </span>
+                                                            </td>
+                                                        }
+                                                        if (activeTab === 'persistentvolumeclaim') {
+                                                            return <td key={col.id} className="px-6 py-4" style={{ width: `${width}px` }}>
+                                                                <span className={`px-2 py-1 rounded-full text-xs font-bold ${item.status?.phase === 'Bound' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                                    {item.status?.phase || 'Unknown'}
+                                                                </span>
+                                                            </td>
+                                                        }
+                                                        if (activeTab === 'nodes') {
+                                                            const ready = item.status?.conditions?.find((c: any) => c.type === 'Ready')?.status === 'True'
+                                                            return <td key={col.id} className="px-6 py-4" style={{ width: `${width}px` }}>
+                                                                <span className={`px-2 py-1 rounded-full text-xs font-bold ${ready ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                                    {ready ? 'Ready' : 'NotReady'}
+                                                                </span>
+                                                            </td>
+                                                        }
+                                                        return <td key={col.id} className="px-6 py-4" style={{ width: `${width}px` }}>-</td>
+
+                                                    case 'restarts':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>
+                                                            {item.status?.containerStatuses?.reduce((acc: number, c: any) => acc + c.restartCount, 0) || 0}
                                                         </td>
-                                                    )}
-                                                    {visibleColumns.hpa.includes('minpods') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('minpods', 80)}px` }}>{item.spec.minReplicas ?? item.spec.minReplicas}</td>}
-                                                    {visibleColumns.hpa.includes('maxpods') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('maxpods', 80)}px` }}>{item.spec.maxReplicas}</td>}
-                                                    {visibleColumns.hpa.includes('replicas') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('replicas', 80)}px` }}>{item.status.currentReplicas || 0}</td>}
-                                                </>
-                                            )}
-                                            {activeTab === 'persistentvolumeclaim' && (
-                                                <>
-                                                    {visibleColumns.persistentvolumeclaim.includes('status') && (
-                                                        <td className="px-6 py-4" style={{ width: `${getColumnWidth('status', 100)}px` }}>
-                                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${item.status.phase === 'Bound' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                                                                }`}>
-                                                                {item.status.phase}
-                                                            </span>
+
+                                                    case 'ready':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>
+                                                            {item.status?.readyReplicas || 0} / {item.status?.replicas || 0}
                                                         </td>
-                                                    )}
-                                                    {visibleColumns.persistentvolumeclaim.includes('volume') && <td className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${getColumnWidth('volume', 150)}px` }}>{item.spec.volumeName || '<pending>'}</td>}
-                                                    {visibleColumns.persistentvolumeclaim.includes('capacity') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('capacity', 100)}px` }}>{item.status.capacity?.storage || 'N/A'}</td>}
-                                                    {visibleColumns.persistentvolumeclaim.includes('access-modes') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('access-modes', 150)}px` }}>{item.spec.accessModes?.join(', ')}</td>}
-                                                    {visibleColumns.persistentvolumeclaim.includes('storageclass') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('storageclass', 150)}px` }}>{item.spec.storageClassName}</td>}
-                                                    {visibleColumns.persistentvolumeclaim.includes('vac') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('vac', 150)}px` }}>{item.spec.volumeAttributesClassName || '<none>'}</td>}
-                                                </>
-                                            )}
-                                            {activeTab === 'ingress' && (
-                                                <>
-                                                    {visibleColumns.ingress.includes('class') && (
-                                                        <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('class', 120)}px` }}>
-                                                            {item.spec.ingressClassName || item.metadata.annotations?.['kubernetes.io/ingress.class'] || '<none>'}
+
+                                                    case 'updated':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.status?.updatedReplicas || 0}</td>
+
+                                                    case 'available':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.status?.availableReplicas || 0}</td>
+
+                                                    case 'age':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-400 truncate" style={{ width: `${width}px` }}>
+                                                            {new Date(item.metadata.creationTimestamp).toLocaleString()}
                                                         </td>
-                                                    )}
-                                                    {visibleColumns.ingress.includes('hosts') && (
-                                                        <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('hosts', 200)}px` }}>
-                                                            {item.spec.rules?.map((r: any) => r.host).filter(Boolean).join(', ') || '*'}
+
+                                                    case 'type':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.type || item.type || '-'}</td>
+
+                                                    case 'cluster-ip':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.spec?.clusterIP || '-'}</td>
+
+                                                    case 'external-ip':
+                                                        if (activeTab === 'services') {
+                                                            return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.status?.loadBalancer?.ingress?.[0]?.ip || item.status?.loadBalancer?.ingress?.[0]?.hostname || '<none>'}</td>
+                                                        }
+                                                        if (activeTab === 'nodes') {
+                                                            return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.status?.addresses?.find((addr: any) => addr.type === 'ExternalIP')?.address || '<none>'}</td>
+                                                        }
+                                                        return null
+
+                                                    case 'ports':
+                                                        if (activeTab === 'services') {
+                                                            return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.ports?.map((p: any) => `${p.port}/${p.protocol}`).join(', ') || '<none>'}</td>
+                                                        }
+                                                        if (activeTab === 'ingress') {
+                                                            return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.tls ? '80, 443' : '80'}</td>
+                                                        }
+                                                        return null
+
+                                                    case 'ip':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.status?.podIP || '<none>'}</td>
+
+                                                    case 'node':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.nodeName || '<none>'}</td>
+
+                                                    case 'nominated-node':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.status?.nominatedNodeName || '<none>'}</td>
+
+                                                    case 'readiness-gates':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.readinessGates?.map((g: any) => g.conditionType).join(', ') || '<none>'}</td>
+
+                                                    case 'containers':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{(item.spec?.template || item.spec)?.spec?.containers?.map((c: any) => c.name).join(', ') || '<none>'}</td>
+
+                                                    case 'images':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{(item.spec?.template || item.spec)?.spec?.containers?.map((c: any) => c.image).join(', ') || '<none>'}</td>
+
+                                                    case 'selector':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>
+                                                            {Object.entries(item.spec?.selector?.matchLabels || item.spec?.selector || {})
+                                                                .map(([k, v]) => `${k}=${v}`)
+                                                                .join(',') || '<none>'}
                                                         </td>
-                                                    )}
-                                                    {visibleColumns.ingress.includes('address') && (
-                                                        <td className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${getColumnWidth('address', 150)}px` }}>
-                                                            {item.status.loadBalancer?.ingress?.map((i: any) => i.ip || i.hostname).filter(Boolean).join(', ') || '<pending>'}
+
+                                                    case 'reference':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.scaleTargetRef?.kind}/{item.spec?.scaleTargetRef?.name}</td>
+
+                                                    case 'targets':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>
+                                                            {item.status?.currentMetrics?.[0]?.resource?.current?.averageUtilization ??
+                                                                item.status?.currentCPUUtilizationPercentage ?? '0'}% / {
+                                                                item.spec?.metrics?.[0]?.resource?.target?.averageUtilization ??
+                                                                item.spec?.targetCPUUtilizationPercentage ?? '0'}%
                                                         </td>
-                                                    )}
-                                                    {visibleColumns.ingress.includes('ports') && (
-                                                        <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('ports', 100)}px` }}>
-                                                            {item.spec.tls ? '80, 443' : '80'}
+
+                                                    case 'minpods':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.minReplicas || 0}</td>
+
+                                                    case 'maxpods':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.maxReplicas || 0}</td>
+
+                                                    case 'replicas':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.status?.currentReplicas || 0}</td>
+
+                                                    case 'volume':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.spec?.volumeName || '<pending>'}</td>
+
+                                                    case 'capacity':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.status?.capacity?.storage || 'N/A'}</td>
+
+                                                    case 'access-modes':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.accessModes?.join(', ')}</td>
+
+                                                    case 'storageclass':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.storageClassName}</td>
+
+                                                    case 'vac':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.volumeAttributesClassName || '<none>'}</td>
+
+                                                    case 'class':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.ingressClassName || item.metadata?.annotations?.['kubernetes.io/ingress.class'] || '<none>'}</td>
+
+                                                    case 'hosts':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.rules?.map((r: any) => r.host).filter(Boolean).join(', ') || '*'}</td>
+
+                                                    case 'address':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.status?.loadBalancer?.ingress?.map((i: any) => i.ip || i.hostname).filter(Boolean).join(', ') || '<pending>'}</td>
+
+                                                    case 'data':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{Object.keys(item.data || {}).length}</td>
+
+                                                    case 'roles':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>
+                                                            {Object.keys(item.metadata?.labels || {})
+                                                                .filter(l => l.startsWith('node-role.kubernetes.io/'))
+                                                                .map(l => l.split('/')[1])
+                                                                .join(', ') || '<none>'}
                                                         </td>
-                                                    )}
-                                                </>
-                                            )}
-                                            {activeTab === 'secrets' && (
-                                                <>
-                                                    {visibleColumns.secrets?.includes('type') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('type', 150)}px` }}>{item.type}</td>}
-                                                    {visibleColumns.secrets?.includes('data') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('data', 80)}px` }}>{Object.keys(item.data || {}).length}</td>}
-                                                </>
-                                            )}
-                                            {activeTab === 'configmap' && (
-                                                <>
-                                                    {visibleColumns.configmap?.includes('data') && <td className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${getColumnWidth('data', 80)}px` }}>{Object.keys(item.data || {}).length}</td>}
-                                                </>
-                                            )}
-                                            {visibleColumns[activeTab]?.includes('age') && (
-                                                <td className="px-6 py-4 text-sm text-slate-400 truncate" style={{ width: `${getColumnWidth('age', 150)}px` }}>
-                                                    {new Date(item.metadata.creationTimestamp).toLocaleString()}
-                                                </td>
-                                            )}
+
+                                                    case 'version':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.status?.nodeInfo?.kubeletVersion}</td>
+
+                                                    case 'internal-ip':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.status?.addresses?.find((addr: any) => addr.type === 'InternalIP')?.address || '<none>'}</td>
+
+                                                    case 'os-image':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.status?.nodeInfo?.osImage}</td>
+
+                                                    case 'kernel-version':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.status?.nodeInfo?.kernelVersion}</td>
+
+                                                    case 'container-runtime':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.status?.nodeInfo?.containerRuntimeVersion}</td>
+
+                                                    default:
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item[col.id] || '-'}</td>
+                                                }
+                                            })}
                                         </tr>
                                     ))}
                                 </tbody>
