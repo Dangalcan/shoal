@@ -145,6 +145,16 @@ function createWindow() {
         }
     })
 
+    ipcMain.handle('delete-resource', async (_event, { contextName, resourceType, resourceName, namespace }) => {
+        try {
+            const nsFlag = namespace === 'all' || !namespace ? '' : `-n ${namespace}`
+            await execPromise(`kubectl delete ${resourceType} ${resourceName} --context ${contextName} ${nsFlag}`)
+            return { success: true }
+        } catch (error: any) {
+            return { success: false, error: error.message }
+        }
+    })
+
     ipcMain.handle('delete-cluster', async (_event, name) => {
         try {
             await execPromise(`kind delete cluster --name ${name}`)

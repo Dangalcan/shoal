@@ -13,5 +13,6 @@ contextBridge.exposeInMainWorld('electron', {
     getLogs: (args: { contextName: string; podName: string; namespace: string }) => ipcRenderer.invoke('get-logs', args),
     describeResource: (args: { contextName: string; resourceType: string; resourceName: string; namespace: string }) => ipcRenderer.invoke('describe-resource', args),
     getResourceYaml: (args: { contextName: string; resourceType: string; resourceName: string; namespace: string }) => ipcRenderer.invoke('get-resource-yaml', args),
-    rolloutRestart: (args: { contextName: string; resourceType: string; resourceName: string; namespace: string }) => ipcRenderer.invoke('rollout-restart', args)
+    rolloutRestart: (args: { contextName: string; resourceType: string; resourceName: string; namespace: string }) => ipcRenderer.invoke('rollout-restart', args),
+    deleteResource: (args: { contextName: string; resourceType: string; resourceName: string; namespace: string }) => ipcRenderer.invoke('delete-resource', args)
 })

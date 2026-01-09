@@ -12,6 +12,7 @@ export interface ElectronAPI {
     describeResource: (args: { contextName: string; resourceType: string; resourceName: string; namespace: string }) => Promise<{ success: boolean; output?: string; error?: string }>
     getResourceYaml: (args: { contextName: string; resourceType: string; resourceName: string; namespace: string }) => Promise<{ success: boolean; yaml?: string; error?: string }>
     rolloutRestart: (args: { contextName: string; resourceType: string; resourceName: string; namespace: string }) => Promise<{ success: boolean; error?: string }>
+    deleteResource: (args: { contextName: string; resourceType: string; resourceName: string; namespace: string }) => Promise<{ success: boolean; error?: string }>
 }
 
 declare global {

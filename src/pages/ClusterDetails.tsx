@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Box, List, Shield, Activity, Search, RefreshCw, Loader2, AlertCircle, Gauge, Database, Terminal, Globe, Settings, X, Check, Eye, FileCode, Lock, FileText, ChevronUp, ChevronDown, Server } from 'lucide-react'
+import { ArrowLeft, Box, List, Shield, Activity, Search, RefreshCw, Loader2, AlertCircle, Gauge, Database, Terminal, Globe, Settings, X, Check, Eye, FileCode, Lock, FileText, ChevronUp, ChevronDown, Server, Trash2 } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
 import { LogViewerModal } from '../components/LogViewerModal'
 import { DescribeModal } from '../components/DescribeModal'
@@ -60,7 +60,7 @@ export function ClusterDetails() {
             services: ['namespace', 'name', 'type', 'cluster-ip', 'external-ip', 'ports', 'age'],
             statefulsets: ['namespace', 'name', 'ready', 'age'],
             hpa: ['namespace', 'name', 'reference', 'targets', 'minpods', 'maxpods', 'replicas', 'age'],
-            persistentvolumeclaim: ['namespace', 'name', 'status', 'volume', 'capacity', 'access-modes', 'storageclass', 'vac', 'age'],
+            persistentvolumeclaim: ['namespace', 'name', 'status', 'volume', 'capacity', 'access-modes', 'storageclass', 'volumemode', 'selected-node', 'vac', 'age'],
             ingress: ['namespace', 'name', 'class', 'hosts', 'address', 'ports', 'age'],
             secrets: ['namespace', 'name', 'type', 'data', 'age'],
             configmap: ['namespace', 'name', 'data', 'age'],
@@ -147,7 +147,7 @@ export function ClusterDetails() {
             if (resResult.success) {
                 setItems(resResult.items || [])
             } else {
-                setError(resResult.error || `Failed to fetch ${activeTab}`)
+                setError(resResult.error || `Failed to fetch ${activeTab} `)
             }
         } catch (err: any) {
             setError(err.message || 'An unexpected error occurred')
@@ -156,24 +156,43 @@ export function ClusterDetails() {
         }
     }
 
-    const handleRestart = async (resourceName: string, namespace: string, type: ResourceType) => {
-        if (!name) return
-        const toastId = toast.loading(`Restarting ${type}/${resourceName}...`)
-        try {
-            const result = await window.electron.rolloutRestart({
-                contextName: name,
-                resourceType: type,
-                resourceName,
-                namespace
-            })
-            if (result.success) {
-                toast.success(`${type}/${resourceName} restarted successfully`, { id: toastId })
-                setTimeout(fetchData, 2000)
-            } else {
-                toast.error(`Failed to restart: ${result.error}`, { id: toastId })
-            }
-        } catch (err: any) {
-            toast.error(`Error: ${err.message}`, { id: toastId })
+    const handleRestart = async (resName: string, ns: string, type: string) => {
+        const promise = window.electron.rolloutRestart({
+            contextName: name || '',
+            resourceType: type,
+            resourceName: resName,
+            namespace: ns
+        })
+
+        toast.promise(promise, {
+            loading: `Restarting ${type}/${resName}...`,
+            success: 'Restart triggered successfully',
+            error: (err) => `Failed to restart: ${err.error || err.message}`
+        })
+
+        await promise
+        fetchData()
+    }
+
+    const handleDelete = async (resName: string, ns: string, type: string) => {
+        if (!window.confirm(`Are you sure you want to delete ${type}/${resName}?`)) return
+
+        const promise = window.electron.deleteResource({
+            contextName: name || '',
+            resourceType: type,
+            resourceName: resName,
+            namespace: ns
+        })
+
+        toast.promise(promise, {
+            loading: `Deleting ${type}/${resName}...`,
+            success: 'Resource deleted successfully',
+            error: (err) => `Failed to delete resource: ${err.error || err.message}`
+        })
+
+        const result = await promise
+        if (result.success) {
+            fetchData()
         }
     }
 
@@ -374,6 +393,8 @@ export function ClusterDetails() {
             { id: 'capacity', label: 'Capacity', minWidth: 100 },
             { id: 'access-modes', label: 'Access Modes', minWidth: 150 },
             { id: 'storageclass', label: 'StorageClass', minWidth: 150 },
+            { id: 'volumemode', label: 'Volume Mode', minWidth: 120 },
+            { id: 'selected-node', label: 'Volume Node', minWidth: 150 },
             { id: 'vac', label: 'VolumeAttributesClass', minWidth: 150 },
             { id: 'age', label: 'Age', minWidth: 150 }
         ],
@@ -693,6 +714,16 @@ export function ClusterDetails() {
                                                                                 <Terminal size={14} />
                                                                             </button>
                                                                         )}
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation()
+                                                                                handleDelete(item.metadata.name, item.metadata.namespace || '', activeTab)
+                                                                            }}
+                                                                            className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-red-500 transition-colors"
+                                                                            title="Delete Resource"
+                                                                        >
+                                                                            <Trash2 size={14} />
+                                                                        </button>
                                                                     </div>
                                                                 </div>
                                                             </td>
@@ -827,6 +858,12 @@ export function ClusterDetails() {
 
                                                     case 'vac':
                                                         return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.volumeAttributesClassName || '<none>'}</td>
+
+                                                    case 'volumemode':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.volumeMode || '<none>'}</td>
+
+                                                    case 'selected-node':
+                                                        return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.metadata?.annotations?.['volume.kubernetes.io/selected-node'] || '<none>'}</td>
 
                                                     case 'class':
                                                         return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.ingressClassName || item.metadata?.annotations?.['kubernetes.io/ingress.class'] || '<none>'}</td>
