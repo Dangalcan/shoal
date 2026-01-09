@@ -1,0 +1,12 @@
+#!/bin/sh
+npx commitlint --edit "$1" --verbose || {
+  echo ""
+  echo "❌ Invalid commit message"
+  echo "Your commit message must follow Conventional Commits:"
+  echo "   <type>: <brief description>"
+  echo ""
+  echo "Allowed types: feat, ci, test, tests, perf, build, fix, refactor, chore, style, docs, doc, sec"
+  echo "Valid example: feat: add login endpoint"
+  echo ""
+  exit 1
+}

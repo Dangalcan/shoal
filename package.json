@@ -12,11 +12,19 @@
     "build": "npm run build:react && npm run build:electron && electron-builder",
     "test": "vitest --run",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --run --coverage"
+    "test:coverage": "vitest --run --coverage",
+    "lint": "prettier --check '**/*.{cjs,js,ts,css,md}'",
+    "lint:fix": "prettier --write '**/*.{cjs,js,ts,css,md}'",
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Dangalcan/Kubernetes-Desktop.git"
+  },
+  "lint-staged": {
+    "*.{js,ts,json,css,md}": [
+      "prettier --write"
+    ]
   },
   "keywords": [],
   "author": "",
@@ -28,7 +36,9 @@
   "homepage": "https://github.com/Dangalcan/Kubernetes-Desktop#readme",
   "dependencies": {
     "clsx": "^2.1.1",
+    "husky": "^9.1.7",
     "lucide-react": "^0.562.0",
+    "prettier": "^3.7.4",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-router-dom": "^7.11.0",
