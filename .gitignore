@@ -3,3 +3,4 @@ dist
 error.log
 **.log
 dist-electron
+coverage
