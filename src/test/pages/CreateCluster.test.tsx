@@ -1,12 +1,12 @@
+
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '../test-utils'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
-import { CreateCluster } from '../CreateCluster'
+import { CreateCluster } from '../../pages/CreateCluster'
+import { mockElectronAPI } from '../setup'
 
-const RouterWrapper = ({ children }: { children: React.ReactNode }) => (
-    <BrowserRouter>{children}</BrowserRouter>
-)
+
 
 describe('CreateCluster Page', () => {
     beforeEach(() => {
@@ -14,7 +14,7 @@ describe('CreateCluster Page', () => {
     })
 
     it('should render create cluster form', () => {
-        render(<CreateCluster />, { wrapper: RouterWrapper })
+        render(<CreateCluster />)
 
         expect(screen.getByRole('heading', { name: /create cluster/i })).toBeInTheDocument()
         expect(screen.getByText(/configure your new kubernetes cluster/i)).toBeInTheDocument()
@@ -22,7 +22,7 @@ describe('CreateCluster Page', () => {
     })
 
     it('should have kind selected as default provider', () => {
-        render(<CreateCluster />, { wrapper: RouterWrapper })
+        render(<CreateCluster />)
 
         const kindButton = screen.getByRole('button', { name: /kind/i })
         expect(kindButton).toHaveClass('provider-button-selected')
@@ -30,7 +30,7 @@ describe('CreateCluster Page', () => {
 
     it('should update cluster name input', async () => {
         const user = userEvent.setup()
-        render(<CreateCluster />, { wrapper: RouterWrapper })
+        render(<CreateCluster />)
 
         const input = screen.getByPlaceholderText('my-cluster')
         await user.type(input, 'test-cluster')
@@ -40,7 +40,7 @@ describe('CreateCluster Page', () => {
 
     it('should switch provider when clicked', async () => {
         const user = userEvent.setup()
-        render(<CreateCluster />, { wrapper: RouterWrapper })
+        render(<CreateCluster />)
 
         const k3dButton = screen.getByRole('button', { name: /k3d/i })
         await user.click(k3dButton)
@@ -52,7 +52,7 @@ describe('CreateCluster Page', () => {
         const user = userEvent.setup()
         const consoleSpy = vi.spyOn(console, 'log')
 
-        render(<CreateCluster />, { wrapper: RouterWrapper })
+        render(<CreateCluster />)
 
         const input = screen.getByPlaceholderText('my-cluster')
         await user.type(input, 'my-new-cluster')
@@ -68,7 +68,7 @@ describe('CreateCluster Page', () => {
 
     it('should require cluster name', async () => {
         const user = userEvent.setup()
-        render(<CreateCluster />, { wrapper: RouterWrapper })
+        render(<CreateCluster />)
 
         const submitButton = screen.getByRole('button', { name: /create cluster/i })
         await user.click(submitButton)
@@ -78,14 +78,14 @@ describe('CreateCluster Page', () => {
     })
 
     it('should render both provider options', () => {
-        render(<CreateCluster />, { wrapper: RouterWrapper })
+        render(<CreateCluster />)
 
         expect(screen.getByRole('button', { name: /kind/i })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /k3d/i })).toBeInTheDocument()
     })
 
     it('should have cancel button', () => {
-        render(<CreateCluster />, { wrapper: RouterWrapper })
+        render(<CreateCluster />)
 
         expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument()
     })

@@ -2,11 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { toast } from 'sonner' // Import mocked toast
-import { Clusters } from '../Clusters'
-import { mockElectronAPI } from '../../test/setup'
+import { Clusters } from '../../pages/Clusters'
+import { mockElectronAPI } from '../setup'
 
 // Mock child components
-vi.mock('../components/modals/PodViewerModal', () => ({
+vi.mock('../../components/modals/PodViewerModal', () => ({
     PodViewerModal: ({ isOpen, onClose, clusterName }: any) => (
         isOpen ? <div data-testid="pod-modal">PodViewer for {clusterName} <button onClick={onClose}>Close</button></div> : null
     )

@@ -1,8 +1,9 @@
+
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
-import { Dashboard } from '../Dashboard'
-import { mockElectronAPI } from '../../test/setup'
+import { Dashboard } from '../../pages/Dashboard'
+import { render, screen, fireEvent, waitFor } from '../test-utils'
+import { mockElectronAPI } from '../setup'
 
 // Mock child components
 // Mock child components
@@ -13,9 +14,7 @@ vi.mock('../../components/modals/PodViewerModal', () => ({
     )
 }))
 
-const RouterWrapper = ({ children }: { children: React.ReactNode }) => (
-    <BrowserRouter>{children}</BrowserRouter>
-)
+
 
 describe('Dashboard Page', () => {
     beforeEach(() => {
@@ -27,7 +26,7 @@ describe('Dashboard Page', () => {
     })
 
     it('should render dashboard header', async () => {
-        render(<Dashboard />, { wrapper: RouterWrapper })
+        render(<Dashboard />)
         await waitFor(() => {
             expect(screen.getByText('Dashboard')).toBeInTheDocument()
             expect(screen.getByText('Overview of your container infrastructure.')).toBeInTheDocument()
@@ -41,7 +40,7 @@ describe('Dashboard Page', () => {
             return false
         })
 
-        render(<Dashboard />, { wrapper: RouterWrapper })
+        render(<Dashboard />)
 
         await waitFor(() => {
             // Docker -> Running (Blue)
@@ -60,7 +59,7 @@ describe('Dashboard Page', () => {
         mockElectronAPI.getClusters.mockResolvedValue(['c1', 'c2'])
         mockElectronAPI.getCurrentContext.mockResolvedValue('c1')
 
-        render(<Dashboard />, { wrapper: RouterWrapper })
+        render(<Dashboard />)
 
         // Use findByText which waits automatically, increase timeout
         expect(await screen.findByText('Active Context', {}, { timeout: 4000 })).toBeInTheDocument()
@@ -79,7 +78,7 @@ describe('Dashboard Page', () => {
         mockElectronAPI.getClusters.mockResolvedValue(['active-cluster', 'other-cluster'])
         mockElectronAPI.getCurrentContext.mockResolvedValue('active-cluster')
 
-        render(<Dashboard />, { wrapper: RouterWrapper })
+        render(<Dashboard />)
 
         // active-cluster appears in context and list
         const activeClusterElements = await screen.findAllByText('active-cluster', {}, { timeout: 4000 })
@@ -101,7 +100,7 @@ describe('Dashboard Page', () => {
 
     it('should navigate to cluster details', async () => {
         mockElectronAPI.getClusters.mockResolvedValue(['nav-cluster'])
-        render(<Dashboard />, { wrapper: RouterWrapper })
+        render(<Dashboard />)
         expect(await screen.findByText('nav-cluster', {}, { timeout: 4000 })).toBeInTheDocument()
 
         const clusterContent = screen.getByText('nav-cluster').closest('.cluster-item-content')!
@@ -112,7 +111,7 @@ describe('Dashboard Page', () => {
         mockElectronAPI.getClusters.mockResolvedValue(['view-cluster'])
         mockElectronAPI.getCurrentContext.mockResolvedValue('view-cluster')
         
-        render(<Dashboard />, { wrapper: RouterWrapper })
+        render(<Dashboard />)
         // view-cluster appears in context and list
         const viewClusterElements = await screen.findAllByText('view-cluster', {}, { timeout: 4000 })
         expect(viewClusterElements.length).toBeGreaterThan(0)
@@ -129,7 +128,7 @@ describe('Dashboard Page', () => {
     })
 
     it('should refresh data on button click', async () => {
-        render(<Dashboard />, { wrapper: RouterWrapper })
+        render(<Dashboard />)
         
         // Initial calls
         await waitFor(() => expect(mockElectronAPI.getClusters).toHaveBeenCalledTimes(1))
@@ -150,7 +149,7 @@ describe('Dashboard Page', () => {
 
     it('should handle empty clusters list', async () => {
         mockElectronAPI.getClusters.mockResolvedValue([])
-        render(<Dashboard />, { wrapper: RouterWrapper })
+        render(<Dashboard />)
         
         await waitFor(() => {
             expect(screen.getByText('No active clusters found')).toBeInTheDocument()
@@ -161,6 +160,6 @@ describe('Dashboard Page', () => {
          mockElectronAPI.checkTool.mockRejectedValue(new Error('Tool check failed'))
          // It should probably just render "checking..." or similar, or handle the promise rejection without crashing
          
-         render(<Dashboard />, { wrapper: RouterWrapper })
+         render(<Dashboard />)
     })
 })

@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, fireEvent, waitFor, within } from '@testing-library/react'
-import { ClusterDetails } from '../ClusterDetails'
-import { mockElectronAPI } from '../../test/setup'
-import { render, mockToast } from '../../test/test-utils'
-import '../../test/mocks/component-mocks'
+import { ClusterDetails } from '../../pages/ClusterDetails'
+import { mockElectronAPI } from '../setup'
+import { render, mockToast } from '../test-utils'
+import '../mocks/component-mocks'
 import { toast } from 'sonner'
 import { 
     mockNamespaces, 
@@ -39,7 +39,7 @@ import {
     mockLeases,
     mockPriorityClasses,
     mockCSRs
-} from '../../test/fixtures/k8s-resources'
+} from '../fixtures/k8s-resources'
 import { configure } from '@testing-library/dom'
 
 
