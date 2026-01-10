@@ -25,6 +25,8 @@ export type ResourceType =
   | 'hpa'
   | 'persistentvolumeclaim'
   | 'ingress'
+  | 'ingressclass'
+  | 'networkpolicy'
   | 'secrets'
   | 'configmap'
   | 'nodes';
@@ -47,6 +49,8 @@ export const ALL_TABS: { id: ResourceType; label: string; icon: any }[] = [
   { id: 'hpa', label: 'HPAs', icon: Gauge },
   { id: 'persistentvolumeclaim', label: 'PVCs', icon: Database },
   { id: 'ingress', label: 'Ingresses', icon: Globe },
+  { id: 'ingressclass', label: 'IngressClasses', icon: Globe },
+  { id: 'networkpolicy', label: 'NetworkPolicies', icon: Shield },
   { id: 'secrets', label: 'Secrets', icon: Lock },
   { id: 'configmap', label: 'ConfigMaps', icon: FileText },
   { id: 'nodes', label: 'Nodes', icon: Server },
@@ -173,6 +177,19 @@ export const COLUMN_DEFINITIONS: Record<ResourceType, ColumnDef[]> = {
     { id: 'hosts', label: 'Hosts', minWidth: 200 },
     { id: 'address', label: 'Address', minWidth: 150 },
     { id: 'ports', label: 'Ports', minWidth: 100 },
+    { id: 'age', label: 'Age', minWidth: 150 },
+  ],
+  ingressclass: [
+    { id: 'name', label: 'Name', minWidth: 200 },
+    { id: 'controller', label: 'Controller', minWidth: 200 },
+    { id: 'parameters', label: 'Parameters', minWidth: 150 },
+    { id: 'age', label: 'Age', minWidth: 150 },
+  ],
+  networkpolicy: [
+    { id: 'namespace', label: 'Namespace', minWidth: 120 },
+    { id: 'name', label: 'Name', minWidth: 200 },
+    { id: 'pod-selector', label: 'Pod Selector', minWidth: 200 },
+    { id: 'policy-types', label: 'Policy Types', minWidth: 150 },
     { id: 'age', label: 'Age', minWidth: 150 },
   ],
   secrets: [

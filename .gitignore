@@ -4,3 +4,4 @@ error.log
 **.log
 dist-electron
 coverage
+prompts.txt

@@ -159,6 +159,18 @@ export const ResourceRow: React.FC<ResourceRowProps> = ({
                 const labels = item.spec?.selector?.matchLabels || item.spec?.selector || {}
                 const selectorContent = Object.entries(labels).map(([k, v]) => `${k}=${v}`).join(',') || '<none>'
                 return <TextCell key={colId} content={selectorContent} style={style} />
+            case 'controller':
+                return <TextCell key={colId} content={item.spec?.controller || '<none>'} style={style} />
+            case 'parameters':
+                const params = item.spec?.parameters
+                const paramsContent = params ? `${params.kind}:${params.name}` : '<none>'
+                return <TextCell key={colId} content={paramsContent} style={style} />
+            case 'pod-selector':
+                const podLabels = item.spec?.podSelector?.matchLabels || {}
+                const psContent = Object.entries(podLabels).map(([k, v]) => `${k}=${v}`).join(',') || '<none>'
+                return <TextCell key={colId} content={psContent} style={style} />
+            case 'policy-types':
+                return <TextCell key={colId} content={item.spec?.policyTypes?.join(', ') || '<none>'} style={style} />
             case 'node-selector':
                 const nodeSelector = item.spec?.template?.spec?.nodeSelector || {}
                 const nsContent = Object.entries(nodeSelector).map(([k, v]) => `${k}=${v}`).join(',') || '<none>'

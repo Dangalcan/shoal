@@ -34,7 +34,7 @@ export function ClusterDetails() {
 
     // Resource Visibility State
     const [visibleResources, setVisibleResources] = useState<ResourceType[]>(() => {
-        const defaults: ResourceType[] = ALL_TABS.filter(t => t.id !== 'daemonsets' && t.id !== 'jobs' && t.id !== 'cronjobs').map(t => t.id)
+        const defaults: ResourceType[] = ALL_TABS.filter(t => t.id !== 'daemonsets' && t.id !== 'jobs' && t.id !== 'cronjobs' && t.id !== 'ingressclass' && t.id !== 'networkpolicy').map(t => t.id)
         const saved = localStorage.getItem('k8s_desktop_visible_resources')
         if (!saved) return defaults
         try {
@@ -59,6 +59,8 @@ export function ClusterDetails() {
             hpa: ['namespace', 'name', 'reference', 'targets', 'minpods', 'maxpods', 'replicas', 'age'],
             persistentvolumeclaim: ['namespace', 'name', 'status', 'volume', 'capacity', 'access-modes', 'storageclass', 'volumemode', 'selected-node', 'vac', 'age'],
             ingress: ['namespace', 'name', 'class', 'hosts', 'address', 'ports', 'age'],
+            ingressclass: ['name', 'controller', 'parameters', 'age'],
+            networkpolicy: ['namespace', 'name', 'pod-selector', 'age'],
             replicasets: ['namespace', 'name', 'desired', 'current', 'ready', 'age'],
             daemonsets: ['namespace', 'name', 'desired', 'current', 'ready', 'updated', 'available', 'node-selector', 'age'],
             jobs: ['namespace', 'name', 'status', 'completions', 'duration', 'age'],
