@@ -1,0 +1,15 @@
+/* Layout.css */
+
+.layout-container {
+  display: flex;
+  height: 100vh;
+  background-color: rgb(248 250 252);
+  overflow: hidden;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.layout-main {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}

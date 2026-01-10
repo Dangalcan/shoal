@@ -1,0 +1,261 @@
+/* PodViewerModal.css */
+
+.pod-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgb(0 0 0 / 0.5);
+  backdrop-filter: blur(4px);
+  padding: 1rem;
+}
+
+.pod-modal-container {
+  background-color: white;
+  border-radius: 1rem;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  width: 100%;
+  max-width: 56rem;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation:
+    fadeIn 200ms,
+    zoomIn 200ms;
+}
+
+.pod-modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid rgb(241 245 249);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pod-header-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: rgb(15 23 42);
+}
+
+.pod-header-subtitle {
+  font-size: 0.875rem;
+  color: rgb(100 116 139);
+}
+
+.pod-close-button {
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: colors 150ms;
+}
+
+.pod-close-button:hover {
+  background-color: rgb(241 245 249);
+}
+
+.pod-close-icon {
+  color: rgb(100 116 139);
+}
+
+.pod-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  background-color: rgb(248 250 252);
+}
+
+.pod-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 16rem;
+  color: rgb(148 163 184);
+}
+
+.pod-loading-spinner {
+  animation: spin 1s linear infinite;
+  margin-bottom: 0.5rem;
+}
+
+.pod-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 16rem;
+  color: rgb(239 68 68);
+  background-color: rgb(254 242 242);
+  border-radius: 0.75rem;
+  border: 1px solid rgb(254 226 226);
+}
+
+.pod-error-icon {
+  margin-bottom: 0.5rem;
+}
+
+.pod-error-title {
+  font-weight: 600;
+}
+
+.pod-error-message {
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 0 1rem;
+}
+
+.pod-table-container {
+  background-color: white;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(226 232 240);
+  overflow: hidden;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.pod-table {
+  width: 100%;
+  text-align: left;
+}
+
+.pod-table-head {
+  background-color: rgb(248 250 252);
+  border-bottom: 1px solid rgb(226 232 240);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgb(100 116 139);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pod-table-head th {
+  padding: 0.75rem 1rem;
+}
+
+.pod-table-body {
+  border-top: 1px solid rgb(226 232 240);
+}
+
+.pod-table-row {
+  transition: colors 150ms;
+}
+
+.pod-table-row:hover {
+  background-color: rgb(248 250 252);
+}
+
+.pod-table-row:not(:last-child) {
+  border-bottom: 1px solid rgb(226 232 240);
+}
+
+.pod-table-row td {
+  font-size: 0.875rem;
+}
+
+.pod-table-namespace {
+  padding: 0.75rem 1rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+  color: rgb(100 116 139);
+}
+
+.pod-table-name {
+  padding: 0.75rem 1rem;
+  font-weight: 500;
+  color: rgb(15 23 42);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pod-table-status {
+  padding: 0.75rem 1rem;
+}
+
+.pod-status-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.pod-status-running {
+  background-color: rgb(220 252 231);
+  color: rgb(21 128 61);
+}
+
+.pod-status-other {
+  background-color: rgb(254 243 199);
+  color: rgb(180 83 9);
+}
+
+.pod-table-ready {
+  padding: 0.75rem 1rem;
+  color: rgb(100 116 139);
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+}
+
+.pod-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 16rem;
+  color: rgb(148 163 184);
+}
+
+.pod-empty-icon {
+  margin-bottom: 1rem;
+  color: rgb(226 232 240);
+}
+
+.pod-modal-footer {
+  padding: 1rem;
+  border-top: 1px solid rgb(241 245 249);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pod-footer-close-button {
+  padding: 0.5rem 1.5rem;
+  background-color: rgb(15 23 42);
+  color: white;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: colors 150ms;
+}
+
+.pod-footer-close-button:hover {
+  background-color: rgb(30 41 59);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    transform: scale(0.95);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

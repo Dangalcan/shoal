@@ -1,0 +1,220 @@
+/* Clusters.css */
+
+.clusters-container {
+  padding: 2rem;
+  max-width: 80rem;
+  margin: 0 auto;
+}
+
+.clusters-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.clusters-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: rgb(15 23 42);
+}
+
+.clusters-subtitle {
+  color: rgb(100 116 139);
+  margin-top: 0.25rem;
+}
+
+.refresh-clusters-button {
+  padding: 0.5rem;
+  color: rgb(71 85 105);
+  border-radius: 0.5rem;
+  transition: colors 150ms;
+}
+
+.refresh-clusters-button:hover {
+  background-color: rgb(241 245 249);
+}
+
+.refresh-clusters-button:disabled {
+  opacity: 0.5;
+}
+
+.refresh-icon-spinning {
+  animation: spin 1s linear infinite;
+}
+
+.clusters-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 16rem;
+  color: rgb(148 163 184);
+  background-color: white;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(241 245 249);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.clusters-loading-spinner {
+  animation: spin 1s linear infinite;
+  margin-bottom: 0.5rem;
+}
+
+.clusters-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.cluster-card {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  border: 1px solid rgb(241 245 249);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: box-shadow 150ms;
+}
+
+.cluster-card:hover {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.cluster-card-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.cluster-card-icon {
+  padding: 0.75rem;
+  background-color: rgb(239 246 255);
+  color: rgb(37 99 235);
+  border-radius: 0.75rem;
+}
+
+.cluster-card-info {
+  cursor: pointer;
+  transition: opacity 150ms;
+}
+
+.cluster-card-info:hover {
+  opacity: 0.8;
+}
+
+.cluster-card-name {
+  font-weight: 700;
+  color: rgb(15 23 42);
+  font-size: 1.125rem;
+  transition: colors 150ms;
+}
+
+.cluster-card-name:hover {
+  color: rgb(37 99 235);
+}
+
+.cluster-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.cluster-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgb(22 163 74);
+  background-color: rgb(240 253 244);
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+}
+
+.cluster-status-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  background-color: rgb(34 197 94);
+  border-radius: 9999px;
+}
+
+.cluster-provider {
+  font-size: 0.75rem;
+  color: rgb(148 163 184);
+  font-family: ui-monospace, monospace;
+}
+
+.cluster-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.view-pods-action-button {
+  padding: 0.5rem;
+  color: rgb(59 130 246);
+  border-radius: 0.5rem;
+  transition: colors 150ms;
+}
+
+.view-pods-action-button:hover {
+  background-color: rgb(239 246 255);
+}
+
+.delete-cluster-button {
+  padding: 0.5rem;
+  color: rgb(239 68 68);
+  border-radius: 0.5rem;
+  transition: colors 150ms;
+}
+
+.delete-cluster-button:hover {
+  background-color: rgb(254 242 242);
+}
+
+.delete-cluster-button:disabled {
+  opacity: 0.5;
+}
+
+.delete-spinner {
+  animation: spin 1s linear infinite;
+}
+
+.clusters-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 16rem;
+  color: rgb(148 163 184);
+  background-color: white;
+  border-radius: 0.75rem;
+  border: 2px dashed rgb(226 232 240);
+}
+
+.clusters-empty-icon {
+  margin-bottom: 1rem;
+  color: rgb(203 213 225);
+}
+
+.clusters-empty-title {
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+.clusters-empty-subtitle {
+  font-size: 0.875rem;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { X, Copy, Check, Loader2, Code } from 'lucide-react'
+import './YamlModal.css'
 
 interface YamlModalProps {
     isOpen: boolean
@@ -54,33 +55,33 @@ export function YamlModal({ isOpen, onClose, clusterName, resourceName, resource
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="yaml-modal-overlay">
+            <div className="yaml-modal-container">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
+                <div className="yaml-modal-header">
+                    <div className="yaml-header-content">
+                        <div className="yaml-header-icon">
                             <Code size={20} />
                         </div>
                         <div>
-                            <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                            <h3 className="yaml-header-title">
                                 Resource YAML
                             </h3>
-                            <p className="text-xs text-slate-500 font-mono">{namespace} / {resourceName}</p>
+                            <p className="yaml-header-subtitle">{namespace} / {resourceName}</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="yaml-header-actions">
                         <button
                             onClick={copyToClipboard}
                             disabled={!yaml}
-                            className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all disabled:opacity-50"
+                            className="yaml-copy-button"
                         >
-                            {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                            {copied ? <Check size={14} className="yaml-copy-icon-success" /> : <Copy size={14} />}
                             {copied ? 'Copied!' : 'Copy'}
                         </button>
                         <button
                             onClick={onClose}
-                            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all"
+                            className="yaml-close-button"
                         >
                             <X size={20} />
                         </button>
@@ -88,32 +89,32 @@ export function YamlModal({ isOpen, onClose, clusterName, resourceName, resource
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-auto bg-slate-950 p-6 font-mono text-sm relative group">
+                <div className="yaml-modal-content">
                     {loading ? (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-3">
-                            <Loader2 className="animate-spin" size={32} />
+                        <div className="yaml-loading-state">
+                            <Loader2 className="yaml-loading-spinner" size={32} />
                             <p>Fetching YAML for {resourceName}...</p>
                         </div>
                     ) : error ? (
-                        <div className="text-red-400 p-4 border border-red-900/50 rounded-lg bg-red-950/20">
-                            <p className="font-bold mb-1">Error</p>
-                            <p className="opacity-80">{error}</p>
+                        <div className="yaml-error-state">
+                            <p className="yaml-error-title">Error</p>
+                            <p className="yaml-error-message">{error}</p>
                         </div>
                     ) : (
-                        <pre ref={contentRef} className="text-slate-300 leading-relaxed whitespace-pre font-mono">
+                        <pre ref={contentRef} className="yaml-content-text">
                             {yaml || 'No output available'}
                         </pre>
                     )}
                 </div>
 
                 {/* Footer */}
-                <div className="px-6 py-3 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
+                <div className="yaml-modal-footer">
+                    <p className="yaml-footer-context">
                         Context: {clusterName}
                     </p>
                     <button
                         onClick={onClose}
-                        className="px-4 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
+                        className="yaml-close-footer-button"
                     >
                         Close
                     </button>

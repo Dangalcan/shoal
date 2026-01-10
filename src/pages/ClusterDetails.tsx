@@ -5,6 +5,7 @@ import { Toaster, toast } from 'sonner'
 import { LogViewerModal } from '../components/LogViewerModal'
 import { DescribeModal } from '../components/DescribeModal'
 import { YamlModal } from '../components/YamlModal'
+import './ClusterDetails.css'
 
 type ResourceType = 'pods' | 'deployments' | 'services' | 'statefulsets' | 'hpa' | 'persistentvolumeclaim' | 'ingress' | 'secrets' | 'configmap' | 'nodes'
 
@@ -467,30 +468,30 @@ export function ClusterDetails() {
     }
 
     return (
-        <div className={`min-h-full flex flex-col bg-slate-50 ${resizing ? 'select-none' : ''}`}>
-            <header className="bg-white border-b border-slate-200 px-8 py-6 sticky top-0 z-10">
-                <div className="flex items-center gap-4 mb-6">
+        <div className={`cluster-details-container ${resizing ? 'cluster-details-container-no-select' : ''}`}>
+            <header className="cluster-details-header">
+                <div className="header-top">
                     <button
                         onClick={() => navigate(-1)}
-                        className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-500"
+                        className="back-button"
                     >
                         <ArrowLeft size={20} />
                     </button>
-                    <div>
-                        <h2 className="text-2xl font-bold text-slate-900">{name}</h2>
-                        <p className="text-sm text-slate-500">Cluster Detailed View</p>
+                    <div className="header-title-section">
+                        <h2>{name}</h2>
+                        <p>Cluster Detailed View</p>
                     </div>
                 </div>
 
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+                <div className="header-controls">
+                    <div className="tabs-container">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab.id
-                                    ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
-                                    : 'bg-white text-slate-600 border border-slate-200 hover:border-blue-300 hover:text-blue-600'
+                                className={`tab-button ${activeTab === tab.id
+                                    ? 'tab-button-active'
+                                    : 'tab-button-inactive'
                                     }`}
                             >
                                 <tab.icon size={16} />
@@ -499,13 +500,13 @@ export function ClusterDetails() {
                         ))}
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <div className="relative flex-1 md:w-64">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <div className="header-actions">
+                        <div className="namespace-selector-container">
+                            <Search className="namespace-selector-icon" size={16} />
                             <select
                                 value={selectedNamespace}
                                 onChange={(e) => setSelectedNamespace(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                className="namespace-selector"
                             >
                                 <option value="all">All Namespaces</option>
                                 {namespaces.map(ns => (
@@ -516,59 +517,59 @@ export function ClusterDetails() {
                         <button
                             onClick={fetchData}
                             disabled={loading}
-                            className="p-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:text-blue-600 hover:border-blue-300 transition-all disabled:opacity-50"
+                            className="refresh-data-button"
                             title="Refresh"
                         >
-                            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                            <RefreshCw size={18} className={loading ? 'refresh-icon-spinning' : ''} />
                         </button>
                         <div className="relative">
                             <button
                                 onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                                className={`p-2 border rounded-lg transition-all ${isSettingsOpen ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-300'}`}
+                                className={`settings-button ${isSettingsOpen ? 'settings-button-active' : 'settings-button-inactive'}`}
                                 title="Visible Resources"
                             >
                                 <Settings size={18} />
                             </button>
 
                             {isSettingsOpen && (
-                                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-100 z-50 p-2 animate-in fade-in zoom-in duration-200">
-                                    <div className="flex items-center justify-between px-3 py-2 mb-1 border-b border-slate-50">
-                                        <span className="text-sm font-bold text-slate-700">Display Settings</span>
-                                        <button onClick={() => setIsSettingsOpen(false)} className="text-slate-400 hover:text-slate-600">
+                                <div className="settings-dropdown">
+                                    <div className="settings-dropdown-header">
+                                        <span className="settings-dropdown-title">Display Settings</span>
+                                        <button onClick={() => setIsSettingsOpen(false)} className="settings-close-button">
                                             <X size={14} />
                                         </button>
                                     </div>
-                                    <div className="max-h-[70vh] overflow-y-auto">
-                                        <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Resources</div>
-                                        <div className="space-y-1 mb-4">
+                                    <div className="settings-dropdown-content">
+                                        <div className="settings-section-title">Resources</div>
+                                        <div className="settings-section">
                                             {allTabs.map(tab => (
                                                 <button
                                                     key={tab.id}
                                                     onClick={() => toggleResource(tab.id)}
-                                                    className="w-full flex items-center justify-between px-3 py-1.5 text-sm rounded-lg hover:bg-slate-50 transition-colors group"
+                                                    className="settings-item-button"
                                                 >
-                                                    <div className="flex items-center gap-2">
-                                                        <tab.icon size={14} className="text-slate-400" />
-                                                        <span className={visibleResources.includes(tab.id) ? 'text-slate-900 font-medium' : 'text-slate-400'}>{tab.label}</span>
+                                                    <div className="settings-item-content">
+                                                        <tab.icon size={14} className="settings-item-icon" />
+                                                        <span className={visibleResources.includes(tab.id) ? 'settings-item-label-active' : 'settings-item-label-inactive'}>{tab.label}</span>
                                                     </div>
                                                     {visibleResources.includes(tab.id) && (
-                                                        <Check size={14} className="text-blue-500" />
+                                                        <Check size={14} className="settings-item-check" />
                                                     )}
                                                 </button>
                                             ))}
                                         </div>
 
-                                        <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-t border-slate-50 pt-4">Columns for {activeTab}</div>
-                                        <div className="space-y-1">
+                                        <div className="settings-section-title settings-divider">Columns for {activeTab}</div>
+                                        <div className="settings-section">
                                             {columnDefinitions[activeTab].map(col => (
                                                 <button
                                                     key={col.id}
                                                     onClick={() => toggleColumn(activeTab, col.id)}
-                                                    className="w-full flex items-center justify-between px-3 py-1.5 text-sm rounded-lg hover:bg-slate-50 transition-colors group"
+                                                    className="settings-item-button"
                                                 >
-                                                    <span className={visibleColumns[activeTab]?.includes(col.id) ? 'text-slate-900 font-medium' : 'text-slate-400'}>{col.label}</span>
+                                                    <span className={visibleColumns[activeTab]?.includes(col.id) ? 'settings-item-label-active' : 'settings-item-label-inactive'}>{col.label}</span>
                                                     {visibleColumns[activeTab]?.includes(col.id) && (
-                                                        <Check size={14} className="text-blue-500" />
+                                                        <Check size={14} className="settings-item-check" />
                                                     )}
                                                 </button>
                                             ))}
@@ -581,29 +582,29 @@ export function ClusterDetails() {
                 </div>
             </header>
 
-            <main className="flex-1 p-8">
+            <main className="cluster-details-main">
                 {loading && items.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-                        <Loader2 className="animate-spin mb-4" size={40} />
-                        <p className="text-lg">Loading {activeTab}...</p>
+                    <div className="loading-state">
+                        <Loader2 className="loading-spinner" size={40} />
+                        <p className="loading-text">Loading {activeTab}...</p>
                     </div>
                 ) : error ? (
-                    <div className="max-w-2xl mx-auto flex flex-col items-center justify-center p-12 bg-red-50 text-red-600 rounded-2xl border border-red-100">
-                        <AlertCircle size={48} className="mb-4" />
-                        <h3 className="text-xl font-bold mb-2">Error Loading Resources</h3>
-                        <p className="text-center opacity-80 mb-6">{error}</p>
+                    <div className="error-state">
+                        <AlertCircle size={48} className="error-icon" />
+                        <h3 className="error-title">Error Loading Resources</h3>
+                        <p className="error-message">{error}</p>
                         <button
                             onClick={fetchData}
-                            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                            className="error-retry-button"
                         >
                             Try Again
                         </button>
                     </div>
                 ) : items.length > 0 ? (
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left table-fixed" style={{ width: 'max-content', minWidth: '100%' }}>
-                                <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <div className="table-container">
+                        <div className="table-scroll">
+                            <table className="resource-table">
+                                <thead className="table-head">
                                     <tr>
                                         {columnDefinitions[activeTab].map(col => {
                                             if (!visibleColumns[activeTab]?.includes(col.id)) return null
@@ -612,14 +613,14 @@ export function ClusterDetails() {
                                             return (
                                                 <th
                                                     key={col.id}
-                                                    className="px-6 py-4 relative group select-none cursor-pointer hover:bg-slate-100 transition-colors"
+                                                    className="table-head-cell"
                                                     style={{ width: `${width}px` }}
                                                     onClick={() => handleSort(col.id)}
                                                 >
-                                                    <div className="flex items-center gap-1 pr-2 truncate">
+                                                    <div className="table-head-cell-content">
                                                         <span>{col.label}</span>
                                                         {isSorted && (
-                                                            sortConfig.direction === 'asc' ? <ChevronUp size={14} className="text-blue-500" /> : <ChevronDown size={14} className="text-blue-500" />
+                                                            sortConfig.direction === 'asc' ? <ChevronUp size={14} className="sort-icon" /> : <ChevronDown size={14} className="sort-icon" />
                                                         )}
                                                     </div>
                                                     <div
@@ -627,18 +628,18 @@ export function ClusterDetails() {
                                                             e.stopPropagation()
                                                             startResize(e, col.id, width)
                                                         }}
-                                                        className={`absolute right-[-4px] top-0 bottom-0 w-3 cursor-col-resize z-10 transition-colors hover:bg-blue-400/30 ${resizing?.id === `${activeTab}-${col.id}` ? 'bg-blue-500' : 'bg-transparent'}`}
+                                                        className={`resize-handle ${resizing?.id === `${activeTab}-${col.id}` ? 'resize-handle-active' : ''}`}
                                                     >
-                                                        <div className={`absolute right-[5px] top-1/4 bottom-1/4 w-[2px] rounded-full transition-colors ${resizing?.id === `${activeTab}-${col.id}` ? 'bg-white' : 'group-hover:bg-blue-400'}`} />
+                                                        <div className={`resize-handle-indicator ${resizing?.id === `${activeTab}-${col.id}` ? 'resize-handle-indicator-active' : ''}`} />
                                                     </div>
                                                 </th>
                                             )
                                         })}
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100">
+                                <tbody className="table-body">
                                     {sortedItems.map((item, idx) => (
-                                        <tr key={idx} className="hover:bg-slate-50 transition-colors border-b border-slate-100 group/row">
+                                        <tr key={idx} className="table-row">
                                             {columnDefinitions[activeTab].map(col => {
                                                 if (!visibleColumns[activeTab]?.includes(col.id)) return null
                                                 const width = getColumnWidth(col.id, col.minWidth)
@@ -646,34 +647,34 @@ export function ClusterDetails() {
                                                 // Column rendering switch
                                                 switch (col.id) {
                                                     case 'namespace':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.metadata.namespace}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-namespace" style={{ width: `${width}px` }}>{item.metadata.namespace}</td>
 
                                                     case 'name':
                                                         return (
-                                                            <td key={col.id} className="px-6 py-4 text-sm font-bold text-slate-900 truncate" style={{ width: `${width}px` }} title={item.metadata.name}>
-                                                                <div className="flex items-center gap-2 group/row">
+                                                            <td key={col.id} className="table-cell table-cell-name" style={{ width: `${width}px` }} title={item.metadata.name}>
+                                                                <div className="table-cell-name-content">
                                                                     {activeTab === 'pods' ? (
                                                                         <button
                                                                             onClick={() => {
                                                                                 setSelectedPod({ name: item.metadata.name, ns: item.metadata.namespace })
                                                                                 setIsLogModalOpen(true)
                                                                             }}
-                                                                            className="flex items-center gap-2 hover:text-blue-600 group transition-colors text-left truncate flex-1"
+                                                                            className="pod-name-button"
                                                                         >
-                                                                            <span className="truncate">{item.metadata.name}</span>
-                                                                            <Terminal size={14} className="flex-shrink-0 opacity-0 group-hover:opacity-100 text-blue-400" />
+                                                                            <span className="pod-name-text">{item.metadata.name}</span>
+                                                                            <Terminal size={14} className="pod-terminal-icon" />
                                                                         </button>
                                                                     ) : (
-                                                                        <span className="truncate flex-1">{item.metadata.name}</span>
+                                                                        <span className="pod-name-text">{item.metadata.name}</span>
                                                                     )}
-                                                                    <div className="flex items-center gap-1 opacity-0 group-hover/row:opacity-100 transition-all">
+                                                                    <div className="row-actions">
                                                                         <button
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation()
                                                                                 setDescribeTarget({ name: item.metadata.name, ns: item.metadata.namespace, type: activeTab })
                                                                                 setIsDescribeModalOpen(true)
                                                                             }}
-                                                                            className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-blue-500 transition-colors"
+                                                                            className="action-button action-button-describe"
                                                                             title="Describe Resource"
                                                                         >
                                                                             <Eye size={14} />
@@ -684,7 +685,7 @@ export function ClusterDetails() {
                                                                                 setYamlTarget({ name: item.metadata.name, ns: item.metadata.namespace, type: activeTab })
                                                                                 setIsYamlModalOpen(true)
                                                                             }}
-                                                                            className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-purple-500 transition-colors"
+                                                                            className="action-button action-button-yaml"
                                                                             title="View YAML"
                                                                         >
                                                                             <FileCode size={14} />
@@ -695,7 +696,7 @@ export function ClusterDetails() {
                                                                                     e.stopPropagation()
                                                                                     handleRestart(item.metadata.name, item.metadata.namespace, activeTab)
                                                                                 }}
-                                                                                className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-green-500 transition-colors"
+                                                                                className="action-button action-button-restart"
                                                                                 title="Rollout Restart"
                                                                             >
                                                                                 <RefreshCw size={14} />
@@ -708,7 +709,7 @@ export function ClusterDetails() {
                                                                                     setSelectedPod({ name: item.metadata.name, ns: item.metadata.namespace })
                                                                                     setIsLogModalOpen(true)
                                                                                 }}
-                                                                                className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-blue-500 transition-colors"
+                                                                                className="action-button action-button-logs"
                                                                                 title="View Logs"
                                                                             >
                                                                                 <Terminal size={14} />
@@ -719,7 +720,7 @@ export function ClusterDetails() {
                                                                                 e.stopPropagation()
                                                                                 handleDelete(item.metadata.name, item.metadata.namespace || '', activeTab)
                                                                             }}
-                                                                            className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-red-500 transition-colors"
+                                                                            className="action-button action-button-delete"
                                                                             title="Delete Resource"
                                                                         >
                                                                             <Trash2 size={14} />
@@ -731,104 +732,104 @@ export function ClusterDetails() {
 
                                                     case 'status':
                                                         if (activeTab === 'pods') {
-                                                            return <td key={col.id} className="px-6 py-4" style={{ width: `${width}px` }}>
-                                                                <span className={`px-2 py-1 rounded-full text-xs font-bold ${item.status?.phase === 'Running' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                            return <td key={col.id} className="table-cell" style={{ width: `${width}px` }}>
+                                                                <span className={`status-badge ${item.status?.phase === 'Running' ? 'status-badge-running' : 'status-badge-other'}`}>
                                                                     {item.status?.phase || 'Unknown'}
                                                                 </span>
                                                             </td>
                                                         }
                                                         if (activeTab === 'persistentvolumeclaim') {
-                                                            return <td key={col.id} className="px-6 py-4" style={{ width: `${width}px` }}>
-                                                                <span className={`px-2 py-1 rounded-full text-xs font-bold ${item.status?.phase === 'Bound' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                            return <td key={col.id} className="table-cell" style={{ width: `${width}px` }}>
+                                                                <span className={`status-badge ${item.status?.phase === 'Bound' ? 'status-badge-bound' : 'status-badge-other'}`}>
                                                                     {item.status?.phase || 'Unknown'}
                                                                 </span>
                                                             </td>
                                                         }
                                                         if (activeTab === 'nodes') {
                                                             const ready = item.status?.conditions?.find((c: any) => c.type === 'Ready')?.status === 'True'
-                                                            return <td key={col.id} className="px-6 py-4" style={{ width: `${width}px` }}>
-                                                                <span className={`px-2 py-1 rounded-full text-xs font-bold ${ready ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                            return <td key={col.id} className="table-cell" style={{ width: `${width}px` }}>
+                                                                <span className={`status-badge ${ready ? 'status-badge-ready' : 'status-badge-not-ready'}`}>
                                                                     {ready ? 'Ready' : 'NotReady'}
                                                                 </span>
                                                             </td>
                                                         }
-                                                        return <td key={col.id} className="px-6 py-4" style={{ width: `${width}px` }}>-</td>
+                                                        return <td key={col.id} className="table-cell" style={{ width: `${width}px` }}>-</td>
 
                                                     case 'restarts':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>
                                                             {item.status?.containerStatuses?.reduce((acc: number, c: any) => acc + c.restartCount, 0) || 0}
                                                         </td>
 
                                                     case 'ready':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>
                                                             {item.status?.readyReplicas || 0} / {item.status?.replicas || 0}
                                                         </td>
 
                                                     case 'updated':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.status?.updatedReplicas || 0}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.status?.updatedReplicas || 0}</td>
 
                                                     case 'available':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.status?.availableReplicas || 0}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.status?.availableReplicas || 0}</td>
 
                                                     case 'age':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-400 truncate" style={{ width: `${width}px` }}>
+                                                        return <td key={col.id} className="table-cell table-cell-text-muted" style={{ width: `${width}px` }}>
                                                             {new Date(item.metadata.creationTimestamp).toLocaleString()}
                                                         </td>
 
                                                     case 'type':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.type || item.type || '-'}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.type || item.type || '-'}</td>
 
                                                     case 'cluster-ip':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.spec?.clusterIP || '-'}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.spec?.clusterIP || '-'}</td>
 
                                                     case 'external-ip':
                                                         if (activeTab === 'services') {
-                                                            return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.status?.loadBalancer?.ingress?.[0]?.ip || item.status?.loadBalancer?.ingress?.[0]?.hostname || '<none>'}</td>
+                                                            return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.status?.loadBalancer?.ingress?.[0]?.ip || item.status?.loadBalancer?.ingress?.[0]?.hostname || '<none>'}</td>
                                                         }
                                                         if (activeTab === 'nodes') {
-                                                            return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.status?.addresses?.find((addr: any) => addr.type === 'ExternalIP')?.address || '<none>'}</td>
+                                                            return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.status?.addresses?.find((addr: any) => addr.type === 'ExternalIP')?.address || '<none>'}</td>
                                                         }
                                                         return null
 
                                                     case 'ports':
                                                         if (activeTab === 'services') {
-                                                            return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.ports?.map((p: any) => `${p.port}/${p.protocol}`).join(', ') || '<none>'}</td>
+                                                            return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.ports?.map((p: any) => `${p.port}/${p.protocol}`).join(', ') || '<none>'}</td>
                                                         }
                                                         if (activeTab === 'ingress') {
-                                                            return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.tls ? '80, 443' : '80'}</td>
+                                                            return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.tls ? '80, 443' : '80'}</td>
                                                         }
                                                         return null
 
                                                     case 'ip':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.status?.podIP || '<none>'}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.status?.podIP || '<none>'}</td>
 
                                                     case 'node':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.nodeName || '<none>'}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.nodeName || '<none>'}</td>
 
                                                     case 'nominated-node':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.status?.nominatedNodeName || '<none>'}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.status?.nominatedNodeName || '<none>'}</td>
 
                                                     case 'readiness-gates':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.readinessGates?.map((g: any) => g.conditionType).join(', ') || '<none>'}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.readinessGates?.map((g: any) => g.conditionType).join(', ') || '<none>'}</td>
 
                                                     case 'containers':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{(item.spec?.template || item.spec)?.spec?.containers?.map((c: any) => c.name).join(', ') || '<none>'}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{(item.spec?.template || item.spec)?.spec?.containers?.map((c: any) => c.name).join(', ') || '<none>'}</td>
 
                                                     case 'images':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{(item.spec?.template || item.spec)?.spec?.containers?.map((c: any) => c.image).join(', ') || '<none>'}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{(item.spec?.template || item.spec)?.spec?.containers?.map((c: any) => c.image).join(', ') || '<none>'}</td>
 
                                                     case 'selector':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>
                                                             {Object.entries(item.spec?.selector?.matchLabels || item.spec?.selector || {})
                                                                 .map(([k, v]) => `${k}=${v}`)
                                                                 .join(',') || '<none>'}
                                                         </td>
 
                                                     case 'reference':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.scaleTargetRef?.kind}/{item.spec?.scaleTargetRef?.name}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.scaleTargetRef?.kind}/{item.spec?.scaleTargetRef?.name}</td>
 
                                                     case 'targets':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>
                                                             {item.status?.currentMetrics?.[0]?.resource?.current?.averageUtilization ??
                                                                 item.status?.currentCPUUtilizationPercentage ?? '0'}% / {
                                                                 item.spec?.metrics?.[0]?.resource?.target?.averageUtilization ??
@@ -836,49 +837,49 @@ export function ClusterDetails() {
                                                         </td>
 
                                                     case 'minpods':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.minReplicas || 0}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.minReplicas || 0}</td>
 
                                                     case 'maxpods':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.maxReplicas || 0}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.maxReplicas || 0}</td>
 
                                                     case 'replicas':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.status?.currentReplicas || 0}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.status?.currentReplicas || 0}</td>
 
                                                     case 'volume':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.spec?.volumeName || '<pending>'}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.spec?.volumeName || '<pending>'}</td>
 
                                                     case 'capacity':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.status?.capacity?.storage || 'N/A'}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.status?.capacity?.storage || 'N/A'}</td>
 
                                                     case 'access-modes':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.accessModes?.join(', ')}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.accessModes?.join(', ')}</td>
 
                                                     case 'storageclass':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.storageClassName}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.storageClassName}</td>
 
                                                     case 'vac':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.volumeAttributesClassName || '<none>'}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.volumeAttributesClassName || '<none>'}</td>
 
                                                     case 'volumemode':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.volumeMode || '<none>'}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.volumeMode || '<none>'}</td>
 
                                                     case 'selected-node':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.metadata?.annotations?.['volume.kubernetes.io/selected-node'] || '<none>'}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.metadata?.annotations?.['volume.kubernetes.io/selected-node'] || '<none>'}</td>
 
                                                     case 'class':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.ingressClassName || item.metadata?.annotations?.['kubernetes.io/ingress.class'] || '<none>'}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.ingressClassName || item.metadata?.annotations?.['kubernetes.io/ingress.class'] || '<none>'}</td>
 
                                                     case 'hosts':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.spec?.rules?.map((r: any) => r.host).filter(Boolean).join(', ') || '*'}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.rules?.map((r: any) => r.host).filter(Boolean).join(', ') || '*'}</td>
 
                                                     case 'address':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.status?.loadBalancer?.ingress?.map((i: any) => i.ip || i.hostname).filter(Boolean).join(', ') || '<pending>'}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.status?.loadBalancer?.ingress?.map((i: any) => i.ip || i.hostname).filter(Boolean).join(', ') || '<pending>'}</td>
 
                                                     case 'data':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{Object.keys(item.data || {}).length}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{Object.keys(item.data || {}).length}</td>
 
                                                     case 'roles':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>
                                                             {Object.keys(item.metadata?.labels || {})
                                                                 .filter(l => l.startsWith('node-role.kubernetes.io/'))
                                                                 .map(l => l.split('/')[1])
@@ -886,22 +887,22 @@ export function ClusterDetails() {
                                                         </td>
 
                                                     case 'version':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.status?.nodeInfo?.kubeletVersion}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.status?.nodeInfo?.kubeletVersion}</td>
 
                                                     case 'internal-ip':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.status?.addresses?.find((addr: any) => addr.type === 'InternalIP')?.address || '<none>'}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.status?.addresses?.find((addr: any) => addr.type === 'InternalIP')?.address || '<none>'}</td>
 
                                                     case 'os-image':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item.status?.nodeInfo?.osImage}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.status?.nodeInfo?.osImage}</td>
 
                                                     case 'kernel-version':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.status?.nodeInfo?.kernelVersion}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.status?.nodeInfo?.kernelVersion}</td>
 
                                                     case 'container-runtime':
-                                                        return <td key={col.id} className="px-6 py-4 text-sm font-mono text-slate-500 truncate" style={{ width: `${width}px` }}>{item.status?.nodeInfo?.containerRuntimeVersion}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.status?.nodeInfo?.containerRuntimeVersion}</td>
 
                                                     default:
-                                                        return <td key={col.id} className="px-6 py-4 text-sm text-slate-600 truncate" style={{ width: `${width}px` }}>{item[col.id] || '-'}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item[col.id] || '-'}</td>
                                                 }
                                             })}
                                         </tr>
@@ -911,10 +912,10 @@ export function ClusterDetails() {
                         </div>
                     </div>
                 ) : (
-                    <div className="flex flex-col items-center justify-center h-64 text-slate-400 bg-white rounded-2xl border border-dashed border-slate-200">
-                        <Box size={48} className="mb-4 text-slate-200" />
-                        <p className="text-lg font-medium">No {activeTab} found</p>
-                        <p className="text-sm">In namespace: {selectedNamespace}</p>
+                    <div className="empty-state">
+                        <Box size={48} className="empty-icon" />
+                        <p className="empty-title">No {activeTab} found</p>
+                        <p className="empty-subtitle">In namespace: {selectedNamespace}</p>
                     </div>
                 )}
             </main>

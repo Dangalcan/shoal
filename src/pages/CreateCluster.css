@@ -1,0 +1,126 @@
+/* CreateCluster.css */
+
+.create-cluster-container {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.create-cluster-header {
+  margin-bottom: 2rem;
+}
+
+.create-cluster-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: rgb(15 23 42);
+}
+
+.create-cluster-subtitle {
+  color: rgb(100 116 139);
+  margin-top: 0.25rem;
+}
+
+.create-cluster-form {
+  background-color: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  border: 1px solid rgb(241 245 249);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-group-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(51 65 85);
+  margin-bottom: 0.5rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border: 1px solid rgb(203 213 225);
+  border-radius: 0.5rem;
+  outline: none;
+  transition: all 150ms;
+}
+
+.form-input:focus {
+  box-shadow: 0 0 0 2px rgb(59 130 246 / 0.5);
+  border-color: rgb(59 130 246);
+  outline: none;
+}
+
+.provider-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.provider-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 2px solid;
+  transition: all 150ms;
+}
+
+.provider-button-selected {
+  border-color: rgb(37 99 235);
+  background-color: rgb(239 246 255);
+  color: rgb(29 78 216);
+}
+
+.provider-button-unselected {
+  border-color: rgb(226 232 240);
+}
+
+.provider-button-unselected:hover {
+  border-color: rgb(203 213 225);
+}
+
+.provider-button-label {
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.form-actions {
+  padding-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.cancel-button {
+  padding: 0.5rem 1rem;
+  color: rgb(51 65 85);
+  font-weight: 500;
+  border-radius: 0.5rem;
+  transition: colors 150ms;
+}
+
+.cancel-button:hover {
+  background-color: rgb(248 250 252);
+}
+
+.submit-button {
+  padding: 0.5rem 1.5rem;
+  background-color: rgb(37 99 235);
+  color: white;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  box-shadow: 0 10px 15px -3px rgb(59 130 246 / 0.2);
+  transition: colors 150ms;
+}
+
+.submit-button:hover {
+  background-color: rgb(29 78 216);
+}

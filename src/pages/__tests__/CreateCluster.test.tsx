@@ -25,7 +25,7 @@ describe('CreateCluster Page', () => {
         render(<CreateCluster />, { wrapper: RouterWrapper })
 
         const kindButton = screen.getByRole('button', { name: /kind/i })
-        expect(kindButton).toHaveClass('border-blue-600')
+        expect(kindButton).toHaveClass('provider-button-selected')
     })
 
     it('should update cluster name input', async () => {
@@ -45,7 +45,7 @@ describe('CreateCluster Page', () => {
         const k3dButton = screen.getByRole('button', { name: /k3d/i })
         await user.click(k3dButton)
 
-        expect(k3dButton).toHaveClass('border-blue-600')
+        expect(k3dButton).toHaveClass('provider-button-selected')
     })
 
     it('should handle form submission', async () => {

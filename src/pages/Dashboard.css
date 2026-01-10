@@ -1,0 +1,321 @@
+/* Dashboard.css */
+
+.dashboard-container {
+  min-height: 100%;
+  padding: 2rem;
+}
+
+.dashboard-header {
+  margin-bottom: 2rem;
+}
+
+.dashboard-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: rgb(15 23 42);
+}
+
+.dashboard-subtitle {
+  color: rgb(100 116 139);
+  margin-top: 0.25rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (min-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.stat-card {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  border: 1px solid rgb(241 245 249);
+  transition: box-shadow 150ms;
+}
+
+.stat-card:hover {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.stat-card-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stat-card-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(100 116 139);
+  margin-bottom: 0.25rem;
+}
+
+.stat-card-value-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stat-card-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: rgb(15 23 42);
+}
+
+.stat-card-icon-container {
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+}
+
+.stat-card-icon-blue {
+  color: rgb(37 99 235);
+  background-color: rgb(239 246 255);
+}
+
+.stat-card-icon-green {
+  color: rgb(22 163 74);
+  background-color: rgb(240 253 244);
+}
+
+.stat-card-icon-purple {
+  color: rgb(147 51 234);
+  background-color: rgb(250 245 255);
+}
+
+.stat-card-icon-orange {
+  color: rgb(234 88 12);
+  background-color: rgb(255 247 237);
+}
+
+.stat-card-icon-red {
+  color: rgb(220 38 38);
+  background-color: rgb(254 242 242);
+}
+
+.status-icon-running {
+  width: 1rem;
+  height: 1rem;
+  color: rgb(34 197 94);
+}
+
+.status-icon-stopped {
+  width: 1rem;
+  height: 1rem;
+  color: rgb(239 68 68);
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 2rem;
+}
+
+@media (min-width: 1024px) {
+  .content-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.card {
+  background-color: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  border: 1px solid rgb(241 245 249);
+  padding: 1.5rem;
+}
+
+.card-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: rgb(15 23 42);
+  margin-bottom: 1rem;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.refresh-button {
+  padding: 0.25rem;
+  color: rgb(148 163 184);
+  border-radius: 0.25rem;
+  transition: colors 150ms;
+}
+
+.refresh-button:hover {
+  color: rgb(71 85 105);
+  background-color: rgb(248 250 252);
+}
+
+.quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.primary-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: rgb(37 99 235);
+  color: white;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: colors 150ms;
+}
+
+.primary-button:hover {
+  background-color: rgb(29 78 216);
+}
+
+.divider-text {
+  text-align: center;
+  font-size: 0.875rem;
+  color: rgb(148 163 184);
+  margin: 0.5rem 0;
+}
+
+.secondary-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: white;
+  border: 1px solid rgb(226 232 240);
+  color: rgb(51 65 85);
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: colors 150ms;
+}
+
+.secondary-button:hover {
+  background-color: rgb(248 250 252);
+}
+
+.cluster-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cluster-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid;
+  transition: colors 150ms;
+}
+
+.cluster-item-active {
+  background-color: rgb(239 246 255);
+  border-color: rgb(191 219 254);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.cluster-item-inactive {
+  background-color: rgb(248 250 252);
+  border-color: rgb(241 245 249);
+}
+
+.cluster-item-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: opacity 150ms;
+}
+
+.cluster-item-content:hover {
+  opacity: 0.8;
+}
+
+.cluster-item-icon-active {
+  color: rgb(59 130 246);
+}
+
+.cluster-item-icon-inactive {
+  color: rgb(148 163 184);
+}
+
+.cluster-item-name {
+  font-weight: 500;
+  transition: colors 150ms;
+}
+
+.cluster-item-name-active {
+  color: rgb(15 23 42);
+}
+
+.cluster-item-name-inactive {
+  color: rgb(71 85 105);
+}
+
+.cluster-item-name:hover {
+  color: rgb(37 99 235);
+}
+
+.cluster-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.view-pods-button {
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  color: rgb(100 116 139);
+  transition: colors 150ms;
+}
+
+.view-pods-button:hover {
+  background-color: rgb(226 232 240);
+  color: rgb(37 99 235);
+}
+
+.badge-active {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  background-color: rgb(219 234 254);
+  color: rgb(29 78 216);
+  border-radius: 9999px;
+  font-weight: 600;
+}
+
+.badge-available {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  background-color: rgb(241 245 249);
+  color: rgb(100 116 139);
+  border-radius: 9999px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 10rem;
+  color: rgb(148 163 184);
+  background-color: rgb(248 250 252);
+  border-radius: 0.5rem;
+  border: 2px dashed rgb(226 232 240);
+}

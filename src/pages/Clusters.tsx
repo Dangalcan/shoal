@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Server, Trash2, RefreshCw, Loader2, AlertCircle, Eye } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
 import { PodViewerModal } from '../components/PodViewerModal'
+import './Clusters.css'
 
 export function Clusters() {
     const navigate = useNavigate()
@@ -48,58 +49,58 @@ export function Clusters() {
     }
 
     return (
-        <div className="p-8 max-w-5xl mx-auto">
+        <div className="clusters-container">
             <Toaster position="top-right" />
-            <header className="flex justify-between items-center mb-8">
+            <header className="clusters-header">
                 <div>
-                    <h2 className="text-3xl font-bold text-slate-900">Clusters</h2>
-                    <p className="text-slate-500 mt-1">Manage your local Kubernetes environments.</p>
+                    <h2 className="clusters-title">Clusters</h2>
+                    <p className="clusters-subtitle">Manage your local Kubernetes environments.</p>
                 </div>
                 <button
                     onClick={fetchClusters}
                     disabled={loading}
-                    className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+                    className="refresh-clusters-button"
                     title="Refresh List"
                 >
-                    <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+                    <RefreshCw size={20} className={loading ? 'refresh-icon-spinning' : ''} />
                 </button>
             </header>
 
             {loading && clusters.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-64 text-slate-400 bg-white rounded-xl border border-slate-100 shadow-sm">
-                    <Loader2 className="animate-spin mb-2" size={32} />
+                <div className="clusters-loading">
+                    <Loader2 className="clusters-loading-spinner" size={32} />
                     <p>Loading clusters...</p>
                 </div>
             ) : clusters.length > 0 ? (
-                <div className="grid grid-cols-1 gap-4">
+                <div className="clusters-grid">
                     {clusters.map((cluster) => (
-                        <div key={cluster} className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-md transition-shadow">
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                        <div key={cluster} className="cluster-card">
+                            <div className="cluster-card-content">
+                                <div className="cluster-card-icon">
                                     <Server size={24} />
                                 </div>
                                 <div
                                     onClick={() => navigate(`/cluster/${cluster}`)}
-                                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                                    className="cluster-card-info"
                                 >
-                                    <h3 className="font-bold text-slate-900 text-lg hover:text-blue-600 transition-colors">{cluster}</h3>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <span className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-                                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                                    <h3 className="cluster-card-name">{cluster}</h3>
+                                    <div className="cluster-card-meta">
+                                        <span className="cluster-status-badge">
+                                            <div className="cluster-status-dot"></div>
                                             Running
                                         </span>
-                                        <span className="text-xs text-slate-400 font-mono">Provider: Kind</span>
+                                        <span className="cluster-provider">Provider: Kind</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="cluster-card-actions">
                                 <button
                                     onClick={() => {
                                         setSelectedCluster(cluster)
                                         setIsModalOpen(true)
                                     }}
-                                    className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                                    className="view-pods-action-button"
                                     title="View Pods"
                                 >
                                     <Eye size={20} />
@@ -107,20 +108,20 @@ export function Clusters() {
                                 <button
                                     onClick={() => handleDelete(cluster)}
                                     disabled={!!deleting}
-                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                                    className="delete-cluster-button"
                                     title="Delete Cluster"
                                 >
-                                    {deleting === cluster ? <Loader2 size={20} className="animate-spin" /> : <Trash2 size={20} />}
+                                    {deleting === cluster ? <Loader2 size={20} className="delete-spinner" /> : <Trash2 size={20} />}
                                 </button>
                             </div>
                         </div>
                     ))}
                 </div>
             ) : (
-                <div className="flex flex-col items-center justify-center h-64 text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
-                    <AlertCircle size={48} className="mb-4 text-slate-300" />
-                    <p className="text-lg font-medium">No clusters found</p>
-                    <p className="text-sm">Create a new cluster to get started.</p>
+                <div className="clusters-empty">
+                    <AlertCircle size={48} className="clusters-empty-icon" />
+                    <p className="clusters-empty-title">No clusters found</p>
+                    <p className="clusters-empty-subtitle">Create a new cluster to get started.</p>
                 </div>
             )}
 

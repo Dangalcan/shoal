@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { X, RefreshCw, Loader2, AlertCircle, Terminal } from 'lucide-react'
+import './LogViewerModal.css'
 
 interface LogViewerModalProps {
     isOpen: boolean
@@ -52,60 +53,60 @@ export function LogViewerModal({ isOpen, onClose, clusterName, podName, namespac
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-[#1e1e1e] rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden border border-slate-800 animate-in fade-in zoom-in duration-200">
-                <header className="p-4 border-b border-slate-800 flex items-center justify-between bg-[#252526]">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-slate-800 text-slate-400 rounded-lg">
+        <div className="log-modal-overlay">
+            <div className="log-modal-container">
+                <header className="log-modal-header">
+                    <div className="log-header-content">
+                        <div className="log-header-icon">
                             <Terminal size={18} />
                         </div>
                         <div>
-                            <h3 className="text-sm font-bold text-slate-200 flex items-center gap-2">
-                                Logs: <span className="text-blue-400 font-mono">{podName}</span>
+                            <h3 className="log-header-title">
+                                Logs: <span className="log-pod-name">{podName}</span>
                             </h3>
-                            <p className="text-xs text-slate-500 font-mono">NS: {namespace} | Cluster: {clusterName}</p>
+                            <p className="log-header-subtitle">NS: {namespace} | Cluster: {clusterName}</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="log-header-actions">
                         <button
                             onClick={fetchLogs}
                             disabled={loading}
-                            className="p-2 hover:bg-slate-800 text-slate-400 rounded-lg transition-colors disabled:opacity-50"
+                            className="log-refresh-button"
                             title="Refresh Logs"
                         >
-                            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                            <RefreshCw size={18} className={loading ? 'log-refresh-spinner' : ''} />
                         </button>
-                        <button onClick={onClose} className="p-2 hover:bg-slate-800 text-slate-400 rounded-lg transition-colors">
+                        <button onClick={onClose} className="log-close-button">
                             <X size={18} />
                         </button>
                     </div>
                 </header>
 
-                <div className="flex-1 overflow-auto p-4 font-mono text-sm bg-[#1a1a1a]">
+                <div className="log-modal-content">
                     {loading && !logs ? (
-                        <div className="flex flex-col items-center justify-center h-full text-slate-500">
-                            <Loader2 className="animate-spin mb-2" size={32} />
+                        <div className="log-loading-state">
+                            <Loader2 className="log-loading-spinner" size={32} />
                             <p>Fetching logs...</p>
                         </div>
                     ) : error ? (
-                        <div className="flex flex-col items-center justify-center h-full text-red-500 bg-red-950/20 rounded-xl border border-red-900/30 m-4">
-                            <AlertCircle size={32} className="mb-2" />
-                            <p className="font-semibold">Failed to load logs</p>
-                            <p className="text-xs mt-1 text-center px-8 opacity-70">{error}</p>
+                        <div className="log-error-state">
+                            <AlertCircle size={32} className="log-error-icon" />
+                            <p className="log-error-title">Failed to load logs</p>
+                            <p className="log-error-message">{error}</p>
                         </div>
                     ) : (
-                        <div className="text-slate-300 whitespace-pre-wrap break-words selection:bg-blue-500/30">
+                        <div className="log-content-text">
                             {logs}
                             <div ref={logEndRef} />
                         </div>
                     )}
                 </div>
 
-                <footer className="p-3 border-t border-slate-800 bg-[#252526] flex justify-between items-center">
-                    <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold px-3">
+                <footer className="log-modal-footer">
+                    <p className="log-footer-info">
                         End of stream (tail: 200)
                     </p>
-                    <button onClick={onClose} className="px-4 py-1.5 bg-slate-800 text-slate-300 text-xs rounded hover:bg-slate-700 transition-colors">
+                    <button onClick={onClose} className="log-footer-close-button">
                         Close Viewer
                     </button>
                 </footer>
