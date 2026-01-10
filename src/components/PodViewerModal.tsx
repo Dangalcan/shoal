@@ -25,6 +25,9 @@ export function PodViewerModal({ isOpen, onClose, clusterName }: PodViewerModalP
                         setError(result.error || 'Failed to fetch pods')
                     }
                 })
+                .catch(err => {
+                    setError(err.message || 'An error occurred fetching pods')
+                })
                 .finally(() => setLoading(false))
         }
     }, [isOpen, clusterName])
