@@ -123,6 +123,7 @@ export const mockPVC: PersistentVolumeClaim[] = [
       volumeName: 'pv-1',
       accessModes: ['ReadWriteOnce'],
       storageClassName: 'gp2',
+      resources: { requests: { storage: '5Gi' } },
       volumeMode: 'Block',
     },
   },
@@ -389,7 +390,12 @@ export const mockReplicaSets: ReplicaSet[] = [
       creationTimestamp: '2024-01-01T00:00:00Z',
     },
     spec: { replicas: 3, selector: { matchLabels: {} } },
-    status: { replicas: 3, readyReplicas: 3, availableReplicas: 3 },
+    status: {
+      replicas: 3,
+      readyReplicas: 3,
+      availableReplicas: 3,
+      fullyLabeledReplicas: 3,
+    },
   },
 ];
 export const mockDaemonSets: DaemonSet[] = [
