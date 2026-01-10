@@ -164,12 +164,31 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
         {
             metadata: { name: 'cm-1', namespace: 'default', creationTimestamp: '2024-01-01T10:00:00Z' },
             data: { 'config.json': '{}' }
-        },
-        {
-            metadata: { name: 'cm-2', namespace: 'default', creationTimestamp: '2023-01-01T10:00:00Z' },
-            data: { 'foo': 'bar', 'baz': 'qux' }
         }
     ]
+
+    const mockPV = [{ metadata: { name: 'pv-1' }, spec: { capacity: { storage: '10Gi' }, accessModes: ['RWO'], persistentVolumeReclaimPolicy: 'Retain', storageClassName: 'gp2', volumeMode: 'Filesystem' }, status: { phase: 'Bound' } }]
+    const mockSC = [{ metadata: { name: 'sc-1' }, provisioner: 'ebs.csi.aws.com', reclaimPolicy: 'Delete', volumeBindingMode: 'Immediate', allowVolumeExpansion: true }]
+    const mockVS = [{ metadata: { name: 'vs-1', namespace: 'default' }, spec: { volumeSnapshotClassName: 'vsc-1', source: { persistentVolumeClaimName: 'pvc-1' } }, status: { readyToUse: true, restoreSize: '5Gi' } }]
+    const mockVSC = [{ metadata: { name: 'vsc-1' }, driver: 'ebs.csi.aws.com', deletionPolicy: 'Delete' }]
+    const mockRS = [{ metadata: { name: 'rs-1', namespace: 'default' }, spec: { replicas: 3 }, status: { replicas: 3, readyReplicas: 3, availableReplicas: 3 } }]
+    const mockDS = [{ metadata: { name: 'ds-1', namespace: 'default' }, status: { desiredNumberScheduled: 5, currentNumberScheduled: 5, numberReady: 5, updatedNumberScheduled: 5 } }]
+    const mockJobs = [{ metadata: { name: 'job-1', namespace: 'default' }, status: { completions: 1, succeeded: 1 }, spec: { completions: 1 } }]
+    const mockCronJobs = [{ metadata: { name: 'cj-1', namespace: 'default' }, spec: { schedule: '*/5 * * * *', suspend: false }, status: { lastScheduleTime: '2024-01-01T10:00:00Z' } }]
+    const mockRC = [{ metadata: { name: 'rc-1', namespace: 'default' }, spec: { replicas: 2 }, status: { replicas: 2, readyReplicas: 2 } }]
+    const mockRoles = [{ metadata: { name: 'role-1', namespace: 'default' } }]
+    const mockRoleBindings = [{ metadata: { name: 'rb-1', namespace: 'default' }, roleRef: { name: 'role-1', kind: 'Role' } }]
+    const mockSA = [{ metadata: { name: 'sa-1', namespace: 'default' }, secrets: [{ name: 'sa-token' }] }]
+    const mockNP = [{ metadata: { name: 'np-1', namespace: 'default' }, spec: { podSelector: {}, policyTypes: ['Ingress'] } }]
+    const mockEPs = [{ metadata: { name: 'ep-1', namespace: 'default' }, subsets: [{ addresses: [{ ip: '1.2.3.4' }], ports: [{ port: 80 }] }] }]
+    const mockPDBs = [{ metadata: { name: 'pdb-1', namespace: 'default' }, spec: { minAvailable: 1 }, status: { disruptionsAllowed: 1 } }]
+    const mockQuotas = [{ metadata: { name: 'rq-1', namespace: 'default' }, status: { hard: { pods: '10' }, used: { pods: '1' } } }]
+    const mockCRD = [{ metadata: { name: 'crds.example.com' }, spec: { scope: 'Namespaced', group: 'example.com' } }]
+    const mockWebhooks = [{ metadata: { name: 'webhook-1' }, webhooks: [{ name: 'check.example.com' }] }]
+    const mockAPIService = [{ metadata: { name: 'v1.example.com' }, spec: { service: { name: 'svc' } }, status: { conditions: [{ type: 'Available', status: 'True' }] } }]
+    const mockLease = [{ metadata: { name: 'lease-1', namespace: 'kube-system' }, spec: { holderIdentity: 'node-A', leaseDurationSeconds: 30 } }]
+    const mockPriorityClass = [{ metadata: { name: 'high-priority' }, value: 1000, preemptionPolicy: 'PreemptLowerPriority' }]
+    const mockCSR = [{ metadata: { name: 'csr-1' }, spec: { username: 'admin', signerName: 'kubernetes.io/kube-apiserver-client' }, status: { conditions: [{ type: 'Approved' }] } }]
 
     beforeEach(() => {
         vi.clearAllMocks()
@@ -186,6 +205,28 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             if (resourceType === 'secrets') return { success: true, items: mockSecrets }
             if (resourceType === 'configmap') return { success: true, items: mockConfigMaps }
             if (resourceType === 'statefulsets') return { success: true, items: mockStatefulSets }
+            if (resourceType === 'persistentvolume') return { success: true, items: mockPV }
+            if (resourceType === 'storageclass') return { success: true, items: mockSC }
+            if (resourceType === 'volumesnapshot') return { success: true, items: mockVS }
+            if (resourceType === 'volumesnapshotclass') return { success: true, items: mockVSC }
+            if (resourceType === 'replicasets') return { success: true, items: mockRS }
+            if (resourceType === 'daemonsets') return { success: true, items: mockDS }
+            if (resourceType === 'jobs') return { success: true, items: mockJobs }
+            if (resourceType === 'cronjobs') return { success: true, items: mockCronJobs }
+            if (resourceType === 'replicationcontroller') return { success: true, items: mockRC }
+            if (resourceType === 'role' || resourceType === 'clusterrole') return { success: true, items: mockRoles }
+            if (resourceType === 'rolebinding' || resourceType === 'clusterrolebinding') return { success: true, items: mockRoleBindings }
+            if (resourceType === 'serviceaccounts') return { success: true, items: mockSA }
+            if (resourceType === 'networkpolicy') return { success: true, items: mockNP }
+            if (resourceType === 'endpoints') return { success: true, items: mockEPs }
+            if (resourceType === 'poddisruptionbudget') return { success: true, items: mockPDBs }
+            if (resourceType === 'resourcequota') return { success: true, items: mockQuotas }
+            if (resourceType === 'customresourcedefinition') return { success: true, items: mockCRD }
+            if (resourceType === 'mutatingwebhookconfiguration' || resourceType === 'validatingwebhookconfiguration') return { success: true, items: mockWebhooks }
+            if (resourceType === 'apiservice') return { success: true, items: mockAPIService }
+            if (resourceType === 'lease') return { success: true, items: mockLease }
+            if (resourceType === 'priorityclass') return { success: true, items: mockPriorityClass }
+            if (resourceType === 'certificatesigningrequest') return { success: true, items: mockCSR }
             return { success: true, items: [] }
         })
         mockElectronAPI.rolloutRestart.mockResolvedValue({ success: true })
