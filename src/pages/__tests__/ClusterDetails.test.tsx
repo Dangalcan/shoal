@@ -45,11 +45,17 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
     const mockClusterName = 'cluster-123'
     const mockNamespaces = ['all', 'default', 'kube-system']
     
+    // Multi-item mocks to ensure sorting logic triggers (array.sort requires > 1 item)
     const mockPods = [
         {
             metadata: { name: 'pod-1', namespace: 'default', creationTimestamp: '2024-01-01T10:00:00Z' },
             status: { phase: 'Running', podIP: '10.0.0.1', containerStatuses: [{ restartCount: 5 }], nominatedNodeName: 'node-SPECIFIC' },
-            spec: { nodeName: 'node-A', containers: [{ name: 'c1', image: 'img1' }, { name: 'c2', image: 'img2' }], readinessGates: [{ conditionType: 'Ready' }] }
+            spec: { nodeName: 'node-A', containers: [{ name: 'c1', image: 'img1' }], readinessGates: [{ conditionType: 'Ready' }] }
+        },
+        {
+            metadata: { name: 'pod-2', namespace: 'default', creationTimestamp: '2023-01-01T10:00:00Z' },
+            status: { phase: 'Pending', podIP: '10.0.0.2', containerStatuses: [{ restartCount: 10 }] },
+            spec: { nodeName: 'node-B', containers: [{ name: 'd1', image: 'img2' }], selector: { app: 'foo' } }
         }
     ]
 
@@ -58,6 +64,11 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             metadata: { name: 'dep-1', namespace: 'default', creationTimestamp: '2024-01-01T10:00:00Z' },
             status: { readyReplicas: 2, replicas: 3, updatedReplicas: 2, availableReplicas: 1 },
             spec: { template: { spec: { containers: [ { name: 'nginx-c', image: 'nginx-i' } ] } }, selector: { matchLabels: { app: 'nginx' } } }
+        },
+        {
+            metadata: { name: 'dep-2', namespace: 'default', creationTimestamp: '2023-01-01T10:00:00Z' },
+            status: { readyReplicas: 0, replicas: 1, updatedReplicas: 1, availableReplicas: 0 },
+            spec: { template: { spec: { containers: [ { name: 'apache-c', image: 'apache-i' } ] } }, selector: { matchLabels: { app: 'apache' } } }
         }
     ]
 
@@ -66,6 +77,11 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             metadata: { name: 'pvc-1', namespace: 'default', creationTimestamp: '2024-01-01T10:00:00Z', annotations: { 'volume.kubernetes.io/selected-node': 'node-PVC-TARGET' } },
             status: { phase: 'Bound', capacity: { storage: '5Gi' } },
             spec: { volumeName: 'pv-1', accessModes: ['ReadWriteOnce'], storageClassName: 'gp2', volumeMode: 'Block', volumeAttributesClassName: 'class-a' }
+        },
+        {
+            metadata: { name: 'pvc-2', namespace: 'default', creationTimestamp: '2023-01-01T10:00:00Z' },
+            status: { phase: 'Pending', capacity: { storage: '10Gi' } },
+            spec: { volumeName: 'pv-2', accessModes: ['ReadWriteMany'], storageClassName: 'standard', volumeMode: 'Filesystem' }
         }
     ]
 
@@ -80,6 +96,17 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
                     { type: 'ExternalIP', address: '1.2.3.4' }
                 ]
             }
+        },
+        {
+            metadata: { name: 'node-B', creationTimestamp: '2023-01-01T10:00:00Z', labels: { 'node-role.kubernetes.io/worker': '' } },
+            status: { 
+                conditions: [{ type: 'Ready', status: 'False' }],
+                nodeInfo: { kubeletVersion: 'v1.27.0', osImage: 'Ubuntu', kernelVersion: '5.15', containerRuntimeVersion: 'containerd' },
+                addresses: [
+                    { type: 'InternalIP', address: '172.16.0.2' },
+                    { type: 'ExternalIP', address: '5.6.7.8' }
+                ]
+            }
         }
     ]
 
@@ -88,6 +115,11 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             metadata: { name: 'svc-1', namespace: 'default', creationTimestamp: '2024-01-01T10:00:00Z' },
             spec: { type: 'LoadBalancer', clusterIP: '10.96.0.1', ports: [{ port: 80, protocol: 'TCP' }], selector: { app: 'nginx' } },
             status: { loadBalancer: { ingress: [{ ip: '35.1.2.3' }] } }
+        },
+        {
+            metadata: { name: 'svc-2', namespace: 'default', creationTimestamp: '2023-01-01T10:00:00Z' },
+            spec: { type: 'ClusterIP', clusterIP: '10.96.0.2', ports: [{ port: 443, protocol: 'TCP' }] },
+            status: {}
         }
     ]
 
@@ -120,6 +152,11 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             metadata: { name: 'sec-1', namespace: 'default', creationTimestamp: '2024-01-01T10:00:00Z' },
             type: 'Opaque',
             data: { key1: 'val1', key2: 'val2' }
+        },
+        {
+            metadata: { name: 'sec-2', namespace: 'default', creationTimestamp: '2023-01-01T10:00:00Z' },
+            type: 'kubernetes.io/service-account-token',
+            data: { token: 'abc' }
         }
     ]
 
@@ -127,6 +164,10 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
         {
             metadata: { name: 'cm-1', namespace: 'default', creationTimestamp: '2024-01-01T10:00:00Z' },
             data: { 'config.json': '{}' }
+        },
+        {
+            metadata: { name: 'cm-2', namespace: 'default', creationTimestamp: '2023-01-01T10:00:00Z' },
+            data: { 'foo': 'bar', 'baz': 'qux' }
         }
     ]
 
@@ -246,9 +287,6 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             fireEvent.click(within(tabs as HTMLElement).getByText('PVCs'))
             await waitFor(() => expect(screen.getByText('pvc-1')).toBeInTheDocument())
             
-            // Volume Node (selected-node) is visible by default in persistentvolumeclaim
-            // No need to toggle it unless we want to test toggling off/on
-
             await waitFor(() => {
                 const table = screen.getByRole('table')
                 expect(within(table).getByText('pv-1')).toBeInTheDocument()
@@ -313,7 +351,9 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             fireEvent.click(within(tabs as HTMLElement).getByText('Deployments'))
             await waitFor(() => expect(screen.getByText('dep-1')).toBeInTheDocument())
             
-            fireEvent.click(screen.getByTitle('Rollout Restart'))
+            const row = screen.getByText('dep-1').closest('tr')!
+            fireEvent.click(within(row).getByTitle('Rollout Restart'))
+            
             await waitFor(() => {
                 expect(toast.success).toHaveBeenCalledWith('Restart triggered successfully')
                 expect(mockElectronAPI.getResources).toHaveBeenCalledTimes(3) // Initial + Tab Change + after restart
@@ -322,7 +362,8 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             // StatefulSet restart
             fireEvent.click(within(tabs as HTMLElement).getByText('StatefulSets'))
             await waitFor(() => expect(screen.getByText('sts-1')).toBeInTheDocument())
-            fireEvent.click(screen.getByTitle('Rollout Restart'))
+            const stsRow = screen.getByText('sts-1').closest('tr')!
+            fireEvent.click(within(stsRow).getByTitle('Rollout Restart'))
             await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Restart triggered successfully'))
         })
 
@@ -334,7 +375,9 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             renderPage()
             await waitFor(() => expect(screen.getByText('pod-1')).toBeInTheDocument())
             
-            fireEvent.click(screen.getByTitle('Delete Resource'))
+            const row = screen.getByText('pod-1').closest('tr')!
+            fireEvent.click(within(row).getByTitle('Delete Resource'))
+            
             await waitFor(() => {
                 expect(mockElectronAPI.deleteResource).toHaveBeenCalled()
                 expect(toast.success).toHaveBeenCalledWith('Resource deleted successfully')
@@ -342,8 +385,13 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
 
             // Cancellation path
             confirmSpy.mockReturnValue(false)
-            fireEvent.click(screen.getByTitle('Delete Resource'))
-            expect(mockElectronAPI.deleteResource).toHaveBeenCalledTimes(1) // Still 1 from before
+            // Need to re-query row or ensure it's still there (it wasn't deleted in logic because we awaited success?)
+            // Actually, in the test flow above, deleteResource WAS called. So strict mode might complain if we try to delete again?
+            // The previous click triggered delete.
+            // Let's use a fresh render or different item for cancellation to be clean, or just click again.
+            
+            fireEvent.click(within(row).getByTitle('Delete Resource'))
+            expect(mockElectronAPI.deleteResource).toHaveBeenCalledTimes(1) // Still 1 from before (cancel prevents 2nd call)
             
             confirmSpy.mockRestore()
         })
@@ -358,22 +406,29 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
         it('should open all modal types', async () => {
             renderPage()
             await waitFor(() => expect(screen.getByText('pod-1')).toBeInTheDocument())
-            
+            const row = screen.getByText('pod-1').closest('tr')!
+
             // Pod logs (click pod name)
-            fireEvent.click(screen.getByText('pod-1'))
+            fireEvent.click(within(row).getByText('pod-1'))
             expect(screen.getByTestId('log-modal')).toBeInTheDocument()
             fireEvent.click(within(screen.getByTestId('log-modal')).getByText('Close'))
             expect(screen.queryByTestId('log-modal')).not.toBeInTheDocument()
 
             // Describe
-            fireEvent.click(screen.getByTitle('Describe Resource'))
+            fireEvent.click(within(row).getByTitle('Describe Resource'))
             expect(screen.getByTestId('describe-modal')).toBeInTheDocument()
             fireEvent.click(within(screen.getByTestId('describe-modal')).getByText('Close'))
 
             // YAML
-            fireEvent.click(screen.getByTitle('View YAML'))
+            fireEvent.click(within(row).getByTitle('View YAML'))
             expect(screen.getByTestId('yaml-modal')).toBeInTheDocument()
             fireEvent.click(within(screen.getByTestId('yaml-modal')).getByText('Close'))
+
+             // Pod logs (click action button)
+             await waitFor(() => expect(within(row).getByTitle('View Logs')).toBeVisible())
+             fireEvent.click(within(row).getByTitle('View Logs'))
+             expect(screen.getByTestId('log-modal')).toBeInTheDocument()
+             fireEvent.click(within(screen.getByTestId('log-modal')).getByText('Close'))
         })
 
         it('should handle rollout success/error logic branches in toast.promise', async () => {
@@ -381,8 +436,11 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
              mockElectronAPI.rolloutRestart.mockRejectedValue({ error: 'Async Rollout Failed' })
              renderPage()
              fireEvent.click(within(screen.getByRole('banner').querySelector('.tabs-container')!).getByText('Deployments'))
-             await waitFor(() => screen.getByTitle('Rollout Restart'))
-             fireEvent.click(screen.getByTitle('Rollout Restart'))
+             
+             await waitFor(() => expect(screen.getByText('dep-1')).toBeInTheDocument())
+             const row = screen.getByText('dep-1').closest('tr')!
+             
+             fireEvent.click(within(row).getByTitle('Rollout Restart'))
              await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Async Rollout Failed')))
         })
     })
@@ -405,30 +463,8 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
         })
 
         it('should sort exhaustive column types', async () => {
-            // Add a second node for sorting comparison
-            const manyNodes = [
-                ...mockNodes,
-                {
-                    metadata: { name: 'node-B', creationTimestamp: '2023-01-01T10:00:00Z', labels: { 'node-role.kubernetes.io/worker': '' } },
-                    status: { 
-                        conditions: [{ type: 'Ready', status: 'False' }],
-                        nodeInfo: { kubeletVersion: 'v1.27.0', osImage: 'Ubuntu', kernelVersion: '5.15', containerRuntimeVersion: 'containerd' },
-                        addresses: [{ type: 'InternalIP', address: '172.16.0.2' }, { type: 'ExternalIP', address: '5.6.7.8' }]
-                    }
-                }
-            ]
-            mockElectronAPI.getResources.mockImplementation(async ({ resourceType }) => {
-                if (resourceType === 'nodes') return { success: true, items: manyNodes }
-                if (resourceType === 'pods') return { success: true, items: mockPods }
-                if (resourceType === 'deployments') return { success: true, items: mockDeployments }
-                if (resourceType === 'persistentvolumeclaim') return { success: true, items: mockPVC }
-                if (resourceType === 'services') return { success: true, items: mockServices }
-                if (resourceType === 'hpa') return { success: true, items: mockHPA }
-                if (resourceType === 'ingress') return { success: true, items: mockIngress }
-                if (resourceType === 'secrets') return { success: true, items: mockSecrets }
-                if (resourceType === 'configmap') return { success: true, items: mockConfigMaps }
-                return { success: true, items: [] }
-            })
+            // Because we now have multi-item mocks in beforeEach, we can just use them.
+            // mockNodes has node-A (created 2024, Ready=True) and node-B (created 2023, Ready=False)
 
             renderPage()
             const tabs = screen.getByRole('banner').querySelector('.tabs-container')!
@@ -456,6 +492,24 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             // Sort by status
             fireEvent.click(within(thead).getByText('Status'))
 
+            // Sort by OS Image
+            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(within(screen.getByText('Display Settings').closest('.settings-dropdown')!).getByText('OS Image').closest('button')!)
+            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(within(thead).getByText('OS Image'))
+
+            // Sort by Kernel Version
+            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(within(screen.getByText('Display Settings').closest('.settings-dropdown')!).getByText('Kernel Version').closest('button')!)
+            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(within(thead).getByText('Kernel Version'))
+
+             // Sort by Container Runtime
+             fireEvent.click(screen.getByTitle('Visible Resources'))
+             fireEvent.click(within(screen.getByText('Display Settings').closest('.settings-dropdown')!).getByText('Container Runtime').closest('button')!)
+             fireEvent.click(screen.getByTitle('Visible Resources'))
+             fireEvent.click(within(thead).getByText('Container Runtime'))
+             
             // Switch to Pods for more sort branches
             fireEvent.click(within(tabs as HTMLElement).getByText('Pods'))
             await waitFor(() => expect(screen.getByText('pod-1')).toBeInTheDocument())
@@ -469,6 +523,12 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             fireEvent.click(within(screen.getByText('Display Settings').closest('.settings-dropdown')!).getByText('IP').closest('button')!)
             fireEvent.click(screen.getByTitle('Visible Resources'))
             fireEvent.click(within(podsThead).getByText('IP'))
+
+             // Sort by Node
+             fireEvent.click(screen.getByTitle('Visible Resources'))
+             fireEvent.click(within(screen.getByText('Display Settings').closest('.settings-dropdown')!).getByText('Node').closest('button')!)
+             fireEvent.click(screen.getByTitle('Visible Resources'))
+             fireEvent.click(within(podsThead).getByText('Node'))
 
             // Exhaustive sorting branches
             fireEvent.click(within(podsThead).getByText('Name'))
@@ -500,19 +560,20 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             fireEvent.click(within(podsThead).getByText('Images'))
             fireEvent.click(within(podsThead).getByText('Selector'))
 
-            // Node OS/Kernel fields
-            fireEvent.click(within(tabs as HTMLElement).getByText('Nodes'))
-            fireEvent.click(screen.getByTitle('Visible Resources'))
-            const nodeDrop = screen.getByText('Display Settings').closest('.settings-dropdown')! as HTMLElement
-            const nodeCols = ['OS Image', 'Kernel Version', 'Container Runtime', 'External IP']
-            nodeCols.forEach(c => fireEvent.click(within(nodeDrop).getByText(c).closest('button')!))
-            fireEvent.click(screen.getByTitle('Visible Resources'))
+            // Secrets Data Count Sort
+            fireEvent.click(within(tabs as HTMLElement).getByText('Secrets'))
+            await waitFor(() => expect(screen.getByText('sec-1')).toBeInTheDocument())
+            const secThead = screen.getByRole('table').querySelector('thead')!
+            fireEvent.click(within(secThead).getByText('Data'))
+
+            // PVC Status Sort
+            fireEvent.click(within(tabs as HTMLElement).getByText('PVCs'))
+            await waitFor(() => expect(screen.getByText('pvc-1')).toBeInTheDocument())
+            const pvcThead = screen.getByRole('table').querySelector('thead')!
+            fireEvent.click(within(pvcThead).getByText('Status'))
             
-            const nodeThead = screen.getByRole('table').querySelector('thead')!
-            fireEvent.click(within(nodeThead).getByText('OS Image'))
-            fireEvent.click(within(nodeThead).getByText('Kernel Version'))
-            fireEvent.click(within(nodeThead).getByText('Container Runtime'))
-            fireEvent.click(within(nodeThead).getByText('External IP'))
+            // PVC Capacity Sort (default fallback case for complex objects if not handled, but here it's likely handled by default string/number comparison if not explicit)
+            fireEvent.click(within(pvcThead).getByText('Capacity'))
         })
     })
 
@@ -541,29 +602,18 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
     })
     describe('Status Badge Edge Cases', () => {
         it('should render correct status badges for Pending pods and NotReady nodes', async () => {
-             const pendingPod = {
-                 metadata: { name: 'pod-pending', namespace: 'default', creationTimestamp: '2024-01-01T10:00:00Z' },
-                 status: { phase: 'Pending' }
-             }
-             const notReadyNode = {
-                 metadata: { name: 'node-notready', creationTimestamp: '2024-01-01T10:00:00Z' },
-                 status: { conditions: [{ type: 'Ready', status: 'False' }] }
-             }
-             
-             mockElectronAPI.getResources.mockImplementation(async ({ resourceType }) => {
-                 if (resourceType === 'pods') return { success: true, items: [pendingPod] }
-                 if (resourceType === 'nodes') return { success: true, items: [notReadyNode] }
-                 return { success: true, items: [] }
-             })
-             
+             // Mock already includes pending pod-2 and notReady node-B
              renderPage()
-             await waitFor(() => expect(screen.getByText('pod-pending')).toBeInTheDocument(), { timeout: 2000 })
+             await waitFor(() => expect(screen.getByText('pod-1')).toBeInTheDocument())
+             
+             // Check pending
              const badge = screen.getByText('Pending')
              expect(badge).toHaveClass('status-badge-other')
              
              const tabs = screen.getByRole('banner').querySelector('.tabs-container')!
              fireEvent.click(within(tabs as HTMLElement).getByText('Nodes'))
-             await waitFor(() => expect(screen.getByText('node-notready')).toBeInTheDocument(), { timeout: 2000 })
+             await waitFor(() => expect(screen.getByText('node-A')).toBeInTheDocument())
+             
              const nodeBadge = screen.getByText('NotReady')
              expect(nodeBadge).toHaveClass('status-badge-not-ready')
         })
