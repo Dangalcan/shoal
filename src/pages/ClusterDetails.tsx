@@ -34,7 +34,18 @@ export function ClusterDetails() {
 
     // Resource Visibility State
     const [visibleResources, setVisibleResources] = useState<ResourceType[]>(() => {
-        const defaults: ResourceType[] = ALL_TABS.filter(t => t.id !== 'daemonsets' && t.id !== 'jobs' && t.id !== 'cronjobs' && t.id !== 'ingressclass' && t.id !== 'networkpolicy').map(t => t.id)
+        const skipResources: ResourceType[] = [
+            'daemonsets', 'jobs', 'cronjobs', 'ingressclass', 'networkpolicy', 
+            'endpointslices', 'serviceaccounts', 'persistentvolume', 'storageclass', 
+            'volumesnapshot', 'volumesnapshotclass', 'role', 'clusterrole', 
+            'rolebinding', 'clusterrolebinding', 'poddisruptionbudget', 'limitrange', 
+            'resourcequota', 'priorityclass', 'runtimeclass', 'lease', 
+            'customresourcedefinition', 'mutatingwebhookconfiguration', 
+            'validatingwebhookconfiguration', 'apiservice', 'replicationcontroller',
+            'endpoints', 'events', 'bindings', 'controllerrevisions',
+            'certificatesigningrequest', 'flowschema', 'prioritylevelconfiguration'
+        ];
+        const defaults: ResourceType[] = ALL_TABS.filter(t => !skipResources.includes(t.id)).map(t => t.id)
         const saved = localStorage.getItem('k8s_desktop_visible_resources')
         if (!saved) return defaults
         try {
@@ -57,15 +68,44 @@ export function ClusterDetails() {
             services: ['namespace', 'name', 'type', 'cluster-ip', 'external-ip', 'ports', 'age'],
             statefulsets: ['namespace', 'name', 'ready', 'age'],
             hpa: ['namespace', 'name', 'reference', 'targets', 'minpods', 'maxpods', 'replicas', 'age'],
+            persistentvolume: ['name', 'capacity', 'access-modes', 'reclaim-policy', 'status', 'claim', 'storageclass', 'age'],
             persistentvolumeclaim: ['namespace', 'name', 'status', 'volume', 'capacity', 'access-modes', 'storageclass', 'volumemode', 'selected-node', 'vac', 'age'],
             ingress: ['namespace', 'name', 'class', 'hosts', 'address', 'ports', 'age'],
             ingressclass: ['name', 'controller', 'parameters', 'age'],
             networkpolicy: ['namespace', 'name', 'pod-selector', 'age'],
+            endpointslices: ['namespace', 'name', 'address-type', 'ports', 'endpoints', 'age'],
             replicasets: ['namespace', 'name', 'desired', 'current', 'ready', 'age'],
             daemonsets: ['namespace', 'name', 'desired', 'current', 'ready', 'updated', 'available', 'node-selector', 'age'],
             jobs: ['namespace', 'name', 'status', 'completions', 'duration', 'age'],
             cronjobs: ['namespace', 'name', 'schedule', 'suspend', 'active', 'last-schedule', 'age'],
             secrets: ['namespace', 'name', 'type', 'data', 'age'],
+            serviceaccounts: ['namespace', 'name', 'secrets', 'age'],
+            storageclass: ['name', 'provisioner', 'reclaim-policy', 'binding-mode', 'allow-expansion', 'age'],
+            volumesnapshot: ['namespace', 'name', 'ready-to-use', 'source', 'snapshot-class', 'size', 'age'],
+            volumesnapshotclass: ['name', 'driver', 'deletion-policy', 'age'],
+            role: ['namespace', 'name', 'age'],
+            clusterrole: ['name', 'age'],
+            rolebinding: ['namespace', 'name', 'binding-role', 'age'],
+            clusterrolebinding: ['name', 'binding-role', 'age'],
+            podsecurityadmission: ['name', 'enforce', 'audit', 'warn', 'age'],
+            poddisruptionbudget: ['namespace', 'name', 'min-available', 'max-unavailable', 'allowed-disruptions', 'age'],
+            limitrange: ['namespace', 'name', 'age'],
+            resourcequota: ['namespace', 'name', 'age'],
+            priorityclass: ['name', 'value', 'global-default', 'preemption-policy', 'age'],
+            runtimeclass: ['name', 'handler', 'age'],
+            lease: ['namespace', 'name', 'holder', 'duration', 'age'],
+            customresourcedefinition: ['name', 'age'],
+            mutatingwebhookconfiguration: ['name', 'webhooks', 'age'],
+            validatingwebhookconfiguration: ['name', 'webhooks', 'age'],
+            apiservice: ['name', 'service', 'available', 'age'],
+            replicationcontroller: ['namespace', 'name', 'desired', 'current', 'ready', 'age'],
+            endpoints: ['namespace', 'name', 'endpoints', 'age'],
+            events: ['namespace', 'last-seen', 'type', 'reason', 'object', 'message'],
+            bindings: ['namespace', 'name', 'age'],
+            controllerrevisions: ['namespace', 'name', 'controller', 'revision', 'age'],
+            certificatesigningrequest: ['name', 'requestor', 'condition', 'signer-name', 'age'],
+            flowschema: ['name', 'priority-level', 'strategy', 'age'],
+            prioritylevelconfiguration: ['name', 'type', 'age'],
             configmap: ['namespace', 'name', 'data', 'age'],
             nodes: ['name', 'status', 'roles', 'age', 'version']
         }

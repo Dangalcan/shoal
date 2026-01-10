@@ -129,6 +129,8 @@ export const ResourceRow: React.FC<ResourceRowProps> = ({
                     ports = item.spec?.ports?.map((p: any) => `${p.port}/${p.protocol}`).join(', ') || '<none>'
                 } else if (activeTab === 'ingress') {
                     ports = item.spec?.tls ? '80, 443' : '80'
+                } else if (activeTab === 'endpointslices') {
+                    ports = item.ports?.map((p: any) => `${p.port}/${p.protocol}`).join(', ') || '<none>'
                 }
                 return <TextCell key={colId} content={ports} style={style} />
             case 'schedule':
@@ -171,6 +173,109 @@ export const ResourceRow: React.FC<ResourceRowProps> = ({
                 return <TextCell key={colId} content={psContent} style={style} />
             case 'policy-types':
                 return <TextCell key={colId} content={item.spec?.policyTypes?.join(', ') || '<none>'} style={style} />
+            case 'provisioner':
+                return <TextCell key={colId} content={item.provisioner || '<none>'} style={style} />
+            case 'binding-mode':
+                return <TextCell key={colId} content={item.volumeBindingMode || '<none>'} style={style} />
+            case 'allow-expansion':
+                return <TextCell key={colId} content={String(item.allowVolumeExpansion ?? false)} style={style} />
+            case 'ready-to-use':
+                return <TextCell key={colId} content={String(item.status?.readyToUse ?? false)} style={style} />
+            case 'source':
+                const source = item.spec?.source?.persistentVolumeClaimName || item.spec?.source?.volumeSnapshotContentName || '<none>'
+                return <TextCell key={colId} variant="mono" content={source} style={style} />
+            case 'snapshot-class':
+                return <TextCell key={colId} content={item.spec?.volumeSnapshotClassName || '<none>'} style={style} />
+            case 'size':
+                return <TextCell key={colId} content={item.status?.restoreSize || '<none>'} style={style} />
+            case 'driver':
+                return <TextCell key={colId} content={item.driver || '<none>'} style={style} />
+            case 'deletion-policy':
+                return <TextCell key={colId} content={item.deletionPolicy || '<none>'} style={style} />
+            case 'binding-role':
+                const roleRef = item.roleRef || {}
+                return <TextCell key={colId} content={`${roleRef.kind || ''}/${roleRef.name || ''}`} style={style} />
+            case 'enforce':
+            case 'audit':
+            case 'warn':
+                const psaValue = item.metadata?.labels?.[`pod-security.kubernetes.io/${colId}`] || '<none>'
+                return <TextCell key={colId} content={psaValue} style={style} />
+            case 'min-available':
+                return <TextCell key={colId} content={item.spec?.minAvailable || 'N/A'} style={style} />
+            case 'max-unavailable':
+                return <TextCell key={colId} content={item.spec?.maxUnavailable || 'N/A'} style={style} />
+            case 'allowed-disruptions':
+                return <TextCell key={colId} content={item.status?.disruptionsAllowed?.toString() || '0'} style={style} />
+            case 'value':
+                return <TextCell key={colId} content={item.value?.toString() || '0'} style={style} />
+            case 'global-default':
+                return <TextCell key={colId} content={item.globalDefault ? 'true' : 'false'} style={style} />
+            case 'preemption-policy':
+                return <TextCell key={colId} content={item.preemptionPolicy || '<none>'} style={style} />
+            case 'handler':
+                return <TextCell key={colId} content={item.handler || '<none>'} style={style} />
+            case 'holder':
+                return <TextCell key={colId} variant="mono" content={item.spec?.holderIdentity || '<none>'} style={style} />
+            case 'duration':
+                return <TextCell key={colId} content={`${item.spec?.leaseDurationSeconds || 0}s`} style={style} />
+            case 'webhooks':
+                const webhookCount = (item.webhooks?.length || 0).toString()
+                return <TextCell key={colId} content={webhookCount} style={style} />
+            case 'service':
+                const svc = item.spec?.service
+                return <TextCell key={colId} variant="mono" content={svc ? `${svc.namespace}/${svc.name}` : '<none>'} style={style} />
+            case 'available':
+                const cond = item.status?.conditions?.find((c: any) => c.type === 'Available')
+                return <TextCell key={colId} content={cond?.status || 'Unknown'} style={style} />
+            case 'endpoints':
+                const subsets = item.subsets || []
+                const epStrings = subsets.map((s: any) => {
+                    const addresses = (s.addresses || []).map((a: any) => a.ip).join(',')
+                    const ports = (s.ports || []).map((p: any) => p.port).join(',')
+                    return addresses && ports ? `${addresses}:${ports}` : addresses || ports || ''
+                }).filter(Boolean).join(', ')
+                return <TextCell key={colId} content={epStrings || '<none>'} style={style} />
+            case 'last-seen':
+                return <TextCell key={colId} content={item.lastTimestamp || item.eventTime || '<unknown>'} style={style} />
+            case 'reason':
+                return <TextCell key={colId} content={item.reason || '<none>'} style={style} />
+            case 'object':
+                const obj = item.involvedObject || {}
+                return <TextCell key={colId} variant="mono" content={`${obj.kind || ''}/${obj.name || ''}`} style={style} />
+            case 'message':
+                return <TextCell key={colId} content={item.message || '<none>'} style={style} />
+            case 'controller':
+                const owner = item.metadata?.ownerReferences?.[0]
+                return <TextCell key={colId} variant="mono" content={owner ? `${owner.kind}/${owner.name}` : '<none>'} style={style} />
+            case 'revision':
+                return <TextCell key={colId} content={item.revision?.toString() || '0'} style={style} />
+            case 'requestor':
+                return <TextCell key={colId} variant="mono" content={item.spec?.username || '<none>'} style={style} />
+            case 'condition':
+                const csrCond = item.status?.conditions?.[0]
+                return <TextCell key={colId} content={csrCond?.type || 'Pending'} style={style} />
+            case 'signer-name':
+                return <TextCell key={colId} content={item.spec?.signerName || '<none>'} style={style} />
+            case 'priority-level':
+                return <TextCell key={colId} variant="mono" content={item.spec?.priorityLevelConfiguration?.name || '<none>'} style={style} />
+            case 'strategy':
+                return <TextCell key={colId} content={item.spec?.distinguisherMethod?.type || 'None'} style={style} />
+            case 'address-type':
+                return <TextCell key={colId} content={item.addressType || '<none>'} style={style} />
+            case 'endpoints':
+                const addresses = item.endpoints?.flatMap((ep: any) => ep.addresses || []) || []
+                const epContent = addresses.length > 3 
+                    ? `${addresses.slice(0, 3).join(', ')} + ${addresses.length - 3} more`
+                    : addresses.join(', ') || '<none>'
+                return <TextCell key={colId} variant="mono" content={epContent} style={style} />
+            case 'service-name':
+                return <TextCell key={colId} content={item.metadata.labels?.['kubernetes.io/service-name'] || '<none>'} style={style} />
+            case 'secrets':
+                if (activeTab === 'serviceaccounts') {
+                    return <TextCell key={colId} content={String(item.secrets?.length || 0)} style={style} />
+                }
+                const secretData = item.data ? Object.keys(item.data).length : 0
+                return <TextCell key={colId} content={String(secretData)} style={style} />
             case 'node-selector':
                 const nodeSelector = item.spec?.template?.spec?.nodeSelector || {}
                 const nsContent = Object.entries(nodeSelector).map(([k, v]) => `${k}=${v}`).join(',') || '<none>'
@@ -196,7 +301,8 @@ export const ResourceRow: React.FC<ResourceRowProps> = ({
             case 'volume':
                 return <TextCell key={colId} variant="mono" content={item.spec?.volumeName || '<pending>'} style={style} />
             case 'capacity':
-                return <TextCell key={colId} content={item.status?.capacity?.storage || 'N/A'} style={style} />
+                const cap = (activeTab === 'persistentvolume' ? item.spec?.capacity : item.status?.capacity)?.storage
+                return <TextCell key={colId} content={cap || 'N/A'} style={style} />
             case 'access-modes':
                 return <TextCell key={colId} content={item.spec?.accessModes?.join(', ')} style={style} />
             case 'storageclass':
@@ -207,6 +313,15 @@ export const ResourceRow: React.FC<ResourceRowProps> = ({
                 return <TextCell key={colId} content={item.spec?.volumeMode || '<none>'} style={style} />
             case 'selected-node':
                 return <TextCell key={colId} variant="mono" content={item.metadata?.annotations?.['volume.kubernetes.io/selected-node'] || '<none>'} style={style} />
+            case 'reclaim-policy':
+                const rp = (activeTab === 'persistentvolume' ? item.spec?.persistentVolumeReclaimPolicy : item.reclaimPolicy)
+                return <TextCell key={colId} content={rp || '<none>'} style={style} />
+            case 'claim':
+                const claimRef = item.spec?.claimRef
+                const claimContent = claimRef ? `${claimRef.namespace}/${claimRef.name}` : '<none>'
+                return <TextCell key={colId} variant="mono" content={claimContent} style={style} />
+            case 'reason':
+                return <TextCell key={colId} content={item.status?.reason || '<none>'} style={style} />
             case 'class':
                 return <TextCell key={colId} content={item.spec?.ingressClassName || item.metadata?.annotations?.['kubernetes.io/ingress.class'] || '<none>'} style={style} />
             case 'hosts':
