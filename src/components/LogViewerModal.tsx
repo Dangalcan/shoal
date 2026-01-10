@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
-import { X, RefreshCw, Loader2, AlertCircle, Terminal } from 'lucide-react'
-import '../../styles/components/LogViewerModal.css'
+import { RefreshCw, Loader2, AlertCircle, Terminal } from 'lucide-react'
+import { BaseModal } from './modals/BaseModal'
 
 interface LogViewerModalProps {
     isOpen: boolean
@@ -50,67 +50,58 @@ export function LogViewerModal({ isOpen, onClose, clusterName, podName, namespac
         }
     }, [logs])
 
-    if (!isOpen) return null
+    const headerActions = (
+        <button
+            onClick={fetchLogs}
+            disabled={loading}
+            className="modal-action-button"
+            title="Refresh Logs"
+        >
+            <RefreshCw size={18} className={loading ? 'spinner' : ''} />
+        </button>
+    )
+
+    const footerContent = (
+        <>
+            <p className="modal-footer-info modal-footer-info-accent">
+                End of stream (tail: 200)
+            </p>
+            <button onClick={onClose} className="close-footer-button">
+                Close Viewer
+            </button>
+        </>
+    )
 
     return (
-        <div className="log-modal-overlay">
-            <div className="log-modal-container">
-                <header className="log-modal-header">
-                    <div className="log-header-content">
-                        <div className="log-header-icon">
-                            <Terminal size={18} />
-                        </div>
-                        <div>
-                            <h3 className="log-header-title">
-                                Logs: <span className="log-pod-name">{podName}</span>
-                            </h3>
-                            <p className="log-header-subtitle">NS: {namespace} | Cluster: {clusterName}</p>
-                        </div>
-                    </div>
-                    <div className="log-header-actions">
-                        <button
-                            onClick={fetchLogs}
-                            disabled={loading}
-                            className="log-refresh-button"
-                            title="Refresh Logs"
-                        >
-                            <RefreshCw size={18} className={loading ? 'log-refresh-spinner' : ''} />
-                        </button>
-                        <button onClick={onClose} className="log-close-button">
-                            <X size={18} />
-                        </button>
-                    </div>
-                </header>
-
-                <div className="log-modal-content">
-                    {loading && !logs ? (
-                        <div className="log-loading-state">
-                            <Loader2 className="log-loading-spinner" size={32} />
-                            <p>Fetching logs...</p>
-                        </div>
-                    ) : error ? (
-                        <div className="log-error-state">
-                            <AlertCircle size={32} className="log-error-icon" />
-                            <p className="log-error-title">Failed to load logs</p>
-                            <p className="log-error-message">{error}</p>
-                        </div>
-                    ) : (
-                        <div className="log-content-text">
-                            {logs}
-                            <div ref={logEndRef} />
-                        </div>
-                    )}
+        <BaseModal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={`Logs: ${podName}`}
+            subtitle={`NS: ${namespace} | Cluster: ${clusterName}`}
+            icon={<Terminal size={18} />}
+            headerActions={headerActions}
+            footer={footerContent}
+            className="log-modal"
+            width="90%"
+            maxWidth="1200px"
+        >
+            {loading && !logs ? (
+                <div className="state-container">
+                    <Loader2 className="spinner" size={32} />
+                    <p>Fetching logs...</p>
                 </div>
-
-                <footer className="log-modal-footer">
-                    <p className="log-footer-info">
-                        End of stream (tail: 200)
-                    </p>
-                    <button onClick={onClose} className="log-footer-close-button">
-                        Close Viewer
-                    </button>
-                </footer>
-            </div>
-        </div>
+            ) : error ? (
+                <div className="state-container">
+                    <AlertCircle size={32} className="log-error-icon" />
+                    <p className="error-title">Failed to load logs</p>
+                    <p className="error-message">{error}</p>
+                </div>
+            ) : (
+                <div className="log-content-text code-block">
+                    {logs}
+                    <div ref={logEndRef} />
+                </div>
+            )}
+        </BaseModal>
     )
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
-import { X, Copy, Check, Loader2, Code } from 'lucide-react'
-import '../../styles/components/YamlModal.css'
+import { Copy, Check, Loader2, Code } from 'lucide-react'
+import { BaseModal } from './modals/BaseModal'
 
 interface YamlModalProps {
     isOpen: boolean
@@ -52,74 +52,59 @@ export function YamlModal({ isOpen, onClose, clusterName, resourceName, resource
         setTimeout(() => setCopied(false), 2000)
     }
 
-    if (!isOpen) return null
+    const headerActions = (
+        <button
+            onClick={copyToClipboard}
+            disabled={!yaml}
+            className="modal-action-button"
+            title="Copy YAML"
+        >
+            {copied ? <Check size={14} className="modal-action-button-success" /> : <Copy size={14} />}
+            {copied ? 'Copied!' : 'Copy'}
+        </button>
+    )
+
+    const footerContent = (
+        <>
+            <p className="modal-footer-info modal-footer-info-accent">
+                Context: {clusterName}
+            </p>
+            <button
+                onClick={onClose}
+                className="close-footer-button"
+            >
+                Close
+            </button>
+        </>
+    )
 
     return (
-        <div className="yaml-modal-overlay">
-            <div className="yaml-modal-container">
-                {/* Header */}
-                <div className="yaml-modal-header">
-                    <div className="yaml-header-content">
-                        <div className="yaml-header-icon">
-                            <Code size={20} />
-                        </div>
-                        <div>
-                            <h3 className="yaml-header-title">
-                                Resource YAML
-                            </h3>
-                            <p className="yaml-header-subtitle">{namespace} / {resourceName}</p>
-                        </div>
-                    </div>
-                    <div className="yaml-header-actions">
-                        <button
-                            onClick={copyToClipboard}
-                            disabled={!yaml}
-                            className="yaml-copy-button"
-                        >
-                            {copied ? <Check size={14} className="yaml-copy-icon-success" /> : <Copy size={14} />}
-                            {copied ? 'Copied!' : 'Copy'}
-                        </button>
-                        <button
-                            onClick={onClose}
-                            className="yaml-close-button"
-                        >
-                            <X size={20} />
-                        </button>
-                    </div>
+        <BaseModal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Resource YAML"
+            subtitle={`${namespace} / ${resourceName}`}
+            icon={<Code size={20} />}
+            headerActions={headerActions}
+            footer={footerContent}
+            className="yaml-modal"
+            width="900px" // YAML often needs more width
+        >
+            {loading ? (
+                <div className="state-container">
+                    <Loader2 className="spinner" size={32} />
+                    <p>Fetching YAML for {resourceName}...</p>
                 </div>
-
-                {/* Content */}
-                <div className="yaml-modal-content">
-                    {loading ? (
-                        <div className="yaml-loading-state">
-                            <Loader2 className="yaml-loading-spinner" size={32} />
-                            <p>Fetching YAML for {resourceName}...</p>
-                        </div>
-                    ) : error ? (
-                        <div className="yaml-error-state">
-                            <p className="yaml-error-title">Error</p>
-                            <p className="yaml-error-message">{error}</p>
-                        </div>
-                    ) : (
-                        <pre ref={contentRef} className="yaml-content-text">
-                            {yaml || 'No output available'}
-                        </pre>
-                    )}
+            ) : error ? (
+                <div className="state-container">
+                    <p className="error-title">Error</p>
+                    <p className="error-message">{error}</p>
                 </div>
-
-                {/* Footer */}
-                <div className="yaml-modal-footer">
-                    <p className="yaml-footer-context">
-                        Context: {clusterName}
-                    </p>
-                    <button
-                        onClick={onClose}
-                        className="yaml-close-footer-button"
-                    >
-                        Close
-                    </button>
-                </div>
-            </div>
-        </div>
+            ) : (
+                <pre ref={contentRef} className="content-text code-block">
+                    {yaml || 'No output available'}
+                </pre>
+            )}
+        </BaseModal>
     )
 }

@@ -41,6 +41,11 @@ vi.mock('sonner', () => {
     return { Toaster: () => null, toast: toastMock }
 })
 
+import { configure } from '@testing-library/dom'
+
+// Increase timeout for async operations (state transitions)
+configure({ asyncUtilTimeout: 3000 })
+
 describe('ClusterDetails Page - Exhaustive Coverage', () => {
     const mockClusterName = 'cluster-123'
     const mockNamespaces = ['all', 'default', 'kube-system']
@@ -606,9 +611,18 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             extraCols.forEach(c => fireEvent.click(within(podDrop).getByText(c).closest('button')!))
             fireEvent.click(screen.getByTitle('Visible Resources'))
             
-            fireEvent.click(within(podsThead).getByText('Containers'))
-            fireEvent.click(within(podsThead).getByText('Images'))
-            fireEvent.click(within(podsThead).getByText('Selector'))
+            await waitFor(() => {
+                const thead = screen.getByRole('table').querySelector('thead')!
+                fireEvent.click(within(thead).getByText('Containers'))
+            })
+            await waitFor(() => {
+                const thead = screen.getByRole('table').querySelector('thead')!
+                fireEvent.click(within(thead).getByText('Images'))
+            })
+            await waitFor(() => {
+                const thead = screen.getByRole('table').querySelector('thead')!
+                fireEvent.click(within(thead).getByText('Selector'))
+            })
 
             // Secrets Data Count Sort
             fireEvent.click(within(tabs as HTMLElement).getByText('Secrets'))
@@ -752,7 +766,10 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
                  }
              ]
              
-             mockElectronAPI.getResources.mockResolvedValue({ success: true, items: sparseNodes })
+             mockElectronAPI.getResources.mockImplementation(async (args: any) => {
+                 if (args.resourceType === 'nodes') return { success: true, items: sparseNodes }
+                 return { success: true, items: [] }
+             })
              
              renderPage()
              const tabs = screen.getByRole('banner').querySelector('.tabs-container')!
