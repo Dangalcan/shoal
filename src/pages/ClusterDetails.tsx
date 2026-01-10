@@ -772,7 +772,7 @@ export function ClusterDetails() {
                                                                 </span>
                                                             </td>
                                                         }
-                                                        return <td key={col.id} className="table-cell" style={{ width: `${width}px` }}>-</td>
+                                                        return null
 
                                                     case 'restarts':
                                                         return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>
@@ -921,7 +921,7 @@ export function ClusterDetails() {
                                                         return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.status?.nodeInfo?.containerRuntimeVersion}</td>
 
                                                     default:
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item[col.id] || '-'}</td>
+                                                        return null
                                                 }
                                             })}
                                         </tr>

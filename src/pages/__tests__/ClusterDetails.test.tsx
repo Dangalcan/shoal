@@ -489,7 +489,13 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             fireEvent.click(screen.getByTitle('Visible Resources'))
             fireEvent.click(within(thead).getByText('Internal IP'))
 
-            // Sort by status
+            // Sort by External IP (Nodes)
+            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(within(screen.getByText('Display Settings').closest('.settings-dropdown')!).getByText('External IP').closest('button')!)
+            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(within(thead).getByText('External IP'))
+
+            // Sort by status (Nodes)
             fireEvent.click(within(thead).getByText('Status'))
 
             // Sort by OS Image
@@ -518,6 +524,9 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             fireEvent.click(within(podsThead).getByText('Restarts'))
             fireEvent.click(within(podsThead).getByText('Age'))
             
+            // Sort by Pod Status
+            fireEvent.click(within(podsThead).getByText('Status'))
+
             // Sort by IP
             fireEvent.click(screen.getByTitle('Visible Resources'))
             fireEvent.click(within(screen.getByText('Display Settings').closest('.settings-dropdown')!).getByText('IP').closest('button')!)
@@ -572,8 +581,28 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             const pvcThead = screen.getByRole('table').querySelector('thead')!
             fireEvent.click(within(pvcThead).getByText('Status'))
             
-            // PVC Capacity Sort (default fallback case for complex objects if not handled, but here it's likely handled by default string/number comparison if not explicit)
+            // PVC Capacity Sort
             fireEvent.click(within(pvcThead).getByText('Capacity'))
+        })
+
+        it('should sort by namespace when present', async () => {
+            const multiNsPods = [
+                {
+                    metadata: { name: 'pod-a', namespace: 'a-ns', creationTimestamp: '2024-01-01T10:00:00Z' },
+                    status: { phase: 'Running' }
+                },
+                {
+                    metadata: { name: 'pod-z', namespace: 'z-ns', creationTimestamp: '2024-01-01T10:00:00Z' },
+                    status: { phase: 'Running' }
+                }
+            ]
+            mockElectronAPI.getResources.mockResolvedValueOnce({ success: true, items: multiNsPods })
+            
+            renderPage()
+            await waitFor(() => expect(screen.getByText('pod-a')).toBeInTheDocument())
+            
+            const thead = screen.getByRole('table').querySelector('thead')!
+            fireEvent.click(within(thead).getByText('Namespace'))
         })
     })
 
@@ -600,6 +629,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             expect(nameTh).toHaveStyle({ width: '300px' })
         })
     })
+
     describe('Status Badge Edge Cases', () => {
         it('should render correct status badges for Pending pods and NotReady nodes', async () => {
              // Mock already includes pending pod-2 and notReady node-B
@@ -616,6 +646,105 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
              
              const nodeBadge = screen.getByText('NotReady')
              expect(nodeBadge).toHaveClass('status-badge-not-ready')
+        })
+    })
+
+    describe('Advanced State & Error Handling', () => {
+        it('should switch tabs when active tab becomes hidden', async () => {
+             renderPage()
+             const tabs = screen.getByRole('banner').querySelector('.tabs-container')!
+             // Default active is Pods. Let's hide Pods.
+             fireEvent.click(screen.getByTitle('Visible Resources'))
+             const drop = screen.getByText('Display Settings').closest('.settings-dropdown')!
+             
+             fireEvent.click(within(drop as HTMLElement).getByText('Pods').closest('button')!)
+             
+             // Pods hidden, should switch to next available (likely Deployments)
+             await waitFor(() => {
+                 expect(within(tabs as HTMLElement).queryByText('Pods')).not.toBeInTheDocument()
+                 // Check if Deployments is now active (has active class)
+                 const depBtn = within(tabs as HTMLElement).getByText('Deployments').closest('button')
+                 expect(depBtn).toHaveClass('tab-button-active')
+             })
+        })
+
+        it('should handle fetchData throwing an exception', async () => {
+             // Mock one successful call then a crash
+             mockElectronAPI.getNamespaces.mockResolvedValue({ success: true, namespaces: ['default'] })
+             mockElectronAPI.getResources.mockRejectedValue(new Error('Critical specific error'))
+             
+             renderPage()
+             await waitFor(() => expect(screen.getByText('Critical specific error')).toBeInTheDocument())
+        })
+
+        it('should handle deleteResource promise rejection', async () => {
+             mockElectronAPI.deleteResource.mockRejectedValue({ error: 'Delete failed hard' })
+             const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+             
+             renderPage()
+             await waitFor(() => expect(screen.getByText('pod-1')).toBeInTheDocument())
+             const row = screen.getByText('pod-1').closest('tr')!
+             
+             fireEvent.click(within(row).getByTitle('Delete Resource'))
+             
+             await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Delete failed hard')))
+             confirmSpy.mockRestore()
+        })
+
+        it('should handle sorting with missing optional fields (branch coverage)', async () => {
+             const sparseNodes = [
+                 {
+                     metadata: { name: 'node-empty', creationTimestamp: '2024-01-01T10:00:00Z', labels: {} }, // No roles
+                     status: { 
+                         conditions: [],
+                         nodeInfo: {}, // No version/OS info
+                         addresses: [] // No IPs
+                     }
+                 },
+                 {
+                     metadata: { name: 'node-full', creationTimestamp: '2024-01-01T10:00:00Z', labels: { 'node-role.kubernetes.io/worker': '' } },
+                     status: { 
+                         conditions: [{ type: 'Ready', status: 'True' }],
+                         nodeInfo: { kubeletVersion: 'v1.29', osImage: 'Linux' },
+                         addresses: [{ type: 'ExternalIP', address: '1.2.3.4' }, { type: 'InternalIP', address: '10.0.0.1' }]
+                     }
+                 }
+             ]
+             
+             mockElectronAPI.getResources.mockResolvedValue({ success: true, items: sparseNodes })
+             
+             renderPage()
+             const tabs = screen.getByRole('banner').querySelector('.tabs-container')!
+             fireEvent.click(within(tabs as HTMLElement).getByText('Nodes'))
+             await waitFor(() => expect(screen.getByText('node-empty')).toBeInTheDocument())
+             
+             // Enable all optional columns first
+             fireEvent.click(screen.getByTitle('Visible Resources'))
+             const drop = screen.getByText('Display Settings').closest('.settings-dropdown')!
+             const optionalCols = ['OS Image', 'Kernel Version', 'Container Runtime']
+             for (const c of optionalCols) {
+                 const btn = within(drop as HTMLElement).getByText(c).closest('button')
+                 if (btn) fireEvent.click(btn)
+             }
+             fireEvent.click(screen.getByTitle('Visible Resources'))
+
+             const thead = screen.getByRole('table').querySelector('thead')!
+             
+             // Trigger sorts that access optional fields
+             const sortCols = ['Roles', 'Version', 'OS Image', 'Kernel Version', 'Container Runtime']
+             for (const col of sortCols) {
+                 fireEvent.click(within(thead).getByText(col))
+             }
+             
+             // Toggle and sort by IPs which are missing in sparse node
+             fireEvent.click(screen.getByTitle('Visible Resources'))
+             const dropSort = screen.getByText('Display Settings').closest('.settings-dropdown')!
+             fireEvent.click(within(dropSort as HTMLElement).getByText('External IP').closest('button')!)
+             fireEvent.click(within(dropSort as HTMLElement).getByText('Internal IP').closest('button')!)
+             fireEvent.click(screen.getByTitle('Visible Resources'))
+             
+             fireEvent.click(within(thead).getByText('External IP'))
+             fireEvent.click(within(thead).getByText('Internal IP'))
         })
     })
 })
