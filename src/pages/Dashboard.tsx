@@ -1,26 +1,35 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Server,
   Box,
   Plus,
-  CheckCircle,
-  AlertCircle,
   RefreshCw,
   Eye,
 } from 'lucide-react';
 import { PodViewerModal } from '../components/modals/PodViewerModal';
+import { useClusters } from '../hooks';
+import { Button, Badge, Spinner, Card } from '../components/ui';
+import { electronService } from '../services/electronService';
 import '../../styles/pages/Dashboard.css';
 
-function StatCard({ label, value, icon: Icon, color, status }: any) {
-  const colorMap: any = {
+interface StatCardProps {
+  label: string;
+  value: string | number;
+  icon: React.ElementType;
+  color: 'blue' | 'green' | 'purple' | 'orange' | 'red';
+  status?: 'running' | 'stopped';
+}
+
+function StatCard({ label, value, icon: Icon, color, status }: StatCardProps) {
+  const colorMap = {
     blue: 'stat-card-icon-blue',
     green: 'stat-card-icon-green',
     purple: 'stat-card-icon-purple',
     orange: 'stat-card-icon-orange',
     red: 'stat-card-icon-red',
   };
-  const colorClass = colorMap[color] || colorMap.blue;
+  const colorClass = colorMap[color];
 
   return (
     <div className="stat-card">
@@ -29,11 +38,14 @@ function StatCard({ label, value, icon: Icon, color, status }: any) {
           <p className="stat-card-label">{label}</p>
           <div className="stat-card-value-container">
             <p className="stat-card-value">{value}</p>
-            {status === 'running' && (
-              <CheckCircle className="status-icon-running" />
-            )}
-            {status === 'stopped' && (
-              <AlertCircle className="status-icon-stopped" />
+            {status && (
+              <Badge 
+                variant={status === 'running' ? 'success' : 'error'} 
+                dot 
+                className="stat-card-badge"
+              >
+                {status === 'running' ? 'Running' : 'Stopped'}
+              </Badge>
             )}
           </div>
         </div>
@@ -47,35 +59,32 @@ function StatCard({ label, value, icon: Icon, color, status }: any) {
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const { clusters, fetchClusters } = useClusters();
   const [dockerStatus, setDockerStatus] = useState<boolean | null>(null);
   const [podmanStatus, setPodmanStatus] = useState<boolean | null>(null);
-  const [clusters, setClusters] = useState<string[]>([]);
   const [currentContext, setCurrentContext] = useState<string>('None');
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const refreshData = () => {
-    window.electron
+  const refreshData = useCallback(() => {
+    electronService
       .checkTool('docker')
       .then(setDockerStatus)
       .catch(() => setDockerStatus(null));
-    window.electron
+    electronService
       .checkTool('podman')
       .then(setPodmanStatus)
       .catch(() => setPodmanStatus(null));
-    window.electron
-      .getClusters()
-      .then(setClusters)
-      .catch(() => setClusters([]));
-    window.electron
+    fetchClusters();
+    electronService
       .getCurrentContext()
       .then(setCurrentContext)
       .catch(() => setCurrentContext('None'));
-  };
+  }, [fetchClusters]);
 
   useEffect(() => {
     refreshData();
-  }, []);
+  }, [refreshData]);
 
   return (
     <div className="dashboard-container">
@@ -128,33 +137,34 @@ export function Dashboard() {
       </div>
 
       <div className="content-grid">
-        <div className="card">
-          <h3 className="card-title">Quick Actions</h3>
+        <Card title="Quick Actions">
           <div className="quick-actions">
-            <button
+            <Button
               onClick={() => navigate('/create-cluster')}
-              className="primary-button"
+              variant="primary"
+              className="w-full"
+              icon={<Plus size={18} />}
             >
-              <Plus size={18} />
               Create New Cluster
-            </button>
+            </Button>
             <div className="divider-text">or</div>
-            <button className="secondary-button">
+            <Button variant="secondary" className="w-full">
               Import Existing Kubeconfig
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
 
-        <div className="card">
-          <div className="card-header">
-            <h3 className="card-title">Recent Activity</h3>
-            <button onClick={refreshData} className="refresh-button">
+        <Card 
+          title="Recent Activity"
+          headerAction={
+            <Button variant="ghost" size="icon" onClick={refreshData} title="Refresh Data">
               <RefreshCw size={16} />
-            </button>
-          </div>
+            </Button>
+          }
+        >
           {clusters.length > 0 ? (
             <ul className="cluster-list">
-              {clusters.map((cluster) => (
+              {clusters.map((cluster: string) => (
                 <li
                   key={cluster}
                   className={`cluster-item ${cluster === currentContext ? 'cluster-item-active' : 'cluster-item-inactive'}`}
@@ -178,21 +188,21 @@ export function Dashboard() {
                     </span>
                   </div>
                   <div className="cluster-item-actions">
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => {
                         setSelectedCluster(cluster);
                         setIsModalOpen(true);
                       }}
-                      className="view-pods-button"
                       title="View Pods"
                     >
                       <Eye size={14} />
-                    </button>
-                    {cluster === currentContext && (
-                      <span className="badge-active">Active</span>
-                    )}
-                    {cluster !== currentContext && (
-                      <span className="badge-available">Available</span>
+                    </Button>
+                    {cluster === currentContext ? (
+                      <Badge className="badge-active">Active</Badge>
+                    ) : (
+                      <Badge className="badge-available">Available</Badge>
                     )}
                   </div>
                 </li>
@@ -200,10 +210,10 @@ export function Dashboard() {
             </ul>
           ) : (
             <div className="empty-state">
-              <p>No active clusters found</p>
+              <Spinner size={32} label="No active clusters found" />
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       <PodViewerModal

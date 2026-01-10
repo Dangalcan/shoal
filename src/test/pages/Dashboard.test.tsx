@@ -133,18 +133,10 @@ describe('Dashboard Page', () => {
         // Initial calls
         await waitFor(() => expect(mockElectronAPI.getClusters).toHaveBeenCalledTimes(1))
 
-        // Finding the specific refresh button might be tricky without a title. 
-        // Let's assume it's the one in the "Recent Activity" card header.
+        const rBtn = screen.getByTitle('Refresh Data')
         
-        const cardHeader = screen.getByText('Recent Activity').closest('.card-header')
-        const rBtn = cardHeader?.querySelector('button')
-        
-        if (rBtn) {
-            fireEvent.click(rBtn)
-            await waitFor(() => expect(mockElectronAPI.getClusters).toHaveBeenCalledTimes(2))
-        } else {
-             throw new Error('Refresh button not found')
-        }
+        fireEvent.click(rBtn)
+        await waitFor(() => expect(mockElectronAPI.getClusters).toHaveBeenCalledTimes(2))
     })
 
     it('should handle empty clusters list', async () => {

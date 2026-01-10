@@ -1,0 +1,55 @@
+/* ConfirmModal.css */
+
+.confirm-modal-body {
+  position: relative;
+}
+
+.confirm-modal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.confirm-modal-icon-wrapper {
+  padding: 0.75rem;
+  border-radius: 9999px;
+}
+
+.confirm-modal-content {
+  flex: 1;
+  padding-top: 0.25rem;
+}
+
+.confirm-modal-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: rgb(15 23 42);
+  margin-bottom: 0.25rem;
+}
+
+.confirm-modal-message {
+  color: rgb(100 116 139);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.confirm-modal-footer {
+  margin-top: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* Variant Backgrounds */
+.confirm-bg-red {
+  background-color: rgb(254 242 242);
+}
+
+.confirm-bg-amber {
+  background-color: rgb(255 251 235);
+}
+
+.confirm-bg-blue {
+  background-color: rgb(239 246 255);
+}

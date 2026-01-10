@@ -218,3 +218,6 @@
     transform: rotate(360deg);
   }
 }
+.text-slate-200 {
+  color: rgb(226 232 240);
+}

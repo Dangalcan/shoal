@@ -1,0 +1,64 @@
+import { useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
+import { electronService } from '../services/electronService';
+
+export interface ClusterDeleteResult {
+  success: boolean;
+  error?: string;
+}
+
+export function useClusters() {
+  const [clusters, setClusters] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  const fetchClusters = useCallback(async () => {
+    setLoading(true);
+    try {
+      const list = await electronService.getClusters();
+      setClusters(list);
+    } catch (error) {
+      console.error('Error fetching clusters:', error);
+      toast.error('Failed to load clusters.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const deleteCluster = useCallback(
+    async (name: string): Promise<ClusterDeleteResult> => {
+      setDeleting(name);
+      const toastId = toast.loading(`Deleting cluster "${name}"...`);
+
+      try {
+        const result = await electronService.deleteCluster(name);
+        if (result.success) {
+          toast.success(`Cluster "${name}" deleted.`, { id: toastId });
+          await fetchClusters();
+          return { success: true };
+        } else {
+          toast.error(`Failed to delete cluster: ${result.error}`, {
+            id: toastId,
+          });
+          return { success: false, error: result.error };
+        }
+      } catch (err) {
+        const errorMessage = 'An unexpected error occurred.';
+        console.error(errorMessage, err);
+        toast.error(errorMessage, { id: toastId });
+        return { success: false, error: errorMessage };
+      } finally {
+        setDeleting(null);
+      }
+    },
+    [fetchClusters]
+  );
+
+  return {
+    clusters,
+    loading,
+    deleting,
+    fetchClusters,
+    deleteCluster,
+  };
+}

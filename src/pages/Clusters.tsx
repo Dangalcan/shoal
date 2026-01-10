@@ -1,61 +1,35 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Server,
   Trash2,
   RefreshCw,
-  Loader2,
-  AlertCircle,
   Eye,
 } from 'lucide-react';
-import { Toaster, toast } from 'sonner';
+import { Toaster } from 'sonner';
 import { PodViewerModal } from '../components/modals/PodViewerModal';
+import { ConfirmModal } from '../components/modals/ConfirmModal';
+import { useClusters } from '../hooks';
+import { Button, Badge, Spinner } from '../components/ui';
 import '../../styles/pages/Clusters.css';
 
 export function Clusters() {
   const navigate = useNavigate();
-  const [clusters, setClusters] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState<string | null>(null);
-  const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const fetchClusters = async () => {
-    setLoading(true);
-    try {
-      const list = await window.electron.getClusters();
-      setClusters(list);
-    } catch (error) {
-      toast.error('Failed to load clusters.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { clusters, loading, deleting, fetchClusters, deleteCluster } = useClusters();
 
   useEffect(() => {
     fetchClusters();
-  }, []);
+  }, [fetchClusters]);
 
-  const handleDelete = async (name: string) => {
-    if (!confirm(`Are you sure you want to delete cluster "${name}"?`)) return;
+  const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [clusterToDelete, setClusterToDelete] = useState<string | null>(null);
 
-    setDeleting(name);
-    const toastId = toast.loading(`Deleting cluster "${name}"...`);
-
-    try {
-      const result = await window.electron.deleteCluster(name);
-      if (result.success) {
-        toast.success(`Cluster "${name}" deleted.`, { id: toastId });
-        fetchClusters();
-      } else {
-        toast.error(`Failed to delete cluster: ${result.error}`, {
-          id: toastId,
-        });
-      }
-    } catch (err) {
-      toast.error('An unexpected error occurred.', { id: toastId });
-    } finally {
-      setDeleting(null);
+  const handleDelete = async () => {
+    if (!clusterToDelete) return;
+    const { success } = await deleteCluster(clusterToDelete);
+    if (success) {
+      setClusterToDelete(null);
     }
   };
 
@@ -69,23 +43,20 @@ export function Clusters() {
             Manage your local Kubernetes environments.
           </p>
         </div>
-        <button
+        <Button
+          variant="secondary"
+          size="icon"
           onClick={fetchClusters}
-          disabled={loading}
-          className="refresh-clusters-button"
+          loading={loading}
           title="Refresh List"
         >
-          <RefreshCw
-            size={20}
-            className={loading ? 'refresh-icon-spinning' : ''}
-          />
-        </button>
+          <RefreshCw size={20} />
+        </Button>
       </header>
 
       {loading && clusters.length === 0 ? (
         <div className="clusters-loading">
-          <Loader2 className="clusters-loading-spinner" size={32} />
-          <p>Loading clusters...</p>
+          <Spinner size={32} label="Loading clusters..." />
         </div>
       ) : clusters.length > 0 ? (
         <div className="clusters-grid">
@@ -101,46 +72,43 @@ export function Clusters() {
                 >
                   <h3 className="cluster-card-name">{cluster}</h3>
                   <div className="cluster-card-meta">
-                    <span className="cluster-status-badge">
-                      <div className="cluster-status-dot"></div>
+                    <Badge variant="success" dot>
                       Running
-                    </span>
+                    </Badge>
                     <span className="cluster-provider">Provider: Kind</span>
                   </div>
                 </div>
               </div>
 
               <div className="cluster-card-actions">
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => {
                     setSelectedCluster(cluster);
                     setIsModalOpen(true);
                   }}
-                  className="view-pods-action-button"
                   title="View Pods"
                 >
                   <Eye size={20} />
-                </button>
-                <button
-                  onClick={() => handleDelete(cluster)}
-                  disabled={!!deleting}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="delete-cluster-button"
-                  title="Delete Cluster"
+                  onClick={() => setClusterToDelete(cluster)}
+                  loading={deleting === cluster}
+                  title={`Delete ${cluster}`}
                 >
-                  {deleting === cluster ? (
-                    <Loader2 size={20} className="delete-spinner" />
-                  ) : (
-                    <Trash2 size={20} />
-                  )}
-                </button>
+                  <Trash2 size={20} />
+                </Button>
               </div>
             </div>
           ))}
         </div>
       ) : (
         <div className="clusters-empty">
-          <AlertCircle size={48} className="clusters-empty-icon" />
-          <p className="clusters-empty-title">No clusters found</p>
+          <Spinner size={48} className="text-slate-200" label="No clusters found" />
           <p className="clusters-empty-subtitle">
             Create a new cluster to get started.
           </p>
@@ -151,6 +119,17 @@ export function Clusters() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         clusterName={selectedCluster || ''}
+      />
+
+      <ConfirmModal
+        isOpen={!!clusterToDelete}
+        onClose={() => setClusterToDelete(null)}
+        onConfirm={handleDelete}
+        title="Delete Cluster"
+        message={`Are you sure you want to delete cluster "${clusterToDelete}"? This action cannot be undone.`}
+        confirmLabel="Delete Cluster"
+        variant="danger"
+        loading={!!deleting}
       />
     </div>
   );

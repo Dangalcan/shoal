@@ -319,3 +319,22 @@
   border-radius: 0.5rem;
   border: 2px dashed rgb(226 232 240);
 }
+.stat-card-badge {
+  margin-left: 0.5rem;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  padding-left: 0.375rem !important;
+  padding-right: 0.375rem !important;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.mt-8 {
+  margin-top: 2rem;
+}
+
+.ml-2 {
+  margin-left: 0.5rem;
+}
