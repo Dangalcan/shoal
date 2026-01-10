@@ -1,0 +1,28 @@
+.header-top {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.back-button {
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: colors 150ms;
+  color: rgb(100 116 139);
+}
+
+.back-button:hover {
+  background-color: rgb(241 245 249);
+}
+
+.header-title-section h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: rgb(15 23 42);
+}
+
+.header-title-section p {
+  font-size: 0.875rem;
+  color: rgb(100 116 139);
+}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocalStorage } from './useLocalStorage';
 
 import type { SortConfig } from '../lib/sorting/types';
 
@@ -28,25 +29,12 @@ export function useTableState(
   };
 
   // Column Widths State (persisted in localStorage)
-  const [columnWidths, setColumnWidths] = useState<Record<string, number>>(
-    () => {
-      const saved = localStorage.getItem('columnWidths');
-      if (!saved) return {};
-      try {
-        return JSON.parse(saved);
-      } catch {
-        console.error('Failed to parse columnWidths from localStorage');
-        return {};
-      }
-    }
-  );
+  const [columnWidths, setColumnWidths] = useLocalStorage<
+    Record<string, number>
+  >('columnWidths', {});
 
   const handleResize = (columnId: string, width: number) => {
-    setColumnWidths((prev) => {
-      const next = { ...prev, [columnId]: width };
-      localStorage.setItem('columnWidths', JSON.stringify(next));
-      return next;
-    });
+    setColumnWidths((prev) => ({ ...prev, [columnId]: width }));
   };
 
   const getColumnWidth = (id: string, defWidth: number) => {

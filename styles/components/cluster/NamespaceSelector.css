@@ -1,0 +1,39 @@
+.namespace-selector-container {
+  position: relative;
+  flex: 1;
+}
+
+@media (min-width: 768px) {
+  .namespace-selector-container {
+    width: 16rem;
+  }
+}
+
+.namespace-selector-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgb(148 163 184);
+}
+
+.namespace-selector {
+  width: 100%;
+  padding-left: 2.5rem;
+  padding-right: 1rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  background-color: white;
+  border: 1px solid rgb(226 232 240);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  appearance: none;
+  outline: none;
+  transition: all 150ms;
+}
+
+.namespace-selector:focus {
+  box-shadow: 0 0 0 2px rgb(59 130 246 / 0.5);
+  border-color: rgb(59 130 246);
+  outline: none;
+}

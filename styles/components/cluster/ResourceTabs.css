@@ -1,0 +1,42 @@
+.tabs-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .tabs-container {
+    padding-bottom: 0;
+  }
+}
+
+.tab-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 150ms;
+  white-space: nowrap;
+}
+
+.tab-button-active {
+  background-color: rgb(37 99 235);
+  color: white;
+  box-shadow: 0 4px 6px -1px rgb(37 99 235 / 0.2);
+}
+
+.tab-button-inactive {
+  background-color: white;
+  color: rgb(71 85 105);
+  border: 1px solid rgb(226 232 240);
+}
+
+.tab-button-inactive:hover {
+  border-color: rgb(147 197 253);
+  color: rgb(37 99 235);
+}

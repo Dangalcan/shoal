@@ -14,8 +14,13 @@ import {
     useNamespaces, 
     useTableState, 
     useModalState, 
-    useResourceActions 
+    useResourceActions,
+    useLocalStorage
 } from '../hooks'
+import { DetailsHeader } from '../components/cluster/DetailsHeader'
+import { ResourceTabs } from '../components/cluster/ResourceTabs'
+import { NamespaceSelector } from '../components/cluster/NamespaceSelector'
+import { SettingsDropdown } from '../components/cluster/SettingsDropdown'
 import '../../styles/pages/ClusterDetails.css'
 
 export function ClusterDetails() {
@@ -37,23 +42,10 @@ export function ClusterDetails() {
 
     // 5. Table State (Sorting, Resizing, Visibility)
     // Initialize visible resources logic
-    const [visibleResources, setVisibleResources] = useState<ResourceType[]>(() => {
-        const defaults = RESOURCE_CONFIGS
-            .filter(c => !c.defaultHidden)
-            .map(c => c.id)
-
-        const saved = localStorage.getItem('k8s_desktop_visible_resources')
-        if (!saved) return defaults
-        try {
-            const parsed = JSON.parse(saved)
-            const missing = defaults.filter(d => !parsed.includes(d))
-            // We could merge, or strictly respect saved. For now, we respect saved but ensure deletions/additions to defaults are handled if we were fully rigorous,
-            // but sticking to saved preference + defaults for new resources is a safe bet,
-            // or just purely saved if it exists.
-            // The previous logic added missing defaults to saved, so let's keep that behavior.
-            return [...parsed, ...missing] as ResourceType[]
-        } catch { return defaults }
-    })
+    const [visibleResources, setVisibleResources] = useLocalStorage<ResourceType[]>(
+        'k8s_desktop_visible_resources',
+        RESOURCE_CONFIGS.filter(c => !c.defaultHidden).map(c => c.id)
+    )
 
     const {
         sortConfig,
@@ -63,26 +55,19 @@ export function ClusterDetails() {
         visibleColumns,
         handleColumnToggle
     } = useTableState(
-      // Retrieve default visible columns from config for the active tab
       RESOURCE_CONFIGS.find(c => c.id === activeTab)?.defaultVisibleColumns || []
     )
 
     // Settings UI State
     const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
-    // 6. Derived State
     // Handle inactive visible tab
     useEffect(() => {
         if (!visibleResources.includes(activeTab)) {
             const nextTab = visibleResources.length > 0 ? visibleResources[0] : 'pods'
             setActiveTab(nextTab)
         }
-    }, [visibleResources, activeTab, visibleResources.includes])
-
-    // Persist visible resources
-    useEffect(() => {
-        localStorage.setItem('k8s_desktop_visible_resources', JSON.stringify(visibleResources))
-    }, [visibleResources])
+    }, [visibleResources, activeTab])
 
     // Sorting Logic
     const sortedItems = useMemo(() => {
@@ -127,93 +112,36 @@ export function ClusterDetails() {
     return (
         <div className={`cluster-details-container ${resizing ? 'cluster-details-container-no-select' : ''}`}>
             <header className="cluster-details-header">
-                <div className="header-top">
-                    <button onClick={() => navigate(-1)} className="back-button">
-                        <ArrowLeft size={20} />
-                    </button>
-                    <div className="header-title-section">
-                        <h2>{name}</h2>
-                        <p>Cluster Detailed View</p>
-                    </div>
-                </div>
+                <DetailsHeader name={name || ''} />
 
                 <div className="header-controls">
-                    <div className="tabs-container">
-                        {tabs.map((tab) => (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`tab-button ${activeTab === tab.id ? 'tab-button-active' : 'tab-button-inactive'}`}
-                            >
-                                <tab.icon size={16} />
-                                {tab.label}
-                            </button>
-                        ))}
-                    </div>
+                    <ResourceTabs 
+                        tabs={tabs} 
+                        activeTab={activeTab} 
+                        onTabChange={setActiveTab} 
+                    />
 
                     <div className="header-actions">
-                        <div className="namespace-selector-container">
-                            <Search className="namespace-selector-icon" size={16} />
-                            <select 
-                    id="namespace-selector"
-                    aria-label="Namespace Selector"
-                    value={selectedNamespace}
-                    onChange={(e) => setSelectedNamespace(e.target.value)}
-                    className="namespace-selector"
-                >
-                    {Array.from(new Set(['all', ...namespaces])).map(ns => (
-                        <option key={ns} value={ns}>{ns === 'all' ? 'All Namespaces' : ns}</option>
-                    ))}
-                </select>
-                        </div>
+                        <NamespaceSelector 
+                            namespaces={namespaces} 
+                            selectedNamespace={selectedNamespace} 
+                            onNamespaceChange={setSelectedNamespace} 
+                        />
+
                         <button onClick={fetchData} disabled={loading} className="refresh-data-button" title="Refresh">
                             <RefreshCw size={18} className={loading ? 'refresh-icon-spinning' : ''} />
                         </button>
                         
-                        <div className="relative">
-                            <button
-                                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                                className={`settings-button ${isSettingsOpen ? 'settings-button-active' : 'settings-button-inactive'}`}
-                                title="Visible Resources"
-                            >
-                                <Settings size={18} />
-                            </button>
-
-                            {isSettingsOpen && (
-                                <div className="settings-dropdown">
-                                    <div className="settings-dropdown-header">
-                                        <span className="settings-dropdown-title">Display Settings</span>
-                                        <button onClick={() => setIsSettingsOpen(false)} className="settings-close-button" title="Close Settings">
-                                            <X size={14} />
-                                        </button>
-                                    </div>
-                                    <div className="settings-dropdown-content">
-                                        <div className="settings-section-title">Resources</div>
-                                        <div className="settings-section">
-                                            {ALL_TABS.map(tab => (
-                                                <button key={tab.id} onClick={() => toggleResource(tab.id)} className="settings-item-button">
-                                                    <div className="settings-item-content">
-                                                        <tab.icon size={14} className="settings-item-icon" />
-                                                        <span className={visibleResources.includes(tab.id) ? 'settings-item-label-active' : 'settings-item-label-inactive'}>{tab.label}</span>
-                                                    </div>
-                                                    {visibleResources.includes(tab.id) && <Check size={14} className="settings-item-check" />}
-                                                </button>
-                                            ))}
-                                        </div>
-
-                                        <div className="settings-section-title settings-divider">Columns for {activeTab}</div>
-                                        <div className="settings-section">
-                                            {COLUMN_DEFINITIONS[activeTab].map(col => (
-                                                <button key={col.id} onClick={() => handleColumnToggle(col.id)} className="settings-item-button">
-                                                    <span className={visibleColumns.includes(col.id) ? 'settings-item-label-active' : 'settings-item-label-inactive'}>{col.label}</span>
-                                                    {visibleColumns.includes(col.id) && <Check size={14} className="settings-item-check" />}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                        <SettingsDropdown 
+                            isOpen={isSettingsOpen}
+                            onToggle={() => setIsSettingsOpen(!isSettingsOpen)}
+                            onClose={() => setIsSettingsOpen(false)}
+                            visibleResources={visibleResources}
+                            onToggleResource={toggleResource}
+                            activeTab={activeTab}
+                            visibleColumns={visibleColumns}
+                            onToggleColumn={handleColumnToggle}
+                        />
                     </div>
                 </div>
             </header>
