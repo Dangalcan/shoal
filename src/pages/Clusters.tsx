@@ -18,6 +18,8 @@ export function Clusters() {
         try {
             const list = await window.electron.getClusters()
             setClusters(list)
+        } catch (error) {
+            toast.error('Failed to load clusters.')
         } finally {
             setLoading(false)
         }

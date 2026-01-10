@@ -43,10 +43,10 @@ export function Dashboard() {
     const [isModalOpen, setIsModalOpen] = useState(false)
 
     const refreshData = () => {
-        window.electron.checkTool('docker').then(setDockerStatus)
-        window.electron.checkTool('podman').then(setPodmanStatus)
-        window.electron.getClusters().then(setClusters)
-        window.electron.getCurrentContext().then(setCurrentContext)
+        window.electron.checkTool('docker').then(setDockerStatus).catch(() => setDockerStatus(null))
+        window.electron.checkTool('podman').then(setPodmanStatus).catch(() => setPodmanStatus(null))
+        window.electron.getClusters().then(setClusters).catch(() => setClusters([]))
+        window.electron.getCurrentContext().then(setCurrentContext).catch(() => setCurrentContext('None'))
     }
 
     useEffect(() => {
