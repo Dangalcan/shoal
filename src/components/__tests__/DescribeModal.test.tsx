@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import { DescribeModal } from '../DescribeModal'
+import { DescribeModal } from '../modals/DescribeModal'
 import { mockElectronAPI } from '../../test/setup'
 
 // Mock clipboard

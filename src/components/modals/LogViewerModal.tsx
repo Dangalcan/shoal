@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { RefreshCw, Loader2, AlertCircle, Terminal } from 'lucide-react'
-import { BaseModal } from './modals/BaseModal'
+import { BaseModal } from './BaseModal'
 
 interface LogViewerModalProps {
     isOpen: boolean
@@ -84,6 +84,7 @@ export function LogViewerModal({ isOpen, onClose, clusterName, podName, namespac
             className="log-modal"
             width="90%"
             maxWidth="1200px"
+            data-testid="log-modal"
         >
             {loading && !logs ? (
                 <div className="state-container">

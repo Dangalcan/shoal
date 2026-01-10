@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import { PodViewerModal } from '../PodViewerModal'
+import { PodViewerModal } from '../modals/PodViewerModal'
 import { mockElectronAPI } from '../../test/setup'
 
 describe('PodViewerModal', () => {

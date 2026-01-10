@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import { YamlModal } from '../YamlModal'
+import { YamlModal } from '../modals/YamlModal'
 import { mockElectronAPI } from '../../test/setup'
 
 // Mock clipboard

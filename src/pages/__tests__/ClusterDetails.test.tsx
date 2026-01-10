@@ -1,199 +1,55 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { ClusterDetails } from '../ClusterDetails'
 import { mockElectronAPI } from '../../test/setup'
+import { render, mockToast } from '../../test/test-utils'
+import '../../test/mocks/component-mocks'
 import { toast } from 'sonner'
-
-// Mock child components
-vi.mock('../../components/LogViewerModal', () => ({
-    LogViewerModal: ({ isOpen, onClose, podName }: any) => (isOpen ? <div data-testid="log-modal">Logs for {podName} <button onClick={onClose}>Close</button></div> : null)
-}))
-vi.mock('../../components/DescribeModal', () => ({
-    DescribeModal: ({ isOpen, onClose, resourceName }: any) => (isOpen ? <div data-testid="describe-modal">Describe {resourceName} <button onClick={onClose}>Close</button></div> : null)
-}))
-vi.mock('../../components/YamlModal', () => ({
-    YamlModal: ({ isOpen, onClose, resourceName }: any) => (isOpen ? <div data-testid="yaml-modal">YAML {resourceName} <button onClick={onClose}>Close</button></div> : null)
-}))
-
-// Refined toast mock
-vi.mock('sonner', () => {
-    const toastMock = {
-        promise: vi.fn(async (promise, hooks) => {
-            try {
-                const res = await promise
-                if (hooks?.success) {
-                    const msg = typeof hooks.success === 'function' ? hooks.success(res) : hooks.success
-                    toastMock.success(msg)
-                }
-                return res
-            } catch (err: any) {
-                if (hooks?.error) {
-                    const msg = typeof hooks.error === 'function' ? hooks.error(err) : hooks.error
-                    toastMock.error(msg)
-                }
-                return Promise.reject(err)
-            }
-        }),
-        success: vi.fn(),
-        error: vi.fn()
-    }
-    return { Toaster: () => null, toast: toastMock }
-})
-
+import { 
+    mockNamespaces, 
+    mockPods, 
+    mockDeployments, 
+    mockPVC, 
+    mockNodes, 
+    mockServices, 
+    mockHPA, 
+    mockIngress, 
+    mockSecrets, 
+    mockConfigMaps,
+    mockStatefulSets,
+    mockPV,
+    mockSC,
+    mockVS,
+    mockVSC,
+    mockReplicaSets,
+    mockDaemonSets,
+    mockJobs,
+    mockCronJobs,
+    mockReplicationControllers,
+    mockRoles,
+    mockRoleBindings,
+    mockServiceAccounts,
+    mockNetworkPolicies,
+    mockEndpoints,
+    mockPodDisruptionBudgets,
+    mockResourceQuotas,
+    mockCRDs,
+    mockWebhooks,
+    mockAPIServices,
+    mockLeases,
+    mockPriorityClasses,
+    mockCSRs
+} from '../../test/fixtures/k8s-resources'
 import { configure } from '@testing-library/dom'
+
 
 // Increase timeout for async operations (state transitions)
 configure({ asyncUtilTimeout: 3000 })
 
 describe('ClusterDetails Page - Exhaustive Coverage', () => {
-    const mockClusterName = 'cluster-123'
-    const mockNamespaces = ['all', 'default', 'kube-system']
-    
-    // Multi-item mocks to ensure sorting logic triggers (array.sort requires > 1 item)
-    const mockPods = [
-        {
-            metadata: { name: 'pod-1', namespace: 'default', creationTimestamp: '2024-01-01T10:00:00Z' },
-            status: { phase: 'Running', podIP: '10.0.0.1', containerStatuses: [{ restartCount: 5 }], nominatedNodeName: 'node-SPECIFIC' },
-            spec: { nodeName: 'node-A', containers: [{ name: 'c1', image: 'img1' }], readinessGates: [{ conditionType: 'Ready' }] }
-        },
-        {
-            metadata: { name: 'pod-2', namespace: 'default', creationTimestamp: '2023-01-01T10:00:00Z' },
-            status: { phase: 'Pending', podIP: '10.0.0.2', containerStatuses: [{ restartCount: 10 }] },
-            spec: { nodeName: 'node-B', containers: [{ name: 'd1', image: 'img2' }], selector: { app: 'foo' } }
-        }
-    ]
+    // Smaller scale mock data for specialized edge cases (others moved to fixtures)
+    // Mocks imported from fixtures
 
-    const mockDeployments = [
-        {
-            metadata: { name: 'dep-1', namespace: 'default', creationTimestamp: '2024-01-01T10:00:00Z' },
-            status: { readyReplicas: 2, replicas: 3, updatedReplicas: 2, availableReplicas: 1 },
-            spec: { template: { spec: { containers: [ { name: 'nginx-c', image: 'nginx-i' } ] } }, selector: { matchLabels: { app: 'nginx' } } }
-        },
-        {
-            metadata: { name: 'dep-2', namespace: 'default', creationTimestamp: '2023-01-01T10:00:00Z' },
-            status: { readyReplicas: 0, replicas: 1, updatedReplicas: 1, availableReplicas: 0 },
-            spec: { template: { spec: { containers: [ { name: 'apache-c', image: 'apache-i' } ] } }, selector: { matchLabels: { app: 'apache' } } }
-        }
-    ]
-
-    const mockPVC = [
-        {
-            metadata: { name: 'pvc-1', namespace: 'default', creationTimestamp: '2024-01-01T10:00:00Z', annotations: { 'volume.kubernetes.io/selected-node': 'node-PVC-TARGET' } },
-            status: { phase: 'Bound', capacity: { storage: '5Gi' } },
-            spec: { volumeName: 'pv-1', accessModes: ['ReadWriteOnce'], storageClassName: 'gp2', volumeMode: 'Block', volumeAttributesClassName: 'class-a' }
-        },
-        {
-            metadata: { name: 'pvc-2', namespace: 'default', creationTimestamp: '2023-01-01T10:00:00Z' },
-            status: { phase: 'Pending', capacity: { storage: '10Gi' } },
-            spec: { volumeName: 'pv-2', accessModes: ['ReadWriteMany'], storageClassName: 'standard', volumeMode: 'Filesystem' }
-        }
-    ]
-
-    const mockNodes = [
-        {
-            metadata: { name: 'node-A', creationTimestamp: '2024-01-01T10:00:00Z', labels: { 'node-role.kubernetes.io/master': '' } },
-            status: { 
-                conditions: [{ type: 'Ready', status: 'True' }],
-                nodeInfo: { kubeletVersion: 'v1.28.0', osImage: 'Fedora', kernelVersion: '6.1', containerRuntimeVersion: 'docker' },
-                addresses: [
-                    { type: 'InternalIP', address: '172.16.0.1' },
-                    { type: 'ExternalIP', address: '1.2.3.4' }
-                ]
-            }
-        },
-        {
-            metadata: { name: 'node-B', creationTimestamp: '2023-01-01T10:00:00Z', labels: { 'node-role.kubernetes.io/worker': '' } },
-            status: { 
-                conditions: [{ type: 'Ready', status: 'False' }],
-                nodeInfo: { kubeletVersion: 'v1.27.0', osImage: 'Ubuntu', kernelVersion: '5.15', containerRuntimeVersion: 'containerd' },
-                addresses: [
-                    { type: 'InternalIP', address: '172.16.0.2' },
-                    { type: 'ExternalIP', address: '5.6.7.8' }
-                ]
-            }
-        }
-    ]
-
-    const mockServices = [
-        {
-            metadata: { name: 'svc-1', namespace: 'default', creationTimestamp: '2024-01-01T10:00:00Z' },
-            spec: { type: 'LoadBalancer', clusterIP: '10.96.0.1', ports: [{ port: 80, protocol: 'TCP' }], selector: { app: 'nginx' } },
-            status: { loadBalancer: { ingress: [{ ip: '35.1.2.3' }] } }
-        },
-        {
-            metadata: { name: 'svc-2', namespace: 'default', creationTimestamp: '2023-01-01T10:00:00Z' },
-            spec: { type: 'ClusterIP', clusterIP: '10.96.0.2', ports: [{ port: 443, protocol: 'TCP' }] },
-            status: {}
-        }
-    ]
-
-    const mockHPA = [
-        {
-            metadata: { name: 'hpa-1', namespace: 'default', creationTimestamp: '2024-01-01T10:00:00Z' },
-            spec: { scaleTargetRef: { kind: 'Deployment', name: 'dep-1' }, minReplicas: 1, maxReplicas: 10, metrics: [{ resource: { name: 'cpu', target: { averageUtilization: 80 } } }] },
-            status: { currentReplicas: 2, currentMetrics: [{ resource: { current: { averageUtilization: 50 } } }] }
-        }
-    ]
-
-    const mockStatefulSets = [
-        {
-            metadata: { name: 'sts-1', namespace: 'default', creationTimestamp: '2024-01-01T10:00:00Z' },
-            status: { readyReplicas: 1, replicas: 1 },
-            spec: { serviceName: 'sts-svc' }
-        }
-    ]
-
-    const mockIngress = [
-        {
-            metadata: { name: 'ing-1', namespace: 'default', creationTimestamp: '2024-01-01T10:00:00Z', annotations: { 'kubernetes.io/ingress.class': 'nginx' } },
-            spec: { rules: [{ host: 'example.com' }], tls: [{ hosts: ['example.com'] }] },
-            status: { loadBalancer: { ingress: [{ hostname: 'lb.com' }] } }
-        }
-    ]
-
-    const mockSecrets = [
-        {
-            metadata: { name: 'sec-1', namespace: 'default', creationTimestamp: '2024-01-01T10:00:00Z' },
-            type: 'Opaque',
-            data: { key1: 'val1', key2: 'val2' }
-        },
-        {
-            metadata: { name: 'sec-2', namespace: 'default', creationTimestamp: '2023-01-01T10:00:00Z' },
-            type: 'kubernetes.io/service-account-token',
-            data: { token: 'abc' }
-        }
-    ]
-
-    const mockConfigMaps = [
-        {
-            metadata: { name: 'cm-1', namespace: 'default', creationTimestamp: '2024-01-01T10:00:00Z' },
-            data: { 'config.json': '{}' }
-        }
-    ]
-
-    const mockPV = [{ metadata: { name: 'pv-1' }, spec: { capacity: { storage: '10Gi' }, accessModes: ['RWO'], persistentVolumeReclaimPolicy: 'Retain', storageClassName: 'gp2', volumeMode: 'Filesystem' }, status: { phase: 'Bound' } }]
-    const mockSC = [{ metadata: { name: 'sc-1' }, provisioner: 'ebs.csi.aws.com', reclaimPolicy: 'Delete', volumeBindingMode: 'Immediate', allowVolumeExpansion: true }]
-    const mockVS = [{ metadata: { name: 'vs-1', namespace: 'default' }, spec: { volumeSnapshotClassName: 'vsc-1', source: { persistentVolumeClaimName: 'pvc-1' } }, status: { readyToUse: true, restoreSize: '5Gi' } }]
-    const mockVSC = [{ metadata: { name: 'vsc-1' }, driver: 'ebs.csi.aws.com', deletionPolicy: 'Delete' }]
-    const mockRS = [{ metadata: { name: 'rs-1', namespace: 'default' }, spec: { replicas: 3 }, status: { replicas: 3, readyReplicas: 3, availableReplicas: 3 } }]
-    const mockDS = [{ metadata: { name: 'ds-1', namespace: 'default' }, status: { desiredNumberScheduled: 5, currentNumberScheduled: 5, numberReady: 5, updatedNumberScheduled: 5 } }]
-    const mockJobs = [{ metadata: { name: 'job-1', namespace: 'default' }, status: { completions: 1, succeeded: 1 }, spec: { completions: 1 } }]
-    const mockCronJobs = [{ metadata: { name: 'cj-1', namespace: 'default' }, spec: { schedule: '*/5 * * * *', suspend: false }, status: { lastScheduleTime: '2024-01-01T10:00:00Z' } }]
-    const mockRC = [{ metadata: { name: 'rc-1', namespace: 'default' }, spec: { replicas: 2 }, status: { replicas: 2, readyReplicas: 2 } }]
-    const mockRoles = [{ metadata: { name: 'role-1', namespace: 'default' } }]
-    const mockRoleBindings = [{ metadata: { name: 'rb-1', namespace: 'default' }, roleRef: { name: 'role-1', kind: 'Role' } }]
-    const mockSA = [{ metadata: { name: 'sa-1', namespace: 'default' }, secrets: [{ name: 'sa-token' }] }]
-    const mockNP = [{ metadata: { name: 'np-1', namespace: 'default' }, spec: { podSelector: {}, policyTypes: ['Ingress'] } }]
-    const mockEPs = [{ metadata: { name: 'ep-1', namespace: 'default' }, subsets: [{ addresses: [{ ip: '1.2.3.4' }], ports: [{ port: 80 }] }] }]
-    const mockPDBs = [{ metadata: { name: 'pdb-1', namespace: 'default' }, spec: { minAvailable: 1 }, status: { disruptionsAllowed: 1 } }]
-    const mockQuotas = [{ metadata: { name: 'rq-1', namespace: 'default' }, status: { hard: { pods: '10' }, used: { pods: '1' } } }]
-    const mockCRD = [{ metadata: { name: 'crds.example.com' }, spec: { scope: 'Namespaced', group: 'example.com' } }]
-    const mockWebhooks = [{ metadata: { name: 'webhook-1' }, webhooks: [{ name: 'check.example.com' }] }]
-    const mockAPIService = [{ metadata: { name: 'v1.example.com' }, spec: { service: { name: 'svc' } }, status: { conditions: [{ type: 'Available', status: 'True' }] } }]
-    const mockLease = [{ metadata: { name: 'lease-1', namespace: 'kube-system' }, spec: { holderIdentity: 'node-A', leaseDurationSeconds: 30 } }]
-    const mockPriorityClass = [{ metadata: { name: 'high-priority' }, value: 1000, preemptionPolicy: 'PreemptLowerPriority' }]
-    const mockCSR = [{ metadata: { name: 'csr-1' }, spec: { username: 'admin', signerName: 'kubernetes.io/kube-apiserver-client' }, status: { conditions: [{ type: 'Approved' }] } }]
 
     beforeEach(() => {
         vi.clearAllMocks()
@@ -214,24 +70,24 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             if (resourceType === 'storageclass') return { success: true, items: mockSC }
             if (resourceType === 'volumesnapshot') return { success: true, items: mockVS }
             if (resourceType === 'volumesnapshotclass') return { success: true, items: mockVSC }
-            if (resourceType === 'replicasets') return { success: true, items: mockRS }
-            if (resourceType === 'daemonsets') return { success: true, items: mockDS }
+            if (resourceType === 'replicasets') return { success: true, items: mockReplicaSets }
+            if (resourceType === 'daemonsets') return { success: true, items: mockDaemonSets }
             if (resourceType === 'jobs') return { success: true, items: mockJobs }
             if (resourceType === 'cronjobs') return { success: true, items: mockCronJobs }
-            if (resourceType === 'replicationcontroller') return { success: true, items: mockRC }
+            if (resourceType === 'replicationcontroller') return { success: true, items: mockReplicationControllers }
             if (resourceType === 'role' || resourceType === 'clusterrole') return { success: true, items: mockRoles }
             if (resourceType === 'rolebinding' || resourceType === 'clusterrolebinding') return { success: true, items: mockRoleBindings }
-            if (resourceType === 'serviceaccounts') return { success: true, items: mockSA }
-            if (resourceType === 'networkpolicy') return { success: true, items: mockNP }
-            if (resourceType === 'endpoints') return { success: true, items: mockEPs }
-            if (resourceType === 'poddisruptionbudget') return { success: true, items: mockPDBs }
-            if (resourceType === 'resourcequota') return { success: true, items: mockQuotas }
-            if (resourceType === 'customresourcedefinition') return { success: true, items: mockCRD }
+            if (resourceType === 'serviceaccounts') return { success: true, items: mockServiceAccounts }
+            if (resourceType === 'networkpolicy') return { success: true, items: mockNetworkPolicies }
+            if (resourceType === 'endpoints') return { success: true, items: mockEndpoints }
+            if (resourceType === 'poddisruptionbudget') return { success: true, items: mockPodDisruptionBudgets }
+            if (resourceType === 'resourcequota') return { success: true, items: mockResourceQuotas }
+            if (resourceType === 'customresourcedefinition') return { success: true, items: mockCRDs }
             if (resourceType === 'mutatingwebhookconfiguration' || resourceType === 'validatingwebhookconfiguration') return { success: true, items: mockWebhooks }
-            if (resourceType === 'apiservice') return { success: true, items: mockAPIService }
-            if (resourceType === 'lease') return { success: true, items: mockLease }
-            if (resourceType === 'priorityclass') return { success: true, items: mockPriorityClass }
-            if (resourceType === 'certificatesigningrequest') return { success: true, items: mockCSR }
+            if (resourceType === 'apiservice') return { success: true, items: mockAPIServices }
+            if (resourceType === 'lease') return { success: true, items: mockLeases }
+            if (resourceType === 'priorityclass') return { success: true, items: mockPriorityClasses }
+            if (resourceType === 'certificatesigningrequest') return { success: true, items: mockCSRs }
             return { success: true, items: [] }
         })
         mockElectronAPI.rolloutRestart.mockResolvedValue({ success: true })
@@ -294,15 +150,28 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
         })
     })
     const renderPage = () => render(
-        <MemoryRouter initialEntries={[`/cluster/${mockClusterName}`]}>
-            <Routes><Route path="/cluster/:name" element={<ClusterDetails />} /></Routes>
-        </MemoryRouter>
+        <ClusterDetails />, 
+        { 
+            path: '/cluster/:name', 
+            route: '/cluster/cluster-123' 
+        }
     )
 
     it('should navigate back correctly', async () => {
         const { container } = renderPage()
+        
+        // Wait for initial load
+        await waitFor(() => expect(screen.getByText('pod-1')).toBeInTheDocument())
+        
         const backBtn = container.querySelector('.back-button')
+        expect(backBtn).toBeInTheDocument()
+        
         fireEvent.click(backBtn!)
+        
+        // Since we are mocking the router, we can't easily verify URL change unless we spy on useNavigate or inspecting history.
+        // But the error was about "An update to ClusterDetails inside a test was not wrapped in act(...)".
+        // This is likely because the back button triggers something or the component unmounts while a promise is pending.
+        // Waiting for the initial pods to load ensures pending promises are resolved.
     })
 
     describe('Resource Rendering Scopes', () => {
@@ -401,7 +270,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             fireEvent.click(within(row).getByTitle('Rollout Restart'))
             
             await waitFor(() => {
-                expect(toast.success).toHaveBeenCalledWith('Restart triggered successfully')
+                expect(mockToast.success).toHaveBeenCalledWith('Restart triggered successfully')
                 expect(mockElectronAPI.getResources).toHaveBeenCalledTimes(3) // Initial + Tab Change + after restart
             })
 
@@ -410,7 +279,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             await waitFor(() => expect(screen.getByText('sts-1')).toBeInTheDocument())
             const stsRow = screen.getByText('sts-1').closest('tr')!
             fireEvent.click(within(stsRow).getByTitle('Rollout Restart'))
-            await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Restart triggered successfully'))
+            await waitFor(() => expect(mockToast.success).toHaveBeenCalledWith('Restart triggered successfully'))
         })
 
         it('should handle resource deletion with confirmation and success', async () => {
@@ -426,7 +295,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             
             await waitFor(() => {
                 expect(mockElectronAPI.deleteResource).toHaveBeenCalled()
-                expect(toast.success).toHaveBeenCalledWith('Resource deleted successfully')
+                expect(mockToast.success).toHaveBeenCalledWith('Resource deleted successfully')
             })
 
             // Cancellation path
@@ -455,39 +324,41 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             const row = screen.getByText('pod-1').closest('tr')!
 
             // Pod logs (click pod name)
-            fireEvent.click(within(row).getByText('pod-1'))
-            expect(screen.getByTestId('log-modal')).toBeInTheDocument()
-            fireEvent.click(within(screen.getByTestId('log-modal')).getByText('Close'))
-            expect(screen.queryByTestId('log-modal')).not.toBeInTheDocument()
+            const podNameBtn = within(row).getByRole('button', { name: 'pod-1' })
+            fireEvent.click(podNameBtn)
+            await waitFor(() => expect(screen.getByTestId('log-modal')).toBeInTheDocument())
+            fireEvent.click(within(screen.getByTestId('log-modal')).getByText('Close Viewer'))
+            await waitFor(() => expect(screen.queryByTestId('log-modal')).not.toBeInTheDocument())
 
             // Describe
             fireEvent.click(within(row).getByTitle('Describe Resource'))
-            expect(screen.getByTestId('describe-modal')).toBeInTheDocument()
+            await waitFor(() => expect(screen.getByTestId('describe-modal')).toBeInTheDocument())
             fireEvent.click(within(screen.getByTestId('describe-modal')).getByText('Close'))
 
             // YAML
             fireEvent.click(within(row).getByTitle('View YAML'))
-            expect(screen.getByTestId('yaml-modal')).toBeInTheDocument()
+            await waitFor(() => expect(screen.getByTestId('yaml-modal')).toBeInTheDocument())
             fireEvent.click(within(screen.getByTestId('yaml-modal')).getByText('Close'))
 
              // Pod logs (click action button)
              await waitFor(() => expect(within(row).getByTitle('View Logs')).toBeVisible())
              fireEvent.click(within(row).getByTitle('View Logs'))
-             expect(screen.getByTestId('log-modal')).toBeInTheDocument()
-             fireEvent.click(within(screen.getByTestId('log-modal')).getByText('Close'))
+             fireEvent.click(within(screen.getByTestId('log-modal')).getByText('Close Viewer'))
+             await waitFor(() => expect(screen.queryByTestId('log-modal')).not.toBeInTheDocument())
         })
 
         it('should handle rollout success/error logic branches in toast.promise', async () => {
              // This tests the toast.promise logic in the mock which mimics the component's await rollout
-             mockElectronAPI.rolloutRestart.mockRejectedValue({ error: 'Async Rollout Failed' })
-             renderPage()
-             fireEvent.click(within(screen.getByRole('banner').querySelector('.tabs-container')!).getByText('Deployments'))
-             
-             await waitFor(() => expect(screen.getByText('dep-1')).toBeInTheDocument())
-             const row = screen.getByText('dep-1').closest('tr')!
-             
-             fireEvent.click(within(row).getByTitle('Rollout Restart'))
-             await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Async Rollout Failed')))
+              mockElectronAPI.rolloutRestart.mockRejectedValue({ error: 'UNIQUE_ROLLOUT_FAILURE' })
+              renderPage()
+              fireEvent.click(within(screen.getByRole('banner').querySelector('.tabs-container')!).getByText('Deployments'))
+              
+              await waitFor(() => expect(screen.getByText('dep-1')).toBeInTheDocument())
+              const row = screen.getByText('dep-1').closest('tr')!
+              mockToast.error.mockReset()
+              
+              fireEvent.click(within(row).getByTitle('Rollout Restart'))
+              await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith(expect.stringContaining('UNIQUE_ROLLOUT_FAILURE')), { timeout: 3000 })
         })
     })
 
@@ -742,7 +613,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
              
              fireEvent.click(within(row).getByTitle('Delete Resource'))
              
-             await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Delete failed hard')))
+             await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith(expect.stringContaining('Delete failed hard')))
              confirmSpy.mockRestore()
         })
 

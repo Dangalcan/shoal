@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { Copy, Check, Loader2, Code } from 'lucide-react'
-import { BaseModal } from './modals/BaseModal'
+import { BaseModal } from './BaseModal'
 
 interface YamlModalProps {
     isOpen: boolean
@@ -89,6 +89,7 @@ export function YamlModal({ isOpen, onClose, clusterName, resourceName, resource
             footer={footerContent}
             className="yaml-modal"
             width="900px" // YAML often needs more width
+            data-testid="yaml-modal"
         >
             {loading ? (
                 <div className="state-container">

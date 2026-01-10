@@ -13,6 +13,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       exclude: [
+        'styles/**',
         'node_modules/',
         'src/test/',
         '**/*.d.ts',

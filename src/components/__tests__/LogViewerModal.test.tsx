@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render } from '@testing-library/react'
-import { LogViewerModal } from '../LogViewerModal'
+import { render, screen, waitFor } from '../../test/test-utils'
+import { LogViewerModal } from '../modals/LogViewerModal'
 import { mockElectronAPI } from '../../test/setup'
 
 describe('LogViewerModal', () => {
@@ -25,7 +25,7 @@ describe('LogViewerModal', () => {
         expect(container.firstChild).toBeNull()
     })
 
-    it('should call getLogs API when open', () => {
+    it('should call getLogs API when open', async () => {
         render(
             <LogViewerModal
                 isOpen={true}
@@ -36,8 +36,34 @@ describe('LogViewerModal', () => {
             />
         )
 
-        // The component calls getLogs in useEffect, which runs after render
-        // Just verify the mock is set up correctly
-        expect(mockElectronAPI.getLogs).toBeDefined()
+        await waitFor(() => {
+            expect(mockElectronAPI.getLogs).toHaveBeenCalledWith({
+                contextName: 'test-cluster',
+                podName: 'test-pod',
+                namespace: 'default'
+            })
+        })
+        expect(screen.getByText('Test logs')).toBeInTheDocument()
+    })
+
+    it('should display error when getLogs fails', async () => {
+        mockElectronAPI.getLogs.mockResolvedValueOnce({
+            success: false,
+            error: 'Failed to fetch logs'
+        })
+
+        render(
+            <LogViewerModal
+                isOpen={true}
+                onClose={vi.fn()}
+                clusterName="test-cluster"
+                podName="test-pod"
+                namespace="default"
+            />
+        )
+
+        await waitFor(() => {
+            expect(screen.getByText('Failed to fetch logs')).toBeInTheDocument()
+        })
     })
 })

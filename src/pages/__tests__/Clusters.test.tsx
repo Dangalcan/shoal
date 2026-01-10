@@ -6,7 +6,7 @@ import { Clusters } from '../Clusters'
 import { mockElectronAPI } from '../../test/setup'
 
 // Mock child components
-vi.mock('../components/PodViewerModal', () => ({
+vi.mock('../components/modals/PodViewerModal', () => ({
     PodViewerModal: ({ isOpen, onClose, clusterName }: any) => (
         isOpen ? <div data-testid="pod-modal">PodViewer for {clusterName} <button onClick={onClose}>Close</button></div> : null
     )

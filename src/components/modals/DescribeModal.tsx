@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { Copy, Check, Loader2, FileText } from 'lucide-react'
-import { BaseModal } from './modals/BaseModal'
+import { BaseModal } from './BaseModal'
 
 interface DescribeModalProps {
     isOpen: boolean
@@ -89,6 +89,7 @@ export function DescribeModal({ isOpen, onClose, clusterName, resourceName, reso
             footer={footerContent}
             className="describe-modal"
             width="800px"
+            data-testid="describe-modal"
         >
             {loading ? (
                 <div className="state-container">
