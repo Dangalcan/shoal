@@ -79,7 +79,12 @@ export function ClusterDetails() {
 
     const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => {
         const saved = localStorage.getItem('k8s_desktop_column_widths')
-        return saved ? JSON.parse(saved) : {}
+        if (!saved) return {}
+        try {
+            return JSON.parse(saved)
+        } catch {
+            return {}
+        }
     })
 
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null)
@@ -171,8 +176,13 @@ export function ClusterDetails() {
             error: (err) => `Failed to restart: ${err.error || err.message}`
         })
 
-        await promise
-        fetchData()
+        try {
+            await promise
+            fetchData()
+        } catch (err) {
+            // Error is handled by toast.promise UI
+            console.error('Restart failed:', err)
+        }
     }
 
     const handleDelete = async (resName: string, ns: string, type: string) => {
@@ -191,9 +201,14 @@ export function ClusterDetails() {
             error: (err) => `Failed to delete resource: ${err.error || err.message}`
         })
 
-        const result = await promise
-        if (result.success) {
-            fetchData()
+        try {
+            const result = await promise
+            if (result.success) {
+                fetchData()
+            }
+        } catch (err) {
+            // Error is handled by toast.promise UI
+            console.error('Delete failed:', err)
         }
     }
 
@@ -345,7 +360,10 @@ export function ClusterDetails() {
             { id: 'ip', label: 'IP', minWidth: 120 },
             { id: 'node', label: 'Node', minWidth: 150 },
             { id: 'nominated-node', label: 'Nominated Node', minWidth: 150 },
-            { id: 'readiness-gates', label: 'Readiness Gates', minWidth: 150 }
+            { id: 'readiness-gates', label: 'Readiness Gates', minWidth: 150 },
+            { id: 'containers', label: 'Containers', minWidth: 150 },
+            { id: 'images', label: 'Images', minWidth: 200 },
+            { id: 'selector', label: 'Selector', minWidth: 200 }
         ],
         deployments: [
             { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -507,6 +525,7 @@ export function ClusterDetails() {
                                 value={selectedNamespace}
                                 onChange={(e) => setSelectedNamespace(e.target.value)}
                                 className="namespace-selector"
+                                aria-label="Namespace Selector"
                             >
                                 <option value="all">All Namespaces</option>
                                 {namespaces.map(ns => (
@@ -535,7 +554,7 @@ export function ClusterDetails() {
                                 <div className="settings-dropdown">
                                     <div className="settings-dropdown-header">
                                         <span className="settings-dropdown-title">Display Settings</span>
-                                        <button onClick={() => setIsSettingsOpen(false)} className="settings-close-button">
+                                        <button onClick={() => setIsSettingsOpen(false)} className="settings-close-button" title="Close Settings">
                                             <X size={14} />
                                         </button>
                                     </div>
@@ -813,10 +832,10 @@ export function ClusterDetails() {
                                                         return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.readinessGates?.map((g: any) => g.conditionType).join(', ') || '<none>'}</td>
 
                                                     case 'containers':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{(item.spec?.template || item.spec)?.spec?.containers?.map((c: any) => c.name).join(', ') || '<none>'}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{(item.spec?.template?.spec || item.spec)?.containers?.map((c: any) => c.name).join(', ') || '<none>'}</td>
 
                                                     case 'images':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{(item.spec?.template || item.spec)?.spec?.containers?.map((c: any) => c.image).join(', ') || '<none>'}</td>
+                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{(item.spec?.template?.spec || item.spec)?.containers?.map((c: any) => c.image).join(', ') || '<none>'}</td>
 
                                                     case 'selector':
                                                         return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>
