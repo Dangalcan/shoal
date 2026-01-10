@@ -1,19 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Box, List, Shield, Activity, Search, RefreshCw, Loader2, AlertCircle, Gauge, Database, Terminal, Globe, Settings, X, Check, Eye, FileCode, Lock, FileText, ChevronUp, ChevronDown, Server, Trash2 } from 'lucide-react'
+import { ArrowLeft, Search, RefreshCw, Loader2, AlertCircle, Settings, X, Check, Box } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
 import { LogViewerModal } from '../components/LogViewerModal'
 import { DescribeModal } from '../components/DescribeModal'
 import { YamlModal } from '../components/YamlModal'
+import { ResourceTable } from '../components/resource-tables/ResourceTable'
+import { ResourceRow } from '../components/resource-tables/ResourceRows'
+import { ResourceType, ALL_TABS, COLUMN_DEFINITIONS } from '../lib/resource-definitions'
 import './ClusterDetails.css'
-
-type ResourceType = 'pods' | 'deployments' | 'services' | 'statefulsets' | 'hpa' | 'persistentvolumeclaim' | 'ingress' | 'secrets' | 'configmap' | 'nodes'
-
-interface ColumnDef {
-    id: string;
-    label: string;
-    minWidth: number;
-}
 
 export function ClusterDetails() {
     const { name } = useParams<{ name: string }>()
@@ -39,12 +34,13 @@ export function ClusterDetails() {
 
     // Resource Visibility State
     const [visibleResources, setVisibleResources] = useState<ResourceType[]>(() => {
-        const defaults: ResourceType[] = ['pods', 'deployments', 'services', 'statefulsets', 'hpa', 'persistentvolumeclaim', 'ingress', 'secrets', 'configmap', 'nodes']
+        const defaults: ResourceType[] = ALL_TABS.filter(t => t.id !== 'daemonsets' && t.id !== 'jobs' && t.id !== 'cronjobs').map(t => t.id)
         const saved = localStorage.getItem('k8s_desktop_visible_resources')
         if (!saved) return defaults
         try {
             const parsed = JSON.parse(saved)
             // Merge defaults to ensure new resources are available even if the user has old saved settings
+            // But we don't force daemonsets here if it was meant to be hidden by default
             const missing = defaults.filter(d => !parsed.includes(d))
             return [...parsed, ...missing] as ResourceType[]
         } catch {
@@ -63,6 +59,10 @@ export function ClusterDetails() {
             hpa: ['namespace', 'name', 'reference', 'targets', 'minpods', 'maxpods', 'replicas', 'age'],
             persistentvolumeclaim: ['namespace', 'name', 'status', 'volume', 'capacity', 'access-modes', 'storageclass', 'volumemode', 'selected-node', 'vac', 'age'],
             ingress: ['namespace', 'name', 'class', 'hosts', 'address', 'ports', 'age'],
+            replicasets: ['namespace', 'name', 'desired', 'current', 'ready', 'age'],
+            daemonsets: ['namespace', 'name', 'desired', 'current', 'ready', 'updated', 'available', 'node-selector', 'age'],
+            jobs: ['namespace', 'name', 'status', 'completions', 'duration', 'age'],
+            cronjobs: ['namespace', 'name', 'schedule', 'suspend', 'active', 'last-schedule', 'age'],
             secrets: ['namespace', 'name', 'type', 'data', 'age'],
             configmap: ['namespace', 'name', 'data', 'age'],
             nodes: ['name', 'status', 'roles', 'age', 'version']
@@ -331,129 +331,13 @@ export function ClusterDetails() {
         })
     }
 
-    const sortedItems = getSortedItems()
+    const sortedItems = useMemo(getSortedItems, [items, sortConfig, activeTab])
 
     useEffect(() => {
         fetchData()
     }, [name, activeTab, selectedNamespace])
 
-    const allTabs: { id: ResourceType; label: string; icon: any }[] = [
-        { id: 'pods', label: 'Pods', icon: Box },
-        { id: 'deployments', label: 'Deployments', icon: Activity },
-        { id: 'services', label: 'Services', icon: Shield },
-        { id: 'statefulsets', label: 'StatefulSets', icon: List },
-        { id: 'hpa', label: 'HPAs', icon: Gauge },
-        { id: 'persistentvolumeclaim', label: 'PVCs', icon: Database },
-        { id: 'ingress', label: 'Ingresses', icon: Globe },
-        { id: 'secrets', label: 'Secrets', icon: Lock },
-        { id: 'configmap', label: 'ConfigMaps', icon: FileText },
-        { id: 'nodes', label: 'Nodes', icon: Server }
-    ]
-
-    const columnDefinitions: Record<ResourceType, ColumnDef[]> = {
-        pods: [
-            { id: 'namespace', label: 'Namespace', minWidth: 120 },
-            { id: 'name', label: 'Name', minWidth: 200 },
-            { id: 'status', label: 'Status', minWidth: 100 },
-            { id: 'restarts', label: 'Restarts', minWidth: 80 },
-            { id: 'age', label: 'Age', minWidth: 150 },
-            { id: 'ip', label: 'IP', minWidth: 120 },
-            { id: 'node', label: 'Node', minWidth: 150 },
-            { id: 'nominated-node', label: 'Nominated Node', minWidth: 150 },
-            { id: 'readiness-gates', label: 'Readiness Gates', minWidth: 150 },
-            { id: 'containers', label: 'Containers', minWidth: 150 },
-            { id: 'images', label: 'Images', minWidth: 200 },
-            { id: 'selector', label: 'Selector', minWidth: 200 }
-        ],
-        deployments: [
-            { id: 'namespace', label: 'Namespace', minWidth: 120 },
-            { id: 'name', label: 'Name', minWidth: 200 },
-            { id: 'ready', label: 'Ready', minWidth: 100 },
-            { id: 'updated', label: 'Up-To-Date', minWidth: 100 },
-            { id: 'available', label: 'Available', minWidth: 100 },
-            { id: 'age', label: 'Age', minWidth: 150 },
-            { id: 'containers', label: 'Containers', minWidth: 150 },
-            { id: 'images', label: 'Images', minWidth: 200 },
-            { id: 'selector', label: 'Selector', minWidth: 200 }
-        ],
-        services: [
-            { id: 'namespace', label: 'Namespace', minWidth: 120 },
-            { id: 'name', label: 'Name', minWidth: 200 },
-            { id: 'type', label: 'Type', minWidth: 100 },
-            { id: 'cluster-ip', label: 'Cluster IP', minWidth: 150 },
-            { id: 'external-ip', label: 'External IP', minWidth: 150 },
-            { id: 'ports', label: 'Port(s)', minWidth: 150 },
-            { id: 'age', label: 'Age', minWidth: 150 },
-            { id: 'selector', label: 'Selector', minWidth: 200 }
-        ],
-        statefulsets: [
-            { id: 'namespace', label: 'Namespace', minWidth: 120 },
-            { id: 'name', label: 'Name', minWidth: 200 },
-            { id: 'ready', label: 'Ready', minWidth: 100 },
-            { id: 'age', label: 'Age', minWidth: 150 },
-            { id: 'containers', label: 'Containers', minWidth: 150 },
-            { id: 'images', label: 'Images', minWidth: 200 }
-        ],
-        hpa: [
-            { id: 'namespace', label: 'Namespace', minWidth: 120 },
-            { id: 'name', label: 'Name', minWidth: 200 },
-            { id: 'reference', label: 'Reference', minWidth: 200 },
-            { id: 'targets', label: 'Targets', minWidth: 150 },
-            { id: 'minpods', label: 'MinPods', minWidth: 80 },
-            { id: 'maxpods', label: 'MaxPods', minWidth: 80 },
-            { id: 'replicas', label: 'Replicas', minWidth: 80 },
-            { id: 'age', label: 'Age', minWidth: 150 }
-        ],
-        persistentvolumeclaim: [
-            { id: 'namespace', label: 'Namespace', minWidth: 120 },
-            { id: 'name', label: 'Name', minWidth: 200 },
-            { id: 'status', label: 'Status', minWidth: 100 },
-            { id: 'volume', label: 'Volume', minWidth: 150 },
-            { id: 'capacity', label: 'Capacity', minWidth: 100 },
-            { id: 'access-modes', label: 'Access Modes', minWidth: 150 },
-            { id: 'storageclass', label: 'StorageClass', minWidth: 150 },
-            { id: 'volumemode', label: 'Volume Mode', minWidth: 120 },
-            { id: 'selected-node', label: 'Volume Node', minWidth: 150 },
-            { id: 'vac', label: 'VolumeAttributesClass', minWidth: 150 },
-            { id: 'age', label: 'Age', minWidth: 150 }
-        ],
-        ingress: [
-            { id: 'namespace', label: 'Namespace', minWidth: 120 },
-            { id: 'name', label: 'Name', minWidth: 200 },
-            { id: 'class', label: 'Class', minWidth: 120 },
-            { id: 'hosts', label: 'Hosts', minWidth: 200 },
-            { id: 'address', label: 'Address', minWidth: 150 },
-            { id: 'ports', label: 'Ports', minWidth: 100 },
-            { id: 'age', label: 'Age', minWidth: 150 }
-        ],
-        secrets: [
-            { id: 'namespace', label: 'Namespace', minWidth: 120 },
-            { id: 'name', label: 'Name', minWidth: 200 },
-            { id: 'type', label: 'Type', minWidth: 150 },
-            { id: 'data', label: 'Data', minWidth: 80 },
-            { id: 'age', label: 'Age', minWidth: 150 }
-        ],
-        configmap: [
-            { id: 'namespace', label: 'Namespace', minWidth: 120 },
-            { id: 'name', label: 'Name', minWidth: 200 },
-            { id: 'data', label: 'Data', minWidth: 80 },
-            { id: 'age', label: 'Age', minWidth: 150 }
-        ],
-        nodes: [
-            { id: 'name', label: 'Name', minWidth: 200 },
-            { id: 'status', label: 'Status', minWidth: 100 },
-            { id: 'roles', label: 'Roles', minWidth: 120 },
-            { id: 'age', label: 'Age', minWidth: 150 },
-            { id: 'version', label: 'Version', minWidth: 120 },
-            { id: 'internal-ip', label: 'Internal IP', minWidth: 150 },
-            { id: 'external-ip', label: 'External IP', minWidth: 150 },
-            { id: 'os-image', label: 'OS Image', minWidth: 200 },
-            { id: 'kernel-version', label: 'Kernel Version', minWidth: 200 },
-            { id: 'container-runtime', label: 'Container Runtime', minWidth: 200 }
-        ]
-    }
-
-    const tabs = allTabs.filter(tab => visibleResources.includes(tab.id))
+    const tabs = ALL_TABS.filter(tab => visibleResources.includes(tab.id))
 
     const toggleResource = (id: ResourceType) => {
         setVisibleResources(prev =>
@@ -463,7 +347,7 @@ export function ClusterDetails() {
 
     const toggleColumn = (resourceType: ResourceType, columnId: string) => {
         setVisibleColumns(prev => {
-            const current = prev[resourceType]
+            const current = (prev && prev[resourceType]) || []
             const updated = current.includes(columnId)
                 ? (current.length > 1 ? current.filter(id => id !== columnId) : current) // Prevent hiding all columns
                 : [...current, columnId]
@@ -484,6 +368,7 @@ export function ClusterDetails() {
             startWidth: currentWidth
         })
     }
+
 
     return (
         <div className={`cluster-details-container ${resizing ? 'cluster-details-container-no-select' : ''}`}>
@@ -561,7 +446,7 @@ export function ClusterDetails() {
                                     <div className="settings-dropdown-content">
                                         <div className="settings-section-title">Resources</div>
                                         <div className="settings-section">
-                                            {allTabs.map(tab => (
+                                            {ALL_TABS.map(tab => (
                                                 <button
                                                     key={tab.id}
                                                     onClick={() => toggleResource(tab.id)}
@@ -580,7 +465,7 @@ export function ClusterDetails() {
 
                                         <div className="settings-section-title settings-divider">Columns for {activeTab}</div>
                                         <div className="settings-section">
-                                            {columnDefinitions[activeTab].map(col => (
+                                            {COLUMN_DEFINITIONS[activeTab].map(col => (
                                                 <button
                                                     key={col.id}
                                                     onClick={() => toggleColumn(activeTab, col.id)}
@@ -620,316 +505,39 @@ export function ClusterDetails() {
                         </button>
                     </div>
                 ) : items.length > 0 ? (
-                    <div className="table-container">
-                        <div className="table-scroll">
-                            <table className="resource-table">
-                                <thead className="table-head">
-                                    <tr>
-                                        {columnDefinitions[activeTab].map(col => {
-                                            if (!visibleColumns[activeTab]?.includes(col.id)) return null
-                                            const width = getColumnWidth(col.id, col.minWidth)
-                                            const isSorted = sortConfig?.key === col.id
-                                            return (
-                                                <th
-                                                    key={col.id}
-                                                    className="table-head-cell"
-                                                    style={{ width: `${width}px` }}
-                                                    onClick={() => handleSort(col.id)}
-                                                >
-                                                    <div className="table-head-cell-content">
-                                                        <span>{col.label}</span>
-                                                        {isSorted && (
-                                                            sortConfig.direction === 'asc' ? <ChevronUp size={14} className="sort-icon" /> : <ChevronDown size={14} className="sort-icon" />
-                                                        )}
-                                                    </div>
-                                                    <div
-                                                        onMouseDown={(e) => {
-                                                            e.stopPropagation()
-                                                            startResize(e, col.id, width)
-                                                        }}
-                                                        className={`resize-handle ${resizing?.id === `${activeTab}-${col.id}` ? 'resize-handle-active' : ''}`}
-                                                    >
-                                                        <div className={`resize-handle-indicator ${resizing?.id === `${activeTab}-${col.id}` ? 'resize-handle-indicator-active' : ''}`} />
-                                                    </div>
-                                                </th>
-                                            )
-                                        })}
-                                    </tr>
-                                </thead>
-                                <tbody className="table-body">
-                                    {sortedItems.map((item, idx) => (
-                                        <tr key={idx} className="table-row">
-                                            {columnDefinitions[activeTab].map(col => {
-                                                if (!visibleColumns[activeTab]?.includes(col.id)) return null
-                                                const width = getColumnWidth(col.id, col.minWidth)
-
-                                                // Column rendering switch
-                                                switch (col.id) {
-                                                    case 'namespace':
-                                                        return <td key={col.id} className="table-cell table-cell-namespace" style={{ width: `${width}px` }}>{item.metadata.namespace}</td>
-
-                                                    case 'name':
-                                                        return (
-                                                            <td key={col.id} className="table-cell table-cell-name" style={{ width: `${width}px` }} title={item.metadata.name}>
-                                                                <div className="table-cell-name-content">
-                                                                    {activeTab === 'pods' ? (
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                setSelectedPod({ name: item.metadata.name, ns: item.metadata.namespace })
-                                                                                setIsLogModalOpen(true)
-                                                                            }}
-                                                                            className="pod-name-button"
-                                                                        >
-                                                                            <span className="pod-name-text">{item.metadata.name}</span>
-                                                                            <Terminal size={14} className="pod-terminal-icon" />
-                                                                        </button>
-                                                                    ) : (
-                                                                        <span className="pod-name-text">{item.metadata.name}</span>
-                                                                    )}
-                                                                    <div className="row-actions">
-                                                                        <button
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation()
-                                                                                setDescribeTarget({ name: item.metadata.name, ns: item.metadata.namespace, type: activeTab })
-                                                                                setIsDescribeModalOpen(true)
-                                                                            }}
-                                                                            className="action-button action-button-describe"
-                                                                            title="Describe Resource"
-                                                                        >
-                                                                            <Eye size={14} />
-                                                                        </button>
-                                                                        <button
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation()
-                                                                                setYamlTarget({ name: item.metadata.name, ns: item.metadata.namespace, type: activeTab })
-                                                                                setIsYamlModalOpen(true)
-                                                                            }}
-                                                                            className="action-button action-button-yaml"
-                                                                            title="View YAML"
-                                                                        >
-                                                                            <FileCode size={14} />
-                                                                        </button>
-                                                                        {(activeTab === 'deployments' || activeTab === 'statefulsets') && (
-                                                                            <button
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation()
-                                                                                    handleRestart(item.metadata.name, item.metadata.namespace, activeTab)
-                                                                                }}
-                                                                                className="action-button action-button-restart"
-                                                                                title="Rollout Restart"
-                                                                            >
-                                                                                <RefreshCw size={14} />
-                                                                            </button>
-                                                                        )}
-                                                                        {activeTab === 'pods' && (
-                                                                            <button
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation()
-                                                                                    setSelectedPod({ name: item.metadata.name, ns: item.metadata.namespace })
-                                                                                    setIsLogModalOpen(true)
-                                                                                }}
-                                                                                className="action-button action-button-logs"
-                                                                                title="View Logs"
-                                                                            >
-                                                                                <Terminal size={14} />
-                                                                            </button>
-                                                                        )}
-                                                                        <button
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation()
-                                                                                handleDelete(item.metadata.name, item.metadata.namespace || '', activeTab)
-                                                                            }}
-                                                                            className="action-button action-button-delete"
-                                                                            title="Delete Resource"
-                                                                        >
-                                                                            <Trash2 size={14} />
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            </td>
-                                                        )
-
-                                                    case 'status':
-                                                        if (activeTab === 'pods') {
-                                                            return <td key={col.id} className="table-cell" style={{ width: `${width}px` }}>
-                                                                <span className={`status-badge ${item.status?.phase === 'Running' ? 'status-badge-running' : 'status-badge-other'}`}>
-                                                                    {item.status?.phase || 'Unknown'}
-                                                                </span>
-                                                            </td>
-                                                        }
-                                                        if (activeTab === 'persistentvolumeclaim') {
-                                                            return <td key={col.id} className="table-cell" style={{ width: `${width}px` }}>
-                                                                <span className={`status-badge ${item.status?.phase === 'Bound' ? 'status-badge-bound' : 'status-badge-other'}`}>
-                                                                    {item.status?.phase || 'Unknown'}
-                                                                </span>
-                                                            </td>
-                                                        }
-                                                        if (activeTab === 'nodes') {
-                                                            const ready = item.status?.conditions?.find((c: any) => c.type === 'Ready')?.status === 'True'
-                                                            return <td key={col.id} className="table-cell" style={{ width: `${width}px` }}>
-                                                                <span className={`status-badge ${ready ? 'status-badge-ready' : 'status-badge-not-ready'}`}>
-                                                                    {ready ? 'Ready' : 'NotReady'}
-                                                                </span>
-                                                            </td>
-                                                        }
-                                                        return null
-
-                                                    case 'restarts':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>
-                                                            {item.status?.containerStatuses?.reduce((acc: number, c: any) => acc + c.restartCount, 0) || 0}
-                                                        </td>
-
-                                                    case 'ready':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>
-                                                            {item.status?.readyReplicas || 0} / {item.status?.replicas || 0}
-                                                        </td>
-
-                                                    case 'updated':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.status?.updatedReplicas || 0}</td>
-
-                                                    case 'available':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.status?.availableReplicas || 0}</td>
-
-                                                    case 'age':
-                                                        return <td key={col.id} className="table-cell table-cell-text-muted" style={{ width: `${width}px` }}>
-                                                            {new Date(item.metadata.creationTimestamp).toLocaleString()}
-                                                        </td>
-
-                                                    case 'type':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.type || item.type || '-'}</td>
-
-                                                    case 'cluster-ip':
-                                                        return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.spec?.clusterIP || '-'}</td>
-
-                                                    case 'external-ip':
-                                                        if (activeTab === 'services') {
-                                                            return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.status?.loadBalancer?.ingress?.[0]?.ip || item.status?.loadBalancer?.ingress?.[0]?.hostname || '<none>'}</td>
-                                                        }
-                                                        if (activeTab === 'nodes') {
-                                                            return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.status?.addresses?.find((addr: any) => addr.type === 'ExternalIP')?.address || '<none>'}</td>
-                                                        }
-                                                        return null
-
-                                                    case 'ports':
-                                                        if (activeTab === 'services') {
-                                                            return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.ports?.map((p: any) => `${p.port}/${p.protocol}`).join(', ') || '<none>'}</td>
-                                                        }
-                                                        if (activeTab === 'ingress') {
-                                                            return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.tls ? '80, 443' : '80'}</td>
-                                                        }
-                                                        return null
-
-                                                    case 'ip':
-                                                        return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.status?.podIP || '<none>'}</td>
-
-                                                    case 'node':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.nodeName || '<none>'}</td>
-
-                                                    case 'nominated-node':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.status?.nominatedNodeName || '<none>'}</td>
-
-                                                    case 'readiness-gates':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.readinessGates?.map((g: any) => g.conditionType).join(', ') || '<none>'}</td>
-
-                                                    case 'containers':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{(item.spec?.template?.spec || item.spec)?.containers?.map((c: any) => c.name).join(', ') || '<none>'}</td>
-
-                                                    case 'images':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{(item.spec?.template?.spec || item.spec)?.containers?.map((c: any) => c.image).join(', ') || '<none>'}</td>
-
-                                                    case 'selector':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>
-                                                            {Object.entries(item.spec?.selector?.matchLabels || item.spec?.selector || {})
-                                                                .map(([k, v]) => `${k}=${v}`)
-                                                                .join(',') || '<none>'}
-                                                        </td>
-
-                                                    case 'reference':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.scaleTargetRef?.kind}/{item.spec?.scaleTargetRef?.name}</td>
-
-                                                    case 'targets':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>
-                                                            {item.status?.currentMetrics?.[0]?.resource?.current?.averageUtilization ??
-                                                                item.status?.currentCPUUtilizationPercentage ?? '0'}% / {
-                                                                item.spec?.metrics?.[0]?.resource?.target?.averageUtilization ??
-                                                                item.spec?.targetCPUUtilizationPercentage ?? '0'}%
-                                                        </td>
-
-                                                    case 'minpods':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.minReplicas || 0}</td>
-
-                                                    case 'maxpods':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.maxReplicas || 0}</td>
-
-                                                    case 'replicas':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.status?.currentReplicas || 0}</td>
-
-                                                    case 'volume':
-                                                        return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.spec?.volumeName || '<pending>'}</td>
-
-                                                    case 'capacity':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.status?.capacity?.storage || 'N/A'}</td>
-
-                                                    case 'access-modes':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.accessModes?.join(', ')}</td>
-
-                                                    case 'storageclass':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.storageClassName}</td>
-
-                                                    case 'vac':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.volumeAttributesClassName || '<none>'}</td>
-
-                                                    case 'volumemode':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.volumeMode || '<none>'}</td>
-
-                                                    case 'selected-node':
-                                                        return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.metadata?.annotations?.['volume.kubernetes.io/selected-node'] || '<none>'}</td>
-
-                                                    case 'class':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.ingressClassName || item.metadata?.annotations?.['kubernetes.io/ingress.class'] || '<none>'}</td>
-
-                                                    case 'hosts':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.spec?.rules?.map((r: any) => r.host).filter(Boolean).join(', ') || '*'}</td>
-
-                                                    case 'address':
-                                                        return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.status?.loadBalancer?.ingress?.map((i: any) => i.ip || i.hostname).filter(Boolean).join(', ') || '<pending>'}</td>
-
-                                                    case 'data':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{Object.keys(item.data || {}).length}</td>
-
-                                                    case 'roles':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>
-                                                            {Object.keys(item.metadata?.labels || {})
-                                                                .filter(l => l.startsWith('node-role.kubernetes.io/'))
-                                                                .map(l => l.split('/')[1])
-                                                                .join(', ') || '<none>'}
-                                                        </td>
-
-                                                    case 'version':
-                                                        return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.status?.nodeInfo?.kubeletVersion}</td>
-
-                                                    case 'internal-ip':
-                                                        return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.status?.addresses?.find((addr: any) => addr.type === 'InternalIP')?.address || '<none>'}</td>
-
-                                                    case 'os-image':
-                                                        return <td key={col.id} className="table-cell table-cell-text" style={{ width: `${width}px` }}>{item.status?.nodeInfo?.osImage}</td>
-
-                                                    case 'kernel-version':
-                                                        return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.status?.nodeInfo?.kernelVersion}</td>
-
-                                                    case 'container-runtime':
-                                                        return <td key={col.id} className="table-cell table-cell-text-mono" style={{ width: `${width}px` }}>{item.status?.nodeInfo?.containerRuntimeVersion}</td>
-
-                                                    default:
-                                                        return null
-                                                }
-                                            })}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                    <ResourceTable
+                        columns={COLUMN_DEFINITIONS[activeTab]}
+                        visibleColumns={visibleColumns[activeTab] || []}
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                        getColumnWidth={getColumnWidth}
+                        onResize={startResize}
+                        resizingId={resizing?.id.replace(`${activeTab}-`, '') || null}
+                    >
+                        {sortedItems.map((item, idx) => (
+                            <ResourceRow
+                                key={`${item.metadata.uid || idx}`}
+                                item={item}
+                                activeTab={activeTab}
+                                visibleColumns={visibleColumns[activeTab] || []}
+                                getColumnWidth={getColumnWidth}
+                                onDescribe={(item) => {
+                                    setDescribeTarget({ name: item.metadata.name, ns: item.metadata.namespace, type: activeTab })
+                                    setIsDescribeModalOpen(true)
+                                }}
+                                onYaml={(item) => {
+                                    setYamlTarget({ name: item.metadata.name, ns: item.metadata.namespace, type: activeTab })
+                                    setIsYamlModalOpen(true)
+                                }}
+                                onRestart={(item) => handleRestart(item.metadata.name, item.metadata.namespace, activeTab)}
+                                onLogs={(item) => {
+                                    setSelectedPod({ name: item.metadata.name, ns: item.metadata.namespace })
+                                    setIsLogModalOpen(true)
+                                }}
+                                onDelete={(item) => handleDelete(item.metadata.name, item.metadata.namespace || '', activeTab)}
+                            />
+                        ))}
+                    </ResourceTable>
                 ) : (
                     <div className="empty-state">
                         <Box size={48} className="empty-icon" />

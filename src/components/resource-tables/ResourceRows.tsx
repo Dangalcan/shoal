@@ -1,0 +1,232 @@
+import React from 'react'
+import { NameCell, StatusBadge, TextCell } from './ResourceCells'
+import { ResourceType, COLUMN_DEFINITIONS } from '../../lib/resource-definitions'
+
+interface ResourceRowProps {
+    item: any
+    activeTab: ResourceType
+    visibleColumns: string[]
+    getColumnWidth: (id: string, defWidth: number) => number
+    onDescribe: (item: any) => void
+    onYaml: (item: any) => void
+    onRestart?: (item: any) => void
+    onLogs?: (item: any) => void
+    onDelete: (item: any) => void
+}
+
+export const ResourceRow: React.FC<ResourceRowProps> = ({
+    item,
+    activeTab,
+    visibleColumns,
+    getColumnWidth,
+    onDescribe,
+    onYaml,
+    onRestart,
+    onLogs,
+    onDelete
+}) => {
+    const actions = {
+        onDescribe: () => onDescribe(item),
+        onYaml: () => onYaml(item),
+        onRestart: onRestart ? () => onRestart(item) : undefined,
+        onLogs: onLogs ? () => onLogs(item) : undefined,
+        onDelete: () => onDelete(item),
+        showRestart: activeTab === 'deployments' || activeTab === 'statefulsets' || activeTab === 'daemonsets',
+        showLogs: activeTab === 'pods'
+    }
+
+    const renderCell = (colId: string, minWidth: number) => {
+        if (!visibleColumns.includes(colId)) return null
+        const width = getColumnWidth(colId, minWidth)
+        const style = { width: `${width}px` }
+
+        switch (colId) {
+            case 'namespace':
+                return <td key={colId} className="table-cell table-cell-namespace" style={style}>{item.metadata.namespace}</td>
+            case 'name':
+                return (
+                    <NameCell
+                        key={colId}
+                        name={item.metadata.name}
+                        namespace={item.metadata.namespace}
+                        onLogClick={activeTab === 'pods' ? actions.onLogs : undefined}
+                        actions={actions}
+                        style={style}
+                    />
+                )
+            case 'status':
+                let statusVal = ''
+                let type: 'pods' | 'pvc' | 'nodes' | 'other' = 'other'
+                if (activeTab === 'pods') {
+                    statusVal = item.status?.phase || 'Unknown'
+                    type = 'pods'
+                } else if (activeTab === 'persistentvolumeclaim') {
+                    statusVal = item.status?.phase || 'Unknown'
+                    type = 'pvc'
+                } else if (activeTab === 'nodes') {
+                    const ready = item.status?.conditions?.find((c: any) => c.type === 'Ready')?.status === 'True'
+                    statusVal = ready ? 'Ready' : 'NotReady'
+                    type = 'nodes'
+                } else if (activeTab === 'jobs') {
+                    if (item.status?.succeeded >= 1) statusVal = 'Complete'
+                    else if (item.status?.failed >= 1) statusVal = 'Failed'
+                    else statusVal = 'Running'
+                }
+                return (
+                    <td key={colId} className="table-cell" style={style}>
+                        <StatusBadge status={statusVal} type={type} />
+                    </td>
+                )
+            case 'restarts':
+                const restarts = item.status?.containerStatuses?.reduce((acc: number, c: any) => acc + c.restartCount, 0) || 0
+                return <TextCell key={colId} content={String(restarts)} style={style} />
+            case 'ready':
+                let readyContent: string | number = 0
+                if (activeTab === 'replicasets') {
+                    readyContent = item.status?.readyReplicas || 0
+                } else if (activeTab === 'daemonsets') {
+                    readyContent = item.status?.numberReady || 0
+                } else {
+                    readyContent = `${item.status?.readyReplicas || 0} / ${item.status?.replicas || 0}`
+                }
+                return <TextCell key={colId} content={String(readyContent)} style={style} />
+            case 'completions':
+                return <TextCell key={colId} content={`${item.status?.succeeded || 0} / ${item.spec?.completions || 1}`} style={style} />
+            case 'duration':
+                let duration = '-'
+                if (item.status?.startTime) {
+                    const start = new Date(item.status.startTime).getTime()
+                    const end = item.status.completionTime ? new Date(item.status.completionTime).getTime() : Date.now()
+                    const seconds = Math.floor((end - start) / 1000)
+                    if (seconds < 60) duration = `${seconds}s`
+                    else if (seconds < 3600) duration = `${Math.floor(seconds / 60)}m${seconds % 60}s`
+                    else duration = `${Math.floor(seconds / 3600)}h${Math.floor((seconds % 3600) / 60)}m`
+                }
+                return <TextCell key={colId} content={duration} style={style} />
+            case 'updated':
+                const updatedVal = activeTab === 'daemonsets' ? item.status?.updatedNumberScheduled : item.status?.updatedReplicas
+                return <TextCell key={colId} content={String(updatedVal || 0)} style={style} />
+            case 'available':
+                const availableVal = activeTab === 'daemonsets' ? item.status?.numberAvailable : item.status?.availableReplicas
+                return <TextCell key={colId} content={String(availableVal || 0)} style={style} />
+            case 'age':
+                return <TextCell key={colId} variant="muted" content={new Date(item.metadata.creationTimestamp).toLocaleString()} style={style} />
+            case 'type':
+                return <TextCell key={colId} content={item.spec?.type || item.type || '-'} style={style} />
+            case 'cluster-ip':
+                return <TextCell key={colId} variant="mono" content={item.spec?.clusterIP || '-'} style={style} />
+            case 'external-ip':
+                let extIp = '<none>'
+                if (activeTab === 'services') {
+                    extIp = item.status?.loadBalancer?.ingress?.[0]?.ip || item.status?.loadBalancer?.ingress?.[0]?.hostname || '<none>'
+                } else if (activeTab === 'nodes') {
+                    extIp = item.status?.addresses?.find((addr: any) => addr.type === 'ExternalIP')?.address || '<none>'
+                }
+                return <TextCell key={colId} variant="mono" content={extIp} style={style} />
+            case 'ports':
+                let ports = '<none>'
+                if (activeTab === 'services') {
+                    ports = item.spec?.ports?.map((p: any) => `${p.port}/${p.protocol}`).join(', ') || '<none>'
+                } else if (activeTab === 'ingress') {
+                    ports = item.spec?.tls ? '80, 443' : '80'
+                }
+                return <TextCell key={colId} content={ports} style={style} />
+            case 'schedule':
+                return <TextCell key={colId} variant="mono" content={item.spec?.schedule || '-'} style={style} />
+            case 'suspend':
+                return <TextCell key={colId} content={String(item.spec?.suspend ?? false)} style={style} />
+            case 'active':
+                return <TextCell key={colId} content={String(item.status?.active?.length || 0)} style={style} />
+            case 'last-schedule':
+                let lastSchedule = '<none>'
+                if (item.status?.lastScheduleTime) {
+                    lastSchedule = new Date(item.status.lastScheduleTime).toLocaleString()
+                }
+                return <TextCell key={colId} content={lastSchedule} style={style} />
+            case 'ip':
+                return <TextCell key={colId} variant="mono" content={item.status?.podIP || '<none>'} style={style} />
+            case 'node':
+                return <TextCell key={colId} content={item.spec?.nodeName || '<none>'} style={style} />
+            case 'nominated-node':
+                return <TextCell key={colId} content={item.status?.nominatedNodeName || '<none>'} style={style} />
+            case 'readiness-gates':
+                return <TextCell key={colId} content={item.spec?.readinessGates?.map((g: any) => g.conditionType).join(', ') || '<none>'} style={style} />
+            case 'containers':
+                return <TextCell key={colId} content={(item.spec?.template?.spec || item.spec)?.containers?.map((c: any) => c.name).join(', ') || '<none>'} style={style} />
+            case 'images':
+                return <TextCell key={colId} content={(item.spec?.template?.spec || item.spec)?.containers?.map((c: any) => c.image).join(', ') || '<none>'} style={style} />
+            case 'selector':
+                const labels = item.spec?.selector?.matchLabels || item.spec?.selector || {}
+                const selectorContent = Object.entries(labels).map(([k, v]) => `${k}=${v}`).join(',') || '<none>'
+                return <TextCell key={colId} content={selectorContent} style={style} />
+            case 'node-selector':
+                const nodeSelector = item.spec?.template?.spec?.nodeSelector || {}
+                const nsContent = Object.entries(nodeSelector).map(([k, v]) => `${k}=${v}`).join(',') || '<none>'
+                return <TextCell key={colId} content={nsContent} style={style} />
+            case 'reference':
+                return <TextCell key={colId} content={`${item.spec?.scaleTargetRef?.kind}/${item.spec?.scaleTargetRef?.name}`} style={style} />
+            case 'targets':
+                const currentVal = item.status?.currentMetrics?.[0]?.resource?.current?.averageUtilization ?? item.status?.currentCPUUtilizationPercentage ?? '0'
+                const targetVal = item.spec?.metrics?.[0]?.resource?.target?.averageUtilization ?? item.spec?.targetCPUUtilizationPercentage ?? '0'
+                return <TextCell key={colId} content={`${currentVal}% / ${targetVal}%`} style={style} />
+            case 'minpods':
+                return <TextCell key={colId} content={String(item.spec?.minReplicas || 0)} style={style} />
+            case 'maxpods':
+                return <TextCell key={colId} content={String(item.spec?.maxReplicas || 0)} style={style} />
+            case 'desired':
+                const desiredVal = activeTab === 'daemonsets' ? item.status?.desiredNumberScheduled : item.spec?.replicas
+                return <TextCell key={colId} content={String(desiredVal || 0)} style={style} />
+            case 'current':
+                const currentReplicaVal = activeTab === 'daemonsets' ? item.status?.currentNumberScheduled : item.status?.replicas
+                return <TextCell key={colId} content={String(currentReplicaVal || 0)} style={style} />
+            case 'replicas':
+                return <TextCell key={colId} content={String(item.status?.currentReplicas || 0)} style={style} />
+            case 'volume':
+                return <TextCell key={colId} variant="mono" content={item.spec?.volumeName || '<pending>'} style={style} />
+            case 'capacity':
+                return <TextCell key={colId} content={item.status?.capacity?.storage || 'N/A'} style={style} />
+            case 'access-modes':
+                return <TextCell key={colId} content={item.spec?.accessModes?.join(', ')} style={style} />
+            case 'storageclass':
+                return <TextCell key={colId} content={item.spec?.storageClassName} style={style} />
+            case 'vac':
+                return <TextCell key={colId} content={item.spec?.volumeAttributesClassName || '<none>'} style={style} />
+            case 'volumemode':
+                return <TextCell key={colId} content={item.spec?.volumeMode || '<none>'} style={style} />
+            case 'selected-node':
+                return <TextCell key={colId} variant="mono" content={item.metadata?.annotations?.['volume.kubernetes.io/selected-node'] || '<none>'} style={style} />
+            case 'class':
+                return <TextCell key={colId} content={item.spec?.ingressClassName || item.metadata?.annotations?.['kubernetes.io/ingress.class'] || '<none>'} style={style} />
+            case 'hosts':
+                return <TextCell key={colId} content={item.spec?.rules?.map((r: any) => r.host).filter(Boolean).join(', ') || '*'} style={style} />
+            case 'address':
+                return <TextCell key={colId} variant="mono" content={item.status?.loadBalancer?.ingress?.map((i: any) => i.ip || i.hostname).filter(Boolean).join(', ') || '<pending>'} style={style} />
+            case 'data':
+                return <TextCell key={colId} content={String(Object.keys(item.data || {}).length)} style={style} />
+            case 'roles':
+                const roles = Object.keys(item.metadata?.labels || {}).filter(l => l.startsWith('node-role.kubernetes.io/')).map(l => l.split('/')[1]).join(', ') || '<none>'
+                return <TextCell key={colId} content={roles} style={style} />
+            case 'version':
+                return <TextCell key={colId} variant="mono" content={item.status?.nodeInfo?.kubeletVersion} style={style} />
+            case 'internal-ip':
+                return <TextCell key={colId} variant="mono" content={item.status?.addresses?.find((addr: any) => addr.type === 'InternalIP')?.address || '<none>'} style={style} />
+            case 'os-image':
+                return <TextCell key={colId} content={item.status?.nodeInfo?.osImage} style={style} />
+            case 'kernel-version':
+                return <TextCell key={colId} variant="mono" content={item.status?.nodeInfo?.kernelVersion} style={style} />
+            case 'container-runtime':
+                return <TextCell key={colId} variant="mono" content={item.status?.nodeInfo?.containerRuntimeVersion} style={style} />
+            default:
+                return null
+        }
+    }
+
+    const currentDefs = COLUMN_DEFINITIONS[activeTab]
+
+    return (
+        <tr className="table-row">
+            {currentDefs.map(col => renderCell(col.id, col.minWidth))}
+        </tr>
+    )
+}
+
