@@ -1,6 +1,7 @@
 import React from 'react'
 import { NameCell, StatusBadge, TextCell } from './ResourceCells'
 import { ResourceType, COLUMN_DEFINITIONS } from '../../lib/resource-definitions'
+import '../../../styles/components/resource-tables/ResourceRows.css'
 
 interface ResourceRowProps {
     item: any

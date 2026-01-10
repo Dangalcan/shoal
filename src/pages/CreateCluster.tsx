@@ -1,6 +1,6 @@
 import { useState, FormEvent } from 'react'
 import { Server } from 'lucide-react'
-import './CreateCluster.css'
+import '../../styles/pages/CreateCluster.css'
 
 export function CreateCluster() {
     const [name, setName] = useState('')

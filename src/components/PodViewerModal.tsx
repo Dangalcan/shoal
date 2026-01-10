@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { X, Box, Loader2, AlertCircle } from 'lucide-react'
-import './PodViewerModal.css'
+import '../../styles/components/PodViewerModal.css'
 
 interface PodViewerModalProps {
     isOpen: boolean

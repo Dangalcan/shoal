@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { X, RefreshCw, Loader2, AlertCircle, Terminal } from 'lucide-react'
-import './LogViewerModal.css'
+import '../../styles/components/LogViewerModal.css'
 
 interface LogViewerModalProps {
     isOpen: boolean

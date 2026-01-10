@@ -1,0 +1,150 @@
+/* ResourceCells.css - Cell styling, status badges, and action buttons */
+
+/* Table Cells */
+.table-cell {
+  padding: 1rem 1.5rem;
+  font-size: 0.875rem;
+}
+
+.table-cell-namespace {
+  font-family: ui-monospace, monospace;
+  color: rgb(100 116 139);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-cell-name {
+  font-weight: 700;
+  color: rgb(15 23 42);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-cell-name-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pod-name-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: colors 150ms;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.pod-name-button:hover {
+  color: rgb(37 99 235);
+}
+
+.pod-name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pod-terminal-icon {
+  flex-shrink: 0;
+  opacity: 0;
+  color: rgb(96 165 250);
+  transition: opacity 150ms;
+}
+
+.pod-name-button:hover .pod-terminal-icon {
+  opacity: 1;
+}
+
+/* Action Buttons */
+.action-button {
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  color: rgb(148 163 184);
+  transition: colors 150ms;
+}
+
+.action-button:hover {
+  background-color: rgb(241 245 249);
+}
+
+.action-button-describe:hover {
+  color: rgb(59 130 246);
+}
+
+.action-button-yaml:hover {
+  color: rgb(147 51 234);
+}
+
+.action-button-restart:hover {
+  color: rgb(34 197 94);
+}
+
+.action-button-logs:hover {
+  color: rgb(59 130 246);
+}
+
+.action-button-delete:hover {
+  color: rgb(239 68 68);
+}
+
+/* Status Badges */
+.status-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.status-badge-running {
+  background-color: rgb(220 252 231);
+  color: rgb(21 128 61);
+}
+
+.status-badge-other {
+  background-color: rgb(254 243 199);
+  color: rgb(180 83 9);
+}
+
+.status-badge-bound {
+  background-color: rgb(220 252 231);
+  color: rgb(21 128 61);
+}
+
+.status-badge-ready {
+  background-color: rgb(220 252 231);
+  color: rgb(21 128 61);
+}
+
+.status-badge-not-ready {
+  background-color: rgb(254 226 226);
+  color: rgb(185 28 28);
+}
+
+/* Text Cell Variants */
+.table-cell-text {
+  color: rgb(71 85 105);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-cell-text-mono {
+  font-family: ui-monospace, monospace;
+  color: rgb(100 116 139);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-cell-text-muted {
+  color: rgb(148 163 184);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Server, Trash2, RefreshCw, Loader2, AlertCircle, Eye } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
 import { PodViewerModal } from '../components/PodViewerModal'
-import './Clusters.css'
+import '../../styles/pages/Clusters.css'
 
 export function Clusters() {
     const navigate = useNavigate()

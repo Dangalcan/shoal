@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { X, Copy, Check, Loader2, FileText } from 'lucide-react'
-import './DescribeModal.css'
+import '../../styles/components/DescribeModal.css'
 
 interface DescribeModalProps {
     isOpen: boolean

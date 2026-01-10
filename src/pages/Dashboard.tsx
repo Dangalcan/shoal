@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Server, Box, Plus, CheckCircle, AlertCircle, RefreshCw, Eye } from 'lucide-react'
 import { PodViewerModal } from '../components/PodViewerModal'
-import './Dashboard.css'
+import '../../styles/pages/Dashboard.css'
 
 function StatCard({ label, value, icon: Icon, color, status }: any) {
     const colorMap: any = {

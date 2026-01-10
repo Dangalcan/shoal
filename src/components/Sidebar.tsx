@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, Server, Settings } from 'lucide-react'
 import { cn } from '../lib/utils'
-import './Sidebar.css'
+import '../../styles/components/Sidebar.css'
 
 export function Sidebar() {
     const links = [

@@ -1,0 +1,26 @@
+/* ResourceRows.css - Row styling and hover effects */
+
+.table-body {
+  border-top: 1px solid rgb(241 245 249);
+}
+
+.table-row {
+  transition: colors 150ms;
+  border-bottom: 1px solid rgb(241 245 249);
+}
+
+.table-row:hover {
+  background-color: rgb(248 250 252);
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: all 150ms;
+}
+
+.table-row:hover .row-actions {
+  opacity: 1;
+}

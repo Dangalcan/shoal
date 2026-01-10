@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { X, Copy, Check, Loader2, Code } from 'lucide-react'
-import './YamlModal.css'
+import '../../styles/components/YamlModal.css'
 
 interface YamlModalProps {
     isOpen: boolean

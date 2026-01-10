@@ -1,5 +1,6 @@
 import React from 'react'
 import { ChevronUp, ChevronDown } from 'lucide-react'
+import '../../../styles/components/resource-tables/ResourceTable.css'
 
 export interface ColumnDef {
     id: string

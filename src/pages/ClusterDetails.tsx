@@ -8,7 +8,7 @@ import { YamlModal } from '../components/YamlModal'
 import { ResourceTable } from '../components/resource-tables/ResourceTable'
 import { ResourceRow } from '../components/resource-tables/ResourceRows'
 import { ResourceType, ALL_TABS, COLUMN_DEFINITIONS } from '../lib/resource-definitions'
-import './ClusterDetails.css'
+import '../../styles/pages/ClusterDetails.css'
 
 export function ClusterDetails() {
     const { name } = useParams<{ name: string }>()
