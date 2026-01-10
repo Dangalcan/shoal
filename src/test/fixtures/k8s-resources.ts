@@ -566,3 +566,15 @@ export const mockCSRs: any[] = [
     status: { conditions: [{ type: 'Approved' }] },
   },
 ];
+
+export const mockPod = mockPods[0];
+export const mockDeployment = mockDeployments[0];
+export const mockService = mockServices[0];
+export const mockNode = mockNodes[0];
+export const mockSecret = mockSecrets[0];
+export const mockConfigMap = mockConfigMaps[0];
+export const mockStatefulSet = mockStatefulSets[0];
+export const mockDaemonSet = mockDaemonSets[0];
+export const mockJob = mockJobs[0];
+export const mockCronJob = mockCronJobs[0];
+export const mockHpa = mockHPA[0];

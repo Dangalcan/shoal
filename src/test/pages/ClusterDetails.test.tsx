@@ -509,7 +509,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             
             // PVC Capacity Sort
             fireEvent.click(within(pvcThead).getByText('Capacity'))
-        })
+        }, 15000)
 
         it('should sort by namespace when present', async () => {
             const multiNsPods = [

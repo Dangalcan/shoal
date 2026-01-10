@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import { DescribeModal } from '../../components/modals/DescribeModal'
-import { mockElectronAPI } from '../setup'
+import { YamlModal } from '../../../components/modals/YamlModal'
+import { mockElectronAPI } from '../../setup'
 
 // Mock clipboard
 const writeTextMock = vi.fn()
@@ -11,7 +11,7 @@ Object.assign(navigator, {
     },
 })
 
-describe('DescribeModal', () => {
+describe('YamlModal', () => {
     const defaultProps = {
         isOpen: true,
         onClose: vi.fn(),
@@ -23,62 +23,62 @@ describe('DescribeModal', () => {
 
     beforeEach(() => {
         vi.clearAllMocks()
-        mockElectronAPI.describeResource.mockResolvedValue({
+        mockElectronAPI.getResourceYaml.mockResolvedValue({
             success: true,
-            output: 'Test output content',
+            yaml: 'apiVersion: v1\nkind: Pod',
         })
     })
 
     it('should not render when closed', () => {
-        const { container } = render(<DescribeModal {...defaultProps} isOpen={false} />)
+        const { container } = render(<YamlModal {...defaultProps} isOpen={false} />)
         expect(container.firstChild).toBeNull()
     })
 
     it('should render and fetch data when open', async () => {
-        render(<DescribeModal {...defaultProps} />)
+        render(<YamlModal {...defaultProps} />)
 
-        expect(screen.getByText(/Describe Pod/i)).toBeInTheDocument()
+        expect(screen.getByText(/Resource YAML/i)).toBeInTheDocument()
         expect(screen.getByText('default / test-pod')).toBeInTheDocument()
         
         await waitFor(() => {
-            expect(mockElectronAPI.describeResource).toHaveBeenCalledWith({
+            expect(mockElectronAPI.getResourceYaml).toHaveBeenCalledWith({
                 contextName: 'test-cluster',
                 resourceType: 'pod',
                 resourceName: 'test-pod',
                 namespace: 'default'
             })
-            expect(screen.getByText('Test output content')).toBeInTheDocument()
+            expect(screen.getByText(/apiVersion: v1/)).toBeInTheDocument()
         })
     })
 
     it('should handle API success', async () => {
-        render(<DescribeModal {...defaultProps} />)
+        render(<YamlModal {...defaultProps} />)
         
         await waitFor(() => {
-            const preElement = screen.getByText('Test output content')
+            const preElement = screen.getByText(/apiVersion: v1/)
             expect(preElement).toBeInTheDocument()
             expect(screen.queryByText(/Error/i)).not.toBeInTheDocument()
         })
     })
 
     it('should handle API failure (success: false)', async () => {
-        mockElectronAPI.describeResource.mockResolvedValue({
+        mockElectronAPI.getResourceYaml.mockResolvedValue({
             success: false,
-            error: 'Custom API Error'
+            error: 'Failed to fetch YAML'
         })
 
-        render(<DescribeModal {...defaultProps} />)
+        render(<YamlModal {...defaultProps} />)
 
         await waitFor(() => {
             expect(screen.getByText('Error')).toBeInTheDocument()
-            expect(screen.getByText('Custom API Error')).toBeInTheDocument()
+            expect(screen.getByText('Failed to fetch YAML')).toBeInTheDocument()
         })
     })
 
     it('should handle API exception (catch block)', async () => {
-        mockElectronAPI.describeResource.mockRejectedValue(new Error('Network failure'))
+        mockElectronAPI.getResourceYaml.mockRejectedValue(new Error('Network failure'))
 
-        render(<DescribeModal {...defaultProps} />)
+        render(<YamlModal {...defaultProps} />)
 
         await waitFor(() => {
             expect(screen.getByText('Error')).toBeInTheDocument()
@@ -88,11 +88,11 @@ describe('DescribeModal', () => {
 
     it('should show loading state', async () => {
         // Delay resolution
-        mockElectronAPI.describeResource.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve({ success: true, output: 'done' }), 100)))
+        mockElectronAPI.getResourceYaml.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve({ success: true, yaml: 'done' }), 100)))
 
-        render(<DescribeModal {...defaultProps} />)
+        render(<YamlModal {...defaultProps} />)
         
-        expect(screen.getByText(/Describing test-pod.../i)).toBeInTheDocument()
+        expect(screen.getByText(/Fetching YAML for test-pod.../i)).toBeInTheDocument()
         
         await waitFor(() => {
             expect(screen.getByText('done')).toBeInTheDocument()
@@ -100,14 +100,14 @@ describe('DescribeModal', () => {
     })
 
     it('should handle copy to clipboard', async () => {
-        render(<DescribeModal {...defaultProps} />)
+        render(<YamlModal {...defaultProps} />)
         
-        await waitFor(() => expect(screen.getByText('Test output content')).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByText(/apiVersion: v1/)).toBeInTheDocument())
 
         const copyBtn = screen.getByText('Copy').closest('button')!
         fireEvent.click(copyBtn)
 
-        expect(writeTextMock).toHaveBeenCalledWith('Test output content')
+        expect(writeTextMock).toHaveBeenCalledWith('apiVersion: v1\nkind: Pod')
         expect(screen.getByText('Copied!')).toBeInTheDocument()
         
         // Wait for it to revert
@@ -117,10 +117,10 @@ describe('DescribeModal', () => {
     })
 
     it('should handle close via header button', async () => {
-        render(<DescribeModal {...defaultProps} />)
+        render(<YamlModal {...defaultProps} />)
         
         // Footer close button has text "Close"
-        const closeBtn = screen.getByText('Close') 
+        const closeBtn = screen.getByText('Close')
         fireEvent.click(closeBtn)
         expect(defaultProps.onClose).toHaveBeenCalled()
     })
