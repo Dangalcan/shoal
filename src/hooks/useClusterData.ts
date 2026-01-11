@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { K8sResource } from '../types/k8s-types';
 import type { ResourceType } from '../lib/resource-definitions';
+import { handleError } from '../lib/error-handler';
 
 interface UseClusterDataResult {
   items: K8sResource[];
@@ -48,13 +49,19 @@ export function useClusterData(
       if (result.success && result.items) {
         setItems(result.items);
       } else {
-        setError(result.error || 'Failed to fetch resources');
+        const errorMsg = result.error || 'Failed to fetch resources';
+        setError(errorMsg);
         setItems([]);
+        if (requestId === requestCounter.current) {
+          handleError(errorMsg, 'Resource Fetch Error');
+        }
       }
-    } catch (err: any) {
+    } catch (err) {
       if (requestId !== requestCounter.current) return;
-      setError(err.message || 'An error occurred');
+      const errorMsg = err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMsg);
       setItems([]);
+      handleError(err, 'Resource Fetch Error');
     } finally {
       if (requestId === requestCounter.current) {
         setLoading(false);

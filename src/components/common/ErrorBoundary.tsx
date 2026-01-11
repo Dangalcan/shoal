@@ -11,16 +11,18 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  isReloading: boolean;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
     error: null,
+    isReloading: false,
   };
 
   public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { hasError: true, error, isReloading: false };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -28,8 +30,11 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleReset = () => {
-    this.setState({ hasError: false, error: null });
-    window.location.reload();
+    this.setState({ isReloading: true });
+    // Give a tiny bit of time for the animation to start before the hard reload
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   };
 
   private handleGoHome = () => {
@@ -55,6 +60,7 @@ export class ErrorBoundary extends Component<Props, State> {
               <Button 
                 variant="primary" 
                 onClick={this.handleReset}
+                loading={this.state.isReloading}
                 icon={<RefreshCcw size={18} />}
               >
                 Reload Application

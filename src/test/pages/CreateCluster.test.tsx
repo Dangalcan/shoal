@@ -50,7 +50,7 @@ describe('CreateCluster Page', () => {
 
     it('should handle form submission', async () => {
         const user = userEvent.setup()
-        const consoleSpy = vi.spyOn(console, 'log')
+        mockElectronAPI.createCluster.mockResolvedValue({ success: true })
 
         render(<CreateCluster />)
 
@@ -60,9 +60,10 @@ describe('CreateCluster Page', () => {
         const submitButton = screen.getByRole('button', { name: /create cluster/i })
         await user.click(submitButton)
 
-        expect(consoleSpy).toHaveBeenCalledWith('Creating cluster:', {
-            name: 'my-new-cluster',
-            provider: 'kind',
+        expect(mockElectronAPI.createCluster).toHaveBeenCalledWith('my-new-cluster', 'kind')
+        
+        await waitFor(() => {
+            expect(input).toHaveValue('')
         })
     })
 

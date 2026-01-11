@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { electronService } from '../services/electronService';
+import { handleError } from '../lib/error-handler';
 
 export interface ClusterDeleteResult {
   success: boolean;
@@ -17,9 +18,8 @@ export function useClusters() {
     try {
       const list = await electronService.getClusters();
       setClusters(list);
-    } catch (error) {
-      console.error('Error fetching clusters:', error);
-      toast.error('Failed to load clusters.');
+    } catch (err) {
+      handleError(err, 'Failed to fetch clusters');
     } finally {
       setLoading(false);
     }
@@ -44,7 +44,7 @@ export function useClusters() {
         }
       } catch (err) {
         const errorMessage = 'An unexpected error occurred.';
-        console.error(errorMessage, err);
+        handleError(err, errorMessage);
         toast.error(errorMessage, { id: toastId });
         return { success: false, error: errorMessage };
       } finally {

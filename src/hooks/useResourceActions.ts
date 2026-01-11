@@ -1,5 +1,6 @@
 import { toast } from 'sonner';
 import { useCallback } from 'react';
+import { handleError } from '../lib/error-handler';
 
 interface UseResourceActionsResult {
   handleRestart: (resName: string, ns: string, type: string) => Promise<void>;
@@ -32,7 +33,7 @@ export function useResourceActions(
         await promise;
         onActionComplete();
       } catch (err) {
-        console.error('Restart failed:', err);
+        handleError(err, 'Restart failed');
       }
     },
     [contextName, onActionComplete]
@@ -67,7 +68,7 @@ export function useResourceActions(
           onActionComplete();
         }
       } catch (err) {
-        console.error('Delete failed:', err);
+        handleError(err, 'Delete failed');
       }
     },
     [contextName, onActionComplete]

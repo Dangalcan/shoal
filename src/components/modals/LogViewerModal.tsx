@@ -3,6 +3,7 @@ import { RefreshCw, Loader2, AlertCircle, Terminal, Search, X, Check } from 'luc
 import { BaseModal } from './BaseModal'
 import { Button } from '../ui/Button'
 import { cn } from '../../lib/utils'
+import { handleError } from '../../lib/error-handler'
 
 interface LogViewerModalProps {
     isOpen: boolean
@@ -36,10 +37,13 @@ export function LogViewerModal({ isOpen, onClose, clusterName, podName, namespac
             if (result.success) {
                 setLogs(result.logs || 'No logs found.')
             } else {
-                setError(result.error || 'Failed to fetch logs')
+                const errorMessage = result.error || 'Failed to fetch logs'
+                setError(errorMessage)
+                handleError(new Error(errorMessage), 'Log Fetch Failed')
             }
         } catch (err: any) {
             setError(err.message || 'An unexpected error occurred')
+            handleError(err, 'Log Streaming Error')
         } finally {
             if (!isAuto) setLoading(false)
         }
@@ -115,7 +119,7 @@ export function LogViewerModal({ isOpen, onClose, clusterName, podName, namespac
     const footerContent = (
         <>
             <p className="modal-footer-info modal-footer-info-accent">
-                End of stream (tail: 200)
+                End of stream (tail: {tailLines})
             </p>
             <button onClick={onClose} className="close-footer-button">
                 Close Viewer

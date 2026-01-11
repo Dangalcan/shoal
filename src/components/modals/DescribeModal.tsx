@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { Copy, Check, Loader2, FileText } from 'lucide-react'
 import { BaseModal } from './BaseModal'
+import { handleError } from '../../lib/error-handler'
 
 interface DescribeModalProps {
     isOpen: boolean
@@ -37,10 +38,13 @@ export function DescribeModal({ isOpen, onClose, clusterName, resourceName, reso
             if (result.success) {
                 setOutput(result.output || '')
             } else {
-                setError(result.error || 'Failed to fetch describe output')
+                const errorMessage = result.error || 'Failed to fetch describe output'
+                setError(errorMessage)
+                handleError(new Error(errorMessage), 'Describe Failed')
             }
         } catch (err: any) {
             setError(err.message || 'An error occurred')
+            handleError(err, 'Describe Operation Error')
         } finally {
             setLoading(false)
         }

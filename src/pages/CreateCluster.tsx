@@ -1,14 +1,41 @@
 import { useState, FormEvent } from 'react'
 import { Server } from 'lucide-react'
+import { toast } from 'sonner'
+import { handleError } from '../lib/error-handler'
 import '../../styles/pages/CreateCluster.css'
 
 export function CreateCluster() {
     const [name, setName] = useState('')
     const [provider, setProvider] = useState('kind')
 
-    const handleCreate = (e: FormEvent) => {
+    const [isCreating, setIsCreating] = useState(false)
+
+    const handleCreate = async (e: FormEvent) => {
         e.preventDefault()
-        console.log('Creating cluster:', { name, provider })
+        if (!name) return
+
+        setIsCreating(true)
+        const promise = window.electron.createCluster(name, provider)
+
+        toast.promise(promise, {
+            loading: `Creating cluster "${name}"...`,
+            success: `Cluster "${name}" created successfully!`,
+            error: (err) => `Failed to create cluster: ${err.message || 'Unknown error'}`
+        })
+
+        try {
+            const result = await promise
+            if (result.success) {
+                // Navigate or reset
+                setName('')
+            } else {
+                handleError(new Error(result.error), 'Cluster Creation Failed')
+            }
+        } catch (err) {
+            handleError(err, 'Cluster Creation Error')
+        } finally {
+            setIsCreating(false)
+        }
     }
 
     return (
@@ -50,8 +77,12 @@ export function CreateCluster() {
 
                 <div className="form-actions">
                     <button type="button" className="cancel-button">Cancel</button>
-                    <button type="submit" className="submit-button">
-                        Create Cluster
+                    <button 
+                        type="submit" 
+                        className="submit-button"
+                        disabled={isCreating}
+                    >
+                        {isCreating ? 'Creating...' : 'Create Cluster'}
                     </button>
                 </div>
             </form>

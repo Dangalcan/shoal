@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { handleError } from '../lib/error-handler';
 
 interface UseNamespacesResult {
   namespaces: string[];
@@ -21,15 +22,19 @@ export function useNamespaces(
 
     try {
       setLoading(true);
+      setError(null);
       const result = await window.electron.getNamespaces(contextName);
 
       if (result.success && result.namespaces) {
         setNamespaces(['all', ...result.namespaces]);
       } else {
-        setError(result.error || 'Failed to fetch namespaces');
+        const errorMsg = result.error || 'Failed to fetch namespaces';
+        setError(errorMsg);
+        handleError(errorMsg, 'Namespaces Error');
       }
     } catch (err: any) {
       setError(err.message);
+      handleError(err, 'Namespaces Error');
     } finally {
       setLoading(false);
     }

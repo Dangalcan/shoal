@@ -44,12 +44,15 @@ describe('ErrorBoundary', () => {
   });
 
   it('calls window.location.reload when reload button is clicked', () => {
+    vi.useFakeTimers();
     render(
       <ErrorBoundary>
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>
     );
     fireEvent.click(screen.getByText('Reload Application'));
+    vi.runAllTimers();
     expect(window.location.reload).toHaveBeenCalled();
+    vi.useRealTimers();
   });
 });

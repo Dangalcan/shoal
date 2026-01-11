@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { Copy, Check, Loader2, Code } from 'lucide-react'
 import { BaseModal } from './BaseModal'
+import { handleError } from '../../lib/error-handler'
 
 interface YamlModalProps {
     isOpen: boolean
@@ -37,10 +38,13 @@ export function YamlModal({ isOpen, onClose, clusterName, resourceName, resource
             if (result.success) {
                 setYaml(result.yaml || '')
             } else {
-                setError(result.error || 'Failed to fetch YAML output')
+                const errorMessage = result.error || 'Failed to fetch YAML output'
+                setError(errorMessage)
+                handleError(new Error(errorMessage), 'YAML Fetch Failed')
             }
         } catch (err: any) {
             setError(err.message || 'An error occurred')
+            handleError(err, 'YAML Fetch Error')
         } finally {
             setLoading(false)
         }
