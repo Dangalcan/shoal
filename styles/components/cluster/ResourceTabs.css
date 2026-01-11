@@ -1,15 +1,15 @@
+/* ResourceTabs.css */
 .tabs-container {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   overflow-x: auto;
-  padding-bottom: 0.5rem;
+  padding: 0.25rem 0;
+  scrollbar-width: none; /* Hide scrollbar for tabs */
 }
 
-@media (min-width: 768px) {
-  .tabs-container {
-    padding-bottom: 0;
-  }
+.tabs-container::-webkit-scrollbar {
+  display: none;
 }
 
 .tab-button {
@@ -17,26 +17,27 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
+  border-radius: 0.625rem;
   font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 150ms;
+  font-weight: 600;
+  transition: all 200ms;
   white-space: nowrap;
 }
 
 .tab-button-active {
   background-color: rgb(37 99 235);
   color: white;
-  box-shadow: 0 4px 6px -1px rgb(37 99 235 / 0.2);
+  box-shadow: 0 4px 12px -2px rgb(37 99 235 / 0.3);
 }
 
 .tab-button-inactive {
-  background-color: white;
-  color: rgb(71 85 105);
-  border: 1px solid rgb(226 232 240);
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
 }
 
 .tab-button-inactive:hover {
-  border-color: rgb(147 197 253);
-  color: rgb(37 99 235);
+  background-color: var(--bg-secondary);
+  border-color: var(--text-muted);
+  color: var(--text-primary);
 }

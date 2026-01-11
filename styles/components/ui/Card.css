@@ -1,20 +1,23 @@
+/* Card.css */
 .ui-card {
-  background-color: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  border: 1px solid rgb(241 245 249);
+  background-color: var(--card-bg);
+  border-radius: 1rem;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-color);
   padding: 1.5rem;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .ui-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .ui-card-title {
   font-size: 1.125rem;
-  font-weight: 600;
-  color: rgb(15 23 42);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
 }

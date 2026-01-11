@@ -3,21 +3,30 @@
 :root {
   --bg-primary: rgb(255 255 255);
   --bg-secondary: rgb(248 250 252);
+  --bg-tertiary: rgb(241 245 249);
   --text-primary: rgb(15 23 42);
-  --text-secondary: rgb(100 116 139);
-  --border-color: rgb(241 245 249);
+  --text-secondary: rgb(71 85 105);
+  --text-muted: rgb(148 163 184);
+  --border-color: rgb(226 232 240);
   --card-bg: white;
-  --card-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
 [data-theme='dark'] {
   --bg-primary: rgb(15 23 42);
   --bg-secondary: rgb(30 41 59);
+  --bg-tertiary: rgb(15 23 42 / 0.5);
   --text-primary: rgb(241 245 249);
   --text-secondary: rgb(148 163 184);
+  --text-muted: rgb(100 116 139);
   --border-color: rgb(51 65 85);
   --card-bg: rgb(30 41 59);
-  --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --card-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
 }
 
 html,

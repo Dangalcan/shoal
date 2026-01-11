@@ -10,13 +10,13 @@
 
 .ui-spinner-icon {
   animation: ui-spin 1s linear infinite;
-  color: rgb(37 99 235);
+  color: rgb(59 130 246);
 }
 
 .ui-spinner-label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: rgb(100 116 139);
+  color: var(--text-secondary);
 }
 
 @keyframes ui-spin {
