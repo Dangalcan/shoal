@@ -60,12 +60,37 @@
 
 .sidebar-footer {
   padding: 1rem;
-  border-top: 1px solid rgb(30 41 59);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms;
+}
+
+.theme-toggle:hover {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: rgb(191 219 254);
 }
 
 .sidebar-version {
   font-size: 0.75rem;
-  color: rgb(100 116 139);
+  color: var(--text-secondary);
   text-align: center;
   font-family: ui-monospace, monospace;
 }

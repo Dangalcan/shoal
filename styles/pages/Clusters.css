@@ -4,6 +4,7 @@
   padding: 2rem;
   max-width: 80rem;
   margin: 0 auto;
+  background-color: var(--bg-primary);
 }
 
 .clusters-header {
@@ -16,23 +17,25 @@
 .clusters-title {
   font-size: 1.875rem;
   font-weight: 700;
-  color: rgb(15 23 42);
+  color: var(--text-primary);
+  letter-spacing: -0.025em;
 }
 
 .clusters-subtitle {
-  color: rgb(100 116 139);
+  color: var(--text-secondary);
   margin-top: 0.25rem;
 }
 
 .refresh-clusters-button {
   padding: 0.5rem;
-  color: rgb(71 85 105);
+  color: var(--text-secondary);
   border-radius: 0.5rem;
-  transition: colors 150ms;
+  transition: all 150ms;
 }
 
 .refresh-clusters-button:hover {
-  background-color: rgb(241 245 249);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .refresh-clusters-button:disabled {
@@ -49,11 +52,11 @@
   align-items: center;
   justify-content: center;
   height: 16rem;
-  color: rgb(148 163 184);
-  background-color: white;
-  border-radius: 0.75rem;
-  border: 1px solid rgb(241 245 249);
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  color: var(--text-secondary);
+  background-color: var(--card-bg);
+  border-radius: 1rem;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
 }
 
 .clusters-loading-spinner {
@@ -68,48 +71,51 @@
 }
 
 .cluster-card {
-  background-color: white;
+  background-color: var(--card-bg);
   padding: 1.5rem;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  border: 1px solid rgb(241 245 249);
+  border-radius: 1rem;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  transition: box-shadow 150ms;
+  transition: all 150ms;
 }
 
 .cluster-card:hover {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  border-color: rgb(59 130 246 / 0.5);
 }
 
 .cluster-card-content {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .cluster-card-icon {
-  padding: 0.75rem;
+  padding: 1rem;
   background-color: rgb(239 246 255);
   color: rgb(37 99 235);
-  border-radius: 0.75rem;
+  border-radius: 0.875rem;
+}
+
+[data-theme='dark'] .cluster-card-icon {
+  background-color: rgb(30 64 175 / 0.2);
+  color: rgb(147 197 253);
 }
 
 .cluster-card-info {
   cursor: pointer;
-  transition: opacity 150ms;
-}
-
-.cluster-card-info:hover {
-  opacity: 0.8;
 }
 
 .cluster-card-name {
   font-weight: 700;
-  color: rgb(15 23 42);
-  font-size: 1.125rem;
-  transition: colors 150ms;
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  transition: color 150ms;
+  letter-spacing: -0.01em;
 }
 
 .cluster-card-name:hover {
@@ -119,20 +125,25 @@
 .cluster-card-meta {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.25rem;
+  gap: 0.75rem;
+  margin-top: 0.375rem;
 }
 
 .cluster-status-badge {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.375rem;
   font-size: 0.75rem;
   font-weight: 600;
   color: rgb(22 163 74);
   background-color: rgb(240 253 244);
-  padding: 0.125rem 0.5rem;
+  padding: 0.125rem 0.625rem;
   border-radius: 9999px;
+}
+
+[data-theme='dark'] .cluster-status-badge {
+  background-color: rgb(20 83 45 / 0.2);
+  color: rgb(134 239 172);
 }
 
 .cluster-status-dot {
@@ -143,45 +154,17 @@
 }
 
 .cluster-provider {
-  font-size: 0.75rem;
-  color: rgb(148 163 184);
-  font-family: ui-monospace, monospace;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .cluster-card-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-}
-
-.view-pods-action-button {
-  padding: 0.5rem;
-  color: rgb(59 130 246);
-  border-radius: 0.5rem;
-  transition: colors 150ms;
-}
-
-.view-pods-action-button:hover {
-  background-color: rgb(239 246 255);
-}
-
-.delete-cluster-button {
-  padding: 0.5rem;
-  color: rgb(239 68 68);
-  border-radius: 0.5rem;
-  transition: colors 150ms;
-}
-
-.delete-cluster-button:hover {
-  background-color: rgb(254 242 242);
-}
-
-.delete-cluster-button:disabled {
-  opacity: 0.5;
-}
-
-.delete-spinner {
-  animation: spin 1s linear infinite;
+  gap: 0.75rem;
 }
 
 .clusters-empty {
@@ -190,34 +173,24 @@
   align-items: center;
   justify-content: center;
   height: 16rem;
-  color: rgb(148 163 184);
-  background-color: white;
-  border-radius: 0.75rem;
-  border: 2px dashed rgb(226 232 240);
+  color: var(--text-secondary);
+  background-color: var(--bg-secondary);
+  border-radius: 1rem;
+  border: 2px dashed var(--border-color);
 }
 
 .clusters-empty-icon {
   margin-bottom: 1rem;
-  color: rgb(203 213 225);
+  color: var(--border-color);
 }
 
 .clusters-empty-title {
-  font-size: 1.125rem;
-  font-weight: 500;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .clusters-empty-subtitle {
-  font-size: 0.875rem;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-.text-slate-200 {
-  color: rgb(226 232 240);
+  font-size: 0.9375rem;
+  margin-top: 0.25rem;
 }

@@ -10,7 +10,7 @@ import { Toaster } from 'sonner';
 import { PodViewerModal } from '../components/modals/PodViewerModal';
 import { ConfirmModal } from '../components/modals/ConfirmModal';
 import { useClusters } from '../hooks';
-import { Button, Badge, Spinner } from '../components/ui';
+import { Button, Badge, Spinner, Animate } from '../components/ui';
 import '../../styles/pages/Clusters.css';
 
 export function Clusters() {
@@ -36,32 +36,41 @@ export function Clusters() {
   return (
     <div className="clusters-container">
       <Toaster position="top-right" />
-      <header className="clusters-header">
-        <div>
-          <h2 className="clusters-title">Clusters</h2>
-          <p className="clusters-subtitle">
-            Manage your local Kubernetes environments.
-          </p>
-        </div>
-        <Button
-          variant="secondary"
-          size="icon"
-          onClick={fetchClusters}
-          loading={loading}
-          title="Refresh List"
-        >
-          <RefreshCw size={20} />
-        </Button>
-      </header>
+      <Animate type="slide-down">
+        <header className="clusters-header">
+          <div>
+            <h2 className="clusters-title">Clusters</h2>
+            <p className="clusters-subtitle">
+              Manage your local Kubernetes environments.
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            size="icon"
+            onClick={fetchClusters}
+            loading={loading}
+            title="Refresh List"
+          >
+            <RefreshCw size={20} />
+          </Button>
+        </header>
+      </Animate>
 
       {loading && clusters.length === 0 ? (
-        <div className="clusters-loading">
-          <Spinner size={32} label="Loading clusters..." />
-        </div>
+        <Animate type="fade">
+          <div className="clusters-loading">
+            <Spinner size={32} label="Loading clusters..." />
+          </div>
+        </Animate>
       ) : clusters.length > 0 ? (
         <div className="clusters-grid">
-          {clusters.map((cluster) => (
-            <div key={cluster} className="cluster-card">
+          {clusters.map((cluster, index) => (
+            <Animate 
+              key={cluster} 
+              type="slide-up" 
+              delay={index * 50} 
+              className="cluster-card"
+            >
               <div className="cluster-card-content">
                 <div className="cluster-card-icon">
                   <Server size={24} />
@@ -103,7 +112,7 @@ export function Clusters() {
                   <Trash2 size={20} />
                 </Button>
               </div>
-            </div>
+            </Animate>
           ))}
         </div>
       ) : (

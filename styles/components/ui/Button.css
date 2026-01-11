@@ -29,9 +29,9 @@
 }
 
 .ui-btn-secondary {
-  background-color: white;
-  color: rgb(51 65 85);
-  border: 1px solid rgb(226 232 240);
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
 }
 
 .ui-btn-secondary:hover {
@@ -40,12 +40,13 @@
 }
 
 .ui-btn-ghost {
-  color: rgb(100 116 139);
+  color: var(--text-secondary);
   background-color: transparent;
 }
 
 .ui-btn-ghost:hover {
-  background-color: rgb(241 245 249);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .ui-btn-destructive {
@@ -59,12 +60,14 @@
 
 .ui-btn-outline {
   background-color: transparent;
-  border: 1px solid rgb(226 232 240);
-  color: rgb(71 85 105);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
 }
 
 .ui-btn-outline:hover {
-  background-color: rgb(248 250 252);
+  background-color: var(--bg-secondary);
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 /* Sizes */

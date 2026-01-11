@@ -3,124 +3,148 @@
 .create-cluster-container {
   max-width: 48rem;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 2.5rem;
+  background-color: var(--bg-primary);
 }
 
 .create-cluster-header {
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
 }
 
 .create-cluster-title {
-  font-size: 1.875rem;
+  font-size: 2rem;
   font-weight: 700;
-  color: rgb(15 23 42);
+  color: var(--text-primary);
+  letter-spacing: -0.025em;
 }
 
 .create-cluster-subtitle {
-  color: rgb(100 116 139);
-  margin-top: 0.25rem;
+  color: var(--text-secondary);
+  margin-top: 0.375rem;
+  font-size: 1.125rem;
 }
 
 .create-cluster-form {
-  background-color: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  border: 1px solid rgb(241 245 249);
-  padding: 2rem;
+  background-color: var(--card-bg);
+  border-radius: 1rem;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-color);
+  padding: 2.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 2rem;
 }
 
 .form-group-label {
   display: block;
   font-size: 0.875rem;
-  font-weight: 500;
-  color: rgb(51 65 85);
-  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .form-input {
   width: 100%;
-  padding: 0.5rem 1rem;
-  border: 1px solid rgb(203 213 225);
-  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.625rem;
   outline: none;
-  transition: all 150ms;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .form-input:focus {
-  box-shadow: 0 0 0 2px rgb(59 130 246 / 0.5);
   border-color: rgb(59 130 246);
-  outline: none;
+  box-shadow: 0 0 0 4px rgb(59 130 246 / 0.1);
 }
 
 .provider-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .provider-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  border: 2px solid;
-  transition: all 150ms;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  border: 2px solid var(--border-color);
+  background-color: var(--card-bg);
+  color: var(--text-secondary);
+  transition: all 200ms;
+  cursor: pointer;
 }
 
 .provider-button-selected {
   border-color: rgb(37 99 235);
   background-color: rgb(239 246 255);
   color: rgb(29 78 216);
+  box-shadow: 0 4px 6px -1px rgb(37 99 235 / 0.1);
 }
 
-.provider-button-unselected {
-  border-color: rgb(226 232 240);
+[data-theme='dark'] .provider-button-selected {
+  background-color: rgb(30 64 175 / 0.2);
+  color: rgb(147 197 253);
+  border-color: rgb(59 130 246);
 }
 
 .provider-button-unselected:hover {
-  border-color: rgb(203 213 225);
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
 }
 
 .provider-button-label {
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.05em;
 }
 
 .form-actions {
-  padding-top: 1rem;
+  padding-top: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.75rem;
+  gap: 1rem;
+  border-top: 1px solid var(--border-color);
 }
 
 .cancel-button {
-  padding: 0.5rem 1rem;
-  color: rgb(51 65 85);
-  font-weight: 500;
-  border-radius: 0.5rem;
-  transition: colors 150ms;
+  padding: 0.75rem 1.25rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  border-radius: 0.625rem;
+  transition: all 150ms;
 }
 
 .cancel-button:hover {
-  background-color: rgb(248 250 252);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .submit-button {
-  padding: 0.5rem 1.5rem;
+  padding: 0.75rem 2rem;
   background-color: rgb(37 99 235);
   color: white;
-  border-radius: 0.5rem;
-  font-weight: 500;
-  box-shadow: 0 10px 15px -3px rgb(59 130 246 / 0.2);
-  transition: colors 150ms;
+  border-radius: 0.625rem;
+  font-weight: 600;
+  box-shadow: 0 10px 15px -3px rgb(37 99 235 / 0.2);
+  transition: all 200ms;
 }
 
-.submit-button:hover {
+.submit-button:hover:not(:disabled) {
   background-color: rgb(29 78 216);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 20px -5px rgb(37 99 235 / 0.3);
+}
+
+.submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

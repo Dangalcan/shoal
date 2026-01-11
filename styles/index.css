@@ -1,5 +1,25 @@
 @import 'tailwindcss';
 
+:root {
+  --bg-primary: rgb(255 255 255);
+  --bg-secondary: rgb(248 250 252);
+  --text-primary: rgb(15 23 42);
+  --text-secondary: rgb(100 116 139);
+  --border-color: rgb(241 245 249);
+  --card-bg: white;
+  --card-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+[data-theme='dark'] {
+  --bg-primary: rgb(15 23 42);
+  --bg-secondary: rgb(30 41 59);
+  --text-primary: rgb(241 245 249);
+  --text-secondary: rgb(148 163 184);
+  --border-color: rgb(51 65 85);
+  --card-bg: rgb(30 41 59);
+  --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
 html,
 body,
 #root {
@@ -7,5 +27,6 @@ body,
   width: 100%;
   margin: 0;
   overflow: hidden; /* App-like feel */
-  background-color: #f3f4f6; /* gray-100 */
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
