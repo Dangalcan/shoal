@@ -128,12 +128,13 @@ function createWindow() {
 
   ipcMain.handle(
     'get-logs',
-    async (_event, { contextName, podName, namespace }) => {
+    async (_event, { contextName, podName, namespace, tailLines }) => {
       try {
         const nsFlag =
           !namespace || namespace === 'all' ? '' : `-n ${namespace}`;
+        const tail = tailLines || 200;
         const { stdout } = await execPromise(
-          `kubectl logs ${podName} --context ${contextName} ${nsFlag} --tail=200`
+          `kubectl logs ${podName} --context ${contextName} ${nsFlag} --tail=${tail}`
         );
         return { success: true, logs: stdout };
       } catch (error: any) {

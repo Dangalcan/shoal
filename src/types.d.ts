@@ -1,9 +1,7 @@
 import type { K8sResource } from './types/k8s-types';
 
 export interface ElectronAPI {
-  runCommand: (
-    command: string
-  ) => Promise<{
+  runCommand: (command: string) => Promise<{
     success: boolean;
     stdout: string;
     stderr: string;
@@ -34,6 +32,7 @@ export interface ElectronAPI {
     contextName: string;
     podName: string;
     namespace: string;
+    tailLines?: number;
   }) => Promise<{ success: boolean; logs?: string; error?: string }>;
   describeResource: (args: {
     contextName: string;

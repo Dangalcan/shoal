@@ -1,0 +1,71 @@
+.error-boundary-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background-color: var(--bg-primary);
+}
+
+.error-boundary-content {
+  max-width: 32rem;
+  width: 100%;
+  animation: scale-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.error-icon-wrapper {
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.error-icon-bg {
+  padding: 1.25rem;
+  background-color: rgb(254 242 242);
+  border-radius: 9999px;
+  color: rgb(220 38 38);
+  box-shadow: 0 0 0 8px rgb(254 242 242 / 0.5);
+}
+
+[data-theme='dark'] .error-icon-bg {
+  background-color: rgb(69 10 10);
+  color: rgb(248 113 113);
+  box-shadow: 0 0 0 8px rgb(69 10 10 / 0.5);
+}
+
+.error-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.025em;
+}
+
+.error-message {
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.error-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.error-details {
+  margin-top: 2rem;
+  padding: 1.25rem;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
