@@ -1,9 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Server, Settings } from 'lucide-react'
+import { LayoutDashboard, Server, Settings, Sun, Moon } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { useTheme } from '../hooks'
 import '../../styles/components/Sidebar.css'
 
 export function Sidebar() {
+    const { theme, toggleTheme } = useTheme();
     const links = [
         { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
         { to: '/clusters', icon: Server, label: 'Clusters' },
@@ -38,6 +40,14 @@ export function Sidebar() {
                 ))}
             </nav>
             <div className="sidebar-footer">
+                <button 
+                  className="theme-toggle" 
+                  onClick={toggleTheme}
+                  title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+                >
+                  {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+                  <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+                </button>
                 <div className="sidebar-version">v0.1.0</div>
             </div>
         </aside>

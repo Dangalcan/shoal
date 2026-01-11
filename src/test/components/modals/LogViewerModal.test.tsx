@@ -37,11 +37,12 @@ describe('LogViewerModal', () => {
         )
 
         await waitFor(() => {
-            expect(mockElectronAPI.getLogs).toHaveBeenCalledWith({
-                contextName: 'test-cluster',
-                podName: 'test-pod',
-                namespace: 'default'
-            })
+            expect(window.electron.getLogs).toHaveBeenCalledWith(expect.objectContaining({
+            contextName: 'test-cluster',
+            podName: 'test-pod',
+            namespace: 'default',
+            tailLines: 200
+        }))
         })
         expect(screen.getByText('Test logs')).toBeInTheDocument()
     })

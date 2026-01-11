@@ -1,6 +1,8 @@
-import { useEffect, useState, useRef } from 'react'
-import { RefreshCw, Loader2, AlertCircle, Terminal } from 'lucide-react'
+import { useEffect, useState, useRef, useCallback } from 'react'
+import { RefreshCw, Loader2, AlertCircle, Terminal, Search, X, Check } from 'lucide-react'
 import { BaseModal } from './BaseModal'
+import { Button } from '../ui/Button'
+import { cn } from '../../lib/utils'
 
 interface LogViewerModalProps {
     isOpen: boolean
@@ -14,17 +16,22 @@ export function LogViewerModal({ isOpen, onClose, clusterName, podName, namespac
     const [logs, setLogs] = useState<string>('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [searchQuery, setSearchQuery] = useState('')
+    const [autoRefresh, setAutoRefresh] = useState(false)
+    const [tailLines, setTailLines] = useState(200)
     const logEndRef = useRef<HTMLDivElement>(null)
+    const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-    const fetchLogs = async () => {
+    const fetchLogs = useCallback(async (isAuto = false) => {
         if (!podName || !namespace || !clusterName) return
-        setLoading(true)
+        if (!isAuto) setLoading(true)
         setError(null)
         try {
             const result = await window.electron.getLogs({
                 contextName: clusterName,
                 podName,
-                namespace
+                namespace,
+                tailLines
             })
             if (result.success) {
                 setLogs(result.logs || 'No logs found.')
@@ -34,15 +41,26 @@ export function LogViewerModal({ isOpen, onClose, clusterName, podName, namespac
         } catch (err: any) {
             setError(err.message || 'An unexpected error occurred')
         } finally {
-            setLoading(false)
+            if (!isAuto) setLoading(false)
         }
-    }
+    }, [podName, namespace, clusterName, tailLines])
 
     useEffect(() => {
         if (isOpen) {
             fetchLogs()
         }
-    }, [isOpen, podName, namespace, clusterName])
+    }, [isOpen, fetchLogs])
+
+    useEffect(() => {
+        if (isOpen && autoRefresh) {
+            refreshIntervalRef.current = setInterval(() => fetchLogs(true), 5000)
+        } else {
+            if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current)
+        }
+        return () => {
+          if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current)
+        }
+    }, [isOpen, autoRefresh, fetchLogs])
 
     useEffect(() => {
         if (logEndRef.current) {
@@ -50,15 +68,48 @@ export function LogViewerModal({ isOpen, onClose, clusterName, podName, namespac
         }
     }, [logs])
 
+    const filteredLogs = logs
+        .split('\n')
+        .filter(line => line.toLowerCase().includes(searchQuery.toLowerCase()))
+        .join('\n')
+
     const headerActions = (
-        <button
-            onClick={fetchLogs}
-            disabled={loading}
-            className="modal-action-button"
-            title="Refresh Logs"
-        >
-            <RefreshCw size={18} className={loading ? 'spinner' : ''} />
-        </button>
+        <div className="log-header-actions">
+            <div className="log-search-container">
+                <Search size={14} className="search-icon" />
+                <input
+                    type="text"
+                    placeholder="Filter logs..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="log-search-input"
+                />
+                {searchQuery && (
+                    <button onClick={() => setSearchQuery('')} className="search-clear">
+                        <X size={14} />
+                    </button>
+                )}
+            </div>
+            <div className="log-refresh-controls">
+                <button
+                    onClick={() => setAutoRefresh(!autoRefresh)}
+                    className={cn("auto-refresh-toggle", autoRefresh && "active")}
+                    title="Auto-refresh (5s)"
+                >
+                    {autoRefresh ? <Check size={14} /> : null}
+                    <span>Auto-refresh</span>
+                </button>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => fetchLogs()}
+                    loading={loading}
+                    title="Refresh Now"
+                >
+                    <RefreshCw size={18} />
+                </Button>
+            </div>
+        </div>
     )
 
     const footerContent = (
@@ -98,9 +149,11 @@ export function LogViewerModal({ isOpen, onClose, clusterName, podName, namespac
                     <p className="error-message">{error}</p>
                 </div>
             ) : (
-                <div className="log-content-text code-block">
-                    {logs}
-                    <div ref={logEndRef} />
+                <div className="log-viewer-body">
+                    <div className="log-content-text code-block">
+                        {filteredLogs || (searchQuery ? 'No matches found.' : 'No logs.')}
+                        <div ref={logEndRef} />
+                    </div>
                 </div>
             )}
         </BaseModal>

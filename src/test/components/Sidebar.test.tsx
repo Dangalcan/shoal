@@ -1,24 +1,67 @@
-
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '../test-utils'
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { Sidebar } from '../../components/Sidebar'
+
+const mockToggleTheme = vi.fn();
+vi.mock('../../hooks', async () => {
+    const actual = await vi.importActual('../../hooks');
+    return {
+        ...actual,
+        useTheme: () => ({
+            theme: 'light',
+            toggleTheme: mockToggleTheme
+        })
+    };
+});
 
 describe('Sidebar', () => {
     it('should render application title', () => {
-        render(<Sidebar />)
+        render(
+            <MemoryRouter>
+                <Sidebar />
+            </MemoryRouter>
+        )
         expect(screen.getByText('K8s Desktop')).toBeInTheDocument()
     })
 
-    it('should render all navigation links', () => {
-        render(<Sidebar />)
+    it('renders navigation links', () => {
+        render(
+            <MemoryRouter>
+                <Sidebar />
+            </MemoryRouter>
+        )
         expect(screen.getByText('Dashboard')).toBeInTheDocument()
         expect(screen.getByText('Clusters')).toBeInTheDocument()
         expect(screen.getByText('Settings')).toBeInTheDocument()
     })
 
+    it('renders theme toggle button', () => {
+        render(
+            <MemoryRouter>
+                <Sidebar />
+            </MemoryRouter>
+        )
+        expect(screen.getByText('Dark Mode')).toBeInTheDocument()
+    })
+
+    it('calls toggleTheme when button is clicked', () => {
+        render(
+            <MemoryRouter>
+                <Sidebar />
+            </MemoryRouter>
+        )
+        fireEvent.click(screen.getByText('Dark Mode'))
+        expect(mockToggleTheme).toHaveBeenCalled()
+    })
+
     it('should highlight active link', () => {
         // Render at /clusters route to check active state
-        render(<Sidebar />, { initialEntries: ['/clusters'] })
+        render(
+            <MemoryRouter initialEntries={['/clusters']}>
+                <Sidebar />
+            </MemoryRouter>
+        )
         
         const clusterLink = screen.getByText('Clusters').closest('a')
         expect(clusterLink).toHaveClass('sidebar-link-active')
@@ -28,7 +71,11 @@ describe('Sidebar', () => {
     })
     
     it('should show version in footer', () => {
-        render(<Sidebar />)
+        render(
+            <MemoryRouter>
+                <Sidebar />
+            </MemoryRouter>
+        )
         expect(screen.getByText(/v0.1.0/)).toBeInTheDocument()
     })
 })
