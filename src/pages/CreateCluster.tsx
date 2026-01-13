@@ -1,10 +1,12 @@
 import { useState, FormEvent } from 'react'
-import { Server } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Server, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { handleError } from '../lib/error-handler'
 import '../../styles/pages/CreateCluster.css'
 
 export function CreateCluster() {
+    const navigate = useNavigate()
     const [name, setName] = useState('')
     const [provider, setProvider] = useState('kind')
 
@@ -41,6 +43,14 @@ export function CreateCluster() {
     return (
         <div className="create-cluster-container">
             <header className="create-cluster-header">
+                <button 
+                    type="button" 
+                    className="back-button"
+                    onClick={() => navigate('/clusters')}
+                >
+                    <ArrowLeft size={20} />
+                    <span>Back to Clusters</span>
+                </button>
                 <h2 className="create-cluster-title">Create Cluster</h2>
                 <p className="create-cluster-subtitle">Configure your new Kubernetes cluster.</p>
             </header>
@@ -76,7 +86,13 @@ export function CreateCluster() {
                 </div>
 
                 <div className="form-actions">
-                    <button type="button" className="cancel-button">Cancel</button>
+                    <button 
+                        type="button" 
+                        className="cancel-button"
+                        onClick={() => navigate('/clusters')}
+                    >
+                        Cancel
+                    </button>
                     <button 
                         type="submit" 
                         className="submit-button"

@@ -5,6 +5,7 @@ import {
   Trash2,
   RefreshCw,
   Eye,
+  Plus,
 } from 'lucide-react';
 import { Toaster } from 'sonner';
 import { PodViewerModal } from '../components/modals/PodViewerModal';
@@ -44,15 +45,25 @@ export function Clusters() {
               Manage your local Kubernetes environments.
             </p>
           </div>
-          <Button
-            variant="secondary"
-            size="icon"
-            onClick={fetchClusters}
-            loading={loading}
-            title="Refresh List"
-          >
-            <RefreshCw size={20} />
-          </Button>
+          <div className="clusters-header-actions">
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={fetchClusters}
+              loading={loading}
+              title="Refresh List"
+            >
+              <RefreshCw size={20} />
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => navigate('/create-cluster')}
+              title="Create New Cluster"
+            >
+              <Plus size={20} />
+              <span>Create Cluster</span>
+            </Button>
+          </div>
         </header>
       </Animate>
 

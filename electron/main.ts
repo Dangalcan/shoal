@@ -50,8 +50,14 @@ function createWindow() {
   });
 
   ipcMain.handle('create-cluster', async (_event, { name, provider }) => {
-    // For now we only support 'kind'
-    const command = `kind create cluster --name ${name}`;
+    let command = '';
+    if (provider === 'k3d') {
+      command = `k3d cluster create ${name}`;
+    } else {
+      // Default to kind
+      command = `kind create cluster --name ${name}`;
+    }
+
     try {
       await execPromise(command);
       return { success: true };
@@ -209,10 +215,20 @@ function createWindow() {
 
   ipcMain.handle('delete-cluster', async (_event, name) => {
     try {
+      // Try kind first
       await execPromise(`kind delete cluster --name ${name}`);
       return { success: true };
     } catch (error: any) {
-      return { success: false, error: error.message };
+      try {
+        // Try k3d if kind fails
+        await execPromise(`k3d cluster delete ${name}`);
+        return { success: true };
+      } catch (k3dError: any) {
+        return {
+          success: false,
+          error: `Failed to delete with kind (${error.message}) and k3d (${k3dError.message})`,
+        };
+      }
     }
   });
 

@@ -9,6 +9,26 @@
 
 .create-cluster-header {
   margin-bottom: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.back-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 150ms;
+  width: fit-content;
+  padding: 0.5rem 0;
+}
+
+.back-button:hover {
+  color: var(--text-primary);
+  transform: translateX(-4px);
 }
 
 .create-cluster-title {
