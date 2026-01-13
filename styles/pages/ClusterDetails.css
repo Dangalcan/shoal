@@ -62,6 +62,26 @@
   opacity: 0.5;
 }
 
+.delete-cluster-button-action {
+  padding: 0.5rem;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  color: rgb(220 38 38);
+  transition: all 150ms;
+}
+
+.delete-cluster-button-action:hover {
+  background-color: rgb(254 242 242);
+  border-color: rgb(252 165 165);
+  color: rgb(185 28 28);
+}
+
+[data-theme='dark'] .delete-cluster-button-action:hover {
+  background-color: rgb(69 10 10 / 0.2);
+  border-color: rgb(127 29 29 / 0.4);
+}
+
 .refresh-icon-spinning {
   animation: spin 1s linear infinite;
 }

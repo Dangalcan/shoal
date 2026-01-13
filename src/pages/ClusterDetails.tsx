@@ -1,10 +1,11 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Search, RefreshCw, Loader2, AlertCircle, Settings, X, Check, Box } from 'lucide-react'
+import { ArrowLeft, Search, RefreshCw, Loader2, AlertCircle, Settings, X, Check, Box, Trash2 } from 'lucide-react'
 import { Toaster } from 'sonner'
 import { LogViewerModal } from '../components/modals/LogViewerModal'
 import { DescribeModal } from '../components/modals/DescribeModal'
 import { YamlModal } from '../components/modals/YamlModal'
+import { ConfirmModal } from '../components/modals/ConfirmModal'
 import { ResourceTable } from '../components/resource-tables/ResourceTable'
 import { ResourceRow } from '../components/resource-tables/ResourceRows'
 import { ResourceType, ALL_TABS, COLUMN_DEFINITIONS, RESOURCE_CONFIGS } from '../lib/resource-definitions'
@@ -15,7 +16,8 @@ import {
     useTableState, 
     useModalState, 
     useResourceActions,
-    useLocalStorage
+    useLocalStorage,
+    useClusters
 } from '../hooks'
 import { DetailsHeader } from '../components/cluster/DetailsHeader'
 import { ResourceTabs } from '../components/cluster/ResourceTabs'
@@ -30,6 +32,8 @@ export function ClusterDetails() {
     // 1. Navigation & Namespace State
     const [activeTab, setActiveTab] = useState<ResourceType>('pods')
     const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaces(name)
+    const { deleteCluster, deleting } = useClusters()
+    const [isDeletingCluster, setIsDeletingCluster] = useState(false)
 
     // 2. Data Fetching
     const { items, loading, error, fetchData } = useClusterData(name, activeTab, selectedNamespace)
@@ -85,6 +89,15 @@ export function ClusterDetails() {
         )
     }
 
+    const handleDeleteCluster = async () => {
+        if (!name) return
+        const { success } = await deleteCluster(name)
+        if (success) {
+            navigate('/clusters')
+        }
+        setIsDeletingCluster(false)
+    }
+
     // Handlers for Resize
     const [resizing, setResizing] = useState<{ id: string; startX: number; startWidth: number } | null>(null)
     const onResizeStart = (e: React.MouseEvent, id: string, currentWidth: number) => {
@@ -130,6 +143,14 @@ export function ClusterDetails() {
 
                         <button onClick={fetchData} disabled={loading} className="refresh-data-button" title="Refresh">
                             <RefreshCw size={18} className={loading ? 'refresh-icon-spinning' : ''} />
+                        </button>
+
+                        <button 
+                            onClick={() => setIsDeletingCluster(true)} 
+                            className="delete-cluster-button-action" 
+                            title="Delete Cluster"
+                        >
+                            <Trash2 size={18} />
                         </button>
                         
                         <SettingsDropdown 
@@ -215,6 +236,17 @@ export function ClusterDetails() {
                 resourceName={modals.selectedItem?.metadata.name || ''}
                 resourceType={activeTab}
                 namespace={modals.selectedItem?.metadata.namespace || ''}
+            />
+
+            <ConfirmModal
+                isOpen={isDeletingCluster}
+                onClose={() => setIsDeletingCluster(false)}
+                onConfirm={handleDeleteCluster}
+                title="Delete Cluster"
+                message={`Are you sure you want to delete cluster "${name}"? This action cannot be undone.`}
+                confirmLabel="Delete Cluster"
+                variant="danger"
+                loading={!!deleting}
             />
             <Toaster position="bottom-right" richColors />
         </div>

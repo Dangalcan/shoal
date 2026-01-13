@@ -42,11 +42,13 @@ const mockElectronAPI = {
 
 // Set up window.electron before all tests
 beforeAll(() => {
-  Object.defineProperty(window, 'electron', {
-    value: mockElectronAPI,
-    writable: true,
-    configurable: true,
-  });
+  if (typeof window !== 'undefined') {
+    Object.defineProperty(window, 'electron', {
+      value: mockElectronAPI,
+      writable: true,
+      configurable: true,
+    });
+  }
 });
 
 // Export for use in tests
