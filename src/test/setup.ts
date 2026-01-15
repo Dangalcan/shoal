@@ -3,6 +3,9 @@ import { cleanup } from '@testing-library/react';
 import { afterEach, vi, beforeAll } from 'vitest';
 import { mockToast } from './mocks/toast-mock';
 
+// Import component mocks to register them globally
+import './mocks/component-mocks';
+
 // Global mocks
 vi.mock('sonner', () => ({
   Toaster: () => null,

@@ -1,29 +1,21 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { Dashboard } from '../../pages/Dashboard';
+import { render, screen, fireEvent, waitFor, mockElectronAPI } from '../test-utils';
+import { mockClusterState, mockToolStatus } from '../helpers/electron-helpers';
+import { expectMultipleOccurrences, findByTextWithTimeout } from '../helpers/dom-helpers';
+import { TEST_TIMEOUTS } from '../constants';
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { BrowserRouter } from 'react-router-dom'
-import { Dashboard } from '../../pages/Dashboard'
-import { render, screen, fireEvent, waitFor } from '../test-utils'
-import { mockElectronAPI } from '../setup'
-
-// Mock child components
-// Mock child components
-vi.mock('../../components/modals/PodViewerModal', () => ({
-    __esModule: true,
-    PodViewerModal: ({ isOpen, onClose, clusterName }: any) => (
-        isOpen ? <div data-testid="pod-modal">PodViewer for {clusterName} <button onClick={onClose}>Close</button></div> : null
-    )
-}))
+// Note: PodViewerModal is mocked globally in component-mocks.tsx
 
 
 
 describe('Dashboard Page', () => {
     beforeEach(() => {
-        vi.clearAllMocks()
+        vi.clearAllMocks();
         // Default happy path
-        mockElectronAPI.getClusters.mockResolvedValue([])
-        mockElectronAPI.getCurrentContext.mockResolvedValue('None')
-        mockElectronAPI.checkTool.mockResolvedValue(true)
-    })
+        mockClusterState([], 'None');
+        mockElectronAPI.checkTool.mockResolvedValue(true);
+    });
 
     it('should render dashboard header', async () => {
         render(<Dashboard />)
@@ -34,124 +26,96 @@ describe('Dashboard Page', () => {
     })
 
     it('should fetch and display tool status (Docker/Podman)', async () => {
-        mockElectronAPI.checkTool.mockImplementation(async (tool: string) => {
-            if (tool === 'docker') return true
-            if (tool === 'podman') return false
-            return false
-        })
+        mockToolStatus({ docker: true, podman: false });
 
-        render(<Dashboard />)
+        render(<Dashboard />);
 
         await waitFor(() => {
-            // Docker -> Running (Blue)
-            // Podman -> Stopped (Orange) - Wait, logic says stopped is red? 
-            // Let's check StatCard logic: color={podmanStatus ? 'purple' : 'orange'}
-            // So expected styling/text check
-            expect(screen.getByText('Docker Status')).toBeInTheDocument()
-            // We can check strictly for "Running" associated with Docker if accessible, 
-            // or just ensure mocked API was called.
-            expect(mockElectronAPI.checkTool).toHaveBeenCalledWith('docker')
-            expect(mockElectronAPI.checkTool).toHaveBeenCalledWith('podman')
-        })
-    })
+            expect(screen.getByText('Docker Status')).toBeInTheDocument();
+            expect(mockElectronAPI.checkTool).toHaveBeenCalledWith('docker');
+            expect(mockElectronAPI.checkTool).toHaveBeenCalledWith('podman');
+        });
+    });
 
     it('should fetch and display cluster stats', async () => {
-        mockElectronAPI.getClusters.mockResolvedValue(['c1', 'c2'])
-        mockElectronAPI.getCurrentContext.mockResolvedValue('c1')
+        mockClusterState(['c1', 'c2'], 'c1');
 
-        render(<Dashboard />)
+        render(<Dashboard />);
 
-        // Use findByText which waits automatically, increase timeout
-        expect(await screen.findByText('Active Context', {}, { timeout: 4000 })).toBeInTheDocument()
-        
-        // 'c1' appears in Active Context card AND in the list. findByText fails on multiples.
-        const c1Elements = await screen.findAllByText('c1', {}, { timeout: 4000 })
-        expect(c1Elements.length).toBeGreaterThan(0)
-        
-        expect(await screen.findByText('Total Contexts', {}, { timeout: 4000 })).toBeInTheDocument()
-        expect(await screen.findByText('2', {}, { timeout: 4000 })).toBeInTheDocument()
-    })
+        await findByTextWithTimeout('Active Context');
+        await expectMultipleOccurrences('c1', 1);
+        await findByTextWithTimeout('Total Contexts');
+        await findByTextWithTimeout('2');
+    });
 
     // ... (create cluster test)
 
     it('should render cluster list with active/available badges', async () => {
-        mockElectronAPI.getClusters.mockResolvedValue(['active-cluster', 'other-cluster'])
-        mockElectronAPI.getCurrentContext.mockResolvedValue('active-cluster')
+        mockClusterState(['active-cluster', 'other-cluster'], 'active-cluster');
 
-        render(<Dashboard />)
+        render(<Dashboard />);
 
-        // active-cluster appears in context and list
-        const activeClusterElements = await screen.findAllByText('active-cluster', {}, { timeout: 4000 })
-        expect(activeClusterElements.length).toBeGreaterThan(0)
+        await expectMultipleOccurrences('active-cluster', 1);
+        await findByTextWithTimeout('other-cluster');
         
-        expect(await screen.findByText('other-cluster', {}, { timeout: 4000 })).toBeInTheDocument()
+        const listItems = await screen.findAllByRole('listitem');
+        const activeRow = listItems.find(li => li.textContent?.includes('active-cluster'));
+        expect(activeRow).toBeDefined();
+        expect(activeRow).toHaveTextContent(/Active/i);
         
-        // Use regex for flexible matching and scoped search
-        // We need to be careful finding the right 'active-cluster' from the list to check its badge.
-        // The one in the list is inside a list item.
-        const listItems = await screen.findAllByRole('listitem')
-        const activeRow = listItems.find(li => li.textContent?.includes('active-cluster'))
-        expect(activeRow).toBeDefined()
-        expect(activeRow).toHaveTextContent(/Active/i)
-        
-        expect(await screen.findByText('Active', {}, { timeout: 4000 })).toBeInTheDocument()
-        expect(await screen.findByText('Available', {}, { timeout: 4000 })).toBeInTheDocument()
-    })
+        await findByTextWithTimeout('Active');
+        await findByTextWithTimeout('Available');
+    });
 
     it('should navigate to cluster details', async () => {
-        mockElectronAPI.getClusters.mockResolvedValue(['nav-cluster'])
-        render(<Dashboard />)
-        expect(await screen.findByText('nav-cluster', {}, { timeout: 4000 })).toBeInTheDocument()
+        mockClusterState(['nav-cluster']);
+        render(<Dashboard />);
+        await findByTextWithTimeout('nav-cluster');
 
-        const clusterContent = screen.getByText('nav-cluster').closest('.cluster-item-content')!
-        fireEvent.click(clusterContent)
-    })
+        const clusterContent = screen.getByText('nav-cluster').closest('.cluster-item-content')!;
+        fireEvent.click(clusterContent);
+    });
 
     it('should open pod viewer modal', async () => {
-        mockElectronAPI.getClusters.mockResolvedValue(['view-cluster'])
-        mockElectronAPI.getCurrentContext.mockResolvedValue('view-cluster')
+        mockClusterState(['view-cluster'], 'view-cluster');
         
-        render(<Dashboard />)
-        // view-cluster appears in context and list
-        const viewClusterElements = await screen.findAllByText('view-cluster', {}, { timeout: 4000 })
-        expect(viewClusterElements.length).toBeGreaterThan(0)
+        render(<Dashboard />);
+        await expectMultipleOccurrences('view-cluster', 1);
 
-        const viewBtn = screen.getByTitle('View Pods')
-        expect(viewBtn).toBeInTheDocument()
-        fireEvent.click(viewBtn)
+        const viewBtn = screen.getByTitle('View Pods');
+        expect(viewBtn).toBeInTheDocument();
+        fireEvent.click(viewBtn);
 
-        expect(await screen.findByTestId('pod-modal', {}, { timeout: 4000 })).toBeInTheDocument()
-        expect(screen.getByText(/PodViewer for view-cluster/)).toBeInTheDocument()
+        expect(await screen.findByTestId('pod-modal', {}, { timeout: TEST_TIMEOUTS.NETWORK_REQUEST })).toBeInTheDocument();
+        expect(screen.getByText(/PodViewer for view-cluster/)).toBeInTheDocument();
 
-        fireEvent.click(screen.getByText('Close'))
-        await waitFor(() => expect(screen.queryByTestId('pod-modal')).not.toBeInTheDocument())
-    })
+        fireEvent.click(screen.getByText('Close'));
+        await waitFor(() => expect(screen.queryByTestId('pod-modal')).not.toBeInTheDocument());
+    });
 
     it('should refresh data on button click', async () => {
-        render(<Dashboard />)
+        render(<Dashboard />);
         
-        // Initial calls
-        await waitFor(() => expect(mockElectronAPI.getClusters).toHaveBeenCalledTimes(1))
+        await waitFor(() => expect(mockElectronAPI.getClusters).toHaveBeenCalledTimes(1));
 
-        const rBtn = screen.getByTitle('Refresh Data')
+        const rBtn = screen.getByTitle('Refresh Data');
         
-        fireEvent.click(rBtn)
-        await waitFor(() => expect(mockElectronAPI.getClusters).toHaveBeenCalledTimes(2))
-    })
+        fireEvent.click(rBtn);
+        await waitFor(() => expect(mockElectronAPI.getClusters).toHaveBeenCalledTimes(2));
+    });
 
     it('should handle empty clusters list', async () => {
-        mockElectronAPI.getClusters.mockResolvedValue([])
-        render(<Dashboard />)
+        mockClusterState([]);
+        render(<Dashboard />);
         
         await waitFor(() => {
-            expect(screen.getByText('No active clusters found')).toBeInTheDocument()
-        })
-    })
+            expect(screen.getByText('No active clusters found')).toBeInTheDocument();
+        });
+    });
 
     it('should handle tool status check failure (graceful degradation)', async () => {
-         mockElectronAPI.checkTool.mockRejectedValue(new Error('Tool check failed'))
-         // It should probably just render "checking..." or similar, or handle the promise rejection without crashing
+         mockElectronAPI.checkTool.mockRejectedValue(new Error('Tool check failed'));
          
-         render(<Dashboard />)
-    })
-})
+         render(<Dashboard />);
+    });
+});

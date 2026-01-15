@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { screen, fireEvent, waitFor, within } from '@testing-library/react'
+import { screen, fireEvent, waitFor, within } from '../test-utils'
 import { ClusterDetails } from '../../pages/ClusterDetails'
 import { mockElectronAPI } from '../setup'
-import { render, mockToast } from '../test-utils'
+import { render, mockToast, userEvent } from '../test-utils'
 import '../mocks/component-mocks'
 import { toast } from 'sonner'
 import { 
@@ -327,7 +327,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             const podNameBtn = within(row).getByRole('button', { name: 'pod-1' })
             fireEvent.click(podNameBtn)
             await waitFor(() => expect(screen.getByTestId('log-modal')).toBeInTheDocument())
-            fireEvent.click(within(screen.getByTestId('log-modal')).getByText('Close Viewer'))
+            fireEvent.click(within(screen.getByTestId('log-modal')).getByText('Close'))
             await waitFor(() => expect(screen.queryByTestId('log-modal')).not.toBeInTheDocument())
 
             // Describe
@@ -343,21 +343,29 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
              // Pod logs (click action button)
              await waitFor(() => expect(within(row).getByTitle('View Logs')).toBeVisible())
              fireEvent.click(within(row).getByTitle('View Logs'))
-             fireEvent.click(within(screen.getByTestId('log-modal')).getByText('Close Viewer'))
+             fireEvent.click(within(screen.getByTestId('log-modal')).getByText('Close'))
              await waitFor(() => expect(screen.queryByTestId('log-modal')).not.toBeInTheDocument())
         })
 
         it('should handle rollout success/error logic branches in toast.promise', async () => {
+             const user = userEvent.setup()
+             
              // This tests the toast.promise logic in the mock which mimics the component's await rollout
               mockElectronAPI.rolloutRestart.mockRejectedValue({ error: 'UNIQUE_ROLLOUT_FAILURE' })
               renderPage()
-              fireEvent.click(within(screen.getByRole('banner').querySelector('.tabs-container')!).getByText('Deployments'))
               
-              await waitFor(() => expect(screen.getByText('dep-1')).toBeInTheDocument())
+              // Ensure we are ready
+              await waitFor(() => expect(screen.getByText('pod-1')).toBeInTheDocument())
+
+              const tabs = screen.getByRole('banner').querySelector('.tabs-container')!
+              await user.click(within(tabs as HTMLElement).getByText('Deployments'))
+              
+              await waitFor(() => expect(screen.getByText('dep-1')).toBeInTheDocument(), { timeout: 3000 })
+
               const row = screen.getByText('dep-1').closest('tr')!
               mockToast.error.mockReset()
               
-              fireEvent.click(within(row).getByTitle('Rollout Restart'))
+              await user.click(within(row).getByTitle('Rollout Restart'))
               await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith(expect.stringContaining('UNIQUE_ROLLOUT_FAILURE')), { timeout: 3000 })
         })
     })

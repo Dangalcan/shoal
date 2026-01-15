@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '../test-utils'
 import { BrowserRouter } from 'react-router-dom'
 import { toast } from 'sonner' // Import mocked toast
 import { Clusters } from '../../pages/Clusters'

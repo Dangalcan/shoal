@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent } from '../../test-utils';
 import { ResourceTabs } from '../../../components/cluster/ResourceTabs';
 import { render } from '../../test-utils';
 import { Layout } from 'lucide-react';

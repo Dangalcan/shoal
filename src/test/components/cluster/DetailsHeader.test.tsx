@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent } from '../../test-utils';
 import { DetailsHeader } from '../../../components/cluster/DetailsHeader';
 import { render } from '../../test-utils';
 
