@@ -37,16 +37,13 @@ export function useClusters() {
           await fetchClusters();
           return { success: true };
         } else {
-          toast.error(`Failed to delete cluster: ${result.error}`, {
-            id: toastId,
-          });
-          return { success: false, error: result.error };
+          const errorMsg = result.error || 'Failed to delete cluster';
+          handleError(errorMsg, 'Failed to delete cluster', { id: toastId });
+          return { success: false, error: errorMsg };
         }
       } catch (err) {
-        const errorMessage = 'An unexpected error occurred.';
-        handleError(err, errorMessage);
-        toast.error(errorMessage, { id: toastId });
-        return { success: false, error: errorMessage };
+        handleError(err, 'Failed to delete cluster', { id: toastId });
+        return { success: false, error: 'An unexpected error occurred.' };
       } finally {
         setDeleting(null);
       }

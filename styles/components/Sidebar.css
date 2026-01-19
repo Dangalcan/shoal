@@ -11,25 +11,25 @@
 }
 
 .sidebar-header {
-  padding: 1.5rem;
+  padding: var(--spacing-lg);
 }
 
 .sidebar-title {
   font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.025em;
-  color: rgb(96 165 250);
+  color: var(--color-info);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--spacing-sm);
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 1rem 1rem;
+  padding: var(--spacing-md);
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--spacing-sm);
 }
 
 .sidebar-link {
@@ -44,9 +44,9 @@
 }
 
 .sidebar-link-active {
-  background-color: rgb(37 99 235);
+  background-color: var(--color-primary);
   color: white;
-  box-shadow: 0 10px 15px -3px rgb(37 99 235 / 0.2);
+  box-shadow: 0 10px 15px -3px var(--color-info-bg);
 }
 
 .sidebar-link-inactive {
@@ -59,11 +59,11 @@
 }
 
 .sidebar-footer {
-  padding: 1rem;
+  padding: var(--spacing-md);
   border-top: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--spacing-sm);
 }
 
 .theme-toggle {
@@ -85,7 +85,7 @@
 .theme-toggle:hover {
   background-color: var(--bg-secondary);
   color: var(--text-primary);
-  border-color: rgb(191 219 254);
+  border-color: var(--color-info);
 }
 
 .sidebar-version {

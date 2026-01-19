@@ -12,9 +12,7 @@ vi.mock('../../components/modals/PodViewerModal', () => ({
     )
 }))
 
-const RouterWrapper = ({ children }: { children: React.ReactNode }) => (
-    <BrowserRouter>{children}</BrowserRouter>
-)
+
 
 describe('Clusters Page', () => {
     // Mock toast
@@ -34,7 +32,7 @@ describe('Clusters Page', () => {
     })
     
     it('should render', async () => {
-        render(<Clusters />, { wrapper: RouterWrapper })
+        render(<Clusters />)
         await waitFor(() => {
             const element = screen.queryByRole('heading', { name: /clusters/i })
             expect(element).toBeTruthy()
@@ -42,7 +40,7 @@ describe('Clusters Page', () => {
     })
 
     it('should fetch clusters and handle empty state', async () => {
-        render(<Clusters />, { wrapper: RouterWrapper })
+        render(<Clusters />)
         await waitFor(() => {
             expect(mockElectronAPI.getClusters).toHaveBeenCalled()
             expect(screen.getByText('No clusters found')).toBeInTheDocument()
@@ -51,7 +49,7 @@ describe('Clusters Page', () => {
 
     it('should display clusters', async () => {
         mockElectronAPI.getClusters.mockResolvedValue(['cluster-1', 'cluster-2'])
-        render(<Clusters />, { wrapper: RouterWrapper })
+        render(<Clusters />)
         await waitFor(() => {
             expect(screen.getByText('cluster-1')).toBeInTheDocument()
             expect(screen.getByText('cluster-2')).toBeInTheDocument()
@@ -60,7 +58,7 @@ describe('Clusters Page', () => {
 
     it('should handle load error gracefully', async () => {
         mockElectronAPI.getClusters.mockRejectedValue(new Error('Fetch failed'))
-        render(<Clusters />, { wrapper: RouterWrapper })
+        render(<Clusters />)
         await waitFor(() => {
              expect(screen.getByText('No clusters found')).toBeInTheDocument()
         })
@@ -70,7 +68,7 @@ describe('Clusters Page', () => {
          mockElectronAPI.getClusters.mockResolvedValue(['cluster-to-delete'])
          mockElectronAPI.deleteCluster.mockResolvedValue({ success: true })
 
-         render(<Clusters />, { wrapper: RouterWrapper })
+         render(<Clusters />)
          await waitFor(() => expect(screen.getByText('cluster-to-delete')).toBeInTheDocument())
 
          // Click delete in card
@@ -90,7 +88,7 @@ describe('Clusters Page', () => {
     it('should handle cluster deletion cancellation', async () => {
          mockElectronAPI.getClusters.mockResolvedValue(['cluster-keep'])
 
-         render(<Clusters />, { wrapper: RouterWrapper })
+         render(<Clusters />)
          await waitFor(() => expect(screen.getByText('cluster-keep')).toBeInTheDocument())
 
          const deleteBtn = screen.getByTitle('Delete cluster-keep')
@@ -106,7 +104,7 @@ describe('Clusters Page', () => {
          mockElectronAPI.getClusters.mockResolvedValue(['cluster-fail'])
          mockElectronAPI.deleteCluster.mockResolvedValue({ success: false, error: 'Cannot delete' })
          
-         render(<Clusters />, { wrapper: RouterWrapper })
+         render(<Clusters />)
          await waitFor(() => expect(screen.getByText('cluster-fail')).toBeInTheDocument())
 
          const deleteBtn = screen.getByTitle('Delete cluster-fail')
@@ -124,7 +122,7 @@ describe('Clusters Page', () => {
          mockElectronAPI.getClusters.mockResolvedValue(['cluster-crash'])
          mockElectronAPI.deleteCluster.mockRejectedValue(new Error('Boom'))
          
-         render(<Clusters />, { wrapper: RouterWrapper })
+         render(<Clusters />)
          await waitFor(() => expect(screen.getByText('cluster-crash')).toBeInTheDocument())
 
          const deleteBtn = screen.getByTitle('Delete cluster-crash')
@@ -134,13 +132,13 @@ describe('Clusters Page', () => {
          fireEvent.click(confirmBtn)
 
          await waitFor(() => {
-             expect(toast.error).toHaveBeenCalledWith('An unexpected error occurred.', expect.any(Object))
+             expect(toast.error).toHaveBeenCalledWith('Failed to delete cluster', expect.any(Object))
          })
     })
 
     it('should refresh list on button click', async () => {
          mockElectronAPI.getClusters.mockResolvedValue(['cluster-1'])
-         render(<Clusters />, { wrapper: RouterWrapper })
+         render(<Clusters />)
          await waitFor(() => expect(screen.getByText('cluster-1')).toBeInTheDocument())
 
          const refreshBtn = screen.getByTitle('Refresh List')
@@ -153,7 +151,7 @@ describe('Clusters Page', () => {
 
     it('should navigate to details on click', async () => {
          mockElectronAPI.getClusters.mockResolvedValue(['cluster-nav'])
-         render(<Clusters />, { wrapper: RouterWrapper })
+         render(<Clusters />)
          await waitFor(() => expect(screen.getByText('cluster-nav')).toBeInTheDocument())
 
          const card = screen.getByText('cluster-nav')
@@ -162,7 +160,7 @@ describe('Clusters Page', () => {
 
     it('should open pod viewer modal', async () => {
          mockElectronAPI.getClusters.mockResolvedValue(['cluster-view'])
-         render(<Clusters />, { wrapper: RouterWrapper })
+         render(<Clusters />)
          await waitFor(() => expect(screen.getByText('cluster-view')).toBeInTheDocument())
 
          const viewBtn = screen.getByTitle('View Pods')

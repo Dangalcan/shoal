@@ -14,11 +14,11 @@ export const createMockPod = (overrides: Partial<Pod> = {}): Pod => {
     status: {
       ...mockPod.status,
       ...(overrides.status || {}),
-    } as any,
+    } as Pod['status'],
     spec: {
       ...mockPod.spec,
       ...(overrides.spec || {}),
-    } as any,
+    } as Pod['spec'],
   };
 };
 
@@ -37,11 +37,11 @@ export const createMockDeployment = (
     status: {
       ...mockDeployment.status,
       ...(overrides.status || {}),
-    } as any,
+    } as Deployment['status'],
     spec: {
       ...mockDeployment.spec,
       ...(overrides.spec || {}),
-    } as any,
+    } as Deployment['spec'],
   };
 };
 
@@ -58,6 +58,6 @@ export const createMockNode = (overrides: Partial<Node> = {}): Node => {
     status: {
       ...mockNode.status,
       ...(overrides.status || {}),
-    } as any,
+    } as Node['status'],
   };
 };

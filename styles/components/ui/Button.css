@@ -2,7 +2,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: var(--spacing-sm);
   border-radius: 0.5rem;
   font-weight: 500;
   transition: all 150ms;
@@ -19,13 +19,13 @@
 
 /* Variants */
 .ui-btn-primary {
-  background-color: rgb(37 99 235);
+  background-color: var(--color-primary);
   color: white;
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .ui-btn-primary:hover {
-  background-color: rgb(29 78 216);
+  background-color: var(--color-primary-hover);
 }
 
 .ui-btn-secondary {
@@ -35,8 +35,8 @@
 }
 
 .ui-btn-secondary:hover {
-  border-color: rgb(191 219 254);
-  color: rgb(37 99 235);
+  border-color: var(--color-info);
+  color: var(--color-primary);
 }
 
 .ui-btn-ghost {
@@ -50,12 +50,13 @@
 }
 
 .ui-btn-destructive {
-  background-color: rgb(220 38 38);
+  background-color: var(--color-error);
   color: white;
 }
 
 .ui-btn-destructive:hover {
-  background-color: rgb(185 28 28);
+  background-color: var(--color-error);
+  filter: brightness(0.9);
 }
 
 .ui-btn-outline {
@@ -74,16 +75,19 @@
 .ui-btn-sm {
   padding: 0.375rem 0.75rem;
   font-size: 0.75rem;
+  gap: var(--spacing-xs);
 }
 
 .ui-btn-md {
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
+  gap: var(--spacing-sm);
 }
 
 .ui-btn-lg {
   padding: 0.75rem 1.5rem;
   font-size: 1rem;
+  gap: var(--spacing-md);
 }
 
 .ui-btn-icon {

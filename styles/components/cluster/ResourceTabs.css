@@ -4,12 +4,27 @@
   align-items: center;
   gap: 0.5rem;
   overflow-x: auto;
-  padding: 0.25rem 0;
-  scrollbar-width: none; /* Hide scrollbar for tabs */
+  padding: 0.25rem 0.5rem;
+  padding-bottom: 0.5rem; /* Add space for scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-muted) transparent;
 }
 
 .tabs-container::-webkit-scrollbar {
-  display: none;
+  height: 6px;
+}
+
+.tabs-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tabs-container::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 10px;
+}
+
+.tabs-container::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 
 .tab-button {

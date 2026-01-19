@@ -8,6 +8,26 @@
   --text-secondary: rgb(71 85 105);
   --text-muted: rgb(148 163 184);
   --border-color: rgb(226 232 240);
+
+  /* Semantic Colors */
+  --color-primary: rgb(37 99 235);
+  --color-primary-hover: rgb(29 78 216);
+  --color-success: rgb(22 163 74);
+  --color-success-bg: rgb(240 253 244);
+  --color-error: rgb(220 38 38);
+  --color-error-bg: rgb(254 242 242);
+  --color-warning: rgb(217 119 6);
+  --color-warning-bg: rgb(255 251 235);
+  --color-info: rgb(37 99 235);
+  --color-info-bg: rgb(239 246 255);
+
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+
   --card-bg: white;
   --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -22,6 +42,17 @@
   --text-secondary: rgb(148 163 184);
   --text-muted: rgb(100 116 139);
   --border-color: rgb(51 65 85);
+
+  /* Semantic Colors Dark Mode Overrides */
+  --color-success: rgb(74 222 128);
+  --color-success-bg: rgb(20 83 45 / 0.2);
+  --color-error: rgb(248 113 113);
+  --color-error-bg: rgb(127 29 29 / 0.2);
+  --color-warning: rgb(251 191 36);
+  --color-warning-bg: rgb(120 53 15 / 0.2);
+  --color-info: rgb(96 165 250);
+  --color-info-bg: rgb(30 58 138 / 0.2);
+
   --card-bg: rgb(30 41 59);
   --card-shadow:
     0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);

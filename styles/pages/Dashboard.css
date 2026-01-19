@@ -2,12 +2,12 @@
 
 .dashboard-container {
   min-height: 100%;
-  padding: 2rem;
+  padding: var(--spacing-xl);
   background-color: var(--bg-primary);
 }
 
 .dashboard-header {
-  margin-bottom: 2rem;
+  margin-bottom: var(--spacing-xl);
 }
 
 .dashboard-title {
@@ -25,8 +25,8 @@
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
 }
 
 .stat-card {
@@ -40,10 +40,8 @@
 
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow:
-    0 10px 15px -3px rgb(0 0 0 / 0.1),
-    0 4px 6px -2px rgb(0 0 0 / 0.05);
-  border-color: rgb(191 219 254);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-info);
 }
 
 .stat-card-content {
@@ -101,59 +99,59 @@
 }
 
 .stat-card-icon-blue {
-  color: rgb(37 99 235);
-  background-color: rgb(239 246 255);
+  color: var(--color-primary);
+  background-color: var(--color-info-bg);
 }
 
 [data-theme='dark'] .stat-card-icon-blue {
-  background-color: rgb(30 64 175 / 0.2);
-  color: rgb(147 197 253);
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
 }
 
 .stat-card-icon-green {
-  color: rgb(22 163 74);
-  background-color: rgb(240 253 244);
+  color: var(--color-success);
+  background-color: var(--color-success-bg);
 }
 
 [data-theme='dark'] .stat-card-icon-green {
-  background-color: rgb(20 83 45 / 0.2);
-  color: rgb(134 239 172);
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 .stat-card-icon-purple {
-  color: rgb(147 51 234);
-  background-color: rgb(250 245 255);
+  color: var(--color-info);
+  background-color: var(--color-info-bg);
 }
 
 [data-theme='dark'] .stat-card-icon-purple {
-  background-color: rgb(88 28 135 / 0.2);
-  color: rgb(216 180 254);
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
 }
 
 .stat-card-icon-orange {
-  color: rgb(234 88 12);
-  background-color: rgb(255 247 237);
+  color: var(--color-warning);
+  background-color: var(--color-warning-bg);
 }
 
 [data-theme='dark'] .stat-card-icon-orange {
-  background-color: rgb(124 45 18 / 0.2);
-  color: rgb(253 186 116);
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
 .stat-card-icon-red {
-  color: rgb(220 38 38);
-  background-color: rgb(254 242 242);
+  color: var(--color-error);
+  background-color: var(--color-error-bg);
 }
 
 [data-theme='dark'] .stat-card-icon-red {
-  background-color: rgb(127 29 29 / 0.2);
-  color: rgb(248 113 113);
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
 }
 
 .content-grid {
   display: grid;
   grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 2rem;
+  gap: var(--spacing-xl);
 }
 
 @media (min-width: 1024px) {
@@ -165,7 +163,7 @@
 .quick-actions {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--spacing-sm);
 }
 
 .divider-text {
@@ -198,14 +196,14 @@
 .cluster-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--spacing-sm);
 }
 
 .cluster-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.875rem;
+  padding: var(--spacing-md);
   border-radius: 0.75rem;
   border: 1px solid var(--border-color);
   transition: all 150ms;

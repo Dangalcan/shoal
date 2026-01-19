@@ -270,7 +270,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             fireEvent.click(within(row).getByTitle('Rollout Restart'))
             
             await waitFor(() => {
-                expect(mockToast.success).toHaveBeenCalledWith('Restart triggered successfully')
+                expect(mockToast.success).toHaveBeenCalledWith('Restart triggered successfully', expect.any(Object))
                 expect(mockElectronAPI.getResources).toHaveBeenCalledTimes(3) // Initial + Tab Change + after restart
             })
 
@@ -279,7 +279,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             await waitFor(() => expect(screen.getByText('sts-1')).toBeInTheDocument())
             const stsRow = screen.getByText('sts-1').closest('tr')!
             fireEvent.click(within(stsRow).getByTitle('Rollout Restart'))
-            await waitFor(() => expect(mockToast.success).toHaveBeenCalledWith('Restart triggered successfully'))
+            await waitFor(() => expect(mockToast.success).toHaveBeenCalledWith('Restart triggered successfully', expect.any(Object)))
         })
 
         it('should handle resource deletion with confirmation and success', async () => {
@@ -295,7 +295,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             
             await waitFor(() => {
                 expect(mockElectronAPI.deleteResource).toHaveBeenCalled()
-                expect(mockToast.success).toHaveBeenCalledWith('Resource deleted successfully')
+                expect(mockToast.success).toHaveBeenCalledWith('Resource deleted successfully', expect.any(Object))
             })
 
             // Cancellation path
@@ -366,7 +366,9 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
               mockToast.error.mockReset()
               
               await user.click(within(row).getByTitle('Rollout Restart'))
-              await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith(expect.stringContaining('UNIQUE_ROLLOUT_FAILURE')), { timeout: 3000 })
+              await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith('Failed to restart resource', expect.objectContaining({ 
+                  description: expect.stringContaining('UNIQUE_ROLLOUT_FAILURE') 
+              })), { timeout: 3000 })
         })
     })
 
@@ -621,7 +623,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
              
              fireEvent.click(within(row).getByTitle('Delete Resource'))
              
-             await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith(expect.stringContaining('Delete failed hard')))
+             await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith('Failed to delete resource', expect.any(Object)))
              confirmSpy.mockRestore()
         })
 

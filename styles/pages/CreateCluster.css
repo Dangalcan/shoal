@@ -3,15 +3,15 @@
 .create-cluster-container {
   max-width: 48rem;
   margin: 0 auto;
-  padding: 2.5rem;
+  padding: var(--spacing-xl);
   background-color: var(--bg-primary);
 }
 
 .create-cluster-header {
-  margin-bottom: 2.5rem;
+  margin-bottom: var(--spacing-xl);
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--spacing-lg);
 }
 
 .back-button {
@@ -49,10 +49,10 @@
   border-radius: 1rem;
   box-shadow: var(--card-shadow);
   border: 1px solid var(--border-color);
-  padding: 2.5rem;
+  padding: var(--spacing-xl);
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: var(--spacing-xl);
 }
 
 .form-group-label {
@@ -77,8 +77,8 @@
 }
 
 .form-input:focus {
-  border-color: rgb(59 130 246);
-  box-shadow: 0 0 0 4px rgb(59 130 246 / 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-info-bg);
 }
 
 .provider-grid {
@@ -102,16 +102,16 @@
 }
 
 .provider-button-selected {
-  border-color: rgb(37 99 235);
-  background-color: rgb(239 246 255);
-  color: rgb(29 78 216);
-  box-shadow: 0 4px 6px -1px rgb(37 99 235 / 0.1);
+  border-color: var(--color-primary);
+  background-color: var(--color-info-bg);
+  color: var(--color-primary);
+  box-shadow: 0 4px 6px -1px var(--color-info-bg);
 }
 
 [data-theme='dark'] .provider-button-selected {
-  background-color: rgb(30 64 175 / 0.2);
-  color: rgb(147 197 253);
-  border-color: rgb(59 130 246);
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+  border-color: var(--color-info);
 }
 
 .provider-button-unselected:hover {
@@ -127,11 +127,11 @@
 }
 
 .form-actions {
-  padding-top: 1.5rem;
+  padding-top: var(--spacing-lg);
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 1rem;
+  gap: var(--spacing-md);
   border-top: 1px solid var(--border-color);
 }
 
@@ -150,18 +150,18 @@
 
 .submit-button {
   padding: 0.75rem 2rem;
-  background-color: rgb(37 99 235);
+  background-color: var(--color-primary);
   color: white;
   border-radius: 0.625rem;
   font-weight: 600;
-  box-shadow: 0 10px 15px -3px rgb(37 99 235 / 0.2);
+  box-shadow: 0 10px 15px -3px var(--color-info-bg);
   transition: all 200ms;
 }
 
 .submit-button:hover:not(:disabled) {
-  background-color: rgb(29 78 216);
+  background-color: var(--color-primary-hover);
   transform: translateY(-1px);
-  box-shadow: 0 12px 20px -5px rgb(37 99 235 / 0.3);
+  box-shadow: 0 12px 20px -5px var(--color-info-bg);
 }
 
 .submit-button:disabled {

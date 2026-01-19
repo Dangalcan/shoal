@@ -27,8 +27,8 @@ export const mockToast = {
     );
     return promise;
   }),
-  success: vi.fn(),
-  error: vi.fn(),
-  loading: vi.fn(),
+  success: vi.fn((_m?: any, _o?: any) => 'dummy-id'),
+  error: vi.fn((_m?: any, _o?: any) => 'dummy-id'),
+  loading: vi.fn((_m?: any, _o?: any) => 'dummy-id'),
   dismiss: vi.fn(),
 };

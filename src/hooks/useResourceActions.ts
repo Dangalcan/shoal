@@ -15,7 +15,6 @@ export function useResourceActions(
     async (resName: string, ns: string, type: string) => {
       if (!contextName) return;
 
-      // @ts-ignore
       const promise = window.electron.rolloutRestart({
         contextName,
         resourceType: type,
@@ -23,17 +22,21 @@ export function useResourceActions(
         namespace: ns,
       });
 
-      toast.promise(promise, {
-        loading: `Restarting ${type}/${resName}...`,
-        success: 'Restart triggered successfully',
-        error: (err: any) => `Failed to restart: ${err.error || err.message}`,
-      });
-
+      const toastId = toast.loading(`Restarting ${type}/${resName}...`);
       try {
-        await promise;
-        onActionComplete();
+        const result = await promise;
+        if (result.success) {
+          toast.success('Restart triggered successfully', { id: toastId });
+          onActionComplete();
+        } else {
+          handleError(
+            result.error || 'Failed to restart',
+            'Failed to restart resource',
+            { id: toastId }
+          );
+        }
       } catch (err) {
-        handleError(err, 'Restart failed');
+        handleError(err, 'Failed to restart resource', { id: toastId });
       }
     },
     [contextName, onActionComplete]
@@ -47,7 +50,6 @@ export function useResourceActions(
       )
         return;
 
-      // @ts-ignore
       const promise = window.electron.deleteResource({
         contextName,
         resourceType: type,
@@ -55,20 +57,21 @@ export function useResourceActions(
         namespace: ns,
       });
 
-      toast.promise(promise, {
-        loading: `Deleting ${type}/${resName}...`,
-        success: 'Resource deleted successfully',
-        error: (err: any) =>
-          `Failed to delete resource: ${err.error || err.message}`,
-      });
-
+      const toastId = toast.loading(`Deleting ${type}/${resName}...`);
       try {
         const result = await promise;
         if (result.success) {
+          toast.success('Resource deleted successfully', { id: toastId });
           onActionComplete();
+        } else {
+          handleError(
+            result.error || 'Failed to delete',
+            'Failed to delete resource',
+            { id: toastId }
+          );
         }
       } catch (err) {
-        handleError(err, 'Delete failed');
+        handleError(err, 'Failed to delete resource', { id: toastId });
       }
     },
     [contextName, onActionComplete]

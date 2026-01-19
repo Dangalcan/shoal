@@ -11,6 +11,12 @@ interface TableStateResult {
   getColumnWidth: (id: string, defWidth: number) => number;
   visibleColumns: string[];
   handleColumnToggle: (columnId: string) => void;
+  resizingId: string | null;
+  onResizeStart: (
+    e: React.MouseEvent,
+    id: string,
+    currentWidth: number
+  ) => void;
 }
 
 export function useTableState(
@@ -65,6 +71,42 @@ export function useTableState(
     });
   };
 
+  // Resizing Active State
+  const [resizing, setResizing] = useState<{
+    id: string;
+    startX: number;
+    startWidth: number;
+  } | null>(null);
+
+  const onResizeStart = (
+    e: React.MouseEvent,
+    id: string,
+    currentWidth: number
+  ) => {
+    e.preventDefault();
+    setResizing({ id, startX: e.clientX, startWidth: currentWidth });
+  };
+
+  useEffect(() => {
+    if (!resizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const delta = e.clientX - resizing.startX;
+      const newWidth = Math.max(50, resizing.startWidth + delta);
+      handleResize(resizing.id, newWidth);
+    };
+
+    const handleMouseUp = () => setResizing(null);
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [resizing]);
+
   return {
     sortConfig,
     handleSort,
@@ -73,5 +115,7 @@ export function useTableState(
     getColumnWidth,
     visibleColumns,
     handleColumnToggle,
+    resizingId: resizing?.id || null,
+    onResizeStart,
   };
 }

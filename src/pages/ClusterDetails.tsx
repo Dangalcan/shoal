@@ -1,14 +1,17 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Search, RefreshCw, Loader2, AlertCircle, Settings, X, Check, Box, Trash2 } from 'lucide-react'
+import { ArrowLeft, Search, RefreshCw, Settings, X, Check, Trash2 } from 'lucide-react'
 import { Toaster } from 'sonner'
 import { LogViewerModal } from '../components/modals/LogViewerModal'
 import { DescribeModal } from '../components/modals/DescribeModal'
 import { YamlModal } from '../components/modals/YamlModal'
 import { ConfirmModal } from '../components/modals/ConfirmModal'
-import { ResourceTable } from '../components/resource-tables/ResourceTable'
-import { ResourceRow } from '../components/resource-tables/ResourceRows'
-import { ResourceType, ALL_TABS, COLUMN_DEFINITIONS, RESOURCE_CONFIGS } from '../lib/resource-definitions'
+import { ResourceType, ALL_TABS, RESOURCE_CONFIGS } from '../lib/resource-definitions'
+import { DetailsHeader } from '../components/cluster/DetailsHeader'
+import { ResourceTabs } from '../components/cluster/ResourceTabs'
+import { NamespaceSelector } from '../components/cluster/NamespaceSelector'
+import { SettingsDropdown } from '../components/cluster/SettingsDropdown'
+import { ClusterResourceDisplay } from '../components/cluster/ClusterResourceDisplay'
 import { getSorterForColumn } from '../lib/sorting'
 import { 
     useClusterData, 
@@ -19,10 +22,6 @@ import {
     useLocalStorage,
     useClusters
 } from '../hooks'
-import { DetailsHeader } from '../components/cluster/DetailsHeader'
-import { ResourceTabs } from '../components/cluster/ResourceTabs'
-import { NamespaceSelector } from '../components/cluster/NamespaceSelector'
-import { SettingsDropdown } from '../components/cluster/SettingsDropdown'
 import '../../styles/pages/ClusterDetails.css'
 
 export function ClusterDetails() {
@@ -57,7 +56,9 @@ export function ClusterDetails() {
         handleResize,
         getColumnWidth,
         visibleColumns,
-        handleColumnToggle
+        handleColumnToggle,
+        resizingId,
+        onResizeStart
     } = useTableState(
       RESOURCE_CONFIGS.find(c => c.id === activeTab)?.defaultVisibleColumns || []
     )
@@ -98,32 +99,8 @@ export function ClusterDetails() {
         setIsDeletingCluster(false)
     }
 
-    // Handlers for Resize
-    const [resizing, setResizing] = useState<{ id: string; startX: number; startWidth: number } | null>(null)
-    const onResizeStart = (e: React.MouseEvent, id: string, currentWidth: number) => {
-        e.preventDefault()
-        setResizing({ id, startX: e.clientX, startWidth: currentWidth })
-    }
-
-    // Handle global mouse events for resizing
-    useEffect(() => {
-        if (!resizing) return
-        const handleMouseMove = (e: MouseEvent) => {
-            const delta = e.clientX - resizing.startX
-            const newWidth = Math.max(50, resizing.startWidth + delta)
-            handleResize(resizing.id, newWidth)
-        }
-        const handleMouseUp = () => setResizing(null)
-        window.addEventListener('mousemove', handleMouseMove)
-        window.addEventListener('mouseup', handleMouseUp)
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove)
-            window.removeEventListener('mouseup', handleMouseUp)
-        }
-    }, [resizing, handleResize])
-
     return (
-        <div className={`cluster-details-container ${resizing ? 'cluster-details-container-no-select' : ''}`}>
+        <div className={`cluster-details-container ${resizingId ? 'cluster-details-container-no-select' : ''}`}>
             <header className="cluster-details-header">
                 <DetailsHeader name={name || ''} />
 
@@ -168,50 +145,26 @@ export function ClusterDetails() {
             </header>
 
             <main className="cluster-details-main">
-                {loading && items.length === 0 ? (
-                    <div className="loading-state">
-                        <Loader2 className="loading-spinner" size={40} />
-                        <p className="loading-text">Loading {activeTab}...</p>
-                    </div>
-                ) : error ? (
-                    <div className="error-state">
-                        <AlertCircle size={48} className="error-icon" />
-                        <h3 className="error-title">Error Loading Resources</h3>
-                        <p className="error-message">{error}</p>
-                        <button onClick={fetchData} className="error-retry-button">Try Again</button>
-                    </div>
-                ) : items.length > 0 ? (
-                    <ResourceTable
-                        columns={COLUMN_DEFINITIONS[activeTab]}
-                        visibleColumns={visibleColumns}
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                        getColumnWidth={getColumnWidth}
-                        onResize={onResizeStart}
-                        resizingId={resizing?.id || null}
-                    >
-                        {sortedItems.map((item, idx) => (
-                            <ResourceRow
-                                key={`${item.metadata.uid || idx}`}
-                                item={item}
-                                activeTab={activeTab}
-                                visibleColumns={visibleColumns}
-                                getColumnWidth={getColumnWidth}
-                                onDescribe={modals.openDescribe}
-                                onYaml={modals.openYaml}
-                                onRestart={(item) => handleRestart(item.metadata.name, item.metadata.namespace || '', activeTab)}
-                                onLogs={modals.openLogs}
-                                onDelete={(item) => handleDelete(item.metadata.name, item.metadata.namespace || '', activeTab)}
-                            />
-                        ))}
-                    </ResourceTable>
-                ) : (
-                    <div className="empty-state">
-                        <Box size={48} className="empty-icon" />
-                        <p className="empty-title">No {activeTab} found</p>
-                        <p className="empty-subtitle">In namespace: {selectedNamespace}</p>
-                    </div>
-                )}
+                <ClusterResourceDisplay
+                    loading={loading}
+                    error={error}
+                    items={items}
+                    sortedItems={sortedItems}
+                    activeTab={activeTab}
+                    visibleColumns={visibleColumns}
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                    getColumnWidth={getColumnWidth}
+                    onResize={onResizeStart}
+                    resizingId={resizingId}
+                    onDescribe={modals.openDescribe}
+                    onYaml={modals.openYaml}
+                    onRestart={(item) => handleRestart(item.metadata.name, item.metadata.namespace || '', activeTab)}
+                    onLogs={modals.openLogs}
+                    onDelete={(item) => handleDelete(item.metadata.name, item.metadata.namespace || '', activeTab)}
+                    onRetry={fetchData}
+                    selectedNamespace={selectedNamespace}
+                />
             </main>
 
             <LogViewerModal
