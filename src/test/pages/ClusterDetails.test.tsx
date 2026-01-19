@@ -104,7 +104,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
 
     it('should close settings dropdown with X button', async () => {
         renderPage()
-        fireEvent.click(screen.getByTitle('Visible Resources'))
+        fireEvent.click(screen.getByTitle('Display Settings'))
         expect(screen.getByText('Display Settings')).toBeInTheDocument()
         fireEvent.click(screen.getByTitle('Close Settings'))
         await waitFor(() => expect(screen.queryByText('Display Settings')).not.toBeInTheDocument())
@@ -112,7 +112,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
 
     it('should toggle resource visibility', async () => {
         renderPage()
-        fireEvent.click(screen.getByTitle('Visible Resources'))
+        fireEvent.click(screen.getByTitle('Display Settings'))
         const drop = screen.getByText('Display Settings').closest('.settings-dropdown')!
         const tabs = screen.getByRole('banner').querySelector('.tabs-container')!
         
@@ -127,7 +127,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
 
     it('should handle "Hide last column" protection logic', async () => {
         renderPage()
-        fireEvent.click(screen.getByTitle('Visible Resources'))
+        fireEvent.click(screen.getByTitle('Display Settings'))
         
         await waitFor(() => expect(screen.getByText('Display Settings')).toBeInTheDocument())
         
@@ -179,14 +179,14 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             renderPage()
             await waitFor(() => expect(screen.getByText('pod-1')).toBeInTheDocument())
             
-            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(screen.getByTitle('Display Settings'))
             const drop = screen.getByText('Display Settings').closest('.settings-dropdown')!
             const cols = ['IP', 'Node', 'Nominated Node', 'Readiness Gates', 'Containers', 'Images']
             cols.forEach(c => {
                  const btn = within(drop as HTMLElement).getByText(c).closest('button')!
                  fireEvent.click(btn)
             })
-            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(screen.getByTitle('Display Settings'))
 
             await waitFor(() => {
                 const table = screen.getByRole('table')
@@ -218,10 +218,10 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             await waitFor(() => expect(screen.getByText('svc-1')).toBeInTheDocument())
             
             // Toggle Selector column
-            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(screen.getByTitle('Display Settings'))
             const drop = screen.getByText('Display Settings').closest('.settings-dropdown')!
             fireEvent.click(within(drop as HTMLElement).getByText('Selector').closest('button')!)
-            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(screen.getByTitle('Display Settings'))
 
             expect(screen.getByText('LoadBalancer')).toBeInTheDocument()
             expect(screen.getByText('10.96.0.1')).toBeInTheDocument()
@@ -411,36 +411,36 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             fireEvent.click(within(thead).getByText('Roles'))
 
             // Sort by Internal IP
-            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(screen.getByTitle('Display Settings'))
             fireEvent.click(within(screen.getByText('Display Settings').closest('.settings-dropdown')!).getByText('Internal IP').closest('button')!)
-            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(screen.getByTitle('Display Settings'))
             fireEvent.click(within(thead).getByText('Internal IP'))
 
             // Sort by External IP (Nodes)
-            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(screen.getByTitle('Display Settings'))
             fireEvent.click(within(screen.getByText('Display Settings').closest('.settings-dropdown')!).getByText('External IP').closest('button')!)
-            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(screen.getByTitle('Display Settings'))
             fireEvent.click(within(thead).getByText('External IP'))
 
             // Sort by status (Nodes)
             fireEvent.click(within(thead).getByText('Status'))
 
             // Sort by OS Image
-            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(screen.getByTitle('Display Settings'))
             fireEvent.click(within(screen.getByText('Display Settings').closest('.settings-dropdown')!).getByText('OS Image').closest('button')!)
-            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(screen.getByTitle('Display Settings'))
             fireEvent.click(within(thead).getByText('OS Image'))
 
             // Sort by Kernel Version
-            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(screen.getByTitle('Display Settings'))
             fireEvent.click(within(screen.getByText('Display Settings').closest('.settings-dropdown')!).getByText('Kernel Version').closest('button')!)
-            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(screen.getByTitle('Display Settings'))
             fireEvent.click(within(thead).getByText('Kernel Version'))
 
              // Sort by Container Runtime
-             fireEvent.click(screen.getByTitle('Visible Resources'))
+             fireEvent.click(screen.getByTitle('Display Settings'))
              fireEvent.click(within(screen.getByText('Display Settings').closest('.settings-dropdown')!).getByText('Container Runtime').closest('button')!)
-             fireEvent.click(screen.getByTitle('Visible Resources'))
+             fireEvent.click(screen.getByTitle('Display Settings'))
              fireEvent.click(within(thead).getByText('Container Runtime'))
              
             // Switch to Pods for more sort branches
@@ -455,15 +455,15 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             fireEvent.click(within(podsThead).getByText('Status'))
 
             // Sort by IP
-            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(screen.getByTitle('Display Settings'))
             fireEvent.click(within(screen.getByText('Display Settings').closest('.settings-dropdown')!).getByText('IP').closest('button')!)
-            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(screen.getByTitle('Display Settings'))
             fireEvent.click(within(podsThead).getByText('IP'))
 
              // Sort by Node
-             fireEvent.click(screen.getByTitle('Visible Resources'))
+             fireEvent.click(screen.getByTitle('Display Settings'))
              fireEvent.click(within(screen.getByText('Display Settings').closest('.settings-dropdown')!).getByText('Node').closest('button')!)
-             fireEvent.click(screen.getByTitle('Visible Resources'))
+             fireEvent.click(screen.getByTitle('Display Settings'))
              fireEvent.click(within(podsThead).getByText('Node'))
 
             // Exhaustive sorting branches
@@ -474,10 +474,10 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             await waitFor(() => expect(screen.getByText('dep-1')).toBeInTheDocument())
             
             // Toggle Available column
-            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(screen.getByTitle('Display Settings'))
             const deployDrop = screen.getByText('Display Settings').closest('.settings-dropdown')! as HTMLElement
             fireEvent.click(within(deployDrop).getByText('Available').closest('button')!)
-            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(screen.getByTitle('Display Settings'))
 
             const depThead = screen.getByRole('table').querySelector('thead')!
             fireEvent.click(within(depThead).getByText('Ready'))
@@ -486,11 +486,11 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             
             // Additional Pod fields
             fireEvent.click(within(tabs as HTMLElement).getByText('Pods'))
-            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(screen.getByTitle('Display Settings'))
             const podDrop = screen.getByText('Display Settings').closest('.settings-dropdown')! as HTMLElement
             const extraCols = ['Containers', 'Images', 'Selector']
             extraCols.forEach(c => fireEvent.click(within(podDrop).getByText(c).closest('button')!))
-            fireEvent.click(screen.getByTitle('Visible Resources'))
+            fireEvent.click(screen.getByTitle('Display Settings'))
             
             await waitFor(() => {
                 const thead = screen.getByRole('table').querySelector('thead')!
@@ -590,7 +590,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
              renderPage()
              const tabs = screen.getByRole('banner').querySelector('.tabs-container')!
              // Default active is Pods. Let's hide Pods.
-             fireEvent.click(screen.getByTitle('Visible Resources'))
+             fireEvent.click(screen.getByTitle('Display Settings'))
              const drop = screen.getByText('Display Settings').closest('.settings-dropdown')!
              
              fireEvent.click(within(drop as HTMLElement).getByText('Pods').closest('button')!)
@@ -658,14 +658,14 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
              await waitFor(() => expect(screen.getByText('node-empty')).toBeInTheDocument())
              
              // Enable all optional columns first
-             fireEvent.click(screen.getByTitle('Visible Resources'))
+             fireEvent.click(screen.getByTitle('Display Settings'))
              const drop = screen.getByText('Display Settings').closest('.settings-dropdown')!
              const optionalCols = ['OS Image', 'Kernel Version', 'Container Runtime']
              for (const c of optionalCols) {
                  const btn = within(drop as HTMLElement).getByText(c).closest('button')
                  if (btn) fireEvent.click(btn)
              }
-             fireEvent.click(screen.getByTitle('Visible Resources'))
+             fireEvent.click(screen.getByTitle('Display Settings'))
 
              const thead = screen.getByRole('table').querySelector('thead')!
              
@@ -676,11 +676,11 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
              }
              
              // Toggle and sort by IPs which are missing in sparse node
-             fireEvent.click(screen.getByTitle('Visible Resources'))
+             fireEvent.click(screen.getByTitle('Display Settings'))
              const dropSort = screen.getByText('Display Settings').closest('.settings-dropdown')!
              fireEvent.click(within(dropSort as HTMLElement).getByText('External IP').closest('button')!)
              fireEvent.click(within(dropSort as HTMLElement).getByText('Internal IP').closest('button')!)
-             fireEvent.click(screen.getByTitle('Visible Resources'))
+             fireEvent.click(screen.getByTitle('Display Settings'))
              
              fireEvent.click(within(thead).getByText('External IP'))
              fireEvent.click(within(thead).getByText('Internal IP'))

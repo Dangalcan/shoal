@@ -21,7 +21,7 @@ describe('SettingsDropdown', () => {
 
   it('renders the settings button', () => {
     render(<SettingsDropdown {...defaultProps} />);
-    expect(screen.getByTitle('Visible Resources')).toBeInTheDocument();
+    expect(screen.getByTitle('Display Settings')).toBeInTheDocument();
   });
 
   it('does not show the dropdown when isOpen is false', () => {
@@ -31,14 +31,14 @@ describe('SettingsDropdown', () => {
 
   it('shows the dropdown when isOpen is true', () => {
     render(<SettingsDropdown {...defaultProps} isOpen={true} />);
-    expect(screen.getByText('Display Settings')).toBeInTheDocument();
+    expect(screen.getAllByText('Display Settings')[0]).toBeInTheDocument();
     expect(screen.getByText('Resources')).toBeInTheDocument();
   });
 
   it('calls onToggle when settings button is clicked', () => {
     const onToggle = vi.fn();
     render(<SettingsDropdown {...defaultProps} onToggle={onToggle} />);
-    fireEvent.click(screen.getByTitle('Visible Resources'));
+    fireEvent.click(screen.getByTitle('Display Settings'));
     expect(onToggle).toHaveBeenCalled();
   });
 

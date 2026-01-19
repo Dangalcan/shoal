@@ -4,6 +4,7 @@ import { BaseModal } from './BaseModal'
 import { Button } from '../ui/Button'
 import { cn } from '../../lib/utils'
 import { handleError } from '../../lib/error-handler'
+import '../../../styles/components/modals/LogViewerModal.css';
 
 interface LogViewerModalProps {
     isOpen: boolean
@@ -80,7 +81,7 @@ export function LogViewerModal({ isOpen, onClose, clusterName, podName, namespac
     const headerActions = (
         <div className="log-header-actions">
             <div className="log-search-container">
-                <Search size={14} className="search-icon" />
+                <Search size={14} className="log-search-icon" />
                 <input
                     type="text"
                     placeholder="Filter logs..."

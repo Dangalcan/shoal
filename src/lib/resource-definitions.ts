@@ -61,6 +61,15 @@ export type ResourceType =
   | 'configmap'
   | 'nodes';
 
+export type ResourceCategory =
+  | 'Workloads'
+  | 'Networking'
+  | 'Storage'
+  | 'Configuration'
+  | 'Access Control'
+  | 'Cluster'
+  | 'Advanced';
+
 export interface ColumnDef {
   id: string;
   label: string;
@@ -70,6 +79,7 @@ export interface ColumnDef {
 export interface ResourceConfig {
   id: ResourceType;
   label: string;
+  category: ResourceCategory;
   icon: LucideIcon;
   columns: ColumnDef[];
   defaultVisibleColumns: string[];
@@ -80,6 +90,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'pods',
     label: 'Pods',
+    category: 'Workloads',
     icon: Box,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -101,6 +112,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'deployments',
     label: 'Deployments',
+    category: 'Workloads',
     icon: Activity,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -119,6 +131,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'replicasets',
     label: 'ReplicaSets',
+    category: 'Workloads',
     icon: Layers,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -144,6 +157,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'daemonsets',
     label: 'DaemonSets',
+    category: 'Workloads',
     icon: Box,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -174,6 +188,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'endpointslices',
     label: 'EndpointSlices',
+    category: 'Networking',
     icon: Activity,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -197,6 +212,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'jobs',
     label: 'Jobs',
+    category: 'Workloads',
     icon: Clock,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -222,6 +238,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'cronjobs',
     label: 'CronJobs',
+    category: 'Workloads',
     icon: Clock,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -249,6 +266,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'services',
     label: 'Services',
+    category: 'Networking',
     icon: Shield,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -274,6 +292,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'statefulsets',
     label: 'StatefulSets',
+    category: 'Workloads',
     icon: List,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -289,6 +308,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'hpa',
     label: 'HPAs',
+    category: 'Advanced',
     icon: Gauge,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -315,6 +335,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'persistentvolume',
     label: 'PVs',
+    category: 'Storage',
     icon: Database,
     columns: [
       { id: 'name', label: 'Name', minWidth: 200 },
@@ -343,6 +364,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'persistentvolumeclaim',
     label: 'PVCs',
+    category: 'Storage',
     icon: Database,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -375,6 +397,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'ingress',
     label: 'Ingresses',
+    category: 'Networking',
     icon: Globe,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -399,6 +422,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'ingressclass',
     label: 'IngressClasses',
+    category: 'Networking',
     icon: Globe,
     columns: [
       { id: 'name', label: 'Name', minWidth: 200 },
@@ -412,6 +436,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'networkpolicy',
     label: 'NetworkPolicies',
+    category: 'Networking',
     icon: Shield,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -426,6 +451,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'secrets',
     label: 'Secrets',
+    category: 'Configuration',
     icon: Lock,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -440,6 +466,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'serviceaccounts',
     label: 'ServiceAccounts',
+    category: 'Configuration',
     icon: Lock,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -453,6 +480,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'storageclass',
     label: 'StorageClasses',
+    category: 'Storage',
     icon: Database,
     columns: [
       { id: 'name', label: 'Name', minWidth: 200 },
@@ -475,6 +503,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'volumesnapshot',
     label: 'VolumeSnapshots',
+    category: 'Storage',
     icon: Database,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -499,6 +528,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'volumesnapshotclass',
     label: 'VolumeSnapshotClasses',
+    category: 'Storage',
     icon: Database,
     columns: [
       { id: 'name', label: 'Name', minWidth: 200 },
@@ -512,6 +542,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'poddisruptionbudget',
     label: 'PDBs',
+    category: 'Advanced',
     icon: Shield,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -538,6 +569,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'limitrange',
     label: 'LimitRanges',
+    category: 'Advanced',
     icon: Activity,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -550,6 +582,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'resourcequota',
     label: 'ResourceQuotas',
+    category: 'Advanced',
     icon: Activity,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -562,6 +595,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'priorityclass',
     label: 'PriorityClasses',
+    category: 'Advanced',
     icon: Gauge,
     columns: [
       { id: 'name', label: 'Name', minWidth: 200 },
@@ -582,6 +616,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'runtimeclass',
     label: 'RuntimeClasses',
+    category: 'Advanced',
     icon: Activity,
     columns: [
       { id: 'name', label: 'Name', minWidth: 200 },
@@ -594,6 +629,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'lease',
     label: 'Leases',
+    category: 'Cluster',
     icon: Clock,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -608,6 +644,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'customresourcedefinition',
     label: 'CRDs',
+    category: 'Advanced',
     icon: Layers,
     columns: [
       { id: 'name', label: 'Name', minWidth: 300 },
@@ -619,6 +656,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'mutatingwebhookconfiguration',
     label: 'MutatingWebhooks',
+    category: 'Advanced',
     icon: Lock,
     columns: [
       { id: 'name', label: 'Name', minWidth: 250 },
@@ -631,6 +669,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'validatingwebhookconfiguration',
     label: 'ValidatingWebhooks',
+    category: 'Advanced',
     icon: Lock,
     columns: [
       { id: 'name', label: 'Name', minWidth: 250 },
@@ -643,6 +682,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'apiservice',
     label: 'APIServices',
+    category: 'Cluster',
     icon: Globe,
     columns: [
       { id: 'name', label: 'Name', minWidth: 250 },
@@ -656,6 +696,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'replicationcontroller',
     label: 'RCs',
+    category: 'Workloads',
     icon: Layers,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -678,6 +719,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'endpoints',
     label: 'Endpoints',
+    category: 'Networking',
     icon: Activity,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -691,6 +733,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'events',
     label: 'Events',
+    category: 'Cluster',
     icon: Clock,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -713,6 +756,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'bindings',
     label: 'Bindings',
+    category: 'Advanced',
     icon: Lock,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -725,6 +769,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'controllerrevisions',
     label: 'ControllerRevisions',
+    category: 'Advanced',
     icon: Clock,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -745,6 +790,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'certificatesigningrequest',
     label: 'CSRs',
+    category: 'Advanced',
     icon: Lock,
     columns: [
       { id: 'name', label: 'Name', minWidth: 200 },
@@ -765,6 +811,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'flowschema',
     label: 'FlowSchemas',
+    category: 'Advanced',
     icon: Globe,
     columns: [
       { id: 'name', label: 'Name', minWidth: 200 },
@@ -778,6 +825,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'prioritylevelconfiguration',
     label: 'PriorityLevelConfigs',
+    category: 'Advanced',
     icon: Gauge,
     columns: [
       { id: 'name', label: 'Name', minWidth: 200 },
@@ -790,6 +838,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'role',
     label: 'Roles',
+    category: 'Access Control',
     icon: Shield,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -802,6 +851,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'clusterrole',
     label: 'ClusterRoles',
+    category: 'Access Control',
     icon: Shield,
     columns: [
       { id: 'name', label: 'Name', minWidth: 200 },
@@ -813,6 +863,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'rolebinding',
     label: 'RoleBindings',
+    category: 'Access Control',
     icon: Lock,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -826,6 +877,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'clusterrolebinding',
     label: 'ClusterRoleBindings',
+    category: 'Access Control',
     icon: Lock,
     columns: [
       { id: 'name', label: 'Name', minWidth: 200 },
@@ -838,6 +890,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'configmap',
     label: 'ConfigMaps',
+    category: 'Configuration',
     icon: FileText,
     columns: [
       { id: 'namespace', label: 'Namespace', minWidth: 120 },
@@ -851,6 +904,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'nodes',
     label: 'Nodes',
+    category: 'Cluster',
     icon: Server,
     columns: [
       { id: 'name', label: 'Name', minWidth: 200 },
@@ -870,6 +924,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
   {
     id: 'podsecurityadmission',
     label: 'PodSecurityAdmission',
+    category: 'Advanced',
     icon: Shield,
     columns: [
       { id: 'name', label: 'Name', minWidth: 200 },
@@ -887,6 +942,7 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
 export const ALL_TABS = RESOURCE_CONFIGS.map((config) => ({
   id: config.id,
   label: config.label,
+  category: config.category,
   icon: config.icon,
 }));
 

@@ -46,7 +46,6 @@
 .sidebar-link-active {
   background-color: var(--color-primary);
   color: white;
-  box-shadow: 0 10px 15px -3px var(--color-info-bg);
 }
 
 .sidebar-link-inactive {
