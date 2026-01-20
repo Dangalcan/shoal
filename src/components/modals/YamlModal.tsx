@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { Copy, Check, Loader2, Code } from 'lucide-react'
 import { BaseModal } from './BaseModal'
 import { handleError } from '../../lib/error-handler'
+import { electronService } from '../../services/electronService'
 
 interface YamlModalProps {
     isOpen: boolean
@@ -29,7 +30,7 @@ export function YamlModal({ isOpen, onClose, clusterName, resourceName, resource
         setLoading(true)
         setError(null)
         try {
-            const result = await window.electron.getResourceYaml({
+            const result = await electronService.getResourceYaml({
                 contextName: clusterName,
                 resourceType,
                 resourceName,

@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { handleAsyncOperation } from '../lib/async-operation-handler';
+import { electronService } from '../services/electronService';
 
 interface UseResourceActionsResult {
   handleRestart: (resName: string, ns: string, type: string) => Promise<void>;
@@ -16,7 +17,7 @@ export function useResourceActions(
 
       await handleAsyncOperation(
         () =>
-          window.electron.rolloutRestart({
+          electronService.rolloutRestart({
             contextName,
             resourceType: type,
             resourceName: resName,
@@ -43,7 +44,7 @@ export function useResourceActions(
 
       await handleAsyncOperation(
         () =>
-          window.electron.deleteResource({
+          electronService.deleteResource({
             contextName,
             resourceType: type,
             resourceName: resName,

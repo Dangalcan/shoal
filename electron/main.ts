@@ -31,182 +31,209 @@ function createWindow() {
     },
   });
 
+  // Helper to wrap IPC handlers with logging and error handling
+  const wrapIpcHandler = <T>(
+    name: string,
+    handler: (event: any, ...args: any[]) => Promise<T>
+  ) => {
+    return async (event: any, ...args: any[]) => {
+      const timestamp = new Date().toISOString();
+      console.log(
+        `[${timestamp}] [IPC] [${name}] REQUEST:`,
+        JSON.stringify(args)
+      );
+
+      try {
+        const result = await handler(event, ...args);
+        // Ensure result follows Result<T> structure
+        const formattedResult =
+          result && typeof result === 'object' && 'success' in result
+            ? result
+            : { success: true, data: result };
+
+        console.log(`[${timestamp}] [IPC] [${name}] SUCCESS`);
+        return formattedResult;
+      } catch (error: any) {
+        console.error(`[${timestamp}] [IPC] [${name}] ERROR:`, error.message);
+        return { success: false, error: error.message || 'Unknown error' };
+      }
+    };
+  };
+
   // IPC Handlers
-  ipcMain.handle('run-command', async (_event, command) => {
-    try {
+  ipcMain.handle(
+    'run-command',
+    wrapIpcHandler('run-command', async (_event, command) => {
       const { stdout, stderr } = await execPromise(command as string);
-      return { success: true, data: { stdout, stderr } };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
-  });
+      return { stdout, stderr };
+    })
+  );
 
-  ipcMain.handle('check-tool', async (_event, tool) => {
-    try {
+  ipcMain.handle(
+    'check-tool',
+    wrapIpcHandler('check-tool', async (_event, tool) => {
       await execPromise(`${tool} --version`);
-      return { success: true, data: true };
-    } catch {
-      return { success: false, error: `${tool} check failed` };
-    }
-  });
+      return true;
+    })
+  );
 
-  ipcMain.handle('create-cluster', async (_event, { name, provider }) => {
-    return await clusterManagementService.createCluster(name, provider);
-  });
+  ipcMain.handle(
+    'create-cluster',
+    wrapIpcHandler('create-cluster', async (_event, { name, provider }) => {
+      return await clusterManagementService.createCluster(name, provider);
+    })
+  );
 
-  ipcMain.handle('get-clusters', async () => {
-    try {
+  ipcMain.handle(
+    'get-clusters',
+    wrapIpcHandler('get-clusters', async () => {
       const { stdout } = await execPromise(
         'kubectl config get-contexts -o name'
       );
-      const clusters = stdout.trim().split('\n').filter(Boolean);
-      return { success: true, data: clusters };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message || 'Failed to get clusters',
-      };
-    }
-  });
+      return stdout.trim().split('\n').filter(Boolean);
+    })
+  );
 
-  ipcMain.handle('get-current-context', async () => {
-    try {
+  ipcMain.handle(
+    'get-current-context',
+    wrapIpcHandler('get-current-context', async () => {
       const { stdout } = await execPromise('kubectl config current-context');
-      return { success: true, data: stdout.trim() };
-    } catch (error: any) {
-      return { success: false, error: error.message || 'No context found' };
-    }
-  });
+      return stdout.trim();
+    })
+  );
 
-  ipcMain.handle('get-pods', async (_event, contextName) => {
-    try {
-      // Use -A for all namespaces and -o json for easier parsing
+  ipcMain.handle(
+    'get-pods',
+    wrapIpcHandler('get-pods', async (_event, contextName) => {
       const { stdout } = await execPromise(
         `kubectl get pods --context ${contextName} -A -o json`
       );
       const data = JSON.parse(stdout);
-      return { success: true, data: data.items || [] };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
-  });
+      return data.items || [];
+    })
+  );
 
-  ipcMain.handle('get-namespaces', async (_event, contextName) => {
-    try {
+  ipcMain.handle(
+    'get-namespaces',
+    wrapIpcHandler('get-namespaces', async (_event, contextName) => {
       const { stdout } = await execPromise(
         `kubectl get namespaces --context ${contextName} -o name`
       );
-      const namespaces = stdout
+      return stdout
         .trim()
         .split('\n')
         .map((ns) => ns.replace('namespace/', ''))
         .filter(Boolean);
-      return { success: true, data: namespaces };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
-  });
+    })
+  );
 
   ipcMain.handle(
     'get-resources',
-    async (_event, { contextName, resourceType, namespace }) => {
-      try {
+    wrapIpcHandler(
+      'get-resources',
+      async (_event, { contextName, resourceType, namespace }) => {
         const nsFlag = namespace === 'all' ? '-A' : `-n ${namespace}`;
         const { stdout } = await execPromise(
           `kubectl get ${resourceType} --context ${contextName} ${nsFlag} -o json`
         );
         const data = JSON.parse(stdout);
-        return { success: true, data: data.items || [] };
-      } catch (error: any) {
-        return { success: false, error: error.message };
+        return data.items || [];
       }
-    }
+    )
   );
 
   ipcMain.handle(
     'get-logs',
-    async (_event, { contextName, podName, namespace, tailLines }) => {
-      try {
+    wrapIpcHandler(
+      'get-logs',
+      async (_event, { contextName, podName, namespace, tailLines }) => {
         const nsFlag =
           !namespace || namespace === 'all' ? '' : `-n ${namespace}`;
         const tail = tailLines || 200;
         const { stdout } = await execPromise(
           `kubectl logs ${podName} --context ${contextName} ${nsFlag} --tail=${tail}`
         );
-        return { success: true, data: stdout };
-      } catch (error: any) {
-        return { success: false, error: error.message };
+        return stdout;
       }
-    }
+    )
   );
 
   ipcMain.handle(
     'describe-resource',
-    async (_event, { contextName, resourceType, resourceName, namespace }) => {
-      try {
+    wrapIpcHandler(
+      'describe-resource',
+      async (
+        _event,
+        { contextName, resourceType, resourceName, namespace }
+      ) => {
         const nsFlag =
           !namespace || namespace === 'all' ? '' : `-n ${namespace}`;
         const { stdout } = await execPromise(
           `kubectl describe ${resourceType} ${resourceName} --context ${contextName} ${nsFlag}`
         );
-        return { success: true, data: stdout };
-      } catch (error: any) {
-        return { success: false, error: error.message };
+        return stdout;
       }
-    }
+    )
   );
 
   ipcMain.handle(
     'get-resource-yaml',
-    async (_event, { contextName, resourceType, resourceName, namespace }) => {
-      try {
+    wrapIpcHandler(
+      'get-resource-yaml',
+      async (
+        _event,
+        { contextName, resourceType, resourceName, namespace }
+      ) => {
         const nsFlag =
           !namespace || namespace === 'all' ? '' : `-n ${namespace}`;
         const { stdout } = await execPromise(
           `kubectl get ${resourceType} ${resourceName} --context ${contextName} ${nsFlag} -o yaml`
         );
-        return { success: true, data: stdout };
-      } catch (error: any) {
-        return { success: false, error: error.message };
+        return stdout;
       }
-    }
+    )
   );
 
   ipcMain.handle(
     'rollout-restart',
-    async (_event, { contextName, resourceType, resourceName, namespace }) => {
-      try {
+    wrapIpcHandler(
+      'rollout-restart',
+      async (
+        _event,
+        { contextName, resourceType, resourceName, namespace }
+      ) => {
         const nsFlag =
           !namespace || namespace === 'all' ? '' : `-n ${namespace}`;
         await execPromise(
           `kubectl rollout restart ${resourceType}/${resourceName} --context ${contextName} ${nsFlag}`
         );
-        return { success: true };
-      } catch (error: any) {
-        return { success: false, error: error.message };
       }
-    }
+    )
   );
 
   ipcMain.handle(
     'delete-resource',
-    async (_event, { contextName, resourceType, resourceName, namespace }) => {
-      try {
+    wrapIpcHandler(
+      'delete-resource',
+      async (
+        _event,
+        { contextName, resourceType, resourceName, namespace }
+      ) => {
         const nsFlag =
           namespace === 'all' || !namespace ? '' : `-n ${namespace}`;
         await execPromise(
           `kubectl delete ${resourceType} ${resourceName} --context ${contextName} ${nsFlag}`
         );
-        return { success: true };
-      } catch (error: any) {
-        return { success: false, error: error.message };
       }
-    }
+    )
   );
 
-  ipcMain.handle('delete-cluster', async (_event, name) => {
-    return await clusterManagementService.deleteCluster(name);
-  });
+  ipcMain.handle(
+    'delete-cluster',
+    wrapIpcHandler('delete-cluster', async (_event, name) => {
+      return await clusterManagementService.deleteCluster(name);
+    })
+  );
 
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);

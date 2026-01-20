@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useAsyncData } from './useAsyncData';
+import { electronService } from '../services/electronService';
 
 interface UseNamespacesResult {
   namespaces: string[];
@@ -17,7 +18,7 @@ export function useNamespaces(
   const fetchFn = useCallback(async () => {
     if (!contextName) return [];
 
-    const result = await window.electron.getNamespaces(contextName);
+    const result = await electronService.getNamespaces(contextName);
 
     if (result.success) {
       return ['all', ...result.data];

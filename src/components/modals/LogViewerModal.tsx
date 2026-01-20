@@ -4,6 +4,7 @@ import { BaseModal } from './BaseModal'
 import { Button } from '../ui/Button'
 import { cn } from '../../lib/utils'
 import { handleError } from '../../lib/error-handler'
+import { electronService } from '../../services/electronService'
 import '../../../styles/components/modals/LogViewerModal.css';
 
 interface LogViewerModalProps {
@@ -29,7 +30,7 @@ export function LogViewerModal({ isOpen, onClose, clusterName, podName, namespac
         if (!isAuto) setLoading(true)
         setError(null)
         try {
-            const result = await window.electron.getLogs({
+            const result = await electronService.getLogs({
                 contextName: clusterName,
                 podName,
                 namespace,

@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import type { K8sResource } from '../types/k8s-types';
 import type { ResourceType } from '../lib/resource-definitions';
 import { useAsyncData } from './useAsyncData';
+import { electronService } from '../services/electronService';
 
 interface UseClusterDataResult {
   items: K8sResource[];
@@ -18,7 +19,7 @@ export function useClusterData(
   const fetchFn = useCallback(async () => {
     if (!contextName) return [];
 
-    const result = await window.electron.getResources({
+    const result = await electronService.getResources({
       contextName,
       resourceType,
       namespace,

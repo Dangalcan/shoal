@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Box, Loader2, AlertCircle } from 'lucide-react'
 import { BaseModal } from './BaseModal'
 import { handleError } from '../../lib/error-handler'
+import { electronService } from '../../services/electronService'
 
 interface PodViewerModalProps {
     isOpen: boolean
@@ -18,7 +19,7 @@ export function PodViewerModal({ isOpen, onClose, clusterName }: PodViewerModalP
         if (isOpen && clusterName) {
             setLoading(true)
             setError(null)
-            window.electron.getPods(clusterName)
+            electronService.getPods(clusterName)
                 .then(result => {
                     if (result.success) {
                         setPods(result.data || [])

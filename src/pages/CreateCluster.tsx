@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Server, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { handleError } from '../lib/error-handler'
+import { electronService } from '../services/electronService'
 import '../../styles/pages/CreateCluster.css'
 
 export function CreateCluster() {
@@ -17,7 +18,7 @@ export function CreateCluster() {
         if (!name) return
 
         setIsCreating(true)
-        const promise = window.electron.createCluster(name, provider)
+        const promise = electronService.createCluster(name, provider)
 
         toast.promise(promise, {
             loading: `Creating cluster "${name}"...`,
