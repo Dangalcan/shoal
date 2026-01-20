@@ -129,9 +129,10 @@ describe('CreateCluster Page', () => {
         expect(screen.getByRole('button', { name: /creating.../i })).toBeDisabled()
         expect(screen.getByRole('button', { name: /creating.../i })).toBeInTheDocument()
 
+        // After resolution, it should navigate (which removes the form)
         await waitFor(() => {
-            expect(screen.getByRole('button', { name: /create cluster/i })).toBeEnabled()
-        })
+            expect(screen.queryByRole('button', { name: /creating.../i })).not.toBeInTheDocument();
+        });
     })
 
     it('should navigate back when back button is clicked', async () => {

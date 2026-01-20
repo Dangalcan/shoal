@@ -18,9 +18,23 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-// Mock scrollIntoView (not available in jsdom)
+// Mock scrollIntoView and matchMedia (not available in jsdom)
 if (typeof window !== 'undefined') {
   Element.prototype.scrollIntoView = vi.fn();
+
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation((query) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(), // deprecated
+      removeListener: vi.fn(), // deprecated
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
 }
 
 // Mock window.electron API with default Promise returns
@@ -28,7 +42,7 @@ const mockElectronAPI = {
   runCommand: vi
     .fn()
     .mockResolvedValue({ success: true, data: { stdout: '', stderr: '' } }),
-  checkTool: vi.fn().mockResolvedValue(true),
+  checkTool: vi.fn().mockResolvedValue({ success: true, data: true }),
   createCluster: vi.fn().mockResolvedValue({ success: true, data: undefined }),
   getClusters: vi.fn().mockResolvedValue({ success: true, data: [] }),
   deleteCluster: vi.fn().mockResolvedValue({ success: true, data: undefined }),

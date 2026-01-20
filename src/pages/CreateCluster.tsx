@@ -28,8 +28,8 @@ export function CreateCluster() {
         try {
             const result = await promise
             if (result.success) {
-                // Navigate or reset
                 setName('')
+                navigate('/clusters')
             } else {
                 handleError(new Error(result.error), 'Cluster Creation Failed')
             }
