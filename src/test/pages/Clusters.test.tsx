@@ -1,9 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '../test-utils'
-import { BrowserRouter } from 'react-router-dom'
-import { toast } from 'sonner' // Import mocked toast
+import { toast } from 'sonner' 
 import { Clusters } from '../../pages/Clusters'
 import { mockElectronAPI } from '../setup'
+import { 
+    mockClusters,
+    mockClusterDeletion, 
+    deleteClusterViaUI,
+    renderClustersPage
+} from '../helpers/cluster-test-utils'
 
 // Mock child components
 vi.mock('../../components/modals/PodViewerModal', () => ({
@@ -11,8 +16,6 @@ vi.mock('../../components/modals/PodViewerModal', () => ({
         isOpen ? <div data-testid="pod-modal">PodViewer for {clusterName} <button onClick={onClose}>Close</button></div> : null
     )
 }))
-
-
 
 describe('Clusters Page', () => {
     // Mock toast
@@ -28,28 +31,26 @@ describe('Clusters Page', () => {
 
     beforeEach(() => {
         vi.clearAllMocks()
-        mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: [] })
+        mockClusters([])
     })
     
     it('should render', async () => {
-        render(<Clusters />)
+        renderClustersPage()
         await waitFor(() => {
-            const element = screen.queryByRole('heading', { name: /clusters/i })
-            expect(element).toBeTruthy()
+            expect(screen.getByRole('heading', { name: /clusters/i })).toBeInTheDocument()
         })
     })
 
     it('should fetch clusters and handle empty state', async () => {
-        render(<Clusters />)
+        renderClustersPage()
         await waitFor(() => {
             expect(mockElectronAPI.getClusters).toHaveBeenCalled()
-            expect(screen.getByText('No clusters found')).toBeInTheDocument()
+            expect(screen.getByText(/No clusters found/i)).toBeInTheDocument()
         })
     })
 
     it('should display clusters', async () => {
-        mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: ['cluster-1', 'cluster-2'] })
-        render(<Clusters />)
+        renderClustersPage(['cluster-1', 'cluster-2'])
         await waitFor(() => {
             expect(screen.getByText('cluster-1')).toBeInTheDocument()
             expect(screen.getByText('cluster-2')).toBeInTheDocument()
@@ -58,26 +59,18 @@ describe('Clusters Page', () => {
 
     it('should handle load error gracefully', async () => {
         mockElectronAPI.getClusters.mockRejectedValue(new Error('Fetch failed'))
-        render(<Clusters />)
+        renderClustersPage()
         await waitFor(() => {
-             expect(screen.getByText('No clusters found')).toBeInTheDocument()
+             expect(screen.getByText(/No clusters found/i)).toBeInTheDocument()
         })
     })
 
     it('should handle cluster deletion success', async () => {
-         mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: ['cluster-to-delete'] })
-         mockElectronAPI.deleteCluster.mockResolvedValue({ success: true, data: undefined })
+         renderClustersPage(['cluster-to-delete'])
+         mockClusterDeletion(true)
 
-         render(<Clusters />)
          await waitFor(() => expect(screen.getByText('cluster-to-delete')).toBeInTheDocument())
-
-         // Click delete in card
-         const deleteBtn = screen.getByTitle('Delete cluster-to-delete')
-         fireEvent.click(deleteBtn)
-
-         // Click delete in modal
-         const confirmBtn = await screen.findByRole('button', { name: 'Delete Cluster' })
-         fireEvent.click(confirmBtn)
+         await deleteClusterViaUI('cluster-to-delete')
 
          await waitFor(() => {
              expect(mockElectronAPI.deleteCluster).toHaveBeenCalledWith('cluster-to-delete')
@@ -86,84 +79,64 @@ describe('Clusters Page', () => {
     })
 
     it('should handle cluster deletion cancellation', async () => {
-         mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: ['cluster-keep'] })
+         renderClustersPage(['cluster-keep'])
 
-         render(<Clusters />)
          await waitFor(() => expect(screen.getByText('cluster-keep')).toBeInTheDocument())
 
-         const deleteBtn = screen.getByTitle('Delete cluster-keep')
-         fireEvent.click(deleteBtn)
-
-         const cancelBtn = screen.getByText('Cancel')
-         fireEvent.click(cancelBtn)
+         fireEvent.click(screen.getByTitle('Delete cluster-keep'))
+         fireEvent.click(screen.getByText('Cancel'))
 
          expect(mockElectronAPI.deleteCluster).not.toHaveBeenCalled()
     })
 
     it('should handle cluster deletion API failure', async () => {
-         mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: ['cluster-fail'] })
-         mockElectronAPI.deleteCluster.mockResolvedValue({ success: false, error: 'Cannot delete' })
+         renderClustersPage(['cluster-fail'])
+         mockClusterDeletion(false, 'Cannot delete')
          
-         render(<Clusters />)
          await waitFor(() => expect(screen.getByText('cluster-fail')).toBeInTheDocument())
-
-         const deleteBtn = screen.getByTitle('Delete cluster-fail')
-         fireEvent.click(deleteBtn)
-
-         const confirmBtn = await screen.findByRole('button', { name: 'Delete Cluster' })
-         fireEvent.click(confirmBtn)
+         await deleteClusterViaUI('cluster-fail')
 
          await waitFor(() => {
              expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Failed to delete cluster'), expect.anything())
+             expect(mockElectronAPI.getClusters).toHaveBeenCalledTimes(1) 
          })
     })
 
     it('should handle cluster deletion unexpected exception', async () => {
-         mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: ['cluster-crash'] })
+         renderClustersPage(['cluster-crash'])
          mockElectronAPI.deleteCluster.mockRejectedValue(new Error('Boom'))
          
-         render(<Clusters />)
          await waitFor(() => expect(screen.getByText('cluster-crash')).toBeInTheDocument())
-
-         const deleteBtn = screen.getByTitle('Delete cluster-crash')
-         fireEvent.click(deleteBtn)
-
-         const confirmBtn = await screen.findByRole('button', { name: 'Delete Cluster' })
-         fireEvent.click(confirmBtn)
+         await deleteClusterViaUI('cluster-crash')
 
          await waitFor(() => {
              expect(toast.error).toHaveBeenCalledWith('Failed to delete cluster', expect.any(Object))
+             expect(mockElectronAPI.getClusters).toHaveBeenCalledTimes(1) 
          })
     })
 
     it('should refresh list on button click', async () => {
-         mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: ['cluster-1'] })
-         render(<Clusters />)
+         renderClustersPage(['cluster-1'])
          await waitFor(() => expect(screen.getByText('cluster-1')).toBeInTheDocument())
 
-         const refreshBtn = screen.getByTitle('Refresh List')
-         fireEvent.click(refreshBtn)
+         fireEvent.click(screen.getByTitle('Refresh List'))
 
          await waitFor(() => {
-             expect(mockElectronAPI.getClusters).toHaveBeenCalled()
+             expect(mockElectronAPI.getClusters).toHaveBeenCalledTimes(2)
          })
     })
 
     it('should navigate to details on click', async () => {
-         mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: ['cluster-nav'] })
-         render(<Clusters />)
+         renderClustersPage(['cluster-nav'])
          await waitFor(() => expect(screen.getByText('cluster-nav')).toBeInTheDocument())
 
-         const card = screen.getByText('cluster-nav')
-         fireEvent.click(card)
+         fireEvent.click(screen.getByText('cluster-nav'))
     })
 
     it('should open pod viewer modal', async () => {
-         mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: ['cluster-view'] })
-         render(<Clusters />)
+         renderClustersPage(['cluster-view'])
          await waitFor(() => expect(screen.getByText('cluster-view')).toBeInTheDocument())
 
-         const viewBtn = screen.getByTitle('View Pods')
-         fireEvent.click(viewBtn)
+         fireEvent.click(screen.getByTitle('View Pods'))
     })
 })

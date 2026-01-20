@@ -18,9 +18,7 @@ export function Clusters() {
   const navigate = useNavigate();
   const { clusters, loading, deleting, fetchClusters, deleteCluster } = useClusters();
 
-  useEffect(() => {
-    fetchClusters();
-  }, [fetchClusters]);
+  // useAsyncData handles initial fetch on mount
 
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -127,12 +125,17 @@ export function Clusters() {
           ))}
         </div>
       ) : (
-        <div className="clusters-empty">
-          <Spinner size={48} className="text-slate-200" label="No clusters found" />
-          <p className="clusters-empty-subtitle">
-            Create a new cluster to get started.
-          </p>
-        </div>
+        <Animate type="fade">
+          <div className="clusters-empty">
+            <div className="clusters-empty-icon">
+              <Server size={48} />
+            </div>
+            <h3 className="clusters-empty-title">No clusters found</h3>
+            <p className="clusters-empty-subtitle">
+              Create a new cluster or check your local setup.
+            </p>
+          </div>
+        </Animate>
       )}
 
       <PodViewerModal

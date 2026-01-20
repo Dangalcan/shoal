@@ -226,8 +226,9 @@ export function Dashboard() {
                 ))}
               </ul>
             ) : (
-              <div className="empty-state">
-                <Spinner size={32} label="No active clusters found" />
+              <div className="dashboard-empty-state">
+                <Box size={32} className="text-slate-400 mb-2" />
+                <p>No active clusters found</p>
               </div>
             )}
           </Card>
