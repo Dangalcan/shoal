@@ -1,16 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, userEvent, waitFor, mockElectronAPI } from '../utils';
+import { render, screen, userEvent, waitFor } from '../utils';
+import { createMockElectronAPI } from '../utils/mocks';
 import { CreateCluster } from '../../pages/CreateCluster';
 
-
+let mockApi: ReturnType<typeof createMockElectronAPI>;
 
 describe('CreateCluster Page', () => {
     beforeEach(() => {
+        mockApi = createMockElectronAPI();
         vi.clearAllMocks();
     });
 
     it('should render create cluster form', () => {
-        render(<CreateCluster />)
+        render(<CreateCluster />, { api: mockApi })
 
         expect(screen.getByRole('heading', { name: /create cluster/i })).toBeInTheDocument()
         expect(screen.getByText(/configure your new kubernetes cluster/i)).toBeInTheDocument()
@@ -18,7 +20,7 @@ describe('CreateCluster Page', () => {
     })
 
     it('should have kind selected as default provider', () => {
-        render(<CreateCluster />)
+        render(<CreateCluster />, { api: mockApi })
 
         const kindButton = screen.getByRole('button', { name: /kind/i })
         expect(kindButton).toHaveClass('provider-button-selected')
@@ -26,7 +28,7 @@ describe('CreateCluster Page', () => {
 
     it('should update cluster name input', async () => {
         const user = userEvent.setup()
-        render(<CreateCluster />)
+        render(<CreateCluster />, { api: mockApi })
 
         const input = screen.getByPlaceholderText('my-cluster')
         await user.type(input, 'test-cluster')
@@ -36,7 +38,7 @@ describe('CreateCluster Page', () => {
 
     it('should switch provider when clicked', async () => {
         const user = userEvent.setup()
-        render(<CreateCluster />)
+        render(<CreateCluster />, { api: mockApi })
 
         const k3dButton = screen.getByRole('button', { name: /k3d/i })
         await user.click(k3dButton)
@@ -46,9 +48,9 @@ describe('CreateCluster Page', () => {
 
     it('should handle form submission', async () => {
         const user = userEvent.setup()
-        mockElectronAPI.createCluster.mockResolvedValue({ success: true })
+        mockApi.createCluster = vi.fn().mockResolvedValue({ success: true })
 
-        render(<CreateCluster />)
+        render(<CreateCluster />, { api: mockApi })
 
         const input = screen.getByPlaceholderText('my-cluster')
         await user.type(input, 'my-new-cluster')
@@ -56,7 +58,7 @@ describe('CreateCluster Page', () => {
         const submitButton = screen.getByRole('button', { name: /create cluster/i })
         await user.click(submitButton)
 
-        expect(mockElectronAPI.createCluster).toHaveBeenCalledWith('my-new-cluster', 'kind')
+        expect(mockApi.createCluster).toHaveBeenCalledWith('my-new-cluster', 'kind')
         
         await waitFor(() => {
             expect(input).toHaveValue('')
@@ -65,7 +67,7 @@ describe('CreateCluster Page', () => {
 
     it('should require cluster name', async () => {
         const user = userEvent.setup()
-        render(<CreateCluster />)
+        render(<CreateCluster />, { api: mockApi })
 
         const submitButton = screen.getByRole('button', { name: /create cluster/i })
         await user.click(submitButton)
@@ -75,22 +77,22 @@ describe('CreateCluster Page', () => {
     })
 
     it('should render both provider options', () => {
-        render(<CreateCluster />)
+        render(<CreateCluster />, { api: mockApi })
 
         expect(screen.getByRole('button', { name: /kind/i })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /k3d/i })).toBeInTheDocument()
     })
 
     it('should have cancel button', () => {
-        render(<CreateCluster />)
+        render(<CreateCluster />, { api: mockApi })
 
         expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument()
     })
     it('should handle creation error and display error message', async () => {
         const user = userEvent.setup()
-        mockElectronAPI.createCluster.mockResolvedValue({ success: false, error: 'Cluster creation failed' })
+        mockApi.createCluster = vi.fn().mockResolvedValue({ success: false, error: 'Cluster creation failed' })
 
-        render(<CreateCluster />)
+        render(<CreateCluster />, { api: mockApi })
 
         const input = screen.getByPlaceholderText('my-cluster')
         await user.type(input, 'failed-cluster')
@@ -98,7 +100,7 @@ describe('CreateCluster Page', () => {
         const submitButton = screen.getByRole('button', { name: /create cluster/i })
         await user.click(submitButton)
 
-        expect(mockElectronAPI.createCluster).toHaveBeenCalledWith('failed-cluster', 'kind')
+        expect(mockApi.createCluster).toHaveBeenCalledWith('failed-cluster', 'kind')
         
         // Error from toast or error handler might be displayed. 
         // Since the component uses handleError for the main error flow after success check:
@@ -116,9 +118,9 @@ describe('CreateCluster Page', () => {
     it('should show loading state while creating', async () => {
         const user = userEvent.setup()
         // Delay resolution to check loading state
-        mockElectronAPI.createCluster.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve({ success: true }), 100)))
+        mockApi.createCluster = vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(() => resolve({ success: true }), 100)))
 
-        render(<CreateCluster />)
+        render(<CreateCluster />, { api: mockApi })
 
         const input = screen.getByPlaceholderText('my-cluster')
         await user.type(input, 'slow-cluster')
@@ -145,7 +147,7 @@ describe('CreateCluster Page', () => {
         // existing test setup might handle this. Let's check imports.
         // It imports from test-utils which likely wraps with Router.
         
-        const { unmount } = render(<CreateCluster />)
+        const { unmount } = render(<CreateCluster />, { api: mockApi })
         const backButton = screen.getByRole('button', { name: /back to clusters/i })
         await user.click(backButton)
         // Without specific router mock verification, ensuring it clicks without error is a baseline. 

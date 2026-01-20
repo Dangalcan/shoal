@@ -1,6 +1,8 @@
 import React, { ReactElement } from 'react';
 import { render as rtlRender, RenderOptions } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { ApiProvider } from '../../services/api-context';
+import { createMockElectronAPI } from './mocks';
 
 /**
  * Custom render options with router support.
@@ -12,6 +14,8 @@ export interface CustomRenderOptions extends RenderOptions {
   path?: string;
   /** Initial entries for MemoryRouter */
   initialEntries?: string[];
+  /** Custom API mock (defaults to mockElectronAPI) */
+  api?: typeof window.electron;
 }
 
 /**
@@ -20,8 +24,13 @@ export interface CustomRenderOptions extends RenderOptions {
 const AllTheProviders: React.FC<{
   children: React.ReactNode;
   initialEntries?: string[];
-}> = ({ children, initialEntries = ['/'] }) => {
-  return <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>;
+  api?: typeof window.electron;
+}> = ({ children, initialEntries = ['/'], api = createMockElectronAPI() }) => {
+  return (
+    <ApiProvider api={api}>
+      <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+    </ApiProvider>
+  );
 };
 
 /**
@@ -49,22 +58,24 @@ export function render(
   ui: ReactElement,
   options?: Omit<CustomRenderOptions, 'wrapper'>
 ) {
-  const { route, path, initialEntries, ...renderOptions } = options || {};
+  const { route, path, initialEntries, api, ...renderOptions } = options || {};
 
   if (path && route) {
     return rtlRender(
-      <MemoryRouter initialEntries={[route]}>
-        <Routes>
-          <Route path={path} element={ui} />
-        </Routes>
-      </MemoryRouter>,
+      <ApiProvider api={api || createMockElectronAPI()}>
+        <MemoryRouter initialEntries={[route]}>
+          <Routes>
+            <Route path={path} element={ui} />
+          </Routes>
+        </MemoryRouter>
+      </ApiProvider>,
       renderOptions
     );
   }
 
   return rtlRender(ui, {
     wrapper: (props) => (
-      <AllTheProviders {...props} initialEntries={initialEntries} />
+      <AllTheProviders {...props} initialEntries={initialEntries} api={api} />
     ),
     ...renderOptions,
   });

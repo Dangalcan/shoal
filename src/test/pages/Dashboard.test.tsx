@@ -1,24 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Dashboard } from '../../pages/Dashboard';
-import { render, screen, fireEvent, waitFor, mockElectronAPI } from '../utils';
+import { render, screen, fireEvent, waitFor } from '../utils';
+import { createMockElectronAPI } from '../utils/mocks';
 import { mockClusterState, mockToolStatus } from '../helpers/electron-helpers';
 import { expectMultipleOccurrences, findByTextWithTimeout } from '../helpers/dom-helpers';
 import { TEST_TIMEOUTS } from '../constants';
 
 // Note: PodViewerModal is mocked globally in component-mocks.tsx
 
+let mockApi: ReturnType<typeof createMockElectronAPI>;
 
 
 describe('Dashboard Page', () => {
     beforeEach(() => {
+        mockApi = createMockElectronAPI();
         vi.clearAllMocks();
         // Default happy path
-        mockClusterState([], 'None');
-        mockElectronAPI.checkTool.mockResolvedValue(true);
+        mockClusterState([], 'None', mockApi);
+        mockApi.checkTool = vi.fn().mockResolvedValue({ success: true, data: true });
     });
 
     it('should render dashboard header', async () => {
-        render(<Dashboard />)
+        render(<Dashboard />, { api: mockApi })
         await waitFor(() => {
             expect(screen.getByText('Dashboard')).toBeInTheDocument()
             expect(screen.getByText('Overview of your container infrastructure.')).toBeInTheDocument()
@@ -26,21 +29,21 @@ describe('Dashboard Page', () => {
     })
 
     it('should fetch and display tool status (Docker/Podman)', async () => {
-        mockToolStatus({ docker: true, podman: false });
+        mockToolStatus({ docker: true, podman: false }, mockApi);
 
-        render(<Dashboard />);
+        render(<Dashboard />, { api: mockApi });
 
         await waitFor(() => {
             expect(screen.getByText('Docker Status')).toBeInTheDocument();
-            expect(mockElectronAPI.checkTool).toHaveBeenCalledWith('docker');
-            expect(mockElectronAPI.checkTool).toHaveBeenCalledWith('podman');
+            expect(mockApi.checkTool).toHaveBeenCalledWith('docker');
+            expect(mockApi.checkTool).toHaveBeenCalledWith('podman');
         });
     });
 
     it('should fetch and display cluster stats', async () => {
-        mockClusterState(['c1', 'c2'], 'c1');
+        mockClusterState(['c1', 'c2'], 'c1', mockApi);
 
-        render(<Dashboard />);
+        render(<Dashboard />, { api: mockApi });
 
         await findByTextWithTimeout('Active Context');
         await expectMultipleOccurrences('c1', 1);
@@ -51,9 +54,9 @@ describe('Dashboard Page', () => {
     // ... (create cluster test)
 
     it('should render cluster list with active/available badges', async () => {
-        mockClusterState(['active-cluster', 'other-cluster'], 'active-cluster');
+        mockClusterState(['active-cluster', 'other-cluster'], 'active-cluster', mockApi);
 
-        render(<Dashboard />);
+        render(<Dashboard />, { api: mockApi });
 
         await expectMultipleOccurrences('active-cluster', 1);
         await findByTextWithTimeout('other-cluster');
@@ -68,8 +71,8 @@ describe('Dashboard Page', () => {
     });
 
     it('should navigate to cluster details', async () => {
-        mockClusterState(['nav-cluster']);
-        render(<Dashboard />);
+        mockClusterState(['nav-cluster'], 'None', mockApi);
+        render(<Dashboard />, { api: mockApi });
         await findByTextWithTimeout('nav-cluster');
 
         const clusterContent = screen.getByText('nav-cluster').closest('.cluster-item-content')!;
@@ -77,9 +80,9 @@ describe('Dashboard Page', () => {
     });
 
     it('should open pod viewer modal', async () => {
-        mockClusterState(['view-cluster'], 'view-cluster');
+        mockClusterState(['view-cluster'], 'view-cluster', mockApi);
         
-        render(<Dashboard />);
+        render(<Dashboard />, { api: mockApi });
         await expectMultipleOccurrences('view-cluster', 1);
 
         const viewBtn = screen.getByTitle('View Pods');
@@ -94,19 +97,19 @@ describe('Dashboard Page', () => {
     });
 
     it('should refresh data on button click', async () => {
-        render(<Dashboard />);
+        render(<Dashboard />, { api: mockApi });
         
-        await waitFor(() => expect(mockElectronAPI.getClusters).toHaveBeenCalledTimes(1));
+        await waitFor(() => expect(mockApi.getClusters).toHaveBeenCalledTimes(1));
 
         const rBtn = screen.getByTitle('Refresh Data');
         
         fireEvent.click(rBtn);
-        await waitFor(() => expect(mockElectronAPI.getClusters).toHaveBeenCalledTimes(2));
+        await waitFor(() => expect(mockApi.getClusters).toHaveBeenCalledTimes(2));
     });
 
     it('should handle empty clusters list', async () => {
-        mockClusterState([]);
-        render(<Dashboard />);
+        mockClusterState([], 'None', mockApi);
+        render(<Dashboard />, { api: mockApi });
         
         await waitFor(() => {
             expect(screen.getByText('No active clusters found')).toBeInTheDocument();
@@ -114,8 +117,8 @@ describe('Dashboard Page', () => {
     });
 
     it('should handle tool status check failure (graceful degradation)', async () => {
-         mockElectronAPI.checkTool.mockRejectedValue(new Error('Tool check failed'));
+         mockApi.checkTool = vi.fn().mockRejectedValue(new Error('Tool check failed'));
          
-         render(<Dashboard />);
+         render(<Dashboard />, { api: mockApi });
     });
 });

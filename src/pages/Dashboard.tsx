@@ -10,7 +10,7 @@ import {
 import { PodViewerModal } from '../components/modals/PodViewerModal';
 import { useClusters } from '../hooks';
 import { Button, Badge, Spinner, Card, Animate } from '../components/ui';
-import { electronService } from '../services/electronService';
+import { useApi } from '../services/api-context';
 import { isSuccess } from '../types/result';
 import { cn } from '../lib/utils';
 import '../../styles/pages/Dashboard.css';
@@ -63,6 +63,7 @@ function StatCard({ label, value, icon: Icon, color, status }: StatCardProps) {
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const api = useApi();
   const { clusters, fetchClusters } = useClusters();
   const [dockerStatus, setDockerStatus] = useState<boolean | null>(null);
   const [podmanStatus, setPodmanStatus] = useState<boolean | null>(null);
@@ -75,9 +76,9 @@ export function Dashboard() {
     setLoading(true);
     try {
       const [dockerRes, podmanRes, contextRes] = await Promise.all([
-        electronService.checkTool('docker').catch(err => ({ success: false as const, error: String(err) })),
-        electronService.checkTool('podman').catch(err => ({ success: false as const, error: String(err) })),
-        electronService.getCurrentContext().catch(err => ({ success: false as const, error: String(err) }))
+        api.checkTool('docker').catch(err => ({ success: false as const, error: String(err) })),
+        api.checkTool('podman').catch(err => ({ success: false as const, error: String(err) })),
+        api.getCurrentContext().catch(err => ({ success: false as const, error: String(err) }))
       ]);
       setDockerStatus(isSuccess(dockerRes) ? dockerRes.data : false);
       setPodmanStatus(isSuccess(podmanRes) ? podmanRes.data : false);
@@ -86,7 +87,7 @@ export function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [fetchClusters]);
+  }, [api, fetchClusters]);
 
   useEffect(() => {
     refreshData();

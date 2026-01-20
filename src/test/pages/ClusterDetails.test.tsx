@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { screen, fireEvent, waitFor, within, render, mockToast, userEvent } from '../utils'
+import { screen, fireEvent, waitFor, within, render, mockToast } from '../utils'
 import { ClusterDetails } from '../../pages/ClusterDetails'
-import { mockElectronAPI } from '../setup'
+import { createMockElectronAPI } from '../utils/mocks'
 // Imports from test-utils consolidated above
 import '../mocks/component-mocks'
 import { toast } from 'sonner'
@@ -51,11 +51,14 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
     // Mocks imported from fixtures
 
 
+    let mockApi: ReturnType<typeof createMockElectronAPI>
+
     beforeEach(() => {
+        mockApi = createMockElectronAPI()
         vi.clearAllMocks()
         window.localStorage.clear()
-        mockElectronAPI.getNamespaces.mockResolvedValue({ success: true, data: mockNamespaces })
-        mockElectronAPI.getResources.mockImplementation(async ({ resourceType }) => {
+        mockApi.getNamespaces = vi.fn().mockResolvedValue({ success: true, data: mockNamespaces })
+        mockApi.getResources = vi.fn().mockImplementation(async ({ resourceType }) => {
             if (resourceType === 'pods') return { success: true, data: mockPods }
             if (resourceType === 'deployments') return { success: true, data: mockDeployments }
             if (resourceType === 'persistentvolumeclaim') return { success: true, data: mockPVC }
@@ -90,8 +93,8 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             if (resourceType === 'certificatesigningrequest') return { success: true, data: mockCSRs }
             return { success: true, data: [] }
         })
-        mockElectronAPI.rolloutRestart.mockResolvedValue({ success: true, data: undefined })
-        mockElectronAPI.deleteResource.mockResolvedValue({ success: true, data: undefined })
+        mockApi.rolloutRestart = vi.fn().mockResolvedValue({ success: true, data: undefined })
+        mockApi.deleteResource = vi.fn().mockResolvedValue({ success: true, data: undefined })
     })
 
     it('should handle namespace selection changes', async () => {
@@ -153,7 +156,8 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
         <ClusterDetails />, 
         { 
             path: '/cluster/:name', 
-            route: '/cluster/cluster-123' 
+            route: '/cluster/cluster-123',
+            api: mockApi
         }
     )
 
@@ -271,7 +275,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             
             await waitFor(() => {
                 expect(mockToast.success).toHaveBeenCalledWith('Restart triggered successfully', expect.any(Object))
-                expect(mockElectronAPI.getResources).toHaveBeenCalledTimes(3) // Initial + Tab Change + after restart
+                expect(mockApi.getResources).toHaveBeenCalledTimes(3) // Initial + Tab Change + after restart
             })
 
             // StatefulSet restart
@@ -294,7 +298,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             fireEvent.click(within(row).getByTitle('Delete Resource'))
             
             await waitFor(() => {
-                expect(mockElectronAPI.deleteResource).toHaveBeenCalled()
+                expect(mockApi.deleteResource).toHaveBeenCalled()
                 expect(mockToast.success).toHaveBeenCalledWith('Resource deleted successfully', expect.any(Object))
             })
 
@@ -306,7 +310,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             // Let's use a fresh render or different item for cancellation to be clean, or just click again.
             
             fireEvent.click(within(row).getByTitle('Delete Resource'))
-            expect(mockElectronAPI.deleteResource).toHaveBeenCalledTimes(1) // Still 1 from before (cancel prevents 2nd call)
+            expect(mockApi.deleteResource).toHaveBeenCalledTimes(1) // Still 1 from before (cancel prevents 2nd call)
             
             confirmSpy.mockRestore()
         })
@@ -315,7 +319,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             renderPage()
             await waitFor(() => expect(screen.getByText('pod-1')).toBeInTheDocument())
             fireEvent.click(screen.getByTitle('Refresh'))
-            await waitFor(() => expect(mockElectronAPI.getResources).toHaveBeenCalledTimes(2))
+            await waitFor(() => expect(mockApi.getResources).toHaveBeenCalledTimes(2))
         })
 
         it('should open all modal types', async () => {
@@ -348,24 +352,22 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
         })
 
         it('should handle rollout success/error logic branches in toast.promise', async () => {
-             const user = userEvent.setup()
-             
              // This tests the toast.promise logic in the mock which mimics the component's await rollout
-              mockElectronAPI.rolloutRestart.mockRejectedValue({ error: 'UNIQUE_ROLLOUT_FAILURE' })
+              (mockApi.rolloutRestart as any).mockRejectedValue({ error: 'UNIQUE_ROLLOUT_FAILURE' })
               renderPage()
               
               // Ensure we are ready
               await waitFor(() => expect(screen.getByText('pod-1')).toBeInTheDocument())
 
               const tabs = screen.getByRole('banner').querySelector('.tabs-container')!
-              await user.click(within(tabs as HTMLElement).getByText('Deployments'))
+              fireEvent.click(within(tabs as HTMLElement).getByText('Deployments'))
               
               await waitFor(() => expect(screen.getByText('dep-1')).toBeInTheDocument(), { timeout: 3000 })
 
               const row = screen.getByText('dep-1').closest('tr')!
               mockToast.error.mockReset()
               
-              await user.click(within(row).getByTitle('Rollout Restart'))
+              fireEvent.click(within(row).getByTitle('Rollout Restart'))
               await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith('Failed to restart resource', expect.objectContaining({ 
                   description: expect.stringContaining('UNIQUE_ROLLOUT_FAILURE') 
               })), { timeout: 3000 })
@@ -374,17 +376,17 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
 
     describe('Exhaustive Sorting & Table States', () => {
         it('should handle empty states', async () => {
-            mockElectronAPI.getResources.mockResolvedValueOnce({ success: true, data: [] })
+            mockApi.getResources = vi.fn().mockResolvedValueOnce({ success: true, data: [] })
             renderPage()
             await waitFor(() => expect(screen.getByText(/No pods found/i)).toBeInTheDocument())
         })
 
         it('should handle API errors with retry', async () => {
-            mockElectronAPI.getResources.mockResolvedValueOnce({ success: false, error: 'Network Error' })
+            mockApi.getResources = vi.fn().mockResolvedValueOnce({ success: false, error: 'Network Error' })
             renderPage()
             await waitFor(() => expect(screen.getByText('Network Error')).toBeInTheDocument())
             
-            mockElectronAPI.getResources.mockResolvedValueOnce({ success: true, data: mockPods })
+            mockApi.getResources = vi.fn().mockResolvedValueOnce({ success: true, data: mockPods })
             fireEvent.click(screen.getByText('Try Again'))
             await waitFor(() => expect(screen.getByText('pod-1')).toBeInTheDocument())
         })
@@ -532,7 +534,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
                     status: { phase: 'Running' }
                 }
             ]
-            mockElectronAPI.getResources.mockResolvedValueOnce({ success: true, data: multiNsPods })
+            mockApi.getResources = vi.fn().mockResolvedValueOnce({ success: true, data: multiNsPods })
             
             renderPage()
             await waitFor(() => expect(screen.getByText('pod-a')).toBeInTheDocument())
@@ -606,15 +608,15 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
 
         it('should handle fetchData throwing an exception', async () => {
              // Mock one successful call then a crash
-             mockElectronAPI.getNamespaces.mockResolvedValue({ success: true, data: ['default'] })
-             mockElectronAPI.getResources.mockRejectedValue(new Error('Critical specific error'))
+             mockApi.getNamespaces = vi.fn().mockResolvedValue({ success: true, data: ['default'] })
+             mockApi.getResources = vi.fn().mockRejectedValue(new Error('Critical specific error'))
              
              renderPage()
              await waitFor(() => expect(screen.getByText('Critical specific error')).toBeInTheDocument())
         })
 
         it('should handle deleteResource promise rejection', async () => {
-             mockElectronAPI.deleteResource.mockRejectedValue({ error: 'Delete failed hard' })
+             mockApi.deleteResource = vi.fn().mockRejectedValue({ error: 'Delete failed hard' })
              const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
              
              renderPage()
@@ -647,7 +649,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
                  }
              ]
              
-             mockElectronAPI.getResources.mockImplementation(async (args: any) => {
+             ;(mockApi.getResources as any).mockImplementation(async (args: any) => {
                  if (args.resourceType === 'nodes') return { success: true, data: sparseNodes }
                  return { success: true, data: [] }
              })

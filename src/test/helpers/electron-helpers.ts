@@ -5,7 +5,7 @@
  * These helpers reduce duplication and provide consistent mock behavior.
  */
 
-import { mockElectronAPI } from '../setup';
+import { vi } from 'vitest';
 
 /**
  * Configure mock cluster state
@@ -20,13 +20,14 @@ import { mockElectronAPI } from '../setup';
  */
 export const mockClusterState = (
   clusters: string[],
-  currentContext: string = 'None'
+  currentContext: string = 'None',
+  mockApi: any
 ) => {
-  mockElectronAPI.getClusters.mockResolvedValue({
+  mockApi.getClusters = vi.fn().mockResolvedValue({
     success: true,
     data: clusters,
   });
-  mockElectronAPI.getCurrentContext.mockResolvedValue({
+  mockApi.getCurrentContext = vi.fn().mockResolvedValue({
     success: true,
     data: currentContext,
   });
@@ -42,9 +43,12 @@ export const mockClusterState = (
  * mockToolStatus({ docker: true, podman: false })
  * ```
  */
-export const mockToolStatus = (tools: Record<string, boolean>) => {
-  mockElectronAPI.checkTool.mockImplementation(async (tool: string) => {
-    return tools[tool] ?? false;
+export const mockToolStatus = (
+  tools: Record<string, boolean>,
+  mockApi: any
+) => {
+  mockApi.checkTool = vi.fn().mockImplementation(async (tool: string) => {
+    return { success: true, data: tools[tool] ?? false };
   });
 };
 

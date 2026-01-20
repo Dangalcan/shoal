@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useAsyncData } from './useAsyncData';
-import { electronService } from '../services/electronService';
+import { useApi } from '../services/api-context';
 
 interface UseNamespacesResult {
   namespaces: string[];
@@ -13,19 +13,20 @@ interface UseNamespacesResult {
 export function useNamespaces(
   contextName: string | undefined
 ): UseNamespacesResult {
+  const api = useApi();
   const [selectedNamespace, setSelectedNamespace] = useState<string>('all');
 
   const fetchFn = useCallback(async () => {
     if (!contextName) return [];
 
-    const result = await electronService.getNamespaces(contextName);
+    const result = await api.getNamespaces(contextName);
 
     if (result.success) {
       return ['all', ...result.data];
     }
 
     throw new Error(result.error);
-  }, [contextName]);
+  }, [api, contextName]);
 
   const {
     data: namespaces,

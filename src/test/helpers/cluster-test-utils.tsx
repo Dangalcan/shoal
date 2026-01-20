@@ -1,15 +1,18 @@
 import { render, screen, waitFor } from '../utils';
 import userEvent from '@testing-library/user-event';
-import { mockElectronAPI } from '../setup';
+import { createMockElectronAPI } from '../utils/mocks';
 import { vi } from 'vitest';
 import React from 'react';
 import { Clusters } from '../../pages/Clusters';
+
+// Export shared mock API for tests
+export const mockApi = createMockElectronAPI();
 
 /**
  * Mocks the cluster list response.
  */
 export function mockClusters(names: string[]) {
-  mockElectronAPI.getClusters.mockResolvedValue({
+  mockApi.getClusters = vi.fn().mockResolvedValue({
     success: true,
     data: names
   });
@@ -19,7 +22,7 @@ export function mockClusters(names: string[]) {
  * Mocks a cluster deletion response.
  */
 export function mockClusterDeletion(success: boolean = true, error?: string) {
-  mockElectronAPI.deleteCluster.mockResolvedValue({
+  mockApi.deleteCluster = vi.fn().mockResolvedValue({
     success,
     error,
     data: (success ? undefined : null) as any
@@ -48,5 +51,5 @@ export function renderClustersPage(clusters?: string[]) {
     mockClusters([]);
   }
   
-  return render(React.createElement(Clusters));
+  return render(React.createElement(Clusters), { api: mockApi });
 }

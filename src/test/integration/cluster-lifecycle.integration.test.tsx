@@ -1,23 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '../utils';
+import { createMockElectronAPI } from '../utils/mocks';
 import { Layout } from '../../layouts/Layout';
 import { Dashboard } from '../../pages/Dashboard';
 import { CreateCluster } from '../../pages/CreateCluster';
 import { Clusters } from '../../pages/Clusters';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { mockElectronAPI } from '../setup';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { mockClusters, deleteClusterViaUI } from '../helpers/cluster-test-utils';
 
+let mockApi: ReturnType<typeof createMockElectronAPI>;
+
 describe('Cluster Lifecycle Integration', () => {
   beforeEach(() => {
+    mockApi = createMockElectronAPI();
     vi.clearAllMocks();
     
     // Default mocks for standard environment
-    mockElectronAPI.checkTool.mockResolvedValue({ success: true, data: true });
-    mockElectronAPI.getCurrentContext.mockResolvedValue({ success: true, data: 'None' });
-    mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: [] });
+    mockApi.checkTool = vi.fn().mockResolvedValue({ success: true, data: true });
+    mockApi.getCurrentContext = vi.fn().mockResolvedValue({ success: true, data: 'None' });
+    mockApi.getClusters = vi.fn().mockResolvedValue({ success: true, data: [] });
   });
 
   const AppRoutes = () => (
@@ -33,7 +36,7 @@ describe('Cluster Lifecycle Integration', () => {
   it('should flow from Dashboard to Create Cluster to Clusters List and Delete', async () => {
     const user = userEvent.setup();
     
-    render(<AppRoutes />, { initialEntries: ['/'] });
+    render(<AppRoutes />, { initialEntries: ['/'], api: mockApi });
 
     // 1. Dashboard: Should be empty initially
     expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
@@ -49,8 +52,8 @@ describe('Cluster Lifecycle Integration', () => {
     await user.type(nameInput, 'lifecycle-test-cluster');
     
     // Mock success and update cluster list for next page
-    mockElectronAPI.createCluster.mockResolvedValue({ success: true, data: undefined });
-    mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: ['lifecycle-test-cluster'] });
+    mockApi.createCluster = vi.fn().mockResolvedValue({ success: true, data: undefined });
+    mockApi.getClusters = vi.fn().mockResolvedValue({ success: true, data: ['lifecycle-test-cluster'] });
     
     const submitBtn = screen.getByRole('button', { name: /Create Cluster/i });
     await user.click(submitBtn);
@@ -62,9 +65,9 @@ describe('Cluster Lifecycle Integration', () => {
     });
 
     // 5. Deletion: Test full deletion flow
-    mockElectronAPI.deleteCluster.mockResolvedValue({ success: true, data: undefined });
+    mockApi.deleteCluster = vi.fn().mockResolvedValue({ success: true, data: undefined });
     // Update mock to return empty list after deletion
-    mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: [] });
+    mockApi.getClusters = vi.fn().mockResolvedValue({ success: true, data: [] });
 
     await deleteClusterViaUI('lifecycle-test-cluster');
 

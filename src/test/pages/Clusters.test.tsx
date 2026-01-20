@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '../utils'
 import { toast } from 'sonner' 
 import { Clusters } from '../../pages/Clusters'
-import { mockElectronAPI } from '../setup'
 import { 
+    mockApi,
     mockClusters,
     mockClusterDeletion, 
     deleteClusterViaUI,
@@ -44,7 +44,7 @@ describe('Clusters Page', () => {
     it('should fetch clusters and handle empty state', async () => {
         renderClustersPage()
         await waitFor(() => {
-            expect(mockElectronAPI.getClusters).toHaveBeenCalled()
+            expect(mockApi.getClusters).toHaveBeenCalled()
             expect(screen.getByText(/No clusters found/i)).toBeInTheDocument()
         })
     })
@@ -58,7 +58,7 @@ describe('Clusters Page', () => {
     })
 
     it('should handle load error gracefully', async () => {
-        mockElectronAPI.getClusters.mockRejectedValue(new Error('Fetch failed'))
+        mockApi.getClusters = vi.fn().mockRejectedValue(new Error('Fetch failed'))
         renderClustersPage()
         await waitFor(() => {
              expect(screen.getByText(/No clusters found/i)).toBeInTheDocument()
@@ -73,8 +73,8 @@ describe('Clusters Page', () => {
          await deleteClusterViaUI('cluster-to-delete')
 
          await waitFor(() => {
-             expect(mockElectronAPI.deleteCluster).toHaveBeenCalledWith('cluster-to-delete')
-             expect(mockElectronAPI.getClusters).toHaveBeenCalledTimes(2) 
+             expect(mockApi.deleteCluster).toHaveBeenCalledWith('cluster-to-delete')
+             expect(mockApi.getClusters).toHaveBeenCalledTimes(2) 
          })
     })
 
@@ -86,7 +86,7 @@ describe('Clusters Page', () => {
          fireEvent.click(screen.getByTitle('Delete cluster-keep'))
          fireEvent.click(screen.getByText('Cancel'))
 
-         expect(mockElectronAPI.deleteCluster).not.toHaveBeenCalled()
+         expect(mockApi.deleteCluster).not.toHaveBeenCalled()
     })
 
     it('should handle cluster deletion API failure', async () => {
@@ -98,20 +98,20 @@ describe('Clusters Page', () => {
 
          await waitFor(() => {
              expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Failed to delete cluster'), expect.anything())
-             expect(mockElectronAPI.getClusters).toHaveBeenCalledTimes(1) 
+             expect(mockApi.getClusters).toHaveBeenCalledTimes(1) 
          })
     })
 
     it('should handle cluster deletion unexpected exception', async () => {
          renderClustersPage(['cluster-crash'])
-         mockElectronAPI.deleteCluster.mockRejectedValue(new Error('Boom'))
+         mockApi.deleteCluster = vi.fn().mockRejectedValue(new Error('Boom'))
          
          await waitFor(() => expect(screen.getByText('cluster-crash')).toBeInTheDocument())
          await deleteClusterViaUI('cluster-crash')
 
          await waitFor(() => {
              expect(toast.error).toHaveBeenCalledWith('Failed to delete cluster', expect.any(Object))
-             expect(mockElectronAPI.getClusters).toHaveBeenCalledTimes(1) 
+             expect(mockApi.getClusters).toHaveBeenCalledTimes(1) 
          })
     })
 
@@ -122,7 +122,7 @@ describe('Clusters Page', () => {
          fireEvent.click(screen.getByTitle('Refresh List'))
 
          await waitFor(() => {
-             expect(mockElectronAPI.getClusters).toHaveBeenCalledTimes(2)
+             expect(mockApi.getClusters).toHaveBeenCalledTimes(2)
          })
     })
 

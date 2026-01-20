@@ -1,21 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '../utils';
+import { createMockElectronAPI } from '../utils/mocks';
 import { Layout } from '../../layouts/Layout';
 import { ClusterDetails } from '../../pages/ClusterDetails';
 import { Routes, Route } from 'react-router-dom';
-import { mockElectronAPI } from '../setup';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { PodBuilder, DeploymentBuilder } from '../factories/resource-builder';
 
+let mockApi: ReturnType<typeof createMockElectronAPI>;
+
 describe('Resource Management Integration', () => {
   beforeEach(() => {
+    mockApi = createMockElectronAPI();
     vi.clearAllMocks();
     
     // Default mocks
-    mockElectronAPI.checkTool.mockResolvedValue({ success: true, data: true });
-    mockElectronAPI.getCurrentContext.mockResolvedValue({ success: true, data: 'integration-cluster' });
-    mockElectronAPI.getNamespaces.mockResolvedValue({ success: true, data: ['default', 'kube-system'] });
+    mockApi.checkTool = vi.fn().mockResolvedValue({ success: true, data: true });
+    mockApi.getCurrentContext = vi.fn().mockResolvedValue({ success: true, data: 'integration-cluster' });
+    mockApi.getNamespaces = vi.fn().mockResolvedValue({ success: true, data: ['default', 'kube-system'] });
   });
 
   const AppRoutes = () => (
@@ -37,13 +40,13 @@ describe('Resource Management Integration', () => {
     ];
 
     // Mock initial pods load
-    mockElectronAPI.getResources.mockImplementation(async ({ resourceType }) => {
+    mockApi.getResources = vi.fn().mockImplementation(async ({ resourceType }) => {
       if (resourceType === 'pods') return { success: true, data: pods };
       if (resourceType === 'deployments') return { success: true, data: deployments };
       return { success: true, data: [] };
     });
 
-    render(<AppRoutes />, { initialEntries: ['/cluster/integration-cluster'] });
+    render(<AppRoutes />, { initialEntries: ['/cluster/integration-cluster'], api: mockApi });
 
     // 1. Initial Load (Pods)
     await waitFor(() => {
@@ -61,11 +64,11 @@ describe('Resource Management Integration', () => {
 
     // 4. Perform Restart Action
     const restartBtn = screen.getByTitle('Rollout Restart');
-    mockElectronAPI.rolloutRestart.mockResolvedValue({ success: true, data: undefined });
+    mockApi.rolloutRestart = vi.fn().mockResolvedValue({ success: true, data: undefined });
     await user.click(restartBtn);
 
     // 5. Verify API called
-    expect(mockElectronAPI.rolloutRestart).toHaveBeenCalledWith(expect.objectContaining({
+    expect(mockApi.rolloutRestart).toHaveBeenCalledWith(expect.objectContaining({
       resourceName: 'deploy-1',
       resourceType: 'deployments'
     }));
@@ -74,7 +77,7 @@ describe('Resource Management Integration', () => {
     const nsSelect = screen.getByRole('combobox');
     
     // Mock empty response for kube-system before switching
-    mockElectronAPI.getResources.mockResolvedValue({ success: true, data: [] });
+    mockApi.getResources = vi.fn().mockResolvedValue({ success: true, data: [] });
     
     await user.selectOptions(nsSelect, 'kube-system');
 
