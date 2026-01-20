@@ -6,8 +6,8 @@ import { mockServices } from '../../../fixtures/k8s-resources'
 
 describe('NetworkCells', () => {
     const style = { width: '100px' }
-    const mockService = mockServices[0] // LoadBalancer
-    const mockClusterIpService = mockServices[1] // ClusterIP
+    const mockService = mockServices[0]! // LoadBalancer
+    const mockClusterIpService = mockServices[1]! // ClusterIP
 
     it('ServiceTypeCell renders type', () => {
         render(<table><tbody><tr><ServiceTypeCell resource={mockClusterIpService} style={style} /></tr></tbody></table>)

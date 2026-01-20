@@ -6,7 +6,7 @@ import { mockPods } from '../../../fixtures/k8s-resources'
 
 describe('CommonCells', () => {
     const style = { width: '100px' }
-    const mockPod = mockPods[0]
+    const mockPod = mockPods[0]!
 
     it('NamespaceCell renders namespace', () => {
         render(<table><tbody><tr><NamespaceCell resource={mockPod} style={style} /></tr></tbody></table>)

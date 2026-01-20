@@ -6,7 +6,7 @@ import { mockNodes } from '../../../fixtures/k8s-resources'
 
 describe('NodeCells', () => {
     const style = { width: '100px' }
-    const mockNode = mockNodes[0]
+    const mockNode = mockNodes[0]!
 
     it('RolesCell renders roles', () => {
         render(<table><tbody><tr><RolesCell resource={mockNode} style={style} /></tr></tbody></table>)

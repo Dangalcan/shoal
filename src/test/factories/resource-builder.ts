@@ -12,33 +12,42 @@ export class ResourceBuilder<T extends K8sResource> {
   }
 
   withName(name: string): this {
-    this.resource.metadata.name = name;
+    if (!this.resource.metadata) this.resource.metadata = {} as any;
+    this.resource.metadata!.name = name;
     return this;
   }
 
   withNamespace(namespace: string): this {
-    this.resource.metadata.namespace = namespace;
+    if (!this.resource.metadata) this.resource.metadata = {} as any;
+    this.resource.metadata!.namespace = namespace;
     return this;
   }
 
   withLabel(key: string, value: string): this {
-    if (!this.resource.metadata.labels) {
-      this.resource.metadata.labels = {};
+    if (!this.resource.metadata) {
+      this.resource.metadata = {} as any;
     }
-    this.resource.metadata.labels[key] = value;
+    if (!this.resource.metadata!.labels) {
+      this.resource.metadata!.labels = {};
+    }
+    this.resource.metadata!.labels[key] = value;
     return this;
   }
 
   withAnnotation(key: string, value: string): this {
-    if (!this.resource.metadata.annotations) {
-      this.resource.metadata.annotations = {};
+    if (!this.resource.metadata) {
+      this.resource.metadata = {} as any;
     }
-    this.resource.metadata.annotations[key] = value;
+    if (!this.resource.metadata!.annotations) {
+      this.resource.metadata!.annotations = {};
+    }
+    this.resource.metadata!.annotations[key] = value;
     return this;
   }
 
   withCreationTimestamp(timestamp: string): this {
-    this.resource.metadata.creationTimestamp = timestamp;
+    if (!this.resource.metadata) this.resource.metadata = {} as any;
+    this.resource.metadata!.creationTimestamp = timestamp;
     return this;
   }
 
@@ -55,51 +64,67 @@ export class PodBuilder extends ResourceBuilder<Pod> {
     super(initialState);
   }
 
-  withPhase(phase: Pod['status']['phase']): this {
-    this.resource.status.phase = phase;
+  withPhase(phase: NonNullable<Pod['status']>['phase']): this {
+    this.resource.status = { ...this.resource.status, phase } as any;
     return this;
   }
 
-  withStatus(status: Partial<Pod['status']>): this {
-    this.resource.status = { ...this.resource.status, ...status };
+  withStatus(status: Partial<NonNullable<Pod['status']>>): this {
+    this.resource.status = { ...this.resource.status, ...status } as any;
     return this;
   }
 
   withContainer(name: string, image: string, ready: boolean = true): this {
-    if (!this.resource.spec.containers) {
-      this.resource.spec.containers = [];
+    if (!this.resource.spec) {
+      this.resource.spec = {} as any;
+    }
+    if (!this.resource.spec!.containers) {
+      this.resource.spec!.containers = [];
     }
 
     // Update spec
-    const existingSpecIdx = this.resource.spec.containers.findIndex(
+    const existingSpecIdx = this.resource.spec!.containers.findIndex(
       (c) => c.name === name
     );
     if (existingSpecIdx >= 0) {
-      this.resource.spec.containers[existingSpecIdx] = { name, image };
+      // safe because index was found
+      const container = this.resource.spec!.containers[existingSpecIdx]!;
+      this.resource.spec!.containers[existingSpecIdx] = {
+        ...container,
+        name,
+        image,
+      };
     } else {
-      this.resource.spec.containers.push({ name, image });
+      this.resource.spec!.containers.push({ name, image });
     }
 
     // Update status
-    if (!this.resource.status.containerStatuses) {
-      this.resource.status.containerStatuses = [];
+    if (!this.resource.status) {
+      this.resource.status = {} as any;
+    }
+    if (!this.resource.status!.containerStatuses) {
+      this.resource.status!.containerStatuses = [];
     }
 
-    const existingStatusIdx = this.resource.status.containerStatuses.findIndex(
+    const existingStatusIdx = this.resource.status!.containerStatuses.findIndex(
       (c) => c.name === name
     );
     if (existingStatusIdx >= 0) {
-      this.resource.status.containerStatuses[existingStatusIdx] = {
-        ...this.resource.status.containerStatuses[existingStatusIdx],
+      const current =
+        this.resource.status!.containerStatuses[existingStatusIdx]!;
+      this.resource.status!.containerStatuses[existingStatusIdx] = {
+        ...current,
         image,
         ready,
       };
     } else {
-      this.resource.status.containerStatuses.push({
+      this.resource.status!.containerStatuses.push({
         name,
         image,
         ready,
         restartCount: 0,
+        imageID: '',
+        state: { running: { startedAt: new Date().toISOString() } },
       });
     }
 
@@ -107,7 +132,8 @@ export class PodBuilder extends ResourceBuilder<Pod> {
   }
 
   withNode(nodeName: string): this {
-    this.resource.spec.nodeName = nodeName;
+    if (!this.resource.spec) this.resource.spec = {} as any;
+    this.resource.spec!.nodeName = nodeName;
     return this;
   }
 }
@@ -121,22 +147,28 @@ export class DeploymentBuilder extends ResourceBuilder<Deployment> {
   }
 
   withReplicas(replicas: number): this {
-    this.resource.spec.replicas = replicas;
+    if (!this.resource.spec) this.resource.spec = {} as any;
+    this.resource.spec!.replicas = replicas;
     return this;
   }
 
   withAvailableReplicas(available: number): this {
-    this.resource.status.availableReplicas = available;
+    if (!this.resource.status) this.resource.status = {} as any;
+    this.resource.status!.availableReplicas = available;
     return this;
   }
 
   withReadyReplicas(ready: number): this {
-    this.resource.status.readyReplicas = ready;
+    if (!this.resource.status) this.resource.status = {} as any;
+    this.resource.status!.readyReplicas = ready;
     return this;
   }
 
-  withConditions(conditions: Deployment['status']['conditions']): this {
-    this.resource.status.conditions = conditions;
+  withConditions(
+    conditions: NonNullable<Deployment['status']>['conditions']
+  ): this {
+    if (!this.resource.status) this.resource.status = {} as any;
+    this.resource.status!.conditions = conditions;
     return this;
   }
 }
@@ -153,17 +185,21 @@ export class NodeBuilder extends ResourceBuilder<Node> {
     conditionType: string,
     status: 'True' | 'False' | 'Unknown'
   ): this {
-    if (!this.resource.status.conditions) {
-      this.resource.status.conditions = [];
+    if (!this.resource.status) {
+      this.resource.status = {} as any;
+    }
+    if (!this.resource.status!.conditions) {
+      this.resource.status!.conditions = [];
     }
 
-    const idx = this.resource.status.conditions.findIndex(
+    const idx = this.resource.status!.conditions.findIndex(
       (c) => c.type === conditionType
     );
     if (idx >= 0) {
-      this.resource.status.conditions[idx].status = status;
+      const condition = this.resource.status!.conditions[idx]!;
+      this.resource.status!.conditions[idx] = { ...condition, status };
     } else {
-      this.resource.status.conditions.push({
+      this.resource.status!.conditions.push({
         type: conditionType,
         status,
         lastHeartbeatTime: new Date().toISOString(),

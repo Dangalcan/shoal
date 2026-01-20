@@ -88,4 +88,4 @@ export const mockNetworkPolicies: GenericResource[] = [
   },
 ];
 
-export const mockService = mockServices[0];
+export const mockService = mockServices[0]!;

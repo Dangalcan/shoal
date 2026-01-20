@@ -5,7 +5,7 @@ describe('Resource Builders', () => {
   describe('PodBuilder', () => {
     it('should create a pod with default values', () => {
       const pod = new PodBuilder().build();
-      expect(pod.metadata.name).toBeDefined();
+      expect(pod.metadata!.name).toBeDefined();
       expect(pod.status!.phase).toBe('Running');
     });
 
@@ -15,8 +15,8 @@ describe('Resource Builders', () => {
         .withNamespace('kube-system')
         .build();
 
-      expect(pod.metadata.name).toBe('custom-pod');
-      expect(pod.metadata.namespace).toBe('kube-system');
+      expect(pod.metadata!.name).toBe('custom-pod');
+      expect(pod.metadata!.namespace).toBe('kube-system');
     });
 
     it('should update status phase', () => {
@@ -52,7 +52,7 @@ describe('Resource Builders', () => {
         .withAvailableReplicas(2)
         .build();
 
-      expect(deploy.metadata.name).toBe('web-deploy');
+      expect(deploy.metadata!.name).toBe('web-deploy');
       expect(deploy.spec!.replicas).toBe(3);
       expect(deploy.status!.availableReplicas).toBe(2);
     });
@@ -66,10 +66,10 @@ describe('Resource Builders', () => {
         .withStatus('Ready', 'True')
         .build();
 
-      expect(node.metadata.name).toBe('worker-1');
-      expect(node.metadata.labels?.['kubernetes.io/role/worker']).toBe('');
+      expect(node.metadata!.name).toBe('worker-1');
+      expect(node.metadata!.labels?.['kubernetes.io/role/worker']).toBe('');
       expect(
-        node.status!.conditions.find((c) => c.type === 'Ready')!.status
+        node.status!.conditions!.find((c) => c.type === 'Ready')!.status
       ).toBe('True');
     });
   });

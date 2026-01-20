@@ -32,5 +32,5 @@ export const mockConfigMaps: ConfigMap[] = [
   },
 ];
 
-export const mockSecret = mockSecrets[0];
-export const mockConfigMap = mockConfigMaps[0];
+export const mockSecret = mockSecrets[0]!;
+export const mockConfigMap = mockConfigMaps[0]!;

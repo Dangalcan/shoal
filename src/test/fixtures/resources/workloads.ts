@@ -132,8 +132,8 @@ export const mockReplicationControllers: GenericResource[] = [
   },
 ];
 
-export const mockStatefulSet = mockStatefulSets[0];
-export const mockDaemonSet = mockDaemonSets[0];
-export const mockJob = mockJobs[0];
-export const mockCronJob = mockCronJobs[0];
-export const mockHpa = mockHPA[0];
+export const mockStatefulSet = mockStatefulSets[0]!;
+export const mockDaemonSet = mockDaemonSets[0]!;
+export const mockJob = mockJobs[0]!;
+export const mockCronJob = mockCronJobs[0]!;
+export const mockHpa = mockHPA[0]!;

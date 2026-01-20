@@ -43,4 +43,4 @@ export const mockNodes: Node[] = [
   },
 ];
 
-export const mockNode = mockNodes[0];
+export const mockNode = mockNodes[0]!;

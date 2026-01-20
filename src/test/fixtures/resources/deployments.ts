@@ -45,4 +45,4 @@ export const mockDeployments: Deployment[] = [
   },
 ];
 
-export const mockDeployment = mockDeployments[0];
+export const mockDeployment = mockDeployments[0]!;

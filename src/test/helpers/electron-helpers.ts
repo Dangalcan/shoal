@@ -6,6 +6,7 @@
  */
 
 import { vi } from 'vitest';
+import { mockElectronAPI } from '../setup';
 
 /**
  * Configure mock cluster state

@@ -24,7 +24,7 @@ vi.mock('../../../components/resource-tables/cell-renderers/renderCell', () => (
 }))
 
 describe('ResourceRow', () => {
-    const mockPod = mockPods[0]
+    const mockPod = mockPods[0]!
     const defaultProps = {
         item: mockPod,
         activeTab: 'pods' as const,

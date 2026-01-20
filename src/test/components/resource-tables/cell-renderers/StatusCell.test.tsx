@@ -6,8 +6,8 @@ import { mockPods, mockNodes, mockPVC } from '../../../fixtures/k8s-resources'
 
 describe('StatusCell', () => {
     const style = { width: '100px' }
-    const mockPod = mockPods[0]
-    const mockNode = mockNodes[0]
+    const mockPod = mockPods[0]!
+    const mockNode = mockNodes[0]!
 
     it('renders Pod status', () => {
         render(<table><tbody><tr><StatusCell resource={mockPod} resourceType="pods" style={style} /></tr></tbody></table>)
@@ -20,7 +20,7 @@ describe('StatusCell', () => {
     })
 
     it('renders PVC status', () => {
-        const mockPvc = { ...mockPVC[0], status: { phase: 'Pending' } }
+        const mockPvc = { ...mockPVC[0]!, status: { phase: 'Pending' } }
         render(<table><tbody><tr><StatusCell resource={mockPvc} resourceType="persistentvolumeclaim" style={style} /></tr></tbody></table>)
         expect(screen.getByText('Pending')).toBeInTheDocument()
     })

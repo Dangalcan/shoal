@@ -6,8 +6,8 @@ import { mockPods, mockNodes } from '../../../fixtures/k8s-resources'
 
 describe('renderCell', () => {
     const style = { width: '100px' }
-    const mockPod = mockPods[0]
-    const mockNode = mockNodes[0]
+    const mockPod = mockPods[0]!
+    const mockNode = mockNodes[0]!
 
     it('sanity check inputs', () => {
         expect(mockPods).toBeDefined()

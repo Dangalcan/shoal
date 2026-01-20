@@ -6,7 +6,7 @@ import { mockPods } from '../../../fixtures/k8s-resources'
 
 describe('PodCells', () => {
     const style = { width: '100px' }
-    const mockPod = mockPods[0]
+    const mockPod = mockPods[0]!
 
     it('RestartsCell renders restart count', () => {
          render(<table><tbody><tr><RestartsCell resource={mockPod} style={style} /></tr></tbody></table>)

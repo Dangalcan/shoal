@@ -43,4 +43,4 @@ export const mockPods: Pod[] = [
   },
 ];
 
-export const mockPod = mockPods[0];
+export const mockPod = mockPods[0]!;

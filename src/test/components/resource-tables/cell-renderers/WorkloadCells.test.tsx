@@ -14,7 +14,7 @@ import { mockDeployments } from '../../../fixtures/k8s-resources'
 
 describe('WorkloadCells', () => {
     const style = { width: '100px' }
-    const mockDeployment = mockDeployments[0]
+    const mockDeployment = mockDeployments[0]!
 
     it('ReadyCell renders ready/total', () => {
         render(<table><tbody><tr><ReadyCell resource={mockDeployment} resourceType="deployments" style={style} /></tr></tbody></table>)
