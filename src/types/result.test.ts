@@ -75,7 +75,7 @@ describe('Result Utilities', () => {
         success: false,
         error: 'original error',
       };
-      const mapped = mapResult(result, (n) => n * 2);
+      const mapped = mapResult(result, (n: number) => n * 2);
       expect(mapped).toEqual({ success: false, error: 'original error' });
     });
   });

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handleError, handleIpcError } from './error-handler';
+import { handleError, handleIpcError } from '../../lib/error-handler';
 import { toast } from 'sonner';
 
 // Mock sonner toast

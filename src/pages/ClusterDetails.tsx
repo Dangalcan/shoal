@@ -69,7 +69,7 @@ export function ClusterDetails() {
     // Handle inactive visible tab
     useEffect(() => {
         if (!visibleResources.includes(activeTab)) {
-            const nextTab = visibleResources.length > 0 ? visibleResources[0] : 'pods'
+            const nextTab = visibleResources.length > 0 && visibleResources[0] ? visibleResources[0] : 'pods'
             setActiveTab(nextTab)
         }
     }, [visibleResources, activeTab])

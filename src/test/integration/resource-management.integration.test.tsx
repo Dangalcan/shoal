@@ -6,7 +6,7 @@ import { ClusterDetails } from '../../pages/ClusterDetails';
 import { Routes, Route } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { PodBuilder, DeploymentBuilder } from '../factories/resource-builder';
+import { PodBuilder, DeploymentBuilder } from '../fixtures/builders/resource-builder';
 
 let mockApi: ReturnType<typeof createMockElectronAPI>;
 

@@ -1,5 +1,10 @@
-import type { Pod, Deployment, Node, K8sResource } from '../../types/k8s-types';
-import { mockPod, mockDeployment, mockNode } from '../fixtures/k8s-resources';
+import type {
+  Pod,
+  Deployment,
+  Node,
+  K8sResource,
+} from '../../../types/k8s-types';
+import { mockPod, mockDeployment, mockNode } from '../k8s-resources';
 
 /**
  * Base builder class for Kubernetes resources.

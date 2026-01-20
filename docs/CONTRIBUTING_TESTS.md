@@ -23,13 +23,18 @@ src/test/
 ├── hooks/            # Hook tests
 ├── pages/            # Page tests
 ├── integration/      # Integration tests
+├── lib/              # Library/Utility Logic Tests
 ├── fixtures/         # Test data
+│   └── builders/     # Resource builders (Factory pattern)
 ├── helpers/          # Test utilities
 └── utils/            # Centralized test utilities
     ├── index.ts      # Main export
     ├── render.tsx    # Custom render with providers
     ├── mocks.ts      # Mock Electron API
     └── assertions.ts # Custom assertions
+
+electron/__tests__/   # Backend (Main Process) Tests
+
 ```
 
 ---
