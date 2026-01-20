@@ -146,3 +146,19 @@ export function chainResult<T, U>(
   }
   return result;
 }
+
+/**
+ * Checks if a value is a Result object.
+ *
+ * @param val - The value to check
+ * @returns true if the value is a Result object
+ */
+export function isResult(val: any): val is Result<any> {
+  return (
+    val !== null &&
+    typeof val === 'object' &&
+    'success' in val &&
+    (val.success === true || val.success === false) &&
+    ('data' in val || 'error' in val)
+  );
+}

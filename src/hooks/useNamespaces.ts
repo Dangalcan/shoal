@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useAsyncData } from './useAsyncData';
 import { useApi } from '../services/api-context';
+import { mapResult } from '../types/result';
 
 interface UseNamespacesResult {
   namespaces: string[];
@@ -20,12 +21,7 @@ export function useNamespaces(
     if (!contextName) return [];
 
     const result = await api.getNamespaces(contextName);
-
-    if (result.success) {
-      return ['all', ...result.data];
-    }
-
-    throw new Error(result.error);
+    return mapResult(result, (data) => ['all', ...data]);
   }, [api, contextName]);
 
   const {

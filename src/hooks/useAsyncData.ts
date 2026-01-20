@@ -1,12 +1,13 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { handleError } from '../lib/error-handler';
+import { Result, isResult } from '../types/result';
 
 /**
  * Options for the useAsyncData hook.
  */
 export interface UseAsyncDataOptions<T> {
-  /** Function to fetch the data */
-  fetchFn: () => Promise<T>;
+  /** Function to fetch the data - can return T or Result<T> */
+  fetchFn: () => Promise<T | Result<T>>;
   /** Optional error title for toast notifications */
   errorTitle?: string;
   /** Auto-refresh interval in milliseconds (0 to disable) */
@@ -40,21 +41,10 @@ export interface UseAsyncDataResult<T> {
  * - Race condition prevention
  * - Auto-refresh support
  * - Manual refetch capability
+ * - Support for Result<T> return types
  *
  * @param options - Configuration options
  * @returns Object with data, loading, error, and refetch
- *
- * @example
- * ```typescript
- * const { data: clusters, loading, error, refetch } = useAsyncData({
- *   fetchFn: async () => {
- *     const result = await window.electron.getClusters();
- *     return result;
- *   },
- *   errorTitle: 'Failed to fetch clusters',
- *   autoRefreshInterval: 30000, // 30 seconds
- * });
- * ```
  */
 export function useAsyncData<T>(
   options: UseAsyncDataOptions<T>
@@ -82,8 +72,20 @@ export function useAsyncData<T>(
       const result = await fetchFnRef.current();
 
       // If a newer request has started, ignore this result
-      if (requestId === requestCounter.current) {
-        setData(result);
+      if (requestId !== requestCounter.current) return;
+
+      if (isResult(result)) {
+        if (result.success) {
+          setData(result.data);
+        } else {
+          setError(result.error);
+          setData(null);
+          if (errorTitleRef.current) {
+            handleError(new Error(result.error), errorTitleRef.current);
+          }
+        }
+      } else {
+        setData(result as T);
       }
     } catch (err) {
       if (requestId === requestCounter.current) {

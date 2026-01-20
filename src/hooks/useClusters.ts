@@ -2,24 +2,14 @@ import { useState, useCallback } from 'react';
 import { useApi } from '../services/api-context';
 import { handleAsyncOperation } from '../lib/async-operation-handler';
 import { useAsyncData } from './useAsyncData';
-
-export interface ClusterDeleteResult {
-  success: boolean;
-  error?: string;
-}
+import { Result } from '../types/result';
 
 export function useClusters() {
   const api = useApi();
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const fetchFn = useCallback(async () => {
-    const result = await api.getClusters();
-
-    if (result.success) {
-      return result.data;
-    }
-
-    throw new Error(result.error);
+    return api.getClusters();
   }, [api]);
 
   const {
@@ -32,7 +22,7 @@ export function useClusters() {
   });
 
   const deleteCluster = useCallback(
-    async (name: string): Promise<ClusterDeleteResult> => {
+    async (name: string): Promise<Result> => {
       setDeleting(name);
 
       const result = await handleAsyncOperation(() => api.deleteCluster(name), {

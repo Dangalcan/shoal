@@ -21,17 +21,11 @@ export function useClusterData(
   const fetchFn = useCallback(async () => {
     if (!contextName) return [];
 
-    const result = await api.getResources({
+    return api.getResources({
       contextName,
       resourceType,
       namespace,
     });
-
-    if (result.success) {
-      return result.data;
-    }
-
-    throw new Error(result.error);
   }, [api, contextName, resourceType, namespace]);
 
   const {
