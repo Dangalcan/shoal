@@ -12,46 +12,36 @@ export class ClusterManagementService {
       let clusterName = contextName;
       let tool: 'kind' | 'k3d' | 'other' = 'other';
 
-      if (contextName.startsWith('kind-')) {
-        clusterName = contextName.replace('kind-', '');
+      if (contextName.startsWith('kind-') || contextName === 'kind') {
+        clusterName =
+          contextName === 'kind' ? 'kind' : contextName.replace('kind-', '');
         tool = 'kind';
-      } else if (contextName.startsWith('k3d-')) {
-        clusterName = contextName.replace('k3d-', '');
+      } else if (contextName.startsWith('k3d-') || contextName === 'k3d') {
+        clusterName =
+          contextName === 'k3d' ? 'k3d' : contextName.replace('k3d-', '');
         tool = 'k3d';
       }
 
       console.log(
-        `[ClusterManager] Attempting to delete cluster. Tool: ${tool}, Name: ${clusterName}, Context: ${contextName}`
+        `[ClusterManager] Detected tool: ${tool}, Cluster Name: ${clusterName}, Context: ${contextName}`
       );
 
       if (tool === 'kind') {
-        try {
-          console.log(
-            `[ClusterManager] Executing: kind delete cluster --name ${clusterName}`
-          );
-          await execPromise(`kind delete cluster --name ${clusterName}`);
-          console.log(
-            `[ClusterManager] Kind deletion command completed for ${clusterName}`
-          );
-        } catch (err: any) {
-          console.warn(
-            `[ClusterManager] Kind deletion failed: ${err.message}. Proceeding to manual context removal.`
-          );
-        }
+        console.log(
+          `[ClusterManager] Executing: kind delete cluster --name ${clusterName}`
+        );
+        await execPromise(`kind delete cluster --name ${clusterName}`);
+        console.log(
+          `[ClusterManager] Kind deletion command completed for ${clusterName}`
+        );
       } else if (tool === 'k3d') {
-        try {
-          console.log(
-            `[ClusterManager] Executing: k3d cluster delete ${clusterName}`
-          );
-          await execPromise(`k3d cluster delete ${clusterName}`);
-          console.log(
-            `[ClusterManager] K3d deletion command completed for ${clusterName}`
-          );
-        } catch (err: any) {
-          console.warn(
-            `[ClusterManager] K3d deletion failed: ${err.message}. Proceeding to manual context removal.`
-          );
-        }
+        console.log(
+          `[ClusterManager] Executing: k3d cluster delete ${clusterName}`
+        );
+        await execPromise(`k3d cluster delete ${clusterName}`);
+        console.log(
+          `[ClusterManager] K3d deletion command completed for ${clusterName}`
+        );
       }
 
       // Always check if the context still exists and remove it if it does

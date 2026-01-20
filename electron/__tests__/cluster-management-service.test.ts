@@ -135,20 +135,10 @@ describe('ClusterManagementService', () => {
       expect(result).toEqual({ success: true });
     });
 
-    it('should handle deletion errors but proceed to context removal', async () => {
-      let getContextsCallCount = 0;
+    it('should handle deletion errors and return failure', async () => {
       mocks.exec.mockImplementation((cmd, cb) => {
         if (cmd.includes('kind delete cluster')) {
           cb(new Error('Cluster not found'), null);
-        } else if (cmd === 'kubectl config get-contexts -o name') {
-          getContextsCallCount++;
-          if (getContextsCallCount === 1) {
-            cb(null, { stdout: 'kind-test-cluster' });
-          } else {
-            cb(null, { stdout: '' });
-          }
-        } else if (cmd.includes('delete-context')) {
-          cb(null, { stdout: '' });
         }
       });
 
@@ -159,12 +149,9 @@ describe('ClusterManagementService', () => {
         expect.stringContaining('kind delete cluster'),
         expect.any(Function)
       );
-      // And still tried to delete context
-      expect(mocks.exec).toHaveBeenCalledWith(
-        expect.stringContaining('kubectl config delete-context'),
-        expect.any(Function)
-      );
-      expect(result).toEqual({ success: true });
+      // And returned failure
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Cluster not found');
     });
   });
 });
