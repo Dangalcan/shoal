@@ -12,65 +12,6 @@ import { describe, it, expect } from 'vitest';
  */
 
 describe('Electron Main Process IPC Handlers', () => {
-  describe('Handler Contracts', () => {
-    it('should define run-command handler', () => {
-      // This test verifies the handler contract exists
-      expect(true).toBe(true);
-    });
-
-    it('should define check-tool handler', () => {
-      expect(true).toBe(true);
-    });
-
-    it('should define create-cluster handler', () => {
-      expect(true).toBe(true);
-    });
-
-    it('should define get-clusters handler', () => {
-      expect(true).toBe(true);
-    });
-
-    it('should define get-current-context handler', () => {
-      expect(true).toBe(true);
-    });
-
-    it('should define get-pods handler', () => {
-      expect(true).toBe(true);
-    });
-
-    it('should define get-namespaces handler', () => {
-      expect(true).toBe(true);
-    });
-
-    it('should define get-resources handler', () => {
-      expect(true).toBe(true);
-    });
-
-    it('should define get-logs handler', () => {
-      expect(true).toBe(true);
-    });
-
-    it('should define describe-resource handler', () => {
-      expect(true).toBe(true);
-    });
-
-    it('should define get-resource-yaml handler', () => {
-      expect(true).toBe(true);
-    });
-
-    it('should define rollout-restart handler', () => {
-      expect(true).toBe(true);
-    });
-
-    it('should define delete-resource handler', () => {
-      expect(true).toBe(true);
-    });
-
-    it('should define delete-cluster handler', () => {
-      expect(true).toBe(true);
-    });
-  });
-
   describe('Command Construction', () => {
     it('should construct kubectl get pods command correctly', () => {
       const contextName = 'test-cluster';

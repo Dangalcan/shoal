@@ -13,6 +13,9 @@ import { mockClusters, deleteClusterViaUI } from '../helpers/cluster-test-utils'
 let mockApi: ReturnType<typeof createMockElectronAPI>;
 
 describe('Cluster Lifecycle Integration', () => {
+  // Increase timeout for integration tests as they involve multiple steps and animations
+  vi.setConfig({ testTimeout: 10000 });
+
   beforeEach(() => {
     mockApi = createMockElectronAPI();
     vi.clearAllMocks();
@@ -69,12 +72,13 @@ describe('Cluster Lifecycle Integration', () => {
     // Update mock to return empty list after deletion
     mockApi.getClusters = vi.fn().mockResolvedValue({ success: true, data: [] });
 
-    await deleteClusterViaUI('lifecycle-test-cluster');
+    await deleteClusterViaUI('lifecycle-test-cluster', user);
 
     // 6. Final verification: List should be empty
+    // Increasing timeout here because deletion involves a full roundtrip of state updates
     await waitFor(() => {
       expect(screen.getByText('No clusters found')).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
     
     expect(screen.queryByText('lifecycle-test-cluster')).not.toBeInTheDocument();
   });

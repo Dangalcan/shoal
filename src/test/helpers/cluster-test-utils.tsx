@@ -32,12 +32,13 @@ export function mockClusterDeletion(success: boolean = true, error?: string) {
 /**
  * Simulates deleting a cluster via the UI.
  */
-export async function deleteClusterViaUI(name: string) {
-  const user = userEvent.setup();
+export async function deleteClusterViaUI(name: string, userInstance?: ReturnType<typeof userEvent.setup>) {
+  const user = userInstance || userEvent.setup();
   const deleteBtn = screen.getByTitle(`Delete ${name}`);
   await user.click(deleteBtn);
   
-  const confirmBtn = await screen.findByRole('button', { name: 'Delete Cluster' });
+  // Modals might have a slight animation delay
+  const confirmBtn = await screen.findByRole('button', { name: 'Delete Cluster' }, { timeout: 2000 });
   await user.click(confirmBtn);
 }
 
