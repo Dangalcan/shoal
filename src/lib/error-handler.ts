@@ -1,41 +1,76 @@
 import { toast } from 'sonner';
 
 /**
+ * Options for error toast notifications.
+ */
+export interface ErrorOptions {
+  /** Toast ID for updating an existing toast */
+  id?: string | number;
+  /** Duration in milliseconds (default: 5000) */
+  duration?: number;
+  /** Optional description to show below the title */
+  description?: string;
+}
+
+/**
  * Centralized error handler for the application.
  * Logs the error and displays a user-friendly toast notification.
+ *
+ * @param error - The error to handle (Error, string, or object with message/error property)
+ * @param title - The title for the error toast
+ * @param options - Optional configuration for the toast
+ *
+ * @example
+ * ```typescript
+ * // Simple error
+ * handleError(new Error('Something went wrong'), 'Operation Failed');
+ *
+ * // With description
+ * handleError(err, 'Failed to delete cluster', {
+ *   description: 'The cluster may still be running'
+ * });
+ *
+ * // Update existing toast
+ * const toastId = toast.loading('Deleting...');
+ * handleError(err, 'Failed to delete', { id: toastId });
+ * ```
  */
-export const handleError = (error: unknown, title?: string, options?: any) => {
-  console.error(`[Error] ${title || 'Error'}:`, error);
+export const handleError = (
+  error: unknown,
+  title: string,
+  options?: ErrorOptions
+) => {
+  console.error(`[Error] ${title}:`, error);
 
-  let message = 'An unexpected error occurred. Please try again.';
+  let description = options?.description;
 
-  if (error instanceof Error) {
-    message = error.message;
-  } else if (typeof error === 'string') {
-    message = error;
-  } else if (error && typeof error === 'object') {
-    if ('message' in error) {
-      message = String((error as { message: unknown }).message);
-    } else if ('error' in error) {
-      message = String((error as { error: unknown }).error);
+  // If no explicit description provided, extract from error
+  if (!description) {
+    if (error instanceof Error) {
+      description = error.message;
+    } else if (typeof error === 'string') {
+      description = error;
+    } else if (error && typeof error === 'object') {
+      if ('message' in error) {
+        description = String((error as { message: unknown }).message);
+      } else if ('error' in error) {
+        description = String((error as { error: unknown }).error);
+      }
     }
   }
 
-  // If title is provided and not generic, use it as title and message as description.
-  // Otherwise, use message as title for better compatibility with existing tests.
-  const finalTitle = title && title !== 'An error occurred' ? title : message;
-  const finalDescription =
-    title && title !== 'An error occurred' ? message : undefined;
-
-  toast.error(finalTitle, {
-    description: finalDescription,
-    duration: 5000,
-    ...options,
+  toast.error(title, {
+    description,
+    duration: options?.duration ?? 5000,
+    id: options?.id,
   });
 };
 
 /**
  * Specific handler for IPC/Bridge errors.
+ *
+ * @param error - The error to handle
+ * @param action - The action that failed (e.g., "fetch clusters")
  */
 export const handleIpcError = (error: unknown, action: string) => {
   handleError(error, `Failed to ${action}`);

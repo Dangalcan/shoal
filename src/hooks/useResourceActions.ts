@@ -1,6 +1,5 @@
-import { toast } from 'sonner';
 import { useCallback } from 'react';
-import { handleError } from '../lib/error-handler';
+import { handleAsyncOperation } from '../lib/async-operation-handler';
 
 interface UseResourceActionsResult {
   handleRestart: (resName: string, ns: string, type: string) => Promise<void>;
@@ -15,29 +14,21 @@ export function useResourceActions(
     async (resName: string, ns: string, type: string) => {
       if (!contextName) return;
 
-      const promise = window.electron.rolloutRestart({
-        contextName,
-        resourceType: type,
-        resourceName: resName,
-        namespace: ns,
-      });
-
-      const toastId = toast.loading(`Restarting ${type}/${resName}...`);
-      try {
-        const result = await promise;
-        if (result.success) {
-          toast.success('Restart triggered successfully', { id: toastId });
-          onActionComplete();
-        } else {
-          handleError(
-            result.error || 'Failed to restart',
-            'Failed to restart resource',
-            { id: toastId }
-          );
+      await handleAsyncOperation(
+        () =>
+          window.electron.rolloutRestart({
+            contextName,
+            resourceType: type,
+            resourceName: resName,
+            namespace: ns,
+          }),
+        {
+          loadingMessage: `Restarting ${type}/${resName}...`,
+          successMessage: 'Restart triggered successfully',
+          errorTitle: 'Failed to restart resource',
+          onSuccess: onActionComplete,
         }
-      } catch (err) {
-        handleError(err, 'Failed to restart resource', { id: toastId });
-      }
+      );
     },
     [contextName, onActionComplete]
   );
@@ -50,29 +41,21 @@ export function useResourceActions(
       )
         return;
 
-      const promise = window.electron.deleteResource({
-        contextName,
-        resourceType: type,
-        resourceName: resName,
-        namespace: ns,
-      });
-
-      const toastId = toast.loading(`Deleting ${type}/${resName}...`);
-      try {
-        const result = await promise;
-        if (result.success) {
-          toast.success('Resource deleted successfully', { id: toastId });
-          onActionComplete();
-        } else {
-          handleError(
-            result.error || 'Failed to delete',
-            'Failed to delete resource',
-            { id: toastId }
-          );
+      await handleAsyncOperation(
+        () =>
+          window.electron.deleteResource({
+            contextName,
+            resourceType: type,
+            resourceName: resName,
+            namespace: ns,
+          }),
+        {
+          loadingMessage: `Deleting ${type}/${resName}...`,
+          successMessage: 'Resource deleted successfully',
+          errorTitle: 'Failed to delete resource',
+          onSuccess: onActionComplete,
         }
-      } catch (err) {
-        handleError(err, 'Failed to delete resource', { id: toastId });
-      }
+      );
     },
     [contextName, onActionComplete]
   );

@@ -27,20 +27,20 @@ if (typeof window !== 'undefined') {
 const mockElectronAPI = {
   runCommand: vi
     .fn()
-    .mockResolvedValue({ success: true, stdout: '', stderr: '' }),
+    .mockResolvedValue({ success: true, data: { stdout: '', stderr: '' } }),
   checkTool: vi.fn().mockResolvedValue(true),
-  createCluster: vi.fn().mockResolvedValue({ success: true }),
-  getClusters: vi.fn().mockResolvedValue([]),
-  deleteCluster: vi.fn().mockResolvedValue({ success: true }),
-  getCurrentContext: vi.fn().mockResolvedValue('None'),
-  getPods: vi.fn().mockResolvedValue({ success: true, pods: [] }),
-  getNamespaces: vi.fn().mockResolvedValue({ success: true, namespaces: [] }),
-  getResources: vi.fn().mockResolvedValue({ success: true, items: [] }),
-  getLogs: vi.fn().mockResolvedValue({ success: true, logs: '' }),
-  describeResource: vi.fn().mockResolvedValue({ success: true, output: '' }),
-  getResourceYaml: vi.fn().mockResolvedValue({ success: true, yaml: '' }),
-  rolloutRestart: vi.fn().mockResolvedValue({ success: true }),
-  deleteResource: vi.fn().mockResolvedValue({ success: true }),
+  createCluster: vi.fn().mockResolvedValue({ success: true, data: undefined }),
+  getClusters: vi.fn().mockResolvedValue({ success: true, data: [] }),
+  deleteCluster: vi.fn().mockResolvedValue({ success: true, data: undefined }),
+  getCurrentContext: vi.fn().mockResolvedValue({ success: true, data: 'None' }),
+  getPods: vi.fn().mockResolvedValue({ success: true, data: [] }),
+  getNamespaces: vi.fn().mockResolvedValue({ success: true, data: [] }),
+  getResources: vi.fn().mockResolvedValue({ success: true, data: [] }),
+  getLogs: vi.fn().mockResolvedValue({ success: true, data: '' }),
+  describeResource: vi.fn().mockResolvedValue({ success: true, data: '' }),
+  getResourceYaml: vi.fn().mockResolvedValue({ success: true, data: '' }),
+  rolloutRestart: vi.fn().mockResolvedValue({ success: true, data: undefined }),
+  deleteResource: vi.fn().mockResolvedValue({ success: true, data: undefined }),
 };
 
 // Set up window.electron before all tests

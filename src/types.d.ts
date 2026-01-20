@@ -1,63 +1,55 @@
 import type { K8sResource } from './types/k8s-types';
+import type { Result } from './types/result';
 
 export interface ElectronAPI {
-  runCommand: (command: string) => Promise<{
-    success: boolean;
-    stdout: string;
-    stderr: string;
-    error?: string;
-  }>;
-  checkTool: (tool: string) => Promise<boolean>;
-  createCluster: (
-    name: string,
-    provider: string
-  ) => Promise<{ success: boolean; error?: string }>;
-  getClusters: () => Promise<string[]>;
-  deleteCluster: (
-    name: string
-  ) => Promise<{ success: boolean; error?: string }>;
-  getCurrentContext: () => Promise<string>;
-  getPods: (
-    contextName: string
-  ) => Promise<{ success: boolean; pods?: K8sResource[]; error?: string }>;
-  getNamespaces: (
-    contextName: string
-  ) => Promise<{ success: boolean; namespaces?: string[]; error?: string }>;
+  runCommand: (command: string) => Promise<
+    Result<{
+      stdout: string;
+      stderr: string;
+    }>
+  >;
+  checkTool: (tool: string) => Promise<Result<boolean>>;
+  createCluster: (name: string, provider: string) => Promise<Result<void>>;
+  getClusters: () => Promise<Result<string[]>>;
+  deleteCluster: (name: string) => Promise<Result<void>>;
+  getCurrentContext: () => Promise<Result<string>>;
+  getPods: (contextName: string) => Promise<Result<K8sResource[]>>;
+  getNamespaces: (contextName: string) => Promise<Result<string[]>>;
   getResources: (args: {
     contextName: string;
     resourceType: string;
     namespace: string;
-  }) => Promise<{ success: boolean; items?: K8sResource[]; error?: string }>;
+  }) => Promise<Result<K8sResource[]>>;
   getLogs: (args: {
     contextName: string;
     podName: string;
     namespace: string;
     tailLines?: number;
-  }) => Promise<{ success: boolean; logs?: string; error?: string }>;
+  }) => Promise<Result<string>>;
   describeResource: (args: {
     contextName: string;
     resourceType: string;
     resourceName: string;
     namespace: string;
-  }) => Promise<{ success: boolean; output?: string; error?: string }>;
+  }) => Promise<Result<string>>;
   getResourceYaml: (args: {
     contextName: string;
     resourceType: string;
     resourceName: string;
     namespace: string;
-  }) => Promise<{ success: boolean; yaml?: string; error?: string }>;
+  }) => Promise<Result<string>>;
   rolloutRestart: (args: {
     contextName: string;
     resourceType: string;
     resourceName: string;
     namespace: string;
-  }) => Promise<{ success: boolean; error?: string }>;
+  }) => Promise<Result<void>>;
   deleteResource: (args: {
     contextName: string;
     resourceType: string;
     resourceName: string;
     namespace: string;
-  }) => Promise<{ success: boolean; error?: string }>;
+  }) => Promise<Result<void>>;
 }
 
 declare global {

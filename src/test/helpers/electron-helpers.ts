@@ -22,8 +22,14 @@ export const mockClusterState = (
   clusters: string[],
   currentContext: string = 'None'
 ) => {
-  mockElectronAPI.getClusters.mockResolvedValue(clusters);
-  mockElectronAPI.getCurrentContext.mockResolvedValue(currentContext);
+  mockElectronAPI.getClusters.mockResolvedValue({
+    success: true,
+    data: clusters,
+  });
+  mockElectronAPI.getCurrentContext.mockResolvedValue({
+    success: true,
+    data: currentContext,
+  });
 };
 
 /**
@@ -59,20 +65,18 @@ export const mockResourceResponse = <T>(
   items: T[],
   success: boolean = true
 ) => {
-  const response = { success, items };
-
   switch (resourceType) {
     case 'pods':
-      mockElectronAPI.getPods.mockResolvedValue({ success, pods: items });
+      mockElectronAPI.getPods.mockResolvedValue({ success, data: items });
       break;
     case 'namespaces':
       mockElectronAPI.getNamespaces.mockResolvedValue({
         success,
-        namespaces: items,
+        data: items,
       });
       break;
     case 'resources':
-      mockElectronAPI.getResources.mockResolvedValue(response);
+      mockElectronAPI.getResources.mockResolvedValue({ success, data: items });
       break;
   }
 };
@@ -92,31 +96,45 @@ export const mockResourceResponse = <T>(
 export const resetElectronMocks = () => {
   mockElectronAPI.runCommand.mockResolvedValue({
     success: true,
-    stdout: '',
-    stderr: '',
+    data: { stdout: '', stderr: '' },
   });
   mockElectronAPI.checkTool.mockResolvedValue(true);
-  mockElectronAPI.createCluster.mockResolvedValue({ success: true });
-  mockElectronAPI.getClusters.mockResolvedValue([]);
-  mockElectronAPI.deleteCluster.mockResolvedValue({ success: true });
-  mockElectronAPI.getCurrentContext.mockResolvedValue('None');
-  mockElectronAPI.getPods.mockResolvedValue({ success: true, pods: [] });
+  mockElectronAPI.createCluster.mockResolvedValue({
+    success: true,
+    data: undefined,
+  });
+  mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: [] });
+  mockElectronAPI.deleteCluster.mockResolvedValue({
+    success: true,
+    data: undefined,
+  });
+  mockElectronAPI.getCurrentContext.mockResolvedValue({
+    success: true,
+    data: 'None',
+  });
+  mockElectronAPI.getPods.mockResolvedValue({ success: true, data: [] });
   mockElectronAPI.getNamespaces.mockResolvedValue({
     success: true,
-    namespaces: [],
+    data: [],
   });
-  mockElectronAPI.getResources.mockResolvedValue({ success: true, items: [] });
-  mockElectronAPI.getLogs.mockResolvedValue({ success: true, logs: '' });
+  mockElectronAPI.getResources.mockResolvedValue({ success: true, data: [] });
+  mockElectronAPI.getLogs.mockResolvedValue({ success: true, data: '' });
   mockElectronAPI.describeResource.mockResolvedValue({
     success: true,
-    output: '',
+    data: '',
   });
   mockElectronAPI.getResourceYaml.mockResolvedValue({
     success: true,
-    yaml: '',
+    data: '',
   });
-  mockElectronAPI.rolloutRestart.mockResolvedValue({ success: true });
-  mockElectronAPI.deleteResource.mockResolvedValue({ success: true });
+  mockElectronAPI.rolloutRestart.mockResolvedValue({
+    success: true,
+    data: undefined,
+  });
+  mockElectronAPI.deleteResource.mockResolvedValue({
+    success: true,
+    data: undefined,
+  });
 };
 
 /**
@@ -131,7 +149,7 @@ export const mockSuccessfulClusterCreation = (
 ) => {
   mockElectronAPI.createCluster.mockResolvedValue({
     success: true,
-    message: `Cluster ${clusterName} created successfully`,
+    data: undefined,
   });
 };
 

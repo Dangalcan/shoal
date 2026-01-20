@@ -1,3 +1,5 @@
+import { Result } from '../types/result';
+
 export class ElectronService {
   private static instance: ElectronService;
 
@@ -10,45 +12,20 @@ export class ElectronService {
     return ElectronService.instance;
   }
 
-  async getClusters(): Promise<string[]> {
-    try {
-      return await window.electron.getClusters();
-    } catch (error) {
-      console.error('ElectronService: getClusters failed', error);
-      throw error;
-    }
+  async getClusters(): Promise<Result<string[]>> {
+    return window.electron.getClusters();
   }
 
-  async deleteCluster(
-    name: string
-  ): Promise<{ success: boolean; error?: string }> {
-    try {
-      return await window.electron.deleteCluster(name);
-    } catch (error) {
-      console.error(
-        `ElectronService: deleteCluster failed for "${name}"`,
-        error
-      );
-      throw error; // Let the caller handle unexpected crashes
-    }
+  async deleteCluster(name: string): Promise<Result<void>> {
+    return window.electron.deleteCluster(name);
   }
 
-  async checkTool(tool: 'docker' | 'podman'): Promise<boolean> {
-    try {
-      return await window.electron.checkTool(tool);
-    } catch (error) {
-      console.error(`ElectronService: checkTool failed for "${tool}"`, error);
-      return false;
-    }
+  async checkTool(tool: 'docker' | 'podman'): Promise<Result<boolean>> {
+    return window.electron.checkTool(tool);
   }
 
-  async getCurrentContext(): Promise<string> {
-    try {
-      return await window.electron.getCurrentContext();
-    } catch (error) {
-      console.error('ElectronService: getCurrentContext failed', error);
-      return 'None';
-    }
+  async getCurrentContext(): Promise<Result<string>> {
+    return window.electron.getCurrentContext();
   }
 
   // Wrapper for any other electron calls to be added here

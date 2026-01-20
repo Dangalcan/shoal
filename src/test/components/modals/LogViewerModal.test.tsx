@@ -12,7 +12,7 @@ describe('LogViewerModal', () => {
         Element.prototype.scrollIntoView = vi.fn()
         mockElectronAPI.getLogs.mockResolvedValue({
             success: true,
-            logs: 'Test logs',
+            data: 'Test logs',
         })
     })
 
@@ -36,7 +36,7 @@ describe('LogViewerModal', () => {
     it('should call getLogs API when open', async () => {
         mockElectronAPI.getLogs.mockResolvedValue({
             success: true,
-            logs: 'Test logs',
+            data: 'Test logs',
         })
 
         render(
@@ -116,7 +116,7 @@ describe('LogViewerModal', () => {
     it('should filter logs based on search query', async () => {
          mockElectronAPI.getLogs.mockResolvedValue({
             success: true,
-            logs: 'Error: Something went wrong\nInfo: Server started\nWarning: Low memory',
+            data: 'Error: Something went wrong\nInfo: Server started\nWarning: Low memory',
         })
 
         render(
@@ -150,7 +150,7 @@ describe('LogViewerModal', () => {
      it('should display empty message when no logs', async () => {
         mockElectronAPI.getLogs.mockResolvedValue({
             success: true,
-            logs: '',
+            data: '',
         })
 
         render(

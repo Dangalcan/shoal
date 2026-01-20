@@ -17,7 +17,7 @@ describe('useNamespaces', () => {
   it('should fetch namespaces on mount', async () => {
     mockElectronAPI.getNamespaces.mockResolvedValue({
       success: true,
-      namespaces: ['default', 'kube-system'],
+      data: ['default', 'kube-system'],
     });
 
     const { result } = renderHook(() => useNamespaces('test-context'));
@@ -65,7 +65,7 @@ describe('useNamespaces', () => {
   it('should allow setting selected namespace', async () => {
     mockElectronAPI.getNamespaces.mockResolvedValue({
       success: true,
-      namespaces: [],
+      data: [],
     });
     const { result } = renderHook(() => useNamespaces('ctx'));
 

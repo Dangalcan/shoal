@@ -28,7 +28,7 @@ describe('Clusters Page', () => {
 
     beforeEach(() => {
         vi.clearAllMocks()
-        mockElectronAPI.getClusters.mockResolvedValue([])
+        mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: [] })
     })
     
     it('should render', async () => {
@@ -48,7 +48,7 @@ describe('Clusters Page', () => {
     })
 
     it('should display clusters', async () => {
-        mockElectronAPI.getClusters.mockResolvedValue(['cluster-1', 'cluster-2'])
+        mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: ['cluster-1', 'cluster-2'] })
         render(<Clusters />)
         await waitFor(() => {
             expect(screen.getByText('cluster-1')).toBeInTheDocument()
@@ -65,8 +65,8 @@ describe('Clusters Page', () => {
     })
 
     it('should handle cluster deletion success', async () => {
-         mockElectronAPI.getClusters.mockResolvedValue(['cluster-to-delete'])
-         mockElectronAPI.deleteCluster.mockResolvedValue({ success: true })
+         mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: ['cluster-to-delete'] })
+         mockElectronAPI.deleteCluster.mockResolvedValue({ success: true, data: undefined })
 
          render(<Clusters />)
          await waitFor(() => expect(screen.getByText('cluster-to-delete')).toBeInTheDocument())
@@ -86,7 +86,7 @@ describe('Clusters Page', () => {
     })
 
     it('should handle cluster deletion cancellation', async () => {
-         mockElectronAPI.getClusters.mockResolvedValue(['cluster-keep'])
+         mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: ['cluster-keep'] })
 
          render(<Clusters />)
          await waitFor(() => expect(screen.getByText('cluster-keep')).toBeInTheDocument())
@@ -101,7 +101,7 @@ describe('Clusters Page', () => {
     })
 
     it('should handle cluster deletion API failure', async () => {
-         mockElectronAPI.getClusters.mockResolvedValue(['cluster-fail'])
+         mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: ['cluster-fail'] })
          mockElectronAPI.deleteCluster.mockResolvedValue({ success: false, error: 'Cannot delete' })
          
          render(<Clusters />)
@@ -119,7 +119,7 @@ describe('Clusters Page', () => {
     })
 
     it('should handle cluster deletion unexpected exception', async () => {
-         mockElectronAPI.getClusters.mockResolvedValue(['cluster-crash'])
+         mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: ['cluster-crash'] })
          mockElectronAPI.deleteCluster.mockRejectedValue(new Error('Boom'))
          
          render(<Clusters />)
@@ -137,7 +137,7 @@ describe('Clusters Page', () => {
     })
 
     it('should refresh list on button click', async () => {
-         mockElectronAPI.getClusters.mockResolvedValue(['cluster-1'])
+         mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: ['cluster-1'] })
          render(<Clusters />)
          await waitFor(() => expect(screen.getByText('cluster-1')).toBeInTheDocument())
 
@@ -150,7 +150,7 @@ describe('Clusters Page', () => {
     })
 
     it('should navigate to details on click', async () => {
-         mockElectronAPI.getClusters.mockResolvedValue(['cluster-nav'])
+         mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: ['cluster-nav'] })
          render(<Clusters />)
          await waitFor(() => expect(screen.getByText('cluster-nav')).toBeInTheDocument())
 
@@ -159,7 +159,7 @@ describe('Clusters Page', () => {
     })
 
     it('should open pod viewer modal', async () => {
-         mockElectronAPI.getClusters.mockResolvedValue(['cluster-view'])
+         mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: ['cluster-view'] })
          render(<Clusters />)
          await waitFor(() => expect(screen.getByText('cluster-view')).toBeInTheDocument())
 

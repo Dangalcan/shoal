@@ -36,9 +36,9 @@ export function YamlModal({ isOpen, onClose, clusterName, resourceName, resource
                 namespace
             })
             if (result.success) {
-                setYaml(result.yaml || '')
+                setYaml(result.data || '')
             } else {
-                const errorMessage = result.error || 'Failed to fetch YAML output'
+                const errorMessage = result.error
                 setError(errorMessage)
                 handleError(new Error(errorMessage), 'YAML Fetch Failed')
             }

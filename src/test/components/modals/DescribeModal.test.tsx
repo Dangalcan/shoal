@@ -28,7 +28,7 @@ describe('DescribeModal', () => {
         vi.clearAllMocks()
         mockElectronAPI.describeResource.mockResolvedValue({
             success: true,
-            output: 'Test output content',
+            data: 'Test output content',
         })
     })
 
@@ -91,7 +91,7 @@ describe('DescribeModal', () => {
 
     it('should show loading state', async () => {
         // Delay resolution
-        mockElectronAPI.describeResource.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve({ success: true, output: 'done' }), 100)))
+        mockElectronAPI.describeResource.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve({ success: true, data: 'done' }), 100)))
 
         render(<DescribeModal {...defaultProps} />)
         

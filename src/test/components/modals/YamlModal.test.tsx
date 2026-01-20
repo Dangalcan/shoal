@@ -28,7 +28,7 @@ describe('YamlModal', () => {
         vi.clearAllMocks()
         mockElectronAPI.getResourceYaml.mockResolvedValue({
             success: true,
-            yaml: 'apiVersion: v1\nkind: Pod',
+            data: 'apiVersion: v1\nkind: Pod',
         })
     })
 
@@ -91,7 +91,7 @@ describe('YamlModal', () => {
 
     it('should show loading state', async () => {
         // Delay resolution
-        mockElectronAPI.getResourceYaml.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve({ success: true, yaml: 'done' }), 100)))
+        mockElectronAPI.getResourceYaml.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve({ success: true, data: 'done' }), 100)))
 
         render(<YamlModal {...defaultProps} />)
         

@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
-import { handleError } from '../lib/error-handler';
+import { useState, useCallback } from 'react';
+import { useAsyncData } from './useAsyncData';
 
 interface UseNamespacesResult {
   namespaces: string[];
@@ -12,40 +12,33 @@ interface UseNamespacesResult {
 export function useNamespaces(
   contextName: string | undefined
 ): UseNamespacesResult {
-  const [namespaces, setNamespaces] = useState<string[]>([]);
   const [selectedNamespace, setSelectedNamespace] = useState<string>('all');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchNamespaces = useCallback(async () => {
-    if (!contextName) return;
+  const fetchFn = useCallback(async () => {
+    if (!contextName) return [];
 
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await window.electron.getNamespaces(contextName);
+    const result = await window.electron.getNamespaces(contextName);
 
-      if (result.success && result.namespaces) {
-        setNamespaces(['all', ...result.namespaces]);
-      } else {
-        const errorMsg = result.error || 'Failed to fetch namespaces';
-        setError(errorMsg);
-        handleError(errorMsg, 'Namespaces Error');
-      }
-    } catch (err: any) {
-      setError(err.message);
-      handleError(err, 'Namespaces Error');
-    } finally {
-      setLoading(false);
+    if (result.success) {
+      return ['all', ...result.data];
     }
+
+    throw new Error(result.error);
   }, [contextName]);
 
-  useEffect(() => {
-    fetchNamespaces();
-  }, [fetchNamespaces]);
+  const {
+    data: namespaces,
+    loading,
+    error,
+  } = useAsyncData({
+    fetchFn,
+    errorTitle: 'Namespaces Error',
+    skipInitialFetch: !contextName,
+    dependencies: [contextName],
+  });
 
   return {
-    namespaces,
+    namespaces: namespaces || [],
     selectedNamespace,
     setSelectedNamespace,
     loading,

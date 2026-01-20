@@ -21,9 +21,9 @@ export function PodViewerModal({ isOpen, onClose, clusterName }: PodViewerModalP
             window.electron.getPods(clusterName)
                 .then(result => {
                     if (result.success) {
-                        setPods(result.pods || [])
+                        setPods(result.data || [])
                     } else {
-                        const errorMessage = result.error || 'Failed to fetch pods'
+                        const errorMessage = result.error
                         setError(errorMessage)
                         handleError(new Error(errorMessage), 'Fetch Pods Failed')
                     }

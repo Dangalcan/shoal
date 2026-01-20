@@ -36,9 +36,9 @@ export function LogViewerModal({ isOpen, onClose, clusterName, podName, namespac
                 tailLines
             })
             if (result.success) {
-                setLogs(result.logs || 'No logs found.')
+                setLogs(result.data || 'No logs found.')
             } else {
-                const errorMessage = result.error || 'Failed to fetch logs'
+                const errorMessage = result.error
                 setError(errorMessage)
                 handleError(new Error(errorMessage), 'Log Fetch Failed')
             }

@@ -11,6 +11,7 @@ import { PodViewerModal } from '../components/modals/PodViewerModal';
 import { useClusters } from '../hooks';
 import { Button, Badge, Spinner, Card, Animate } from '../components/ui';
 import { electronService } from '../services/electronService';
+import { isSuccess } from '../types/result';
 import { cn } from '../lib/utils';
 import '../../styles/pages/Dashboard.css';
 
@@ -73,14 +74,14 @@ export function Dashboard() {
   const refreshData = useCallback(async () => {
     setLoading(true);
     try {
-      const [docker, podman, context] = await Promise.all([
-        electronService.checkTool('docker').catch(() => false),
-        electronService.checkTool('podman').catch(() => false),
-        electronService.getCurrentContext().catch(() => 'None')
+      const [dockerRes, podmanRes, contextRes] = await Promise.all([
+        electronService.checkTool('docker').catch(err => ({ success: false as const, error: String(err) })),
+        electronService.checkTool('podman').catch(err => ({ success: false as const, error: String(err) })),
+        electronService.getCurrentContext().catch(err => ({ success: false as const, error: String(err) }))
       ]);
-      setDockerStatus(docker);
-      setPodmanStatus(podman);
-      setCurrentContext(context);
+      setDockerStatus(isSuccess(dockerRes) ? dockerRes.data : false);
+      setPodmanStatus(isSuccess(podmanRes) ? podmanRes.data : false);
+      setCurrentContext(isSuccess(contextRes) ? contextRes.data : 'None');
       await fetchClusters();
     } finally {
       setLoading(false);

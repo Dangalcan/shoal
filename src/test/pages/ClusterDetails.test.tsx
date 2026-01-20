@@ -54,44 +54,44 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
     beforeEach(() => {
         vi.clearAllMocks()
         window.localStorage.clear()
-        mockElectronAPI.getNamespaces.mockResolvedValue({ success: true, namespaces: mockNamespaces })
+        mockElectronAPI.getNamespaces.mockResolvedValue({ success: true, data: mockNamespaces })
         mockElectronAPI.getResources.mockImplementation(async ({ resourceType }) => {
-            if (resourceType === 'pods') return { success: true, items: mockPods }
-            if (resourceType === 'deployments') return { success: true, items: mockDeployments }
-            if (resourceType === 'persistentvolumeclaim') return { success: true, items: mockPVC }
-            if (resourceType === 'nodes') return { success: true, items: mockNodes }
-            if (resourceType === 'services') return { success: true, items: mockServices }
-            if (resourceType === 'hpa') return { success: true, items: mockHPA }
-            if (resourceType === 'ingress') return { success: true, items: mockIngress }
-            if (resourceType === 'secrets') return { success: true, items: mockSecrets }
-            if (resourceType === 'configmap') return { success: true, items: mockConfigMaps }
-            if (resourceType === 'statefulsets') return { success: true, items: mockStatefulSets }
-            if (resourceType === 'persistentvolume') return { success: true, items: mockPV }
-            if (resourceType === 'storageclass') return { success: true, items: mockSC }
-            if (resourceType === 'volumesnapshot') return { success: true, items: mockVS }
-            if (resourceType === 'volumesnapshotclass') return { success: true, items: mockVSC }
-            if (resourceType === 'replicasets') return { success: true, items: mockReplicaSets }
-            if (resourceType === 'daemonsets') return { success: true, items: mockDaemonSets }
-            if (resourceType === 'jobs') return { success: true, items: mockJobs }
-            if (resourceType === 'cronjobs') return { success: true, items: mockCronJobs }
-            if (resourceType === 'replicationcontroller') return { success: true, items: mockReplicationControllers }
-            if (resourceType === 'role' || resourceType === 'clusterrole') return { success: true, items: mockRoles }
-            if (resourceType === 'rolebinding' || resourceType === 'clusterrolebinding') return { success: true, items: mockRoleBindings }
-            if (resourceType === 'serviceaccounts') return { success: true, items: mockServiceAccounts }
-            if (resourceType === 'networkpolicy') return { success: true, items: mockNetworkPolicies }
-            if (resourceType === 'endpoints') return { success: true, items: mockEndpoints }
-            if (resourceType === 'poddisruptionbudget') return { success: true, items: mockPodDisruptionBudgets }
-            if (resourceType === 'resourcequota') return { success: true, items: mockResourceQuotas }
-            if (resourceType === 'customresourcedefinition') return { success: true, items: mockCRDs }
-            if (resourceType === 'mutatingwebhookconfiguration' || resourceType === 'validatingwebhookconfiguration') return { success: true, items: mockWebhooks }
-            if (resourceType === 'apiservice') return { success: true, items: mockAPIServices }
-            if (resourceType === 'lease') return { success: true, items: mockLeases }
-            if (resourceType === 'priorityclass') return { success: true, items: mockPriorityClasses }
-            if (resourceType === 'certificatesigningrequest') return { success: true, items: mockCSRs }
-            return { success: true, items: [] }
+            if (resourceType === 'pods') return { success: true, data: mockPods }
+            if (resourceType === 'deployments') return { success: true, data: mockDeployments }
+            if (resourceType === 'persistentvolumeclaim') return { success: true, data: mockPVC }
+            if (resourceType === 'nodes') return { success: true, data: mockNodes }
+            if (resourceType === 'services') return { success: true, data: mockServices }
+            if (resourceType === 'hpa') return { success: true, data: mockHPA }
+            if (resourceType === 'ingress') return { success: true, data: mockIngress }
+            if (resourceType === 'secrets') return { success: true, data: mockSecrets }
+            if (resourceType === 'configmap') return { success: true, data: mockConfigMaps }
+            if (resourceType === 'statefulsets') return { success: true, data: mockStatefulSets }
+            if (resourceType === 'persistentvolume') return { success: true, data: mockPV }
+            if (resourceType === 'storageclass') return { success: true, data: mockSC }
+            if (resourceType === 'volumesnapshot') return { success: true, data: mockVS }
+            if (resourceType === 'volumesnapshotclass') return { success: true, data: mockVSC }
+            if (resourceType === 'replicasets') return { success: true, data: mockReplicaSets }
+            if (resourceType === 'daemonsets') return { success: true, data: mockDaemonSets }
+            if (resourceType === 'jobs') return { success: true, data: mockJobs }
+            if (resourceType === 'cronjobs') return { success: true, data: mockCronJobs }
+            if (resourceType === 'replicationcontroller') return { success: true, data: mockReplicationControllers }
+            if (resourceType === 'role' || resourceType === 'clusterrole') return { success: true, data: mockRoles }
+            if (resourceType === 'rolebinding' || resourceType === 'clusterrolebinding') return { success: true, data: mockRoleBindings }
+            if (resourceType === 'serviceaccounts') return { success: true, data: mockServiceAccounts }
+            if (resourceType === 'networkpolicy') return { success: true, data: mockNetworkPolicies }
+            if (resourceType === 'endpoints') return { success: true, data: mockEndpoints }
+            if (resourceType === 'poddisruptionbudget') return { success: true, data: mockPodDisruptionBudgets }
+            if (resourceType === 'resourcequota') return { success: true, data: mockResourceQuotas }
+            if (resourceType === 'customresourcedefinition') return { success: true, data: mockCRDs }
+            if (resourceType === 'mutatingwebhookconfiguration' || resourceType === 'validatingwebhookconfiguration') return { success: true, data: mockWebhooks }
+            if (resourceType === 'apiservice') return { success: true, data: mockAPIServices }
+            if (resourceType === 'lease') return { success: true, data: mockLeases }
+            if (resourceType === 'priorityclass') return { success: true, data: mockPriorityClasses }
+            if (resourceType === 'certificatesigningrequest') return { success: true, data: mockCSRs }
+            return { success: true, data: [] }
         })
-        mockElectronAPI.rolloutRestart.mockResolvedValue({ success: true })
-        mockElectronAPI.deleteResource.mockResolvedValue({ success: true })
+        mockElectronAPI.rolloutRestart.mockResolvedValue({ success: true, data: undefined })
+        mockElectronAPI.deleteResource.mockResolvedValue({ success: true, data: undefined })
     })
 
     it('should handle namespace selection changes', async () => {
@@ -374,7 +374,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
 
     describe('Exhaustive Sorting & Table States', () => {
         it('should handle empty states', async () => {
-            mockElectronAPI.getResources.mockResolvedValueOnce({ success: true, items: [] })
+            mockElectronAPI.getResources.mockResolvedValueOnce({ success: true, data: [] })
             renderPage()
             await waitFor(() => expect(screen.getByText(/No pods found/i)).toBeInTheDocument())
         })
@@ -384,7 +384,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             renderPage()
             await waitFor(() => expect(screen.getByText('Network Error')).toBeInTheDocument())
             
-            mockElectronAPI.getResources.mockResolvedValueOnce({ success: true, items: mockPods })
+            mockElectronAPI.getResources.mockResolvedValueOnce({ success: true, data: mockPods })
             fireEvent.click(screen.getByText('Try Again'))
             await waitFor(() => expect(screen.getByText('pod-1')).toBeInTheDocument())
         })
@@ -532,7 +532,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
                     status: { phase: 'Running' }
                 }
             ]
-            mockElectronAPI.getResources.mockResolvedValueOnce({ success: true, items: multiNsPods })
+            mockElectronAPI.getResources.mockResolvedValueOnce({ success: true, data: multiNsPods })
             
             renderPage()
             await waitFor(() => expect(screen.getByText('pod-a')).toBeInTheDocument())
@@ -606,7 +606,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
 
         it('should handle fetchData throwing an exception', async () => {
              // Mock one successful call then a crash
-             mockElectronAPI.getNamespaces.mockResolvedValue({ success: true, namespaces: ['default'] })
+             mockElectronAPI.getNamespaces.mockResolvedValue({ success: true, data: ['default'] })
              mockElectronAPI.getResources.mockRejectedValue(new Error('Critical specific error'))
              
              renderPage()
@@ -648,8 +648,8 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
              ]
              
              mockElectronAPI.getResources.mockImplementation(async (args: any) => {
-                 if (args.resourceType === 'nodes') return { success: true, items: sparseNodes }
-                 return { success: true, items: [] }
+                 if (args.resourceType === 'nodes') return { success: true, data: sparseNodes }
+                 return { success: true, data: [] }
              })
              
              renderPage()

@@ -36,7 +36,7 @@ describe('PodViewerModal', () => {
         vi.clearAllMocks()
         mockElectronAPI.getPods.mockResolvedValue({
             success: true,
-            pods: mockPods,
+            data: mockPods,
         })
     })
 
@@ -82,7 +82,7 @@ describe('PodViewerModal', () => {
     it('should display empty state when no pods found', async () => {
         mockElectronAPI.getPods.mockResolvedValue({
             success: true,
-            pods: []
+            data: []
         })
 
         render(<PodViewerModal {...defaultProps} />)

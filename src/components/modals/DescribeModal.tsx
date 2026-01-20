@@ -36,9 +36,9 @@ export function DescribeModal({ isOpen, onClose, clusterName, resourceName, reso
                 namespace
             })
             if (result.success) {
-                setOutput(result.output || '')
+                setOutput(result.data || '')
             } else {
-                const errorMessage = result.error || 'Failed to fetch describe output'
+                const errorMessage = result.error
                 setError(errorMessage)
                 handleError(new Error(errorMessage), 'Describe Failed')
             }

@@ -35,18 +35,18 @@ function createWindow() {
   ipcMain.handle('run-command', async (_event, command) => {
     try {
       const { stdout, stderr } = await execPromise(command as string);
-      return { success: true, stdout, stderr };
+      return { success: true, data: { stdout, stderr } };
     } catch (error: any) {
-      return { success: false, error: error.message, stderr: error.stderr };
+      return { success: false, error: error.message };
     }
   });
 
   ipcMain.handle('check-tool', async (_event, tool) => {
     try {
       await execPromise(`${tool} --version`);
-      return true;
+      return { success: true, data: true };
     } catch {
-      return false;
+      return { success: false, error: `${tool} check failed` };
     }
   });
 
@@ -60,18 +60,21 @@ function createWindow() {
         'kubectl config get-contexts -o name'
       );
       const clusters = stdout.trim().split('\n').filter(Boolean);
-      return clusters;
-    } catch {
-      return [];
+      return { success: true, data: clusters };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to get clusters',
+      };
     }
   });
 
   ipcMain.handle('get-current-context', async () => {
     try {
       const { stdout } = await execPromise('kubectl config current-context');
-      return stdout.trim();
-    } catch {
-      return 'None';
+      return { success: true, data: stdout.trim() };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'No context found' };
     }
   });
 
@@ -82,7 +85,7 @@ function createWindow() {
         `kubectl get pods --context ${contextName} -A -o json`
       );
       const data = JSON.parse(stdout);
-      return { success: true, pods: data.items || [] };
+      return { success: true, data: data.items || [] };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
@@ -98,7 +101,7 @@ function createWindow() {
         .split('\n')
         .map((ns) => ns.replace('namespace/', ''))
         .filter(Boolean);
-      return { success: true, namespaces };
+      return { success: true, data: namespaces };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
@@ -113,7 +116,7 @@ function createWindow() {
           `kubectl get ${resourceType} --context ${contextName} ${nsFlag} -o json`
         );
         const data = JSON.parse(stdout);
-        return { success: true, items: data.items || [] };
+        return { success: true, data: data.items || [] };
       } catch (error: any) {
         return { success: false, error: error.message };
       }
@@ -130,7 +133,7 @@ function createWindow() {
         const { stdout } = await execPromise(
           `kubectl logs ${podName} --context ${contextName} ${nsFlag} --tail=${tail}`
         );
-        return { success: true, logs: stdout };
+        return { success: true, data: stdout };
       } catch (error: any) {
         return { success: false, error: error.message };
       }
@@ -146,7 +149,7 @@ function createWindow() {
         const { stdout } = await execPromise(
           `kubectl describe ${resourceType} ${resourceName} --context ${contextName} ${nsFlag}`
         );
-        return { success: true, output: stdout };
+        return { success: true, data: stdout };
       } catch (error: any) {
         return { success: false, error: error.message };
       }
@@ -162,7 +165,7 @@ function createWindow() {
         const { stdout } = await execPromise(
           `kubectl get ${resourceType} ${resourceName} --context ${contextName} ${nsFlag} -o yaml`
         );
-        return { success: true, yaml: stdout };
+        return { success: true, data: stdout };
       } catch (error: any) {
         return { success: false, error: error.message };
       }
