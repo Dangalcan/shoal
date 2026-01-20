@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '../test-utils';
+import { render, screen, waitFor } from '../utils';
 import { Layout } from '../../layouts/Layout';
 import { ClusterDetails } from '../../pages/ClusterDetails';
 import { Routes, Route } from 'react-router-dom';

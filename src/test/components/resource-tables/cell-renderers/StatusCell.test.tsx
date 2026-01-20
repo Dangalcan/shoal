@@ -1,6 +1,6 @@
 
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '../../../test-utils'
+import { render, screen } from '../../../utils'
 import { StatusCell } from '../../../../components/resource-tables/cell-renderers/StatusCell'
 import { mockPods, mockNodes, mockPVC } from '../../../fixtures/k8s-resources'
 

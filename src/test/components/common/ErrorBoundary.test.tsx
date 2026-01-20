@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '../../test-utils';
+import { render, screen, fireEvent } from '../../utils';
 import { ErrorBoundary } from '../../../components/common/ErrorBoundary';
 import React from 'react';
 

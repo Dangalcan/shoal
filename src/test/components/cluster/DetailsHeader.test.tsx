@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { screen, fireEvent } from '../../test-utils';
+import { screen, fireEvent, render } from '../../utils';
 import { DetailsHeader } from '../../../components/cluster/DetailsHeader';
-import { render } from '../../test-utils';
 
 describe('DetailsHeader', () => {
   it('renders the cluster name correctly', () => {

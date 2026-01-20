@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Dashboard } from '../../pages/Dashboard';
-import { render, screen, fireEvent, waitFor, mockElectronAPI } from '../test-utils';
+import { render, screen, fireEvent, waitFor, mockElectronAPI } from '../utils';
 import { mockClusterState, mockToolStatus } from '../helpers/electron-helpers';
 import { expectMultipleOccurrences, findByTextWithTimeout } from '../helpers/dom-helpers';
 import { TEST_TIMEOUTS } from '../constants';

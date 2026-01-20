@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '../test-utils';
+import { renderHook, waitFor } from '../utils';
 import { useNamespaces } from '../../hooks/useNamespaces';
 import { mockElectronAPI } from '../setup';
 

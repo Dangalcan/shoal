@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '../test-utils'
+import { render, screen, waitFor, fireEvent } from '../utils'
 import { toast } from 'sonner' 
 import { Clusters } from '../../pages/Clusters'
 import { mockElectronAPI } from '../setup'

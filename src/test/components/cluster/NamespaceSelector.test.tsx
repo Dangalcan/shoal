@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { screen, fireEvent } from '../../test-utils';
+import { screen, fireEvent, render } from '../../utils';
 import { NamespaceSelector } from '../../../components/cluster/NamespaceSelector';
-import { render } from '../../test-utils';
 
 const mockNamespaces = ['default', 'kube-system'];
 

@@ -1,6 +1,6 @@
 
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '../../../test-utils'
+import { render, screen } from '../../../utils'
 import { RolesCell, VersionCell, NodeInternalIPCell, OSImageCell } from '../../../../components/resource-tables/cell-renderers/NodeCells'
 import { mockNodes } from '../../../fixtures/k8s-resources'
 

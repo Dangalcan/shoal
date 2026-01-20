@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '../../test-utils'
+import { render, screen, fireEvent } from '../../utils'
 import { BaseModal } from '../../../components/modals/BaseModal'
 
 describe('BaseModal', () => {

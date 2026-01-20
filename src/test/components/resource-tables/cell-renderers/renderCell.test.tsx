@@ -1,6 +1,6 @@
 
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '../../../test-utils'
+import { render, screen } from '../../../utils'
 import { renderCell } from '../../../../components/resource-tables/cell-renderers/renderCell'
 import { mockPods, mockNodes } from '../../../fixtures/k8s-resources'
 
@@ -18,7 +18,7 @@ describe('renderCell', () => {
     it('renders common cells', () => {
         // namespace
         render(<table><tbody><tr>{renderCell({ colId: 'namespace', resource: mockPod, resourceType: 'pods', style })}</tr></tbody></table>)
-        expect(screen.getByText(mockPod.metadata.namespace)).toBeInTheDocument()
+        expect(screen.getByText(mockPod.metadata.namespace!)).toBeInTheDocument()
     })
 
     it('renders pod specific cells', () => {

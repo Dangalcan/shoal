@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { screen, fireEvent, within } from '../../test-utils';
+import { screen, fireEvent, within, render } from '../../utils';
 import { SettingsDropdown } from '../../../components/cluster/SettingsDropdown';
-import { render } from '../../test-utils';
 import { Layout } from 'lucide-react';
 
 const mockVisibleResources = ['pods', 'deployments'];

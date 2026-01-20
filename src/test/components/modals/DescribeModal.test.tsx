@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // Unmock component for unit testing
 vi.unmock('../../../components/modals/DescribeModal')
 
-import { render, screen, waitFor, fireEvent } from '../../test-utils'
+import { render, screen, waitFor, fireEvent } from '../../utils'
 import { DescribeModal } from '../../../components/modals/DescribeModal'
 import { mockElectronAPI } from '../../setup'
 

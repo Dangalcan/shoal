@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '../test-utils';
+import { render, screen, waitFor } from '../utils';
 import userEvent from '@testing-library/user-event';
 import { mockElectronAPI } from '../setup';
 import { vi } from 'vitest';

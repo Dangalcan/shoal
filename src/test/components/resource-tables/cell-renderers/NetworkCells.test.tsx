@@ -1,6 +1,6 @@
 
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '../../../test-utils'
+import { render, screen } from '../../../utils'
 import { ServiceTypeCell, ClusterIPCell, ExternalIPCell, PortsCell } from '../../../../components/resource-tables/cell-renderers/NetworkCells'
 import { mockServices } from '../../../fixtures/k8s-resources'
 

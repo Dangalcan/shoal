@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '../../test-utils';
+import { render, screen } from '../../utils';
 import { Badge } from '../../../components/ui/Badge';
 import React from 'react';
 

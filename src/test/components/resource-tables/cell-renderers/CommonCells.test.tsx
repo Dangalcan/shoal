@@ -1,6 +1,6 @@
 
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '../../../test-utils'
+import { render, screen } from '../../../utils'
 import { NamespaceCell, AgeCell, DataCountCell, SelectorCell, ContainersCell, ImagesCell } from '../../../../components/resource-tables/cell-renderers/CommonCells'
 import { mockPods } from '../../../fixtures/k8s-resources'
 
@@ -10,7 +10,7 @@ describe('CommonCells', () => {
 
     it('NamespaceCell renders namespace', () => {
         render(<table><tbody><tr><NamespaceCell resource={mockPod} style={style} /></tr></tbody></table>)
-        expect(screen.getByText(mockPod.metadata.namespace)).toBeInTheDocument()
+        expect(screen.getByText(mockPod.metadata.namespace!)).toBeInTheDocument()
     })
 
     it('AgeCell renders creation timestamp', () => {

@@ -1,6 +1,6 @@
 
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '../../../test-utils'
+import { render, screen } from '../../../utils'
 import { RestartsCell, PodIPCell, NodeNameCell, NominatedNodeCell, ReadinessGatesCell } from '../../../../components/resource-tables/cell-renderers/PodCells'
 import { mockPods } from '../../../fixtures/k8s-resources'
 

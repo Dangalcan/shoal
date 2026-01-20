@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { screen, fireEvent, waitFor, within } from '../test-utils'
+import { screen, fireEvent, waitFor, within, render, mockToast, userEvent } from '../utils'
 import { ClusterDetails } from '../../pages/ClusterDetails'
 import { mockElectronAPI } from '../setup'
-import { render, mockToast, userEvent } from '../test-utils'
+// Imports from test-utils consolidated above
 import '../mocks/component-mocks'
 import { toast } from 'sonner'
 import { 
