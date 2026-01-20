@@ -82,7 +82,7 @@ export function ClusterDetails() {
         return sortConfig.direction === 'asc' ? sorted : sorted.reverse()
     }, [items, sortConfig, activeTab])
 
-    const tabs = ALL_TABS.filter(tab => visibleResources.includes(tab.id))
+    const tabs = useMemo(() => ALL_TABS.filter(tab => visibleResources.includes(tab.id)), [visibleResources])
 
     const toggleResource = (id: ResourceType) => {
         setVisibleResources(prev =>
