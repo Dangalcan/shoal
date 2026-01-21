@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useAsyncData } from './useAsyncData';
 import { useApi } from '../services/api-context';
 import { mapResult } from '../types/result';
+import { useLocalStorage } from './useLocalStorage';
 
 interface UseNamespacesResult {
   namespaces: string[];
@@ -15,7 +16,18 @@ export function useNamespaces(
   contextName: string | undefined
 ): UseNamespacesResult {
   const api = useApi();
+  const [defaultNamespace] = useLocalStorage<string>(
+    'k8s_desktop_default_namespace',
+    ''
+  );
   const [selectedNamespace, setSelectedNamespace] = useState<string>('all');
+
+  // Set default namespace on mount if configured and no selection
+  useState(() => {
+    if (defaultNamespace && defaultNamespace !== 'all') {
+      setSelectedNamespace(defaultNamespace);
+    }
+  });
 
   const fetchFn = useCallback(async () => {
     if (!contextName) return [];

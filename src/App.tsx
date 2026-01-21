@@ -4,6 +4,7 @@ import { Dashboard } from './pages/Dashboard'
 import { CreateCluster } from './pages/CreateCluster'
 import { Clusters } from './pages/Clusters'
 import { ClusterDetails } from './pages/ClusterDetails'
+import { Settings } from './pages/Settings'
 
 function App() {
     return (
@@ -14,7 +15,7 @@ function App() {
                     <Route path="create-cluster" element={<CreateCluster />} />
                     <Route path="clusters" element={<Clusters />} />
                     <Route path="cluster/:name" element={<ClusterDetails />} />
-                    <Route path="settings" element={<div className="p-8"><h2 className="text-2xl font-bold">Settings</h2></div>} />
+                    <Route path="settings" element={<Settings />} />
                 </Route>
             </Routes>
         </HashRouter>

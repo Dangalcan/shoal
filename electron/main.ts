@@ -250,6 +250,25 @@ function createWindow() {
     })
   );
 
+  ipcMain.handle(
+    'get-kubeconfig-path',
+    wrapIpcHandler('get-kubeconfig-path', async () => {
+      return process.env.KUBECONFIG || '';
+    })
+  );
+
+  ipcMain.handle(
+    'set-kubeconfig-path',
+    wrapIpcHandler('set-kubeconfig-path', async (_event, pathStr: string) => {
+      if (pathStr) {
+        process.env.KUBECONFIG = pathStr;
+      } else {
+        delete process.env.KUBECONFIG;
+      }
+      return true;
+    })
+  );
+
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
   } else {

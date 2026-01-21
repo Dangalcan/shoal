@@ -3,6 +3,7 @@ import type { K8sResource } from '../types/k8s-types';
 import type { ResourceType } from '../lib/resource-definitions';
 import { useAsyncData } from './useAsyncData';
 import { useApi } from '../services/api-context';
+import { useLocalStorage } from './useLocalStorage';
 
 interface UseClusterDataResult {
   items: K8sResource[];
@@ -17,6 +18,15 @@ export function useClusterData(
   namespace: string
 ): UseClusterDataResult {
   const api = useApi();
+
+  const [autoRefresh] = useLocalStorage<boolean>(
+    'k8s_desktop_auto_refresh',
+    true
+  );
+  const [refreshInterval] = useLocalStorage<number>(
+    'k8s_desktop_refresh_interval',
+    10
+  );
 
   const fetchFn = useCallback(async () => {
     if (!contextName) return [];
@@ -36,9 +46,15 @@ export function useClusterData(
   } = useAsyncData({
     fetchFn,
     errorTitle: 'Resource Fetch Error',
-    autoRefreshInterval: 30000, // 30 seconds
+    autoRefreshInterval: autoRefresh ? refreshInterval * 1000 : undefined,
     skipInitialFetch: !contextName,
-    dependencies: [resourceType, contextName, namespace],
+    dependencies: [
+      resourceType,
+      contextName,
+      namespace,
+      autoRefresh,
+      refreshInterval,
+    ],
   });
 
   return {

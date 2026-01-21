@@ -7,14 +7,18 @@ interface CardProps {
   className?: string;
   title?: string;
   headerAction?: React.ReactNode;
+  icon?: React.ReactNode;
 }
 
-export function Card({ children, className, title, headerAction }: CardProps) {
+export function Card({ children, className, title, headerAction, icon }: CardProps) {
   return (
     <div className={cn('ui-card', className)}>
-      {(title || headerAction) && (
+      {(title || headerAction || icon) && (
         <div className="ui-card-header">
-          {title && <h3 className="ui-card-title">{title}</h3>}
+          <div className="flex items-center gap-2">
+            {icon && <span className="text-slate-400">{icon}</span>}
+            {title && <h3 className="ui-card-title">{title}</h3>}
+          </div>
           {headerAction}
         </div>
       )}

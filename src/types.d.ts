@@ -51,6 +51,8 @@ export interface ElectronAPI {
     namespace: string;
   }) => Promise<Result<void>>;
   getAppVersion: () => Promise<Result<string>>;
+  getKubeconfigPath: () => Promise<Result<string>>;
+  setKubeconfigPath: (path: string) => Promise<Result<boolean>>;
 }
 
 declare global {
