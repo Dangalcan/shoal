@@ -50,6 +50,7 @@ export interface ElectronAPI {
     resourceName: string;
     namespace: string;
   }) => Promise<Result<void>>;
+  getAppVersion: () => Promise<Result<string>>;
 }
 
 declare global {

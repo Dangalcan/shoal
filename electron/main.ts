@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
 import { exec } from 'child_process';
 import util from 'util';
+import fs from 'fs/promises';
 import { clusterManagementService } from './cluster-management-service';
 
 const execPromise = util.promisify(exec);
@@ -232,6 +233,20 @@ function createWindow() {
     'delete-cluster',
     wrapIpcHandler('delete-cluster', async (_event, name) => {
       return await clusterManagementService.deleteCluster(name);
+    })
+  );
+
+  ipcMain.handle(
+    'get-app-version',
+    wrapIpcHandler('get-app-version', async () => {
+      try {
+        const versionPath = path.join(app.getAppPath(), '.version');
+        const version = await fs.readFile(versionPath, 'utf-8');
+        return version.trim();
+      } catch (error) {
+        console.error('Error reading .version file:', error);
+        return 'v0.1.0'; // Fallback
+      }
     })
   );
 

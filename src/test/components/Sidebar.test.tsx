@@ -49,8 +49,8 @@ describe('Sidebar', () => {
         expect(dashboardLink).toHaveClass('sidebar-link-inactive')
     })
     
-    it('should show version in footer', () => {
+    it('should show version in footer', async () => {
         render(<Sidebar />)
-        expect(screen.getByText(/v0.1.0/)).toBeInTheDocument()
+        expect(await screen.findByText(/v0.1.0/)).toBeInTheDocument()
     })
 })

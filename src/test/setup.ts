@@ -55,6 +55,7 @@ const mockElectronAPI = {
   getResourceYaml: vi.fn().mockResolvedValue({ success: true, data: '' }),
   rolloutRestart: vi.fn().mockResolvedValue({ success: true, data: undefined }),
   deleteResource: vi.fn().mockResolvedValue({ success: true, data: undefined }),
+  getAppVersion: vi.fn().mockResolvedValue({ success: true, data: 'v0.1.0' }),
 };
 
 // Set up window.electron before all tests

@@ -46,4 +46,5 @@ contextBridge.exposeInMainWorld('electron', {
     resourceName: string;
     namespace: string;
   }) => ipcRenderer.invoke('delete-resource', args),
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
 });
