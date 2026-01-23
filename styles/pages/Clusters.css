@@ -94,6 +94,20 @@
   border-color: var(--color-info);
 }
 
+.cluster-card--active {
+  border-color: var(--color-primary);
+  border-width: 2px;
+  background: linear-gradient(
+    135deg,
+    var(--card-bg) 0%,
+    var(--color-primary-subtle) 100%
+  );
+}
+
+.cluster-card--active:hover {
+  border-color: var(--color-primary);
+}
+
 .cluster-card-content {
   display: flex;
   align-items: center;
@@ -114,6 +128,12 @@
 
 .cluster-card-info {
   cursor: pointer;
+}
+
+.cluster-card-name-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
 .cluster-card-name {

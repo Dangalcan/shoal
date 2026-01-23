@@ -6,6 +6,7 @@ import {
   RefreshCw,
   Eye,
   Plus,
+  CheckCircle2,
 } from 'lucide-react';
 import { Toaster } from 'sonner';
 import { PodViewerModal } from '../components/modals/PodViewerModal';
@@ -16,7 +17,7 @@ import '../../styles/pages/Clusters.css';
 
 export function Clusters() {
   const navigate = useNavigate();
-  const { clusters, loading, deleting, fetchClusters, deleteCluster } = useClusters();
+  const { clusters, loading, deleting, currentContext, switching, fetchClusters, deleteCluster, switchContext } = useClusters();
 
   // useAsyncData handles initial fetch on mount
 
@@ -73,12 +74,16 @@ export function Clusters() {
         </Animate>
       ) : clusters.length > 0 ? (
         <div className="clusters-grid">
-          {clusters.map((cluster, index) => (
+          {clusters.map((cluster, index) => {
+            const isActive = cluster === currentContext;
+            const isSwitching = switching === cluster;
+            
+            return (
             <Animate 
               key={cluster} 
               type="slide-up" 
               delay={index * 50} 
-              className="cluster-card"
+              className={`cluster-card ${isActive ? 'cluster-card--active' : ''}`}
             >
               <div className="cluster-card-content">
                 <div className="cluster-card-icon">
@@ -88,7 +93,14 @@ export function Clusters() {
                   onClick={() => navigate(`/cluster/${cluster}`)}
                   className="cluster-card-info"
                 >
-                  <h3 className="cluster-card-name">{cluster}</h3>
+                  <div className="cluster-card-name-row">
+                    <h3 className="cluster-card-name">{cluster}</h3>
+                    {isActive && (
+                      <Badge variant="success" dot>
+                        Active
+                      </Badge>
+                    )}
+                  </div>
                   <div className="cluster-card-meta">
                     <Badge variant="success" dot>
                       Running
@@ -99,6 +111,17 @@ export function Clusters() {
               </div>
 
               <div className="cluster-card-actions">
+                {!isActive && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => switchContext(cluster)}
+                    loading={isSwitching}
+                    title="Set as Active Context"
+                  >
+                    <CheckCircle2 size={20} />
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -122,7 +145,8 @@ export function Clusters() {
                 </Button>
               </div>
             </Animate>
-          ))}
+          )})}
+
         </div>
       ) : (
         <Animate type="fade">

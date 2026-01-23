@@ -64,10 +64,9 @@ function StatCard({ label, value, icon: Icon, color, status }: StatCardProps) {
 export function Dashboard() {
   const navigate = useNavigate();
   const api = useApi();
-  const { clusters, fetchClusters } = useClusters();
+  const { clusters, currentContext, fetchClusters, loading: clustersLoading } = useClusters();
   const [dockerStatus, setDockerStatus] = useState<boolean | null>(null);
   const [podmanStatus, setPodmanStatus] = useState<boolean | null>(null);
-  const [currentContext, setCurrentContext] = useState<string>('None');
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -75,14 +74,12 @@ export function Dashboard() {
   const refreshData = useCallback(async () => {
     setLoading(true);
     try {
-      const [dockerRes, podmanRes, contextRes] = await Promise.all([
+      const [dockerRes, podmanRes] = await Promise.all([
         api.checkTool('docker').catch(err => ({ success: false as const, error: String(err) })),
-        api.checkTool('podman').catch(err => ({ success: false as const, error: String(err) })),
-        api.getCurrentContext().catch(err => ({ success: false as const, error: String(err) }))
+        api.checkTool('podman').catch(err => ({ success: false as const, error: String(err) }))
       ]);
       setDockerStatus(isSuccess(dockerRes) ? dockerRes.data : false);
       setPodmanStatus(isSuccess(podmanRes) ? podmanRes.data : false);
-      setCurrentContext(isSuccess(contextRes) ? contextRes.data : 'None');
       await fetchClusters();
     } finally {
       setLoading(false);
@@ -92,6 +89,9 @@ export function Dashboard() {
   useEffect(() => {
     refreshData();
   }, [refreshData]);
+
+  const dashboardLoading = loading || clustersLoading;
+  const activeContext = currentContext || 'None';
 
   return (
     <div className="dashboard-container">
@@ -126,7 +126,7 @@ export function Dashboard() {
         <Animate type="slide-up" delay={200}>
           <StatCard
             label="Active Context"
-            value={currentContext}
+            value={activeContext}
             icon={Server}
             color="blue"
           />
@@ -169,7 +169,7 @@ export function Dashboard() {
           <Card 
             title="Recent Activity"
             headerAction={
-              <Button variant="ghost" size="icon" onClick={refreshData} loading={loading} title="Refresh Data">
+              <Button variant="ghost" size="icon" onClick={refreshData} loading={dashboardLoading} title="Refresh Data">
                 <RefreshCw size={16} />
               </Button>
             }

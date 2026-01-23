@@ -18,6 +18,8 @@ interface ApiProviderProps {
   api?: ElectronAPI;
 }
 
+import { mockApi } from './mockApi';
+
 /**
  * Provider component that makes the Electron API available to all child components.
  * 
@@ -34,7 +36,8 @@ interface ApiProviderProps {
  * </ApiProvider>
  * ```
  */
-export function ApiProvider({ children, api = window.electron }: ApiProviderProps) {
+export function ApiProvider({ children, api = window.electron || mockApi }: ApiProviderProps) {
+  console.log('[ApiProvider] Initializing with api:', api === mockApi ? 'Mock API' : 'Electron API');
   return <ApiContext.Provider value={api}>{children}</ApiContext.Provider>;
 }
 

@@ -104,6 +104,14 @@ function createWindow() {
   );
 
   ipcMain.handle(
+    'switch-context',
+    wrapIpcHandler('switch-context', async (_event, contextName) => {
+      await execPromise(`kubectl config use-context ${contextName}`);
+      return true;
+    })
+  );
+
+  ipcMain.handle(
     'get-pods',
     wrapIpcHandler('get-pods', async (_event, contextName) => {
       const { stdout } = await execPromise(

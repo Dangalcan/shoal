@@ -3,6 +3,7 @@ import { LayoutDashboard, Server, Settings, Sun, Moon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { cn } from '../lib/utils'
 import { useTheme } from '../hooks'
+import { ContextSwitcher } from './common/ContextSwitcher'
 import '../../styles/components/Sidebar.css'
 
 export function Sidebar() {
@@ -32,6 +33,9 @@ export function Sidebar() {
                     <Server size={24} />
                     <span>K8s Desktop</span>
                 </h1>
+                <div className="sidebar-context">
+                    <ContextSwitcher />
+                </div>
             </div>
             <nav className="sidebar-nav">
                 {links.map(({ to, icon: Icon, label }) => (

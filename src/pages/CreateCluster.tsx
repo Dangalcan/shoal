@@ -4,11 +4,13 @@ import { Server, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { handleError } from '../lib/error-handler'
 import { useApi } from '../services/api-context'
+import { useClusters } from '../hooks/useClusters'
 import '../../styles/pages/CreateCluster.css'
 
 export function CreateCluster() {
     const navigate = useNavigate()
     const api = useApi()
+    const { fetchClusters } = useClusters()
     const [name, setName] = useState('')
     const [provider, setProvider] = useState('kind')
 
@@ -31,6 +33,7 @@ export function CreateCluster() {
             const result = await promise
             if (result.success) {
                 setName('')
+                await fetchClusters()
                 navigate('/clusters')
             } else {
                 handleError(new Error(result.error), 'Cluster Creation Failed')

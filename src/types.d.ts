@@ -13,6 +13,7 @@ export interface ElectronAPI {
   getClusters: () => Promise<Result<string[]>>;
   deleteCluster: (name: string) => Promise<Result<void>>;
   getCurrentContext: () => Promise<Result<string>>;
+  switchContext: (contextName: string) => Promise<Result<boolean>>;
   getPods: (contextName: string) => Promise<Result<K8sResource[]>>;
   getNamespaces: (contextName: string) => Promise<Result<string[]>>;
   getResources: (args: {

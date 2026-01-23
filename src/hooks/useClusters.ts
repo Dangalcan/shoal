@@ -1,48 +1,20 @@
-import { useState, useCallback } from 'react';
-import { useApi } from '../services/api-context';
-import { handleAsyncOperation } from '../lib/async-operation-handler';
-import { useAsyncData } from './useAsyncData';
-import { Result } from '../types/result';
+import { useClusterContext } from '../features/clusters/ClusterContext';
 
+/**
+ * Hook to access global cluster state and actions.
+ * Consumes the global ClusterContext to ensure all components stay in sync.
+ */
 export function useClusters() {
-  const api = useApi();
-  const [deleting, setDeleting] = useState<string | null>(null);
-
-  const fetchFn = useCallback(async () => {
-    return api.getClusters();
-  }, [api]);
-
-  const {
-    data: clusters,
-    loading,
-    refetch: fetchClusters,
-  } = useAsyncData({
-    fetchFn,
-    errorTitle: 'Failed to fetch clusters',
-  });
-
-  const deleteCluster = useCallback(
-    async (name: string): Promise<Result> => {
-      setDeleting(name);
-
-      const result = await handleAsyncOperation(() => api.deleteCluster(name), {
-        loadingMessage: `Deleting cluster "${name}"...`,
-        successMessage: `Cluster "${name}" deleted.`,
-        errorTitle: 'Failed to delete cluster',
-        onSuccess: fetchClusters,
-      });
-
-      setDeleting(null);
-      return result;
-    },
-    [api, fetchClusters]
-  );
+  const context = useClusterContext();
 
   return {
-    clusters: clusters || [],
-    loading,
-    deleting,
-    fetchClusters,
-    deleteCluster,
+    clusters: context.clusters,
+    loading: context.loading,
+    deleting: context.deleting,
+    currentContext: context.currentContext,
+    switching: context.switching,
+    fetchClusters: context.fetchClusters,
+    deleteCluster: context.deleteCluster,
+    switchContext: context.switchContext,
   };
 }

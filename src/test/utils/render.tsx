@@ -2,6 +2,7 @@ import React, { ReactElement } from 'react';
 import { render as rtlRender, RenderOptions } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ApiProvider } from '../../services/api-context';
+import { ClusterProvider } from '../../features/clusters/ClusterContext';
 import { createMockElectronAPI } from './mocks';
 
 /**
@@ -28,7 +29,9 @@ const AllTheProviders: React.FC<{
 }> = ({ children, initialEntries = ['/'], api = createMockElectronAPI() }) => {
   return (
     <ApiProvider api={api}>
-      <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+      <ClusterProvider>
+        <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+      </ClusterProvider>
     </ApiProvider>
   );
 };
@@ -63,11 +66,13 @@ export function render(
   if (path && route) {
     return rtlRender(
       <ApiProvider api={api || createMockElectronAPI()}>
-        <MemoryRouter initialEntries={[route]}>
-          <Routes>
-            <Route path={path} element={ui} />
-          </Routes>
-        </MemoryRouter>
+        <ClusterProvider>
+          <MemoryRouter initialEntries={[route]}>
+            <Routes>
+              <Route path={path} element={ui} />
+            </Routes>
+          </MemoryRouter>
+        </ClusterProvider>
       </ApiProvider>,
       renderOptions
     );

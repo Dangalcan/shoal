@@ -1,0 +1,95 @@
+import { ElectronAPI } from '../types.d';
+import { Result } from '../types/result';
+
+// Stateful mock for browser testing
+let mockClusters = ['minikube', 'kind-cluster-1', 'docker-desktop'];
+let mockCurrentContext = 'minikube';
+
+export const mockApi: ElectronAPI = {
+  runCommand: async (command: string) => {
+    console.log('[MockAPI] runCommand:', command);
+    return { success: true, data: { stdout: 'Mock output', stderr: '' } };
+  },
+  checkTool: async (tool: string) => {
+    console.log('[MockAPI] checkTool:', tool);
+    return { success: true, data: true };
+  },
+  createCluster: async (name: string, provider: string) => {
+    console.log('[MockAPI] createCluster:', name, provider);
+    if (!mockClusters.includes(name)) {
+      mockClusters.push(name);
+    }
+    return { success: true, data: undefined };
+  },
+  getClusters: async () => {
+    console.log('[MockAPI] getClusters');
+    return { success: true, data: [...mockClusters] };
+  },
+  deleteCluster: async (name: string) => {
+    console.log('[MockAPI] deleteCluster:', name);
+    mockClusters = mockClusters.filter((c) => c !== name);
+    if (mockCurrentContext === name) {
+      mockCurrentContext = mockClusters[0] || '';
+    }
+    return { success: true, data: undefined };
+  },
+  getCurrentContext: async () => {
+    console.log('[MockAPI] getCurrentContext');
+    return { success: true, data: mockCurrentContext };
+  },
+  switchContext: async (contextName: string) => {
+    console.log('[MockAPI] switchContext:', contextName);
+    if (mockClusters.includes(contextName)) {
+      mockCurrentContext = contextName;
+      return { success: true, data: true };
+    }
+    return { success: false, error: 'Context not found' } as any;
+  },
+  getPods: async (contextName: string) => {
+    console.log('[MockAPI] getPods:', contextName);
+    return { success: true, data: [] };
+  },
+  getNamespaces: async (contextName: string) => {
+    console.log('[MockAPI] getNamespaces:', contextName);
+    return { success: true, data: ['default', 'kube-system'] };
+  },
+  getResources: async (args) => {
+    console.log('[MockAPI] getResources:', args);
+    return { success: true, data: [] };
+  },
+  getLogs: async (args) => {
+    console.log('[MockAPI] getLogs:', args);
+    return { success: true, data: 'Mock logs...' };
+  },
+  describeResource: async (args) => {
+    console.log('[MockAPI] describeResource:', args);
+    return { success: true, data: 'Mock description...' };
+  },
+  getResourceYaml: async (args) => {
+    console.log('[MockAPI] getResourceYaml:', args);
+    return {
+      success: true,
+      data: 'apiVersion: v1\nkind: Pod\nmetadata:\n  name: mock-pod',
+    };
+  },
+  rolloutRestart: async (args) => {
+    console.log('[MockAPI] rolloutRestart:', args);
+    return { success: true, data: undefined };
+  },
+  deleteResource: async (args) => {
+    console.log('[MockAPI] deleteResource:', args);
+    return { success: true, data: undefined };
+  },
+  getAppVersion: async () => {
+    console.log('[MockAPI] getAppVersion');
+    return { success: true, data: 'v0.1.0-mock' };
+  },
+  getKubeconfigPath: async () => {
+    console.log('[MockAPI] getKubeconfigPath');
+    return { success: true, data: '/mock/kube/config' };
+  },
+  setKubeconfigPath: async (path: string) => {
+    console.log('[MockAPI] setKubeconfigPath:', path);
+    return { success: true, data: true };
+  },
+};

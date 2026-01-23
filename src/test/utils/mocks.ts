@@ -36,6 +36,7 @@ export function createMockElectronAPI(
     getCurrentContext: vi
       .fn()
       .mockResolvedValue({ success: true, data: 'None' }),
+    switchContext: vi.fn().mockResolvedValue({ success: true, data: true }),
     getPods: vi.fn().mockResolvedValue({ success: true, data: [] }),
     getNamespaces: vi.fn().mockResolvedValue({ success: true, data: [] }),
     getResources: vi.fn().mockResolvedValue({ success: true, data: [] }),
@@ -48,6 +49,13 @@ export function createMockElectronAPI(
     deleteResource: vi
       .fn()
       .mockResolvedValue({ success: true, data: undefined }),
+    getAppVersion: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: '1.0.0-test' }),
+    getKubeconfigPath: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: '/path/to/kubeconfig' }),
+    setKubeconfigPath: vi.fn().mockResolvedValue({ success: true, data: true }),
     ...overrides,
   };
 }

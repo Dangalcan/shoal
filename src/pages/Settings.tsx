@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, Button, Animate } from '../components/ui';
 import { useSettings } from '../features/settings';
-import { useNamespaces } from '../hooks';
+import { useNamespaces, useClusters } from '../hooks';
 import { useApi } from '../services/api-context';
 import { Globe, FolderOpen, Activity, RefreshCw } from 'lucide-react';
 import '../../styles/pages/Settings.css';
@@ -21,18 +21,8 @@ export function Settings() {
     } = useSettings();
 
     const api = useApi();
-    const [currentContext, setCurrentContext] = useState<string>('');
+    const { currentContext } = useClusters();
     
-    useEffect(() => {
-        const fetchContext = async () => {
-            const result = await api.getCurrentContext();
-            if (result.success) {
-                setCurrentContext(result.data);
-            }
-        };
-        fetchContext();
-    }, [api]);
-
     const { namespaces, loading: loadingNamespaces } = useNamespaces(currentContext);
 
     return (
