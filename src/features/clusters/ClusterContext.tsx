@@ -4,6 +4,7 @@ import { handleAsyncOperation } from '../../lib/async-operation-handler';
 import { useAsyncData } from '../../hooks/useAsyncData';
 import { Result } from '../../types/result';
 import { ClusterContextValue } from './types';
+import { useLocalStorage } from '../../hooks/useLocalStorage';
 
 const ClusterContext = createContext<ClusterContextValue | null>(null);
 
@@ -12,6 +13,10 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
   const [currentContext, setCurrentContext] = useState<string>('');
   const [switching, setSwitching] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [_, setDefaultNamespace] = useLocalStorage<string>(
+    'k8s_desktop_default_namespace',
+    'all'
+  );
 
   const fetchFn = useCallback(async () => {
     return api.getClusters();
@@ -78,6 +83,7 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
           errorTitle: 'Failed to switch context',
           onSuccess: () => {
             setCurrentContext(contextName);
+            setDefaultNamespace('all');
             fetchClusters();
           },
         }

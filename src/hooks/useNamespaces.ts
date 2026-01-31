@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAsyncData } from './useAsyncData';
 import { useApi } from '../services/api-context';
 import { mapResult } from '../types/result';
@@ -22,12 +22,10 @@ export function useNamespaces(
   );
   const [selectedNamespace, setSelectedNamespace] = useState<string>('all');
 
-  // Set default namespace on mount if configured and no selection
-  useState(() => {
-    if (defaultNamespace && defaultNamespace !== 'all') {
-      setSelectedNamespace(defaultNamespace);
-    }
-  });
+  // Update selected namespace when context or default setting changes
+  useEffect(() => {
+    setSelectedNamespace(defaultNamespace || 'all');
+  }, [contextName, defaultNamespace]);
 
   const fetchFn = useCallback(async () => {
     if (!contextName) return [];
