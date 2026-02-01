@@ -5,3 +5,4 @@ error.log
 dist-electron
 coverage
 prompts.txt
+.env
