@@ -134,6 +134,11 @@ export class ElectronService {
   async reloadPlugin(pluginId: string): Promise<Result<void>> {
     return window.electron.reloadPlugin(pluginId);
   }
+
+  // Manifests
+  async saveManifest(manifest: any): Promise<Result<number>> {
+    return window.electron.saveManifest(manifest);
+  }
 }
 
 export const electronService = ElectronService.getInstance();

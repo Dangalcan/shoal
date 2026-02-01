@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from 'react'
-import { Copy, Check, Loader2, Code } from 'lucide-react'
+import { Copy, Check, Loader2, Code, Save } from 'lucide-react'
 import { BaseModal } from './BaseModal'
 import { handleError } from '../../lib/error-handler'
 import { electronService } from '../../services/electronService'
+import { toast } from 'sonner'
 
 interface YamlModalProps {
     isOpen: boolean
@@ -16,6 +17,7 @@ interface YamlModalProps {
 export function YamlModal({ isOpen, onClose, clusterName, resourceName, resourceType, namespace }: YamlModalProps) {
     const [yaml, setYaml] = useState('')
     const [loading, setLoading] = useState(false)
+    const [saveLoading, setSaveLoading] = useState(false)
     const [copied, setCopied] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const contentRef = useRef<HTMLPreElement>(null)
@@ -57,16 +59,48 @@ export function YamlModal({ isOpen, onClose, clusterName, resourceName, resource
         setTimeout(() => setCopied(false), 2000)
     }
 
+    const handleSaveToDb = async () => {
+        if (!yaml) return
+        setSaveLoading(true)
+        try {
+            const result = await electronService.saveManifest({
+                name: resourceName,
+                content: yaml,
+                cluster_context: clusterName
+            })
+            if (result.success) {
+                toast.success(`Manifest "${resourceName}" saved to database`)
+            } else {
+                toast.error(`Failed to save manifest: ${result.error}`)
+            }
+        } catch (err: any) {
+            toast.error(`Error saving manifest: ${err.message}`)
+        } finally {
+            setSaveLoading(false)
+        }
+    }
+
     const headerActions = (
-        <button
-            onClick={copyToClipboard}
-            disabled={!yaml}
-            className="modal-action-button"
-            title="Copy YAML"
-        >
-            {copied ? <Check size={14} className="modal-action-button-success" /> : <Copy size={14} />}
-            {copied ? 'Copied!' : 'Copy'}
-        </button>
+        <div className="flex gap-2">
+            <button
+                onClick={handleSaveToDb}
+                disabled={!yaml || saveLoading}
+                className="modal-action-button"
+                title="Save to Manifest Manager"
+            >
+                {saveLoading ? <Loader2 size={14} className="spinner" /> : <Save size={14} />}
+                {saveLoading ? 'Saving...' : 'Save to DB'}
+            </button>
+            <button
+                onClick={copyToClipboard}
+                disabled={!yaml}
+                className="modal-action-button"
+                title="Copy YAML"
+            >
+                {copied ? <Check size={14} className="modal-action-button-success" /> : <Copy size={14} />}
+                {copied ? 'Copied!' : 'Copy'}
+            </button>
+        </div>
     )
 
     const footerContent = (
