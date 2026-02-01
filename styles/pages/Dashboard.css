@@ -220,7 +220,60 @@
 }
 
 .cluster-item:hover {
-  border-color: rgb(59 130 246 / 0.5);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Plugin Widgets Section */
+.dashboard-widgets-section {
+  margin-top: var(--spacing-xl);
+}
+
+.section-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: var(--spacing-md);
+  color: var(--text-primary);
+}
+
+.widgets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.widget-card {
+  height: 100%;
+  min-height: 200px;
+}
+
+.widget-small {
+  grid-column: span 1;
+}
+
+.widget-medium {
+  grid-column: span 2;
+}
+
+@media (max-width: 1000px) {
+  .widget-medium {
+    grid-column: span 1;
+  }
+}
+
+.widget-large {
+  grid-column: span 3;
+}
+
+@media (max-width: 1300px) {
+  .widget-large {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 1000px) {
+  .widget-large {
+    grid-column: span 1;
+  }
 }
 
 .cluster-item-content {

@@ -1,0 +1,250 @@
+/**
+ * Marketplace Styles - Premium Refresh
+ */
+
+.marketplace-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+  animation: fadeIn 0.4s ease-out;
+}
+
+.marketplace-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-lg);
+  background: var(--bg-secondary);
+  padding: var(--spacing-md);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+}
+
+/* Search Bar - Modern Polish */
+.search-bar {
+  flex: 1;
+  max-width: 500px;
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  transition: color 0.2s ease;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 12px 16px 122px 48px;
+  padding: 14px 16px 14px 52px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-sm);
+}
+
+.search-bar input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.search-bar input:focus + .search-icon {
+  color: var(--color-primary);
+}
+
+/* Category Filter - Pill Design */
+.category-filter select {
+  appearance: none;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  padding: 10px 40px 10px 20px;
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 18px;
+  transition: all 0.2s ease;
+}
+
+.category-filter select:hover {
+  border-color: var(--text-muted);
+  background-color: var(--bg-secondary);
+}
+
+/* Marketplace Grid */
+.marketplace-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--spacing-xl);
+}
+
+/* Marketplace Card - Consistent with PluginCard */
+.marketplace-card {
+  background: var(--plugin-glass-bg, var(--card-bg));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--plugin-glass-border, var(--border-color));
+  border-radius: 20px;
+  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--plugin-glass-shadow, var(--shadow-md));
+  position: relative;
+  overflow: hidden;
+}
+
+.marketplace-card:hover {
+  transform: translateY(-8px);
+  border-color: var(--color-primary);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+.marketplace-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.marketplace-card__icon {
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
+  background: var(--bg-tertiary);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.marketplace-card__icon-placeholder {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.marketplace-card__title-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.marketplace-card__title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.marketplace-card__version {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+.marketplace-card__category {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  background: var(--color-info-bg);
+  padding: 4px 10px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  width: fit-content;
+  margin-top: 4px;
+}
+
+.marketplace-card__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.marketplace-card__description {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.marketplace-card__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--spacing-md);
+  margin-top: auto;
+  border-top: 1px solid var(--bg-tertiary);
+}
+
+.marketplace-card__author {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.marketplace-card__price {
+  font-size: 1rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.marketplace-card__price.free {
+  color: var(--color-success);
+}
+
+.marketplace-card__price.paid {
+  color: var(--color-warning);
+}
+
+.marketplace-card__footer {
+  margin-top: var(--spacing-lg);
+}
+
+/* Button Refinement */
+.marketplace-card__footer .btn {
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  height: 44px;
+  font-size: 0.95rem;
+}
+
+.btn--success {
+  background: var(--color-success-bg);
+  border: 1px solid var(--color-success);
+  color: var(--color-success);
+}
+
+.btn--success:disabled {
+  opacity: 1;
+  background: var(--color-success);
+  color: white;
+  border: none;
+}

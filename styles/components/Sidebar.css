@@ -92,8 +92,19 @@
 }
 
 .sidebar-version {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
+  font-size: 11px;
+  color: var(--text-tertiary);
   text-align: center;
-  font-family: ui-monospace, monospace;
+  margin-top: var(--spacing-sm);
+  opacity: 0.6;
+}
+
+.sidebar-divider {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+  margin: var(--spacing-md) var(--spacing-md) var(--spacing-xs);
+  opacity: 0.5;
+  font-weight: 600;
 }
