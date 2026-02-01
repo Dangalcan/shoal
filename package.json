@@ -99,6 +99,7 @@
       "package.json"
     ],
     "win": {
+      "icon": "public/icon.png",
       "target": [
         {
           "target": "nsis",
@@ -116,6 +117,7 @@
       "publish": null
     },
     "linux": {
+      "icon": "public/icon.png",
       "target": [
         "AppImage",
         "deb"
