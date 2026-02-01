@@ -343,4 +343,4 @@ All contributors will be recognized in our release notes and README. Thank you f
 
 ## License
 
-By contributing to Kubernetes Desktop, you agree that your contributions will be licensed under the ISC License.
+By contributing to Kubernetes Desktop, you agree that your contributions will be licensed under the LGPL-3.0-or-later License.
