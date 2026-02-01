@@ -1,6 +1,6 @@
 # Kubernetes Desktop
 
-[![License](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-LGPL-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](.version)
 [![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)](https://electronjs.org)
 [![React](https://img.shields.io/badge/react-19.2.3-blue.svg)](https://react.dev)
@@ -406,4 +406,4 @@ npm run dev
 
 ## License
 
-ISC License - see [LICENSE](LICENSE) for details.
+LGPL License - see [LICENSE](LICENSE) for details.
