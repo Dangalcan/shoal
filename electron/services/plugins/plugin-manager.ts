@@ -160,7 +160,7 @@ export class PluginManager {
     const plugin = this.getPlugin(pluginId);
     if (!plugin) throw new Error(`Plugin ${pluginId} not found`);
 
-    const path = pluginLoader.getPluginPath(pluginId);
+    const path = await pluginLoader.getPluginPath(pluginId);
     if (!path) throw new Error(`Could not find path for plugin ${pluginId}`);
 
     // 1. Deactivate
@@ -178,10 +178,10 @@ export class PluginManager {
   /**
    * Start watching a plugin directory for changes
    */
-  watchPlugin(pluginId: string): void {
+  async watchPlugin(pluginId: string): Promise<void> {
     if (this.watchers.has(pluginId)) return;
 
-    const pluginPath = pluginLoader.getPluginPath(pluginId);
+    const pluginPath = await pluginLoader.getPluginPath(pluginId);
     if (!pluginPath) return;
 
     console.log(
@@ -249,7 +249,7 @@ export class PluginManager {
       pluginLoader.updatePluginState(pluginId, 'loading');
 
       // Get plugin path
-      const pluginPath = pluginLoader.getPluginPath(pluginId);
+      const pluginPath = await pluginLoader.getPluginPath(pluginId);
       if (!pluginPath) {
         throw new Error(`Plugin path not found for ${pluginId}`);
       }
@@ -264,7 +264,7 @@ export class PluginManager {
       // Load plugin code
       const pluginModule = await pluginLoader.loadPluginCode(
         pluginId,
-        pluginPath
+        pluginPath!
       );
 
       // Call activate method if it exists
@@ -303,7 +303,7 @@ export class PluginManager {
       }
 
       // Get plugin path
-      const pluginPath = pluginLoader.getPluginPath(pluginId);
+      const pluginPath = await pluginLoader.getPluginPath(pluginId);
       if (!pluginPath) {
         return;
       }
@@ -312,7 +312,7 @@ export class PluginManager {
       try {
         const pluginModule = await pluginLoader.loadPluginCode(
           pluginId,
-          pluginPath
+          pluginPath!
         );
 
         // Call deactivate method if it exists
@@ -327,7 +327,7 @@ export class PluginManager {
       }
 
       // Unload plugin code
-      await pluginLoader.unloadPluginCode(pluginId, pluginPath);
+      await pluginLoader.unloadPluginCode(pluginId, pluginPath!);
 
       // Clear context
       pluginRegistry.clearPluginContext(pluginId);
@@ -392,7 +392,7 @@ export class PluginManager {
     }
 
     // Get plugin path
-    const pluginPath = pluginLoader.getPluginPath(pluginId);
+    const pluginPath = await pluginLoader.getPluginPath(pluginId);
     if (!pluginPath) {
       throw new Error(`Plugin path not found for ${pluginId}`);
     }
@@ -445,10 +445,19 @@ export class PluginManager {
     // Unregister from registry
     await pluginRegistry.unregisterPlugin(pluginId);
 
-    // Unregister from loader
-    pluginLoader.unregisterPlugin(pluginId);
-
-    // TODO: Delete plugin files from disk
+    // Delete plugin files from disk
+    try {
+      const pluginPath = await pluginLoader.getPluginPath(pluginId);
+      if (pluginPath) {
+        await fs.promises.rm(pluginPath, { recursive: true, force: true });
+        console.log(`[PluginManager] Deleted files for plugin ${pluginId}`);
+      }
+    } catch (error: any) {
+      console.error(
+        `[PluginManager] Failed to delete files for ${pluginId}:`,
+        error.message
+      );
+    }
 
     console.log(`[PluginManager] Plugin ${pluginId} uninstalled successfully`);
   }

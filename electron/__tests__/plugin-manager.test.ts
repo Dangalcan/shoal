@@ -77,7 +77,9 @@ describe('PluginManager', () => {
         plugin: mockPlugin as any,
         config: { enabled: true },
       });
-      vi.mocked(pluginLoader.getPluginPath).mockReturnValue('/path/to/plugin');
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue(
+        '/path/to/plugin'
+      );
       vi.mocked(licenseManager.checkLicense).mockReturnValue({ valid: true });
 
       const activateMock = vi.fn();
@@ -154,7 +156,7 @@ describe('PluginManager', () => {
         config: { enabled: true },
       });
       vi.mocked(pluginRegistry.isPluginEnabled).mockReturnValue(true);
-      vi.mocked(pluginLoader.getPluginPath).mockReturnValue('/path');
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
       vi.mocked(pluginLoader.loadPluginCode).mockResolvedValue({
         myAction: actionFn,
       });
@@ -216,7 +218,7 @@ describe('PluginManager', () => {
         plugin: mockPlugin as any,
         config: { enabled: true },
       });
-      vi.mocked(pluginLoader.getPluginPath).mockReturnValue('/path');
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
 
       vi.mocked(pluginLoader.loadPluginCode).mockResolvedValue({
         activate: vi.fn(),
@@ -249,7 +251,7 @@ describe('PluginManager', () => {
         plugin: mockPlugin as any,
         config: { enabled: true },
       });
-      vi.mocked(pluginLoader.getPluginPath).mockReturnValue('/path');
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
       vi.mocked(licenseManager.checkLicense).mockReturnValue({ valid: true });
       vi.mocked(pluginLoader.loadPluginCode).mockResolvedValue({
         activate: activateMock,
@@ -302,7 +304,7 @@ describe('PluginManager', () => {
         plugin: { manifest: { id: 'p' } },
       } as any);
       vi.mocked(pluginRegistry.isPluginEnabled).mockReturnValue(true);
-      vi.mocked(pluginLoader.getPluginPath).mockReturnValue('/path');
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
       vi.mocked(pluginLoader.loadPluginCode).mockResolvedValue({
         /* no actions */
       });
@@ -317,7 +319,7 @@ describe('PluginManager', () => {
       vi.mocked(pluginRegistry.getPlugin).mockReturnValue({
         plugin: { manifest: { id: 'p' } },
       } as any);
-      vi.mocked(pluginLoader.getPluginPath).mockReturnValue('/path');
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
       vi.mocked(pluginLoader.loadPluginCode).mockRejectedValue(
         new Error('fail')
       );

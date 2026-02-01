@@ -2,6 +2,15 @@ import type { K8sResource } from './types/k8s-types';
 import type { Result } from './types/result';
 import type { Plugin } from '../electron/types/plugin-types';
 
+export interface Manifest {
+  id: number;
+  name: string;
+  cluster_context: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ElectronAPI {
   runCommand: (command: string) => Promise<
     Result<{
@@ -83,6 +92,14 @@ export interface ElectronAPI {
   installPlugin: (pluginId: string) => Promise<Result<void>>;
   generatePlugin: (options: any) => Promise<Result<boolean>>;
   reloadPlugin: (pluginId: string) => Promise<Result<void>>;
+
+  // Manifests
+  getManifests: (clusterContext?: string) => Promise<Result<Manifest[]>>;
+  saveManifest: (manifest: Partial<Manifest>) => Promise<Result<number>>;
+  deleteManifest: (id: number) => Promise<Result<boolean>>;
+  applyManifest: (
+    id: number
+  ) => Promise<Result<{ stdout: string; stderr: string }>>;
 
   // Listeners
   onSetKubeconfigPath: (callback: (value: boolean) => void) => void;

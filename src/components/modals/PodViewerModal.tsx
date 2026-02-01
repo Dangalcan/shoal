@@ -77,7 +77,6 @@ export function PodViewerModal({ isOpen, onClose, clusterName }: PodViewerModalP
                                 <th>Name</th>
                                 <th>Status</th>
                                 <th>Ready</th>
-                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody className="modal-table-body">
@@ -97,21 +96,6 @@ export function PodViewerModal({ isOpen, onClose, clusterName }: PodViewerModalP
                                         </td>
                                         <td className="modal-mono-cell">
                                             {readyCount}/{totalCount}
-                                        </td>
-                                        <td>
-                                            <div className="flex gap-2">
-                                                {pluginActions.map(action => (
-                                                    <button
-                                                        key={action.id}
-                                                        className="btn btn--secondary btn--sm"
-                                                        onClick={() => action.onClick(pod)}
-                                                        title={action.label}
-                                                    >
-                                                        {action.icon || <MoreHorizontal size={14} />}
-                                                        <span className="ml-1 text-xs">{action.label}</span>
-                                                    </button>
-                                                ))}
-                                            </div>
                                         </td>
                                     </tr>
                                 )

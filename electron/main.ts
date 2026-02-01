@@ -8,6 +8,7 @@ import { pluginManager } from './services/plugins/plugin-manager';
 import { templateService } from './services/plugins/template-service';
 import { licenseManager } from './services/security/license-manager';
 import { marketplaceService } from './services/marketplace/marketplace-service';
+import { manifestDb } from './database';
 
 const execPromise = util.promisify(exec);
 
@@ -19,53 +20,36 @@ process.env.VITE_PUBLIC = app.isPackaged
 export let win: BrowserWindow | null;
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
 
-function createWindow() {
-  const dist = process.env.DIST;
-  const publicDir = process.env.VITE_PUBLIC;
+// Helper to wrap IPC handlers with logging and error handling
+const wrapIpcHandler = <T>(
+  name: string,
+  handler: (event: any, ...args: any[]) => Promise<T>
+) => {
+  return async (event: any, ...args: any[]) => {
+    const timestamp = new Date().toISOString();
+    console.log(
+      `[${timestamp}] [IPC] [${name}] REQUEST:`,
+      JSON.stringify(args)
+    );
 
-  if (!dist || !publicDir) {
-    throw new Error('DIST or VITE_PUBLIC is undefined');
-  }
+    try {
+      const result = await handler(event, ...args);
+      // Ensure result follows Result<T> structure
+      const formattedResult =
+        result && typeof result === 'object' && 'success' in result
+          ? result
+          : { success: true, data: result };
 
-  win = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    icon: path.join(publicDir, 'electron-vite.svg'),
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-    },
-  });
-
-  // Helper to wrap IPC handlers with logging and error handling
-  const wrapIpcHandler = <T>(
-    name: string,
-    handler: (event: any, ...args: any[]) => Promise<T>
-  ) => {
-    return async (event: any, ...args: any[]) => {
-      const timestamp = new Date().toISOString();
-      console.log(
-        `[${timestamp}] [IPC] [${name}] REQUEST:`,
-        JSON.stringify(args)
-      );
-
-      try {
-        const result = await handler(event, ...args);
-        // Ensure result follows Result<T> structure
-        const formattedResult =
-          result && typeof result === 'object' && 'success' in result
-            ? result
-            : { success: true, data: result };
-
-        console.log(`[${timestamp}] [IPC] [${name}] SUCCESS`);
-        return formattedResult;
-      } catch (error: any) {
-        console.error(`[${timestamp}] [IPC] [${name}] ERROR:`, error.message);
-        return { success: false, error: error.message || 'Unknown error' };
-      }
-    };
+      console.log(`[${timestamp}] [IPC] [${name}] SUCCESS`);
+      return formattedResult;
+    } catch (error: any) {
+      console.error(`[${timestamp}] [IPC] [${name}] ERROR:`, error.message);
+      return { success: false, error: error.message || 'Unknown error' };
+    }
   };
+};
 
-  // IPC Handlers
+function registerIpcHandlers() {
   ipcMain.handle(
     'run-command',
     wrapIpcHandler('run-command', async (_event, command) => {
@@ -281,10 +265,7 @@ function createWindow() {
     })
   );
 
-  // ============================================================================
   // Plugin System IPC Handlers
-  // ============================================================================
-
   ipcMain.handle(
     'get-plugins',
     wrapIpcHandler('get-plugins', async () => {
@@ -429,6 +410,54 @@ function createWindow() {
     })
   );
 
+  // Manifest Database Handlers
+  ipcMain.handle(
+    'get-manifests',
+    wrapIpcHandler('get-manifests', async (_event, clusterContext?: string) => {
+      return manifestDb.getManifests(clusterContext);
+    })
+  );
+
+  ipcMain.handle(
+    'save-manifest',
+    wrapIpcHandler('save-manifest', async (_event, manifest: any) => {
+      return manifestDb.saveManifest(manifest);
+    })
+  );
+
+  ipcMain.handle(
+    'delete-manifest',
+    wrapIpcHandler('delete-manifest', async (_event, id: number) => {
+      manifestDb.deleteManifest(id);
+      return true;
+    })
+  );
+
+  ipcMain.handle(
+    'apply-manifest',
+    wrapIpcHandler('apply-manifest', async (_event, id: number) => {
+      return await manifestDb.applyManifest(id);
+    })
+  );
+}
+
+function createWindow() {
+  const dist = process.env.DIST;
+  const publicDir = process.env.VITE_PUBLIC;
+
+  if (!dist || !publicDir) {
+    throw new Error('DIST or VITE_PUBLIC is undefined');
+  }
+
+  win = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    icon: path.join(publicDir, 'electron-vite.svg'),
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+    },
+  });
+
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
   } else {
@@ -450,7 +479,23 @@ app.on('activate', () => {
 });
 
 app.whenReady().then(async () => {
-  // Initialize plugin system
+  // 1. Initialize manifest database FIRST (it's synchronous and critical)
+  try {
+    console.log('[Main] Initializing manifest database...');
+    manifestDb.initialize();
+    console.log('[Main] Manifest database initialized');
+  } catch (error: any) {
+    console.error(
+      '[Main] Failed to initialize manifest database:',
+      error.message
+    );
+  }
+
+  // 2. Register IPC handlers ONCE
+  console.log('[Main] Registering IPC handlers...');
+  registerIpcHandlers();
+
+  // 3. Initialize plugin system (async)
   try {
     console.log('[Main] Initializing plugin system...');
     await pluginManager.initialize();
@@ -459,6 +504,6 @@ app.whenReady().then(async () => {
     console.error('[Main] Failed to initialize plugin system:', error.message);
   }
 
-  // Create main window
+  // 4. Create main window
   createWindow();
 });

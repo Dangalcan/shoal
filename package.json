@@ -20,6 +20,7 @@
     "lint:eslint": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:prettier": "prettier --check '**/*.{cjs,js,ts,css,md}'",
     "lint:fix": "npm run lint:eslint -- --fix && prettier --write '**/*.{cjs,js,ts,css,md}'",
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
     "prepare": "husky"
   },
   "repository": {
@@ -40,6 +41,7 @@
   },
   "homepage": "https://github.com/Dangalcan/Kubernetes-Desktop#readme",
   "dependencies": {
+    "better-sqlite3": "^12.6.2",
     "clsx": "^2.1.1",
     "husky": "^9.1.7",
     "lucide-react": "^0.562.0",
@@ -52,10 +54,12 @@
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.3",
     "@tailwindcss/postcss": "^4.1.18",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@testing-library/user-event": "^14.6.1",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.52.0",

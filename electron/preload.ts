@@ -87,4 +87,12 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.invoke('generate-plugin', options),
   reloadPlugin: (pluginId: string) =>
     ipcRenderer.invoke('reload-plugin', pluginId),
+
+  // Manifests
+  getManifests: (clusterContext?: string) =>
+    ipcRenderer.invoke('get-manifests', clusterContext),
+  saveManifest: (manifest: any) =>
+    ipcRenderer.invoke('save-manifest', manifest),
+  deleteManifest: (id: number) => ipcRenderer.invoke('delete-manifest', id),
+  applyManifest: (id: number) => ipcRenderer.invoke('apply-manifest', id),
 });

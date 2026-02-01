@@ -330,13 +330,18 @@ export class PluginLoader {
   }
 
   /**
-   * Get plugin installation path
+   * Get plugin installation path by checking all configured directories
    */
-  getPluginPath(pluginId: string): string | null {
+  async getPluginPath(pluginId: string): Promise<string | null> {
     for (const directory of this.pluginDirectories) {
       const pluginPath = path.join(directory, pluginId);
-      // We'll check if this exists when we need it
-      return pluginPath;
+      try {
+        await fs.access(pluginPath);
+        return pluginPath;
+      } catch {
+        // Continue to next directory if not found
+        continue;
+      }
     }
     return null;
   }

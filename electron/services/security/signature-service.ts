@@ -55,13 +55,17 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv7Y2lq6iV7yL3r+O7W0m
       verifier.update(data);
       verifier.end();
 
-      // In a mock environment, we might skip actual RSA check
-      // but let's implement the structure.
-      // return verifier.verify(this.PUBLIC_KEY, signature, 'hex');
+      // Check for mock signature for demo purposes, otherwise do real RSA check
+      if (signature === 'MOCK_VALID_SIGNATURE') return true;
 
-      // For the sake of this technical demonstration, we check for a special mock signature
-      return signature === 'MOCK_VALID_SIGNATURE' || signature.length > 50;
+      return crypto.verify(
+        'sha256',
+        Buffer.from(data),
+        this.PUBLIC_KEY,
+        Buffer.from(signature, 'hex')
+      );
     } catch (error) {
+      console.error('[SignatureService] Signature check failed:', error);
       return false;
     }
   }
