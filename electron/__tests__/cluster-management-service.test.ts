@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ClusterManagementService } from '../cluster-management-service';
+import { ClusterManagementService } from '../services/cluster/cluster-management-service';
 import * as child_process from 'child_process';
 
 const mocks = vi.hoisted(() => ({
@@ -152,6 +152,67 @@ describe('ClusterManagementService', () => {
       // And returned failure
       expect(result.success).toBe(false);
       expect(result.error).toContain('Cluster not found');
+    });
+
+    it('should handle context check errors without failing the whole process', async () => {
+      let contextCalls = 0;
+      mocks.exec.mockImplementation((cmd, cb) => {
+        if (cmd.includes('kind delete cluster')) {
+          cb(null, { stdout: '' });
+        } else if (cmd.includes('config get-contexts')) {
+          contextCalls++;
+          if (contextCalls === 1) {
+            cb(new Error('Kubeconfig error'), null);
+          } else {
+            cb(null, { stdout: '' }); // allow final verification to succeed
+          }
+        } else {
+          cb(null, { stdout: '' });
+        }
+      });
+
+      const result = await service.deleteCluster('kind-test-cluster');
+
+      // Should still return success if the main deletion succeeded
+      expect(result.success).toBe(true);
+    });
+
+    it('should delete a k3d cluster', async () => {
+      mocks.exec.mockImplementation((cmd, cb) => {
+        cb(null, { stdout: '' });
+      });
+
+      const result = await service.deleteCluster('k3d-test');
+
+      expect(mocks.exec).toHaveBeenCalledWith(
+        expect.stringContaining('k3d cluster delete test'),
+        expect.any(Function)
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it('should handle non-kind/k3d contexts', async () => {
+      mocks.exec.mockImplementation((cmd, cb) => {
+        cb(null, { stdout: '' });
+      });
+
+      const result = await service.deleteCluster('some-other-context');
+
+      // Should not have called kind or k3d delete
+      expect(mocks.exec).not.toHaveBeenCalledWith(
+        expect.stringContaining('kind delete'),
+        expect.any(Function)
+      );
+      expect(mocks.exec).not.toHaveBeenCalledWith(
+        expect.stringContaining('k3d cluster delete'),
+        expect.any(Function)
+      );
+      // But should have checked context
+      expect(mocks.exec).toHaveBeenCalledWith(
+        expect.stringContaining('kubectl config get-contexts'),
+        expect.any(Function)
+      );
+      expect(result.success).toBe(true);
     });
   });
 });
