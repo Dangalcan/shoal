@@ -6,3 +6,4 @@ dist-electron
 coverage
 prompts.txt
 .env
+release
