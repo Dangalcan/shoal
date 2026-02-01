@@ -3,6 +3,7 @@ import { render as rtlRender, RenderOptions } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ApiProvider } from '../../services/api-context';
 import { ClusterProvider } from '../../features/clusters/ClusterContext';
+import { PluginProvider } from '../../features/plugins/PluginProvider';
 import { createMockElectronAPI } from './mocks';
 
 /**
@@ -30,7 +31,9 @@ const AllTheProviders: React.FC<{
   return (
     <ApiProvider api={api}>
       <ClusterProvider>
-        <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+        <PluginProvider>
+          <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+        </PluginProvider>
       </ClusterProvider>
     </ApiProvider>
   );
@@ -56,6 +59,8 @@ const AllTheProviders: React.FC<{
  *   path: '/clusters/:name'
  * })
  * ```
+ * @param ui 
+ * @param options 
  */
 export function render(
   ui: ReactElement,
@@ -67,11 +72,13 @@ export function render(
     return rtlRender(
       <ApiProvider api={api || createMockElectronAPI()}>
         <ClusterProvider>
-          <MemoryRouter initialEntries={[route]}>
-            <Routes>
-              <Route path={path} element={ui} />
-            </Routes>
-          </MemoryRouter>
+          <PluginProvider>
+            <MemoryRouter initialEntries={[route]}>
+              <Routes>
+                <Route path={path} element={ui} />
+              </Routes>
+            </MemoryRouter>
+          </PluginProvider>
         </ClusterProvider>
       </ApiProvider>,
       renderOptions
