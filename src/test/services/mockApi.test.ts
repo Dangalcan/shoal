@@ -6,33 +6,39 @@ describe('mockApi', () => {
     // Initial state
     let result = await mockApi.getClusters();
     expect(result.success).toBe(true);
+    if (!result.success) throw new Error('Failed to get clusters');
     const initialCount = result.data.length;
 
     // Create cluster
     await mockApi.createCluster('new-cluster', 'minikube');
     result = await mockApi.getClusters();
+    if (!result.success) throw new Error('Failed to get clusters');
     expect(result.data).toContain('new-cluster');
     expect(result.data.length).toBe(initialCount + 1);
 
     // Delete cluster
     await mockApi.deleteCluster('new-cluster');
     result = await mockApi.getClusters();
+    if (!result.success) throw new Error('Failed to get clusters');
     expect(result.data).not.toContain('new-cluster');
   });
 
   it('should manage contexts', async () => {
     const clusters = await mockApi.getClusters();
+    if (!clusters.success) throw new Error('Failed to get clusters');
     const target = clusters.data[0];
+    if (!target) throw new Error('No clusters found');
 
     // Switch context
     let result = await mockApi.switchContext(target);
     expect(result.success).toBe(true);
 
     const current = await mockApi.getCurrentContext();
+    if (!current.success) throw new Error('Failed to get current context');
     expect(current.data).toBe(target);
 
     // Switch to invalid
-    await mockApi.switchContext('invalid-context').catch((e) => e); // It might return success: false
+    await mockApi.switchContext('invalid-context').catch((e) => e);
     const invalidResult = await mockApi.switchContext('invalid-context');
     expect(invalidResult.success).toBe(false);
   });

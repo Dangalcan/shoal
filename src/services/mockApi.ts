@@ -92,4 +92,44 @@ export const mockApi: ElectronAPI = {
     console.log('[MockAPI] setKubeconfigPath:', path);
     return { success: true, data: true };
   },
+
+  // Plugin System
+  getPlugins: async () => ({ success: true, data: [] }),
+  enablePlugin: async (_id: string) => ({ success: true, data: true }),
+  disablePlugin: async (_id: string) => ({ success: true, data: undefined }),
+  checkForPluginUpdates: async () => ({ success: true, data: undefined }),
+  getPluginExtensions: async (_point?: string) => ({
+    success: true,
+    data: [],
+  }),
+  executePluginAction: async (_pid: string, _aid: string, _args?: any) => ({
+    success: true,
+    data: undefined,
+  }),
+  getPluginSettings: async (_id: string) => ({ success: true, data: {} }),
+  setPluginSettings: async (_id: string, _settings: any) => ({
+    success: true,
+    data: true,
+  }),
+  uninstallPlugin: async (_id: string) => ({ success: true, data: true }),
+  activatePluginLicense: async (_pid: string, _key: string) => ({
+    success: true,
+    data: undefined,
+  }),
+  startPluginTrial: async (_pid: string) => ({
+    success: true,
+    data: undefined,
+  }),
+  deactivatePluginLicense: async (_pid: string) => ({
+    success: true,
+    data: undefined,
+  }),
+  getMarketplacePlugins: async () => ({ success: true, data: [] }),
+  installPlugin: async (_id: string) => ({ success: true, data: undefined }),
+  generatePlugin: async (_options: any) => ({ success: true, data: true }),
+  reloadPlugin: async (_id: string) => ({ success: true, data: undefined }),
+
+  // Listeners
+  onSetKubeconfigPath: (_callback: (value: boolean) => void) => {},
+  onPluginNotification: (_callback: (data: any) => void) => {},
 };
