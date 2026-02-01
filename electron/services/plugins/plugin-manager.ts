@@ -442,8 +442,9 @@ export class PluginManager {
       await this.disablePlugin(pluginId);
     }
 
-    // Unregister from registry
+    // Unregister from registry and loader
     await pluginRegistry.unregisterPlugin(pluginId);
+    pluginLoader.unregisterPlugin(pluginId);
 
     // Delete plugin files from disk
     try {
@@ -460,6 +461,34 @@ export class PluginManager {
     }
 
     console.log(`[PluginManager] Plugin ${pluginId} uninstalled successfully`);
+  }
+
+  /**
+   * Rediscover a plugin and register it
+   */
+  async refreshDiscovery(pluginId: string): Promise<void> {
+    console.log(`[PluginManager] Refreshing discovery for: ${pluginId}`);
+
+    const pluginPath = await pluginLoader.getPluginPath(pluginId);
+    if (!pluginPath) {
+      console.warn(
+        `[PluginManager] Could not find path for plugin ${pluginId}`
+      );
+      return;
+    }
+
+    const plugin = await pluginLoader.loadPluginFromDirectory(pluginPath);
+    if (plugin) {
+      pluginLoader.registerPlugin(plugin);
+      await pluginRegistry.registerPlugin(plugin);
+      console.log(
+        `[PluginManager] Successfully discovered and registered ${pluginId}`
+      );
+    } else {
+      console.warn(
+        `[PluginManager] Could not load plugin ${pluginId} from ${pluginPath}`
+      );
+    }
   }
 }
 

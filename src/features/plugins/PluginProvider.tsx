@@ -26,6 +26,7 @@ interface PluginContextType {
   checkForUpdates: () => Promise<void>;
   generatePlugin: (options: any) => Promise<void>;
   reloadPlugin: (pluginId: string) => Promise<void>;
+  uninstallPlugin: (pluginId: string) => Promise<void>;
 }
 
 const PluginContext = createContext<PluginContextType | null>(null);
@@ -223,6 +224,19 @@ export function PluginProvider({ children }: PluginProviderProps) {
     }
   };
 
+  const uninstallPlugin = async (pluginId: string) => {
+    try {
+      const result = await api.uninstallPlugin(pluginId);
+      if (result.success) {
+        await refreshPlugins();
+      } else {
+        throw new Error(result.error || 'Failed to uninstall plugin');
+      }
+    } catch (err: any) {
+      throw new Error(err.message || 'Failed to uninstall plugin');
+    }
+  };
+
   // Load plugins on mount
   useEffect(() => {
     refreshPlugins();
@@ -247,6 +261,7 @@ export function PluginProvider({ children }: PluginProviderProps) {
     checkForUpdates,
     generatePlugin,
     reloadPlugin,
+    uninstallPlugin,
   };
 
   return <PluginContext.Provider value={value}>{children}</PluginContext.Provider>;

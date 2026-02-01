@@ -75,9 +75,7 @@ export class PluginLoader {
   /**
    * Load a plugin from a directory
    */
-  private async loadPluginFromDirectory(
-    pluginPath: string
-  ): Promise<Plugin | null> {
+  async loadPluginFromDirectory(pluginPath: string): Promise<Plugin | null> {
     try {
       // Read and validate manifest
       const manifestPath = path.join(pluginPath, 'plugin.json');

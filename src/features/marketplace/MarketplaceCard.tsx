@@ -5,7 +5,8 @@
 import { Download, Check, DollarSign, User, Package } from 'lucide-react';
 import type { MarketplaceEntry } from '../../types';
 import { usePlugins } from '../plugins/PluginProvider';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import '../../../styles/components/marketplace/Marketplace.css';
 
 interface MarketplaceCardProps {
@@ -24,14 +25,26 @@ export function MarketplaceCard({ entry }: MarketplaceCardProps) {
 
     setInstalling(true);
     setError(null);
+    const toastId = toast.loading(`Installing ${entry.name}...`);
+    
     try {
       await installPlugin(entry.id);
+      toast.success(`${entry.name} installed successfully!`, { id: toastId });
+      // We don't setInstalling(false) here, we wait for the effect to see the new plugin in the list
     } catch (err: any) {
-      setError(err.message);
-    } finally {
+      const msg = err.message || 'Installation failed';
+      setError(msg);
+      toast.error(msg, { id: toastId });
       setInstalling(false);
     }
   };
+
+  // Reset local installing state when plugin appears in global list
+  useEffect(() => {
+    if (isInstalled && installing) {
+      setInstalling(false);
+    }
+  }, [isInstalled, installing, entry.id]);
 
   return (
     <div className="marketplace-card">

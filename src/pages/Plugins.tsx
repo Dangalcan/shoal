@@ -9,6 +9,7 @@ import { usePlugins } from '../features/plugins/PluginProvider';
 import { LicenseActivationModal } from '../features/plugins/LicenseActivationModal';
 import { MarketplaceList } from '../features/marketplace/MarketplaceList';
 import { PluginSettingsModal } from '../features/plugins/PluginSettingsModal';
+import { ConfirmModal } from '../components/modals/ConfirmModal';
 import { Settings, RotateCcw, Package, Download, Trash2, Power, AlertCircle, User, Shield, Info, ExternalLink, RefreshCw } from 'lucide-react';
 import type { Plugin } from '../../electron/types/plugin-types';
 import '../../styles/pages/Plugins.css';
@@ -23,13 +24,15 @@ export default function Plugins() {
     refreshPlugins, 
     deactivateLicense,
     installPlugin,
-    reloadPlugin
+    reloadPlugin,
+    uninstallPlugin
   } = usePlugins();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [activeModalPlugin, setActiveModalPlugin] = useState<Plugin | null>(null);
   const [activeSettingsPlugin, setActiveSettingsPlugin] = useState<Plugin | null>(null);
   const [activeTab, setActiveTab] = useState<'installed' | 'marketplace'>('installed');
+  const [uninstallingPlugin, setUninstallingPlugin] = useState<Plugin | null>(null);
 
   const handleTogglePlugin = async (plugin: Plugin) => {
     setActionLoading(plugin.manifest.id);
@@ -69,6 +72,27 @@ export default function Plugins() {
       await installPlugin(plugin.manifest.id);
     } catch (err: any) {
       setActionError(err.message || 'Failed to update plugin');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+
+
+  const handleUninstallPlugin = (plugin: Plugin) => {
+    setUninstallingPlugin(plugin);
+  };
+
+  const confirmUninstall = async () => {
+    if (!uninstallingPlugin) return;
+
+    setActionLoading(uninstallingPlugin.manifest.id);
+    setActionError(null);
+    try {
+      await uninstallPlugin(uninstallingPlugin.manifest.id);
+      setUninstallingPlugin(null);
+    } catch (err: any) {
+      setActionError(err.message || 'Failed to uninstall plugin');
     } finally {
       setActionLoading(null);
     }
@@ -325,6 +349,17 @@ export default function Plugins() {
                         <Settings size={16} />
                       </button>
                     )}
+
+                    {plugin.state !== 'enabled' && (
+                      <button
+                        className="btn btn--secondary btn--icon btn--danger-hover"
+                        onClick={() => handleUninstallPlugin(plugin)}
+                        disabled={actionLoading === plugin.manifest.id}
+                        title="Uninstall Plugin"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -346,6 +381,17 @@ export default function Plugins() {
           onClose={() => setActiveSettingsPlugin(null)}
         />
       )}
+
+      <ConfirmModal
+        isOpen={!!uninstallingPlugin}
+        onClose={() => setUninstallingPlugin(null)}
+        onConfirm={confirmUninstall}
+        title="Uninstall Plugin"
+        message={uninstallingPlugin ? `Are you sure you want to uninstall ${uninstallingPlugin.manifest.name}? This will permanently delete all plugin files.` : ''}
+        confirmLabel="Uninstall"
+        variant="danger"
+        loading={actionLoading === uninstallingPlugin?.manifest.id}
+      />
     </div>
   );
 }

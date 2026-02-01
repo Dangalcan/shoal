@@ -75,13 +75,13 @@ const RecentLogsWidget = () => {
 
   return (
     <div className="widget-content widget-logs">
-      {logs.map((log, i) => (
+      {Array.isArray(logs) && logs.map((log, i) => (
         <div key={i} className="log-entry info">
-          <span className="log-time">{log.time.split('T')[1].split('.')[0]}</span>
-          <span className="log-msg">{log.msg}</span>
+          <span className="log-time">{log?.time?.includes('T') ? log.time.split('T')[1].split('.')[0] : (log?.time || '??:??')}</span>
+          <span className="log-msg">{log?.msg || (typeof log === 'string' ? log : 'Invalid log format')}</span>
         </div>
       ))}
-      {logs.length === 0 && <p className="text-slate-500 text-xs text-center">No logs retrieved yet.</p>}
+      {(!Array.isArray(logs) || logs.length === 0) && <p className="text-slate-500 text-xs text-center">No logs retrieved yet.</p>}
     </div>
   );
 };

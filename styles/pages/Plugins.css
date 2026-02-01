@@ -348,3 +348,10 @@
   height: 48px;
   border-width: 4px;
 }
+
+.btn--danger-hover:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border-color: #ef4444;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+}

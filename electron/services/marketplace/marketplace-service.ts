@@ -6,8 +6,12 @@
 
 import path from 'path';
 import fs from 'fs/promises';
+import { createWriteStream } from 'fs';
+import { pipeline } from 'stream/promises';
 import { app } from 'electron';
+import AdmZip from 'adm-zip';
 import { Result, MarketplaceEntry } from '../../types/plugin-types';
+import { pluginManager } from '../plugins/plugin-manager';
 
 const MARKETPLACE_API_URL = 'http://localhost:3001';
 
@@ -93,6 +97,9 @@ export class MarketplaceService {
   /**
    * Install/Update a plugin from the marketplace
    */
+  /**
+   * Install/Update a plugin from the marketplace
+   */
   async installPlugin(pluginId: string): Promise<Result<void>> {
     try {
       // 1. Get metadata from backend
@@ -108,52 +115,74 @@ export class MarketplaceService {
         `[MarketplaceService] Installing ${plugin.name} v${plugin.version}...`
       );
 
-      // 2. Simulate download delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // 3. Setup paths
+      // 2. Prepare paths
       const pluginsDir = path.join(app.getPath('userData'), 'plugins');
       const pluginDir = path.join(pluginsDir, pluginId);
-
-      // 4. Ensure directory exists
-      await fs.mkdir(pluginDir, { recursive: true });
-
-      // 5. Generate dummy plugin based on real metadata
-      const manifest = {
-        id: plugin.id,
-        name: plugin.name,
-        version: plugin.version,
-        description: plugin.description,
-        author: plugin.author,
-        main: 'index.js',
-        permissions: ['ui', 'notifications'],
-        license: {
-          type: plugin.price > 0 ? 'paid' : 'free',
-          spdx: 'proprietary',
-        },
-      };
-
-      await fs.writeFile(
-        path.join(pluginDir, 'plugin.json'),
-        JSON.stringify(manifest, null, 2)
+      const tempDir = app.getPath('temp');
+      const downloadPath = path.join(
+        tempDir,
+        `${pluginId}-${plugin.version}.zip`
       );
 
-      const indexContent = `
-module.exports = {
-  activate: (context) => {
-    context.logger.info('${plugin.name} v${plugin.version} activated!');
-    context.ui.showNotification('${plugin.name} is ready.', 'success');
-  },
-  deactivate: async () => {}
-};`;
+      // 3. Download the plugin artifact
+      await this.downloadPlugin(plugin.downloadUrl, downloadPath);
 
-      await fs.writeFile(path.join(pluginDir, 'index.js'), indexContent.trim());
+      // 4. Extract/Install the plugin
+      await this.extractPlugin(downloadPath, pluginDir, plugin);
+
+      // 5. Cleanup
+      await fs.unlink(downloadPath).catch(() => {});
+
+      // 6. Refresh discovery to register the new plugin
+      await pluginManager.refreshDiscovery(pluginId);
 
       return { success: true };
     } catch (error: any) {
       console.error('[MarketplaceService] Installation failed:', error);
       return { success: false, error: error.message || 'Installation failed' };
     }
+  }
+
+  /**
+   * Download the plugin artifact
+   */
+  private async downloadPlugin(url: string, destPath: string): Promise<void> {
+    console.log(`[MarketplaceService] Downloading from ${url} to ${destPath}`);
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to download plugin: ${response.statusText}`);
+    }
+
+    if (!response.body) {
+      throw new Error('Download response has no body');
+    }
+
+    // @ts-ignore - ReadableStream/Node stream compatibility
+    await pipeline(response.body, createWriteStream(destPath));
+  }
+
+  /**
+   * Extract the plugin artifact using adm-zip
+   */
+  private async extractPlugin(
+    archivePath: string,
+    destPath: string,
+    metadata: MarketplaceEntry
+  ): Promise<void> {
+    console.log(
+      `[MarketplaceService] Extracting ${archivePath} to ${destPath}`
+    );
+
+    // Ensure directory exists
+    await fs.mkdir(destPath, { recursive: true });
+
+    const zip = new AdmZip(archivePath);
+    zip.extractAllTo(destPath, true);
+
+    console.log(
+      `[MarketplaceService] Extracted ${metadata.name} to ${destPath}`
+    );
   }
 
   /**
