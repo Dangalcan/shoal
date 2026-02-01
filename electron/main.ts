@@ -3,7 +3,11 @@ import path from 'path';
 import { exec } from 'child_process';
 import util from 'util';
 import fs from 'fs/promises';
-import { clusterManagementService } from './cluster-management-service';
+import { clusterManagementService } from './services/cluster/cluster-management-service';
+import { pluginManager } from './services/plugins/plugin-manager';
+import { templateService } from './services/plugins/template-service';
+import { licenseManager } from './services/security/license-manager';
+import { marketplaceService } from './services/marketplace/marketplace-service';
 
 const execPromise = util.promisify(exec);
 
@@ -12,7 +16,7 @@ process.env.VITE_PUBLIC = app.isPackaged
   ? process.env.DIST
   : path.join(process.env.DIST, '../public');
 
-let win: BrowserWindow | null;
+export let win: BrowserWindow | null;
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
 
 function createWindow() {
@@ -277,6 +281,154 @@ function createWindow() {
     })
   );
 
+  // ============================================================================
+  // Plugin System IPC Handlers
+  // ============================================================================
+
+  ipcMain.handle(
+    'get-plugins',
+    wrapIpcHandler('get-plugins', async () => {
+      return pluginManager.getPlugins();
+    })
+  );
+
+  ipcMain.handle(
+    'enable-plugin',
+    wrapIpcHandler('enable-plugin', async (_event, pluginId: string) => {
+      await pluginManager.enablePlugin(pluginId);
+      return true;
+    })
+  );
+
+  ipcMain.handle(
+    'disable-plugin',
+    wrapIpcHandler('disable-plugin', async (_event, pluginId: string) => {
+      await pluginManager.disablePlugin(pluginId);
+      return true;
+    })
+  );
+
+  ipcMain.handle(
+    'check-for-plugin-updates',
+    wrapIpcHandler('check-for-plugin-updates', async () => {
+      await pluginManager.checkForUpdates();
+      return true;
+    })
+  );
+
+  ipcMain.handle(
+    'get-plugin-extensions',
+    wrapIpcHandler(
+      'get-plugin-extensions',
+      async (_event, extensionPoint?: string) => {
+        return pluginManager.getPluginExtensions(extensionPoint);
+      }
+    )
+  );
+
+  ipcMain.handle(
+    'generate-plugin',
+    wrapIpcHandler('generate-plugin', async (_event, options: any) => {
+      const pluginDir = path.join(
+        app.getPath('userData'),
+        'plugins',
+        options.id
+      );
+      await templateService.scaffoldPlugin(pluginDir, options);
+      return true;
+    })
+  );
+
+  ipcMain.handle(
+    'reload-plugin',
+    wrapIpcHandler('reload-plugin', async (_event, pluginId: string) => {
+      await pluginManager.reloadPlugin(pluginId);
+      return true;
+    })
+  );
+
+  ipcMain.handle(
+    'execute-plugin-action',
+    wrapIpcHandler(
+      'execute-plugin-action',
+      async (_event, { pluginId, actionId, args }) => {
+        return await pluginManager.executePluginAction(
+          pluginId,
+          actionId,
+          args
+        );
+      }
+    )
+  );
+
+  ipcMain.handle(
+    'get-plugin-settings',
+    wrapIpcHandler('get-plugin-settings', async (_event, pluginId: string) => {
+      return pluginManager.getPluginSettings(pluginId);
+    })
+  );
+
+  ipcMain.handle(
+    'set-plugin-settings',
+    wrapIpcHandler(
+      'set-plugin-settings',
+      async (_event, { pluginId, settings }) => {
+        await pluginManager.updatePluginSettings(pluginId, settings);
+        return true;
+      }
+    )
+  );
+
+  ipcMain.handle(
+    'uninstall-plugin',
+    wrapIpcHandler('uninstall-plugin', async (_event, pluginId: string) => {
+      await pluginManager.uninstallPlugin(pluginId);
+      return true;
+    })
+  );
+
+  ipcMain.handle(
+    'activate-plugin-license',
+    wrapIpcHandler(
+      'activate-plugin-license',
+      async (_event, { pluginId, licenseKey }) => {
+        return await licenseManager.activateLicense(pluginId, licenseKey);
+      }
+    )
+  );
+
+  ipcMain.handle(
+    'start-plugin-trial',
+    wrapIpcHandler('start-plugin-trial', async (_event, pluginId: string) => {
+      return await licenseManager.startTrial(pluginId);
+    })
+  );
+
+  ipcMain.handle(
+    'deactivate-plugin-license',
+    wrapIpcHandler(
+      'deactivate-plugin-license',
+      async (_event, pluginId: string) => {
+        return await licenseManager.deactivateLicense(pluginId);
+      }
+    )
+  );
+
+  // Marketplace Handlers
+  ipcMain.handle(
+    'get-marketplace-plugins',
+    wrapIpcHandler('get-marketplace-plugins', async () => {
+      return await marketplaceService.getMarketplacePlugins();
+    })
+  );
+
+  ipcMain.handle(
+    'install-plugin',
+    wrapIpcHandler('install-plugin', async (_event, pluginId: string) => {
+      return await marketplaceService.installPlugin(pluginId);
+    })
+  );
+
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
   } else {
@@ -297,4 +449,16 @@ app.on('activate', () => {
   }
 });
 
-app.whenReady().then(createWindow);
+app.whenReady().then(async () => {
+  // Initialize plugin system
+  try {
+    console.log('[Main] Initializing plugin system...');
+    await pluginManager.initialize();
+    console.log('[Main] Plugin system initialized');
+  } catch (error: any) {
+    console.error('[Main] Failed to initialize plugin system:', error.message);
+  }
+
+  // Create main window
+  createWindow();
+});

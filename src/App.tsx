@@ -5,6 +5,8 @@ import { CreateCluster } from './pages/CreateCluster'
 import { Clusters } from './pages/Clusters'
 import { ClusterDetails } from './pages/ClusterDetails'
 import { Settings } from './pages/Settings'
+import Plugins from './pages/Plugins'
+import { PluginPage } from './pages/PluginPage'
 
 function App() {
     return (
@@ -16,6 +18,8 @@ function App() {
                     <Route path="clusters" element={<Clusters />} />
                     <Route path="cluster/:name" element={<ClusterDetails />} />
                     <Route path="settings" element={<Settings />} />
+                    <Route path="plugins" element={<Plugins />} />
+                    <Route path="plugin/:pluginId" element={<PluginPage />} />
                 </Route>
             </Routes>
         </HashRouter>

@@ -1,14 +1,17 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Server, Settings, Sun, Moon } from 'lucide-react'
+import { LayoutDashboard, Server, Settings, Sun, Moon, Package } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { cn } from '../lib/utils'
 import { useTheme } from '../hooks'
+import { usePlugins, usePluginExtensions } from '../features/plugins/PluginProvider'
 import { ContextSwitcher } from './common/ContextSwitcher'
+import { ExternalLink } from 'lucide-react'
 import '../../styles/components/Sidebar.css'
 
 export function Sidebar() {
     const { theme, toggleTheme } = useTheme();
     const [version, setVersion] = useState<string>('v0.1.0');
+    const pluginExtensions = usePluginExtensions('sidebar');
 
     useEffect(() => {
         const fetchVersion = async () => {
@@ -23,6 +26,7 @@ export function Sidebar() {
     const links = [
         { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
         { to: '/clusters', icon: Server, label: 'Clusters' },
+        { to: '/plugins', icon: Package, label: 'Plugins' },
         { to: '/settings', icon: Settings, label: 'Settings' },
     ]
 
@@ -55,6 +59,29 @@ export function Sidebar() {
                         {label}
                     </NavLink>
                 ))}
+
+                {pluginExtensions.length > 0 && (
+                  <>
+                    <div className="sidebar-divider">Plugins</div>
+                    {pluginExtensions.map((ext: any) => (
+                      <NavLink
+                          key={ext.id}
+                          to={ext.route}
+                          className={({ isActive }) =>
+                              cn(
+                                  "sidebar-link",
+                                  isActive
+                                      ? "sidebar-link-active"
+                                      : "sidebar-link-inactive"
+                              )
+                          }
+                      >
+                          <ExternalLink size={18} />
+                          {ext.label}
+                      </NavLink>
+                    ))}
+                  </>
+                )}
             </nav>
             <div className="sidebar-footer">
                 <button 
