@@ -52,4 +52,39 @@ contextBridge.exposeInMainWorld('electron', {
   getKubeconfigPath: () => ipcRenderer.invoke('get-kubeconfig-path'),
   setKubeconfigPath: (path: string) =>
     ipcRenderer.invoke('set-kubeconfig-path', path),
+  onSetKubeconfigPath: (callback: (value: boolean) => void) =>
+    ipcRenderer.on('set-kubeconfig-path', (_event, value) => callback(value)),
+  onPluginNotification: (callback: (data: any) => void) =>
+    ipcRenderer.on('plugin-notification', (_event, value) => callback(value)),
+
+  // Plugin System
+  getPlugins: () => ipcRenderer.invoke('get-plugins'),
+  enablePlugin: (pluginId: string) =>
+    ipcRenderer.invoke('enable-plugin', pluginId),
+  disablePlugin: (pluginId: string) =>
+    ipcRenderer.invoke('disable-plugin', pluginId),
+  checkForPluginUpdates: () => ipcRenderer.invoke('check-for-plugin-updates'),
+  getPluginExtensions: (extensionPoint?: string) =>
+    ipcRenderer.invoke('get-plugin-extensions', extensionPoint),
+  executePluginAction: (pluginId: string, actionId: string, args?: any) =>
+    ipcRenderer.invoke('execute-plugin-action', { pluginId, actionId, args }),
+  getPluginSettings: (pluginId: string) =>
+    ipcRenderer.invoke('get-plugin-settings', pluginId),
+  setPluginSettings: (pluginId: string, settings: Record<string, any>) =>
+    ipcRenderer.invoke('set-plugin-settings', { pluginId, settings }),
+  uninstallPlugin: (pluginId: string) =>
+    ipcRenderer.invoke('uninstall-plugin', pluginId),
+  activatePluginLicense: (pluginId: string, licenseKey: string) =>
+    ipcRenderer.invoke('activate-plugin-license', { pluginId, licenseKey }),
+  startPluginTrial: (pluginId: string) =>
+    ipcRenderer.invoke('start-plugin-trial', pluginId),
+  deactivatePluginLicense: (pluginId: string) =>
+    ipcRenderer.invoke('deactivate-plugin-license', pluginId),
+  getMarketplacePlugins: () => ipcRenderer.invoke('get-marketplace-plugins'),
+  installPlugin: (pluginId: string) =>
+    ipcRenderer.invoke('install-plugin', pluginId),
+  generatePlugin: (options: any) =>
+    ipcRenderer.invoke('generate-plugin', options),
+  reloadPlugin: (pluginId: string) =>
+    ipcRenderer.invoke('reload-plugin', pluginId),
 });

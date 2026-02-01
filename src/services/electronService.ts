@@ -98,6 +98,42 @@ export class ElectronService {
   }): Promise<Result<void>> {
     return window.electron.deleteResource(args);
   }
+
+  async checkForPluginUpdates(): Promise<Result<void>> {
+    return window.electron.checkForPluginUpdates();
+  }
+
+  // Plugin System methods
+  async getPlugins(): Promise<Result<any[]>> {
+    return window.electron.getPlugins();
+  }
+
+  async installPlugin(pluginId: string): Promise<Result<void>> {
+    return window.electron.installPlugin(pluginId);
+  }
+
+  async activatePluginLicense(
+    pluginId: string,
+    licenseKey: string
+  ): Promise<Result<void>> {
+    return window.electron.activatePluginLicense(pluginId, licenseKey);
+  }
+
+  async startPluginTrial(pluginId: string): Promise<Result<void>> {
+    return window.electron.startPluginTrial(pluginId);
+  }
+
+  async deactivatePluginLicense(pluginId: string): Promise<Result<void>> {
+    return window.electron.deactivatePluginLicense(pluginId);
+  }
+
+  async generatePlugin(options: any): Promise<Result<boolean>> {
+    return window.electron.generatePlugin(options);
+  }
+
+  async reloadPlugin(pluginId: string): Promise<Result<void>> {
+    return window.electron.reloadPlugin(pluginId);
+  }
 }
 
 export const electronService = ElectronService.getInstance();

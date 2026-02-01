@@ -56,6 +56,43 @@ export function createMockElectronAPI(
       .fn()
       .mockResolvedValue({ success: true, data: '/path/to/kubeconfig' }),
     setKubeconfigPath: vi.fn().mockResolvedValue({ success: true, data: true }),
+
+    // Plugin System
+    getPlugins: vi.fn().mockResolvedValue({ success: true, data: [] }),
+    enablePlugin: vi.fn().mockResolvedValue({ success: true, data: true }),
+    disablePlugin: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: undefined }),
+    checkForPluginUpdates: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: undefined }),
+    getPluginExtensions: vi.fn().mockResolvedValue({ success: true, data: [] }),
+    executePluginAction: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: undefined }),
+    getPluginSettings: vi.fn().mockResolvedValue({ success: true, data: {} }),
+    setPluginSettings: vi.fn().mockResolvedValue({ success: true, data: true }),
+    uninstallPlugin: vi.fn().mockResolvedValue({ success: true, data: true }),
+    activatePluginLicense: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: undefined }),
+    startPluginTrial: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: undefined }),
+    deactivatePluginLicense: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: undefined }),
+    getMarketplacePlugins: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: [] }),
+    installPlugin: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: undefined }),
+    generatePlugin: vi.fn().mockResolvedValue({ success: true, data: true }),
+    reloadPlugin: vi.fn().mockResolvedValue({ success: true, data: undefined }),
+
+    onSetKubeconfigPath: vi.fn(),
+    onPluginNotification: vi.fn(),
     ...overrides,
   };
 }
