@@ -11,6 +11,8 @@
     "build:electron": "tsc -p electron/tsconfig.json",
     "build:react": "tsc && vite build",
     "build": "npm run build:react && npm run build:electron && electron-builder",
+    "build:win": "npm run build:react && npm run build:electron && electron-builder --win",
+    "build:linux": "npm run build:react && npm run build:electron && electron-builder --linux",
     "test": "vitest --run",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --run --coverage",
@@ -31,7 +33,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "LGPL-3.0-or-later",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/Dangalcan/Kubernetes-Desktop/issues"
@@ -77,5 +79,41 @@
     "vite": "^7.3.0",
     "vitest": "^4.0.16",
     "wait-on": "^9.0.3"
+  },
+  "build": {
+    "appId": "com.dangalcan.kubernetes-desktop",
+    "productName": "Kubernetes Desktop",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "publish": null
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Development"
+    }
   }
 }
