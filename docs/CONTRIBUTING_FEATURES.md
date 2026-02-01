@@ -34,93 +34,103 @@ Our application follows a **clean architecture** pattern with clear separation o
 
 ### 1. Define Your Feature
 
-**Example**: Add a "Cluster Health Check" feature
+**Example**: Add a "Cluster Management" feature
 
 **Requirements**:
 
-- Display health status for each cluster
-- Show CPU/Memory usage
-- Refresh every 30 seconds
+- List all available clusters
+- Switch between kubeconfig contexts
+- Delete clusters with confirmation
+- Persist default namespace preference
 
 ---
 
 ### 2. Create Feature Directory
 
 ```bash
-mkdir -p src/features/cluster-health
+mkdir -p src/features/clusters
 ```
 
 **Structure**:
 
 ```
-src/features/cluster-health/
-├── useClusterHealth.ts    # Business logic hook
-├── types.ts               # TypeScript types
-└── index.ts               # Public exports
+src/features/clusters/
+├── ClusterContext.tsx    # Context Provider and Logic
+├── types.ts              # TypeScript types
+└── index.ts              # Public exports
 ```
 
 ---
 
 ### 3. Define Types
 
-**File**: `src/features/cluster-health/types.ts`
+**File**: `src/features/clusters/types.ts`
 
 ```typescript
-export interface ClusterHealth {
-  clusterName: string;
-  status: 'healthy' | 'warning' | 'critical';
-  cpuUsage: number;
-  memoryUsage: number;
-  lastChecked: string;
+import { Result } from '../../types/result';
+
+export interface ClusterState {
+  clusters: string[];
+  loading: boolean;
+  currentContext: string;
+  switching: string | null;
+  deleting: string | null;
 }
 
-export interface UseClusterHealthResult {
-  health: ClusterHealth | null;
-  loading: boolean;
-  error: string | null;
-  refresh: () => Promise<void>;
+export interface ClusterContextValue extends ClusterState {
+  fetchClusters: () => Promise<void>;
+  switchContext: (contextName: string) => Promise<Result<void>>;
+  deleteCluster: (name: string) => Promise<Result>;
 }
 ```
 
 ---
 
-### 4. Implement Business Logic Hook
+### 4. Implement Business Logic Hook (via Context Provider)
 
-**File**: `src/features/cluster-health/useClusterHealth.ts`
+**File**: `src/features/clusters/ClusterContext.tsx`
 
 ```typescript
-import { useCallback } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+} from 'react';
 import { useApi } from '../../services/api-context';
+import { handleAsyncOperation } from '../../lib/async-operation-handler';
 import { useAsyncData } from '../../hooks/useAsyncData';
-import type { ClusterHealth, UseClusterHealthResult } from './types';
 
-export function useClusterHealth(clusterName: string): UseClusterHealthResult {
+// ... setup context ...
+
+export function ClusterProvider({ children }: { children: ReactNode }) {
   const api = useApi();
+  const [currentContext, setCurrentContext] = useState<string>('');
 
-  const fetchFn = useCallback(async (): Promise<ClusterHealth> => {
-    // Call Electron API
-    const result = await api.getClusterHealth(clusterName);
-
-    if (result.success) {
-      return result.data;
-    }
-
-    throw new Error(result.error);
-  }, [api, clusterName]);
-
-  const { data, loading, error, refetch } = useAsyncData({
-    fetchFn,
-    errorTitle: 'Failed to fetch cluster health',
-    autoRefreshInterval: 30000, // 30 seconds
-    dependencies: [clusterName],
+  // Data fetching using useAsyncData hook
+  const {
+    data: clusters,
+    loading,
+    refetch: fetchClusters,
+  } = useAsyncData({
+    fetchFn: () => api.getClusters(),
+    errorTitle: 'Failed to fetch clusters',
   });
 
-  return {
-    health: data,
-    loading,
-    error,
-    refresh: refetch,
-  };
+  // Action: Switch context
+  const switchContext = useCallback(
+    async (contextName: string) => {
+      return await handleAsyncOperation(() => api.switchContext(contextName), {
+        loadingMessage: `Switching to context "${contextName}"...`,
+        successMessage: `Switched to context "${contextName}".`,
+        onSuccess: () => setCurrentContext(contextName),
+      });
+    },
+    [api]
+  );
+
+  // ... provide context value ...
 }
 ```
 
@@ -128,62 +138,44 @@ export function useClusterHealth(clusterName: string): UseClusterHealthResult {
 
 ### 5. Create UI Component
 
-**File**: `src/components/cluster/ClusterHealthCard.tsx`
+**File**: `src/components/cluster/ClusterCard.tsx`
 
 ```typescript
-import { RefreshCw } from 'lucide-react';
-import { Card, Badge, Button, Spinner } from '../ui';
-import { useClusterHealth } from '../../features/cluster-health';
+import { Settings, Trash2 } from 'lucide-react';
+import { Card, Button, Badge } from '../ui';
+import { useClusterContext } from '../../features/clusters';
 
-interface ClusterHealthCardProps {
-  clusterName: string;
+interface ClusterCardProps {
+  name: string;
 }
 
-export function ClusterHealthCard({ clusterName }: ClusterHealthCardProps) {
-  const { health, loading, error, refresh } = useClusterHealth(clusterName);
-
-  if (loading && !health) {
-    return <Spinner label="Loading health data..." />;
-  }
-
-  if (error) {
-    return <Card><p className="text-error">{error}</p></Card>;
-  }
-
-  if (!health) {
-    return null;
-  }
+export function ClusterCard({ name }: ClusterCardProps) {
+  const { currentContext, switching, deleting, switchContext, deleteCluster } = useClusterContext();
+  const isActive = name === currentContext;
 
   return (
-    <Card
-      title="Cluster Health"
-      headerActions={
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={refresh}
-          disabled={loading}
-        >
-          <RefreshCw size={16} />
-        </Button>
-      }
-    >
-      <div className="health-stats">
-        <div>
-          <span>Status:</span>
-          <Badge variant={health.status === 'healthy' ? 'success' : 'error'}>
-            {health.status}
-          </Badge>
-        </div>
-        <div>
-          <span>CPU:</span>
-          <span>{health.cpuUsage}%</span>
-        </div>
-        <div>
-          <span>Memory:</span>
-          <span>{health.memoryUsage}%</span>
+    <Card className={isActive ? 'border-primary' : ''}>
+      <div className="flex justify-between items-center">
+        <h3 className="font-semibold">{name}</h3>
+        <div className="flex gap-2">
+          {isActive && <Badge variant="success">Active</Badge>}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => deleteCluster(name)}
+            disabled={!!deleting}
+          >
+            <Trash2 size={16} />
+          </Button>
         </div>
       </div>
+      <Button
+        variant={isActive ? 'secondary' : 'primary'}
+        onClick={() => switchContext(name)}
+        disabled={!!switching || isActive}
+      >
+        {isActive ? 'Current' : 'Switch'}
+      </Button>
     </Card>
   );
 }
@@ -193,21 +185,50 @@ export function ClusterHealthCard({ clusterName }: ClusterHealthCardProps) {
 
 ### 6. Integrate into Page
 
-**File**: `src/pages/ClusterDetails.tsx`
+**File**: `src/pages/Clusters.tsx`
 
 ```typescript
-import { ClusterHealthCard } from '../components/cluster/ClusterHealthCard';
+import { ClusterCard } from '../components/cluster/ClusterCard';
+import { useClusterContext } from '../features/clusters';
 
-export function ClusterDetails() {
-  const { name } = useParams<{ name: string }>();
+export function Clusters() {
+  const { clusters, loading } = useClusterContext();
+
+  if (loading && clusters.length === 0) {
+    return <div>Loading clusters...</div>;
+  }
 
   return (
-    <div className="cluster-details">
-      {/* Existing content */}
-
-      {/* Add health card */}
-      <ClusterHealthCard clusterName={name!} />
+    <div className="clusters-grid">
+      {clusters.map(name => (
+        <ClusterCard key={name} name={name} />
+      ))}
     </div>
+  );
+}
+```
+
+---
+
+## Provider Setup
+
+Essential features that use Context must be wrapped in their provider in `src/App.tsx` or a parent layout.
+
+**File**: `src/layouts/Layout.tsx`
+
+```typescript
+import { ClusterProvider } from '../features/clusters';
+
+export function Layout() {
+  return (
+    <ClusterProvider>
+      <div className="app-layout">
+        <Sidebar />
+        <main>
+          <Outlet />
+        </main>
+      </div>
+    </ClusterProvider>
   );
 }
 ```
