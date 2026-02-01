@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ClusterManagementService } from '../../../electron/cluster-management-service';
+import { ClusterManagementService } from '../../../electron/services/cluster/cluster-management-service';
 import * as child_process from 'child_process';
 
 // Improved mock to avoid "No default export" error

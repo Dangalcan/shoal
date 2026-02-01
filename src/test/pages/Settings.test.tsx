@@ -6,45 +6,166 @@ import { Settings } from '../../pages/Settings';
 // Mock simple hooks
 vi.mock('../../hooks/useLocalStorage', () => ({
   useLocalStorage: (key: string, initial: any) => {
+    // We need a way to store/retrieve values to simulate state persistence if needed,
+    // but for simple interactions, a mock implementation that behaves like useState is enough.
+    // However, since we want to verify values, we can just use a simple state impl.
+    // Ideally we would use a real generic hook mock but this simple one was here.
+    // Let's make it a bit more robust or just rely on component state updates.
+    // Actually, capturing the setter allows us to spy on it?
+    // For now, let's keep the simple implementation but ensure it works.
     let val = initial;
     const setVal = vi.fn((newVal) => { val = newVal; });
     return [val, setVal];
   }
 }));
 
+// Mock hooks that are used in Settings
+vi.mock('../../features/settings', () => {
+  // We can mock the specific hook or use the real one if we want integration.
+  // The original test didn't mock useSettings, meaning it used the real one (integration).
+  // But useSettings uses useLocalStorage which IS mocked.
+  // And it calls useApi.
+  
+  // To make testing easier and strictly about UI -> Handler connection, we can mock useSettings.
+  // This gives us full control over the values passed to the component.
+  return {
+    useSettings: vi.fn(),
+  };
+});
+
+vi.mock('../../hooks', () => ({
+  useNamespaces: vi.fn(),
+  useClusters: vi.fn().mockReturnValue({ currentContext: 'test-context' }),
+}));
+
+import { useSettings } from '../../features/settings';
+import { useNamespaces } from '../../hooks';
+
 describe('Settings Page', () => {
-    const mockApi = createMockElectronAPI({
-        getKubeconfigPath: vi.fn().mockResolvedValue({ success: true, data: 'C:\\test\\config' }),
-        setKubeconfigPath: vi.fn().mockResolvedValue({ success: true, data: true })
-    });
+    const mockApi = createMockElectronAPI({});
+    
+    // Default mock values
+    const mockSettingsValues = {
+        kubeconfigPath: 'C:\\default\\config',
+        defaultNamespace: 'default',
+        autoRefresh: true,
+        refreshInterval: 10,
+        saving: false,
+        setKubeconfigPath: vi.fn(),
+        setDefaultNamespace: vi.fn(),
+        setAutoRefresh: vi.fn(),
+        setRefreshInterval: vi.fn(),
+        handleSaveKubeconfig: vi.fn(),
+    };
 
     beforeEach(() => {
         vi.clearAllMocks();
-    });
-
-    it('should fetch and display initial kubeconfig path', async () => {
-        render(<Settings />, { api: mockApi });
-
-        await waitFor(() => {
-            expect(screen.getByDisplayValue('C:\\test\\config')).toBeInTheDocument();
+        
+        // Setup default hook returns
+        vi.mocked(useSettings).mockReturnValue(mockSettingsValues);
+        vi.mocked(useNamespaces).mockReturnValue({ 
+            namespaces: ['default', 'kube-system', 'all'], 
+            selectedNamespace: 'all',
+            setSelectedNamespace: vi.fn(),
+            loading: false,
+            error: null
         });
     });
 
-    it('should update kubeconfig path when set button is clicked', async () => {
+    it('should display all settings with correct initial values', () => {
         render(<Settings />, { api: mockApi });
 
-        const input = await screen.findByPlaceholderText(/e.g. C:/i);
-        fireEvent.change(input, { target: { value: 'C:\\new\\config' } });
-
-        const button = screen.getByRole('button', { name: /set/i });
-        fireEvent.click(button);
-
-        expect(mockApi.setKubeconfigPath).toHaveBeenCalledWith('C:\\new\\config');
+        expect(screen.getByDisplayValue('C:\\default\\config')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('default')).toBeInTheDocument(); // Namespace select
+        expect(screen.getByLabelText('Auto-Refresh Data')).toBeChecked();
+        expect(screen.getByText('10s')).toBeInTheDocument();
     });
 
-    it('should render core inputs', () => {
+    it('should update kubeconfig path input', () => {
         render(<Settings />, { api: mockApi });
-        expect(screen.getByLabelText('Default Namespace')).toBeInTheDocument();
-        expect(screen.getByLabelText('Auto-Refresh Data')).toBeInTheDocument();
+
+        const input = screen.getByPlaceholderText(/e.g. C:/i);
+        fireEvent.change(input, { target: { value: 'C:\\new\\config' } });
+
+        expect(mockSettingsValues.setKubeconfigPath).toHaveBeenCalledWith('C:\\new\\config');
+    });
+
+    it('should call handleSaveKubeconfig when set button is clicked', () => {
+        render(<Settings />, { api: mockApi });
+
+        fireEvent.click(screen.getByText('Set'));
+
+        expect(mockSettingsValues.handleSaveKubeconfig).toHaveBeenCalled();
+    });
+
+    it('should show loading state on set button', () => {
+        vi.mocked(useSettings).mockReturnValue({
+            ...mockSettingsValues,
+            saving: true
+        });
+
+        render(<Settings />, { api: mockApi });
+
+        expect(screen.getByRole('button', { name: /set/i })).toBeDisabled();
+        // Assuming the button shows a spinner or loading text, checking disabled is a start.
+    });
+
+    it('should update default namespace', () => {
+        render(<Settings />, { api: mockApi });
+
+        const select = screen.getByLabelText('Default Namespace');
+        fireEvent.change(select, { target: { value: 'kube-system' } });
+
+        expect(mockSettingsValues.setDefaultNamespace).toHaveBeenCalledWith('kube-system');
+    });
+
+    it('should disabled namespace selector when loading namespaces', () => {
+        vi.mocked(useNamespaces).mockReturnValue({ 
+            namespaces: [], 
+            selectedNamespace: 'all',
+            setSelectedNamespace: vi.fn(),
+            loading: true, 
+            error: null
+        });
+
+        render(<Settings />, { api: mockApi });
+
+        expect(screen.getByLabelText('Default Namespace')).toBeDisabled();
+    });
+
+    it('should toggle auto-refresh', () => {
+        render(<Settings />, { api: mockApi });
+
+        const checkbox = screen.getByLabelText('Auto-Refresh Data');
+        fireEvent.click(checkbox);
+
+        // Since it was true, clicking should set it to false (handled by parent logic, we verify call)
+        expect(mockSettingsValues.setAutoRefresh).toHaveBeenCalledWith(false);
+    });
+
+    it('should update refresh interval', () => {
+        render(<Settings />, { api: mockApi });
+
+        const range = screen.getByLabelText('Refresh Interval');
+        fireEvent.change(range, { target: { value: '30' } });
+
+        expect(mockSettingsValues.setRefreshInterval).toHaveBeenCalledWith(30);
+    });
+
+    it('should hide refresh interval when auto-refresh is disabled', () => {
+        vi.mocked(useSettings).mockReturnValue({
+            ...mockSettingsValues,
+            autoRefresh: false
+        });
+
+        const { container } = render(<Settings />, { api: mockApi });
+
+        // Implementation uses a class "settings-page--hidden"
+        // We can check if the input is not visible or check for the class on parent
+        // Use a more robust check if possible, or just check implementation details if CSS is not loaded in test
+        // Vitest/JSDOM doesn't compute styles perfectly unless configured.
+        // Let's check if the class is applied.
+        const rangeGroup = container.querySelector('.settings-page--hidden');
+        expect(rangeGroup).toBeInTheDocument();
     });
 });
