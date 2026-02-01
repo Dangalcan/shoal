@@ -91,6 +91,15 @@ export function createMockElectronAPI(
     generatePlugin: vi.fn().mockResolvedValue({ success: true, data: true }),
     reloadPlugin: vi.fn().mockResolvedValue({ success: true, data: undefined }),
 
+    // Manifests
+    getManifests: vi.fn().mockResolvedValue({ success: true, data: [] }),
+    saveManifest: vi.fn().mockResolvedValue({ success: true, data: 1 }),
+    deleteManifest: vi.fn().mockResolvedValue({ success: true, data: true }),
+    applyManifest: vi.fn().mockResolvedValue({
+      success: true,
+      data: { stdout: 'Mock apply', stderr: '' },
+    }),
+
     onSetKubeconfigPath: vi.fn(),
     onPluginNotification: vi.fn(),
     ...overrides,

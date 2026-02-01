@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu } from 'electron';
 import path from 'path';
 import { exec } from 'child_process';
 import util from 'util';
@@ -504,6 +504,11 @@ app.whenReady().then(async () => {
     console.error('[Main] Failed to initialize plugin system:', error.message);
   }
 
-  // 4. Create main window
+  // 4. Hide menu in production
+  if (app.isPackaged) {
+    Menu.setApplicationMenu(null);
+  }
+
+  // 5. Create main window
   createWindow();
 });

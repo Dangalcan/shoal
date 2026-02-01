@@ -129,6 +129,18 @@ export const mockApi: ElectronAPI = {
   generatePlugin: async (_options: any) => ({ success: true, data: true }),
   reloadPlugin: async (_id: string) => ({ success: true, data: undefined }),
 
+  // Manifests
+  getManifests: async (_clusterContext?: string) => ({
+    success: true,
+    data: [],
+  }),
+  saveManifest: async (_manifest: any) => ({ success: true, data: Date.now() }),
+  deleteManifest: async (_id: number) => ({ success: true, data: true }),
+  applyManifest: async (_id: number) => ({
+    success: true,
+    data: { stdout: 'Mock apply success', stderr: '' },
+  }),
+
   // Listeners
   onSetKubeconfigPath: (_callback: (value: boolean) => void) => {},
   onPluginNotification: (_callback: (data: any) => void) => {},
