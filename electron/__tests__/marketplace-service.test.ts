@@ -70,15 +70,12 @@ vi.mock('fs/promises', () => ({
     mkdir: vi.fn().mockResolvedValue(undefined),
     writeFile: vi.fn().mockResolvedValue(undefined),
     unlink: vi.fn().mockResolvedValue(undefined),
+    readFile: vi.fn().mockResolvedValue('[]'),
   },
 }));
 
-// Mock global fetch
-global.fetch = vi.fn().mockResolvedValue({
-  ok: true,
-  json: () => Promise.resolve({}),
-  body: {},
-} as any);
+// Mock global fetch (still needed for types/globals but unused for main logic now)
+global.fetch = vi.fn();
 
 describe('MarketplaceService', () => {
   let service: MarketplaceService;
@@ -90,56 +87,70 @@ describe('MarketplaceService', () => {
 
   describe('getMarketplacePlugins', () => {
     it('should return plugins on success', async () => {
-      const mockPlugins = [{ id: 'p1', name: 'Plugin 1' }];
-      vi.mocked(global.fetch).mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockPlugins),
-      } as any);
+      const mockPlugins = [
+        {
+          id: 'p1',
+          name: 'Plugin 1',
+          version: '1.0.0',
+          downloadUrl: 'local://test.zip',
+        },
+      ];
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(mockPlugins));
 
       const result = await service.getMarketplacePlugins();
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockPlugins);
+      expect(fs.readFile).toHaveBeenCalled();
     });
 
     it('should return error on failure', async () => {
-      vi.mocked(global.fetch).mockResolvedValue({
-        ok: false,
-        statusText: 'Not Found',
-      } as any);
+      vi.mocked(fs.readFile).mockRejectedValue(new Error('Read failed'));
 
       const result = await service.getMarketplacePlugins();
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Not Found');
+      expect(result.error).toContain('Read failed');
     });
   });
 
   describe('getPluginDetails', () => {
     it('should return plugin details on success', async () => {
-      const mockPlugin = { id: 'p1', name: 'Plugin 1' };
-      vi.mocked(global.fetch).mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockPlugin),
-      } as any);
+      const mockPlugins = [
+        {
+          id: 'p1',
+          name: 'Plugin 1',
+          version: '1.0.0',
+          downloadUrl: 'local://test.zip',
+        },
+      ];
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(mockPlugins));
 
       const result = await service.getPluginDetails('p1');
       expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockPlugin);
+      expect(result.data).toEqual(mockPlugins[0]);
+    });
+
+    it('should return error if plugin not found', async () => {
+      vi.mocked(fs.readFile).mockResolvedValue('[]');
+
+      const result = await service.getPluginDetails('p1');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('not found');
     });
   });
 
   describe('checkForUpdates', () => {
     it('should return updates', async () => {
-      const mockUpdates = [{ id: 'p1', latestVersion: '1.1.0' }];
-      vi.mocked(global.fetch).mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockUpdates),
-      } as any);
+      const mockPlugins = [
+        { id: 'p1', version: '1.1.0', downloadUrl: 'local://test.zip' },
+      ];
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(mockPlugins));
 
       const result = await service.checkForUpdates([
         { id: 'p1', version: '1.0.0' },
       ]);
       expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockUpdates);
+      expect(result.data).toHaveLength(1);
+      expect(result.data![0].version).toBe('1.1.0');
     });
   });
 
@@ -156,31 +167,17 @@ describe('MarketplaceService', () => {
         id: 'p1',
         name: 'Plugin 1',
         version: '1.0.0',
-        downloadUrl: 'http://example.com/p1.zip',
+        downloadUrl: 'local://p1.zip',
+        manifest: { id: 'p1', version: '1.0.0', main: 'index.js' },
       };
 
-      vi.spyOn(service, 'getPluginDetails').mockResolvedValue({
-        success: true,
-        data: mockPlugin as any,
-      });
-
-      // Mock internal methods to isolate
-      vi.spyOn(service as any, 'downloadPlugin').mockResolvedValue(undefined);
-      vi.spyOn(service as any, 'extractPlugin').mockResolvedValue(undefined);
+      // Mock getPluginDetails via readFile
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify([mockPlugin]));
 
       const result = await service.installPlugin('p1');
       expect(result.success).toBe(true);
-    }, 10000);
-
-    it('should handle failure during installation', async () => {
-      vi.spyOn(service, 'getPluginDetails').mockResolvedValue({
-        success: false,
-        error: 'Fetch failed',
-      });
-
-      const result = await service.installPlugin('p1');
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Fetch failed');
+      expect(fs.mkdir).toHaveBeenCalled();
+      expect(fs.writeFile).toHaveBeenCalled();
     });
   });
 });

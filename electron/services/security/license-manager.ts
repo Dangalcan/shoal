@@ -14,8 +14,6 @@ import type {
   PluginLicenseType,
 } from '../../types/plugin-types';
 
-const MARKETPLACE_API_URL = 'http://localhost:3001';
-
 export interface LicenseValidationResult {
   valid: boolean;
   error?: string;
@@ -104,6 +102,9 @@ export class LicenseManager {
   /**
    * Activate a license key for a plugin via backend.
    */
+  /**
+   * Activate a license key for a plugin (Offline Simulation).
+   */
   async activateLicense(
     pluginId: string,
     licenseKey: string
@@ -114,39 +115,40 @@ export class LicenseManager {
         `[LicenseManager] Activating license for ${pluginId} with key ${licenseKey}...`
       );
 
-      const response = await fetch(`${MARKETPLACE_API_URL}/licenses/activate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pluginId,
-          machineId: mId,
-          licenseKey,
-        }),
-      });
+      // Simulate network delay for realism
+      await new Promise((resolve) => setTimeout(resolve, 800));
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to activate license');
+      // In a real offline scenario, we would verify a cryptographic signature here.
+      // For now, we simulate a successful activation if the key format is valid-ish.
+      if (!licenseKey || licenseKey.length < 5) {
+        throw new Error('Invalid license key format');
       }
 
-      const data = await response.json();
+      // Generate a dummy "signed" license key
+      const activationToken = `OFFLINE-ACTIVATED-${randomUUID()}`;
 
-      // The backend returns a JWT licenseKey. We extract info for local storage.
-      // In a real app, we'd verify the JWT here too.
       const licenseInfo: PluginLicenseInfo = {
         isActive: true,
-        licenseKey: data.licenseKey,
+        licenseKey: activationToken,
         activatedAt: new Date().toISOString(),
-        isTrialActive: data.type === 'trial',
+        isTrialActive: licenseKey === 'TRIAL-REQUEST',
         features: ['all'],
         installationId: mId,
         lastVerifiedAt: new Date().toISOString(),
       };
 
+      if (licenseInfo.isTrialActive) {
+        // Set trial end to 30 days from now
+        const end = new Date();
+        end.setDate(end.getDate() + 30);
+        licenseInfo.trialEndsAt = end.toISOString();
+      }
+
       await pluginRegistry.updatePluginConfig(pluginId, {
         licenseInfo,
       });
 
+      console.log(`[LicenseManager] License activated for ${pluginId}`);
       return { success: true };
     } catch (error: any) {
       console.error('[LicenseManager] Activation failed:', error);

@@ -339,6 +339,7 @@ export interface MarketplaceEntry {
   rating: number;
   reviews: number;
   downloadUrl: string;
+  manifest?: PluginManifest;
 }
 
 export interface MarketplacePlugin {

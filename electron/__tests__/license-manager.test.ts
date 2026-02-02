@@ -199,54 +199,29 @@ describe('LicenseManager', () => {
   });
 
   describe('activateLicense', () => {
-    it('should call backend and update registry on success', async () => {
-      const mockLicenseData = {
-        licenseKey: 'signed-jwt-key',
-        type: 'full',
-      };
-
-      vi.mocked(global.fetch).mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockLicenseData),
-      } as any);
-
+    it('should activate successfully with valid key', async () => {
       const result = await licenseManager.activateLicense(
         'plugin-1',
-        'valid-key'
+        'valid-key-123'
       );
 
       expect(result.success).toBe(true);
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/licenses/activate'),
-        expect.objectContaining({
-          method: 'POST',
-          body: expect.stringContaining('"pluginId":"plugin-1"'),
-        })
-      );
       expect(pluginRegistry.updatePluginConfig).toHaveBeenCalledWith(
         'plugin-1',
         expect.objectContaining({
           licenseInfo: expect.objectContaining({
-            licenseKey: 'signed-jwt-key',
             isActive: true,
+            features: ['all'],
           }),
         })
       );
     });
 
-    it('should handle backend errors', async () => {
-      vi.mocked(global.fetch).mockResolvedValue({
-        ok: false,
-        json: () => Promise.resolve({ error: 'Invalid key' }),
-      } as any);
-
-      const result = await licenseManager.activateLicense(
-        'plugin-1',
-        'invalid-key'
-      );
+    it('should fail with invalid key format', async () => {
+      const result = await licenseManager.activateLicense('plugin-1', 'bad');
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Invalid key');
+      expect(result.error).toBe('Invalid license key format');
       expect(pluginRegistry.updatePluginConfig).not.toHaveBeenCalled();
     });
   });
