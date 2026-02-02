@@ -141,13 +141,33 @@ export class PluginManager {
   async disablePlugin(pluginId: string): Promise<void> {
     console.log(`[PluginManager] Disabling plugin: ${pluginId}`);
 
-    // Stop watcher if exists
-    this.stopWatcher(pluginId);
-
     // Check if plugin exists
     if (!pluginRegistry.hasPlugin(pluginId)) {
       throw new Error(`Plugin ${pluginId} not found`);
     }
+
+    // --- Cascading Disable Logic ---
+    const activePlugins = pluginRegistry.getEnabledPlugins();
+    const dependents = dependencyResolver.getDependents(
+      pluginId,
+      activePlugins
+    );
+
+    if (dependents.length > 0) {
+      console.log(
+        `[PluginManager] Plugin ${pluginId} has ${dependents.length} dependent(s). Disabling them first.`
+      );
+      for (const dependent of dependents) {
+        console.log(
+          `[PluginManager] Cascading disable for dependent: ${dependent.manifest.id}`
+        );
+        await this.disablePlugin(dependent.manifest.id);
+      }
+    }
+    // -------------------------------
+
+    // Stop watcher if exists
+    this.stopWatcher(pluginId);
 
     // Deactivate the plugin
     await this.deactivatePlugin(pluginId);
@@ -573,6 +593,26 @@ export class PluginManager {
    */
   async uninstallPlugin(pluginId: string): Promise<void> {
     console.log(`[PluginManager] Uninstalling plugin: ${pluginId}`);
+
+    // --- Cascading Uninstall Logic ---
+    const installedPlugins = pluginRegistry.getAllPlugins();
+    const dependents = dependencyResolver.getDependents(
+      pluginId,
+      installedPlugins
+    );
+
+    if (dependents.length > 0) {
+      console.log(
+        `[PluginManager] Plugin ${pluginId} has ${dependents.length} dependent(s). Uninstalling them first.`
+      );
+      for (const dependent of dependents) {
+        console.log(
+          `[PluginManager] Cascading uninstall for dependent: ${dependent.manifest.id}`
+        );
+        await this.uninstallPlugin(dependent.manifest.id);
+      }
+    }
+    // -------------------------------
 
     // Disable first if enabled
     if (pluginRegistry.isPluginEnabled(pluginId)) {

@@ -75,21 +75,68 @@ The `plugin.json` file defines the identity and capabilities of your plugin.
       "apiKey": {
         "type": "string",
         "label": "API Key",
-        "secret": true
+        "description": "Your API key for the external service",
+        "secret": true,
+        "required": true,
+        "validation": {
+          "pattern": "^[A-Za-z0-9]{32}$",
+          "message": "API key must be 32 alphanumeric characters"
+        }
+      },
+      "mode": {
+        "type": "select",
+        "label": "Operation Mode",
+        "default": "basic",
+        "enum": ["basic", "advanced", "debug"]
       }
     }
-  }
+  },
+  "dependencies": {
+    "core-utils": "^1.2.0",
+    "monitoring-base": ">=2.0.0"
+  },
+  "data": ["data/default-presets.json"]
 }
 ```
 
+### Manifest Fields Detail
+
+- **dependencies**: A map of plugin IDs and semver version constraints. Required plugins will be auto-enabled or requested.
+- **data**: An array of file paths (relative to plugin root) to be automatically loaded into `context.storage` on activation. Accessible via `context.storage.get('data:filepath')`.
+- **configuration**: Defines a schema for settings. The UI is automatically generated with validation. Supported types: `string`, `number`, `boolean`, `select`.
+
+---
+
 ## Main Process API (Node.js)
 
-Your `index.js` must export an `activate` function.
+Your `index.js` can export several lifecycle hooks.
 
 ```javascript
 module.exports = {
-  activate: (context) => {
+  /**
+   * Called before the plugin is activated.
+   * Useful for pre-loading data or validating state.
+   */
+  beforeActivate: async (context) => {
+    context.logger.info('Preparing plugin...');
+  },
+
+  /**
+   * Main activation hook. This is where you register UI elements
+   * and start your plugin logic.
+   */
+  activate: async (context) => {
     context.logger.info('Plugin activated!');
+
+    // Access auto-loaded data
+    const defaults = await context.storage.get(
+      'data:data/default-presets.json'
+    );
+
+    // Subscribe to app events
+    context.events.onClusterConnected((cluster) => {
+      context.logger.info(`Connected to ${cluster.name}`);
+    });
 
     // Register UI elements
     context.ui.registerSidebarItem({
@@ -97,12 +144,26 @@ module.exports = {
       label: 'Stats',
       route: '/plugin/my-plugin',
     });
+  },
 
-    // Show a notification
+  /**
+   * Called after the plugin is fully activated.
+   */
+  afterActivate: async (context) => {
     context.ui.showNotification('Plugin is ready!', 'success');
   },
 
-  deactivate: () => {
+  /**
+   * Called before the plugin is deactivated.
+   */
+  beforeDeactivate: async (context) => {
+    context.logger.info('Shutting down...');
+  },
+
+  /**
+   * Main deactivation hook. Perform cleanup here.
+   */
+  deactivate: async () => {
     console.log('Plugin deactivated');
   },
 };
@@ -175,13 +236,30 @@ Passed to `activate(context)`.
 | `showNotification(msg, type)`       | Show toast             |
 | `openModal(comp, props)`            | Open dialog            |
 
+#### context.events
+
+The `EventsAPI` provides a global event bus for the application.
+
+| Method                           | Description                         |
+| -------------------------------- | ----------------------------------- |
+| `on(event, handler)`             | Subscribe to a custom event         |
+| `once(event, handler)`           | Subscribe to an event once          |
+| `off(event, handler)`            | Unsubscribe from an event           |
+| `emit(event, ...args)`           | Emit a custom event                 |
+| `onClusterConnected(handler)`    | Called when cluster is connected    |
+| `onClusterDisconnected(handler)` | Called when cluster is disconnected |
+| `onResourceCreated(handler)`     | Called when K8s resource is created |
+| `onResourceUpdated(handler)`     | Called when K8s resource is updated |
+| `onResourceDeleted(handler)`     | Called when K8s resource is deleted |
+
 #### context.storage
 
-| Method            | Description   |
-| ----------------- | ------------- |
-| `get(key)`        | Retrieve data |
-| `set(key, value)` | Save data     |
-| `delete(key)`     | Remove data   |
+| Method            | Description                            |
+| ----------------- | -------------------------------------- |
+| `get(key)`        | Retrieve data                          |
+| `set(key, value)` | Save data                              |
+| `delete(key)`     | Remove data                            |
+| `data:{filepath}` | Special key for auto-loaded data files |
 
 #### context.logger
 

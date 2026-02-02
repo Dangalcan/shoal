@@ -128,6 +128,16 @@ export class DependencyResolver {
 
     return circular;
   }
+
+  /**
+   * Get all plugins that depend on a specific plugin
+   */
+  getDependents(pluginId: string, allPlugins: Plugin[]): Plugin[] {
+    return allPlugins.filter((p) => {
+      const deps = p.manifest.dependencies;
+      return deps && Object.keys(deps).includes(pluginId);
+    });
+  }
 }
 
 export const dependencyResolver = new DependencyResolver();

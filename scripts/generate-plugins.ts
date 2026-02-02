@@ -1,101 +1,72 @@
 import fs from 'fs';
 import path from 'path';
 import AdmZip from 'adm-zip';
+import { fileURLToPath } from 'url';
 
-console.log('Starting plugin generation...');
-console.log('Current __dirname:', __dirname);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const plugins = [
-  {
-    id: 'log-viewer-plus',
-    version: '1.2.0',
-    name: 'Log Viewer Plus',
-    description: 'Advanced log tailing and filtering.',
-    author: 'K8s Experts',
-    main: 'index.js',
-  },
-  {
-    id: 'cluster-stats-pro',
-    version: '2.1.5',
-    name: 'Cluster Stats Pro',
-    description: 'Real-time cluster stats.',
-    author: 'CloudNative Corp',
-    main: 'index.js',
-  },
-  {
-    id: 'secure-guard',
-    version: '3.0.0',
-    name: 'Secure Guard',
-    description: 'Security scanning.',
-    author: 'SecurityFirst',
-    main: 'index.js',
-  },
-];
+console.log('Starting dynamic plugin generation...');
 
+const pluginsDir = path.join(__dirname, '../plugins');
 const downloadsDir = path.join(
   __dirname,
   '../marketplace-backend/public/downloads'
 );
 
-// Ensure downloads dir exists
+// Ensure directories exist
 if (!fs.existsSync(downloadsDir)) {
   fs.mkdirSync(downloadsDir, { recursive: true });
 }
 
-plugins.forEach((plugin) => {
-  const zip = new AdmZip();
+if (!fs.existsSync(pluginsDir)) {
+  console.log('No plugins directory found. Creating empty one...');
+  fs.mkdirSync(pluginsDir, { recursive: true });
+  process.exit(0);
+}
 
-  // Create plugin.json
-  const manifest = {
-    id: plugin.id,
-    name: plugin.name,
-    version: plugin.version,
-    description: plugin.description,
-    author: plugin.author,
-    main: plugin.main,
-    permissions: ['ui', 'notifications'],
-    license: { type: 'free', spdx: 'MIT' },
-  };
+const pluginFolders = fs
+  .readdirSync(pluginsDir)
+  .filter((f) => fs.statSync(path.join(pluginsDir, f)).isDirectory());
 
-  zip.addFile('plugin.json', Buffer.from(JSON.stringify(manifest, null, 2)));
+const catalog: any[] = [];
 
-  // Customize index.js based on plugin ID
-  let specificActions = '';
+pluginFolders.forEach((folder) => {
+  const sourcePath = path.join(pluginsDir, folder);
+  const manifestPath = path.join(sourcePath, 'plugin.json');
 
-  if (plugin.id === 'log-viewer-plus') {
-    specificActions = `,
-  getLogs: async (args) => {
-    console.log('Log Viewer request:', args);
-    return [
-      { time: '${new Date().toISOString()}', msg: 'App started' },
-      { time: '${new Date().toISOString()}', msg: 'Connected to DB' },
-      { time: '${new Date().toISOString()}', msg: 'High memory usage' }
-    ];
-  }`;
-  } else if (plugin.id === 'cluster-stats-pro') {
-    specificActions = `,
-  getStats: async () => {
-    return { cpu: 45, memory: 60, pods: 12 };
-  }`;
+  if (!fs.existsSync(manifestPath)) {
+    console.warn(`Skipping ${folder}: No plugin.json found.`);
+    return;
   }
 
-  // Create index.js
-  const indexJs = `
-module.exports = {
-  activate: (context) => {
-    context.logger.info('${plugin.name} v${plugin.version} ACTIVATED via Real Backend!');
-    context.ui.showNotification('${plugin.name} installed successfully from local server.', 'success');
-  },
-  deactivate: async () => {
-    console.log('${plugin.name} deactivated');
-  }${specificActions}
-};`;
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+  const zip = new AdmZip();
 
-  zip.addFile('index.js', Buffer.from(indexJs));
+  // Add all files from the plugin folder to the ZIP
+  const files = fs.readdirSync(sourcePath);
+  files.forEach((file) => {
+    zip.addLocalFile(path.join(sourcePath, file));
+  });
 
-  const zipName = `${plugin.id}-${plugin.version}.zip`;
+  const zipName = `${manifest.id}-${manifest.version}.zip`;
   const zipPath = path.join(downloadsDir, zipName);
 
   zip.writeZip(zipPath);
-  console.log(`Generated ${zipName} at ${zipPath}`);
+
+  // Build catalog entry
+  catalog.push({
+    ...manifest,
+    downloadUrl: `http://localhost:3001/downloads/${zipName}`,
+    rating: 5.0,
+    reviews: 0,
+    screenshots: [],
+  });
+
+  console.log(`Successfully bundled ${manifest.name} v${manifest.version}`);
 });
+
+// Save the catalog for the backend to consume
+const catalogFilePath = path.join(downloadsDir, '../catalog.json');
+fs.writeFileSync(catalogFilePath, JSON.stringify(catalog, null, 2));
+console.log(`Generated marketplace catalog with ${catalog.length} entries.`);
