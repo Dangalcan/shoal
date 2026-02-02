@@ -1,0 +1,48 @@
+{
+  "id": "namespace-watcher",
+  "name": "Namespace Watcher",
+  "version": "1.0.0",
+  "description": "Monitors Kubernetes namespaces and provides quick stats.",
+  "author": "K8s Desktop Team",
+  "main": "index.js",
+  "permissions": ["kubernetes", "ui", "storage"],
+  "category": "Monitoring",
+  "price": 0,
+  "icon": "https://api.iconify.design/lucide:eye.svg",
+  "data": ["data/default-config.json"],
+  "configuration": {
+    "title": "Namespace Watcher Settings",
+    "properties": {
+      "refreshInterval": {
+        "type": "number",
+        "label": "Refresh Interval (seconds)",
+        "description": "How often to refresh namespace data",
+        "default": 30,
+        "min": 5,
+        "max": 300,
+        "required": true
+      },
+      "showSystemNamespaces": {
+        "type": "boolean",
+        "label": "Show System Namespaces",
+        "description": "Include kube-system and other system namespaces",
+        "default": false
+      },
+      "alertThreshold": {
+        "type": "number",
+        "label": "Alert Threshold",
+        "description": "Number of namespaces to trigger an alert",
+        "default": 50,
+        "min": 1,
+        "max": 1000
+      },
+      "notificationLevel": {
+        "type": "select",
+        "label": "Notification Level",
+        "description": "When to show notifications",
+        "default": "important",
+        "enum": ["all", "important", "critical", "none"]
+      }
+    }
+  }
+}

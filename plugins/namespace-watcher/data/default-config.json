@@ -1,0 +1,10 @@
+{
+  "defaultNamespaces": [
+    "default",
+    "kube-system",
+    "kube-public",
+    "kube-node-lease"
+  ],
+  "monitoringEnabled": true,
+  "lastSync": null
+}

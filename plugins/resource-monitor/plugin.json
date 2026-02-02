@@ -1,0 +1,45 @@
+{
+  "id": "resource-monitor",
+  "name": "Resource Monitor",
+  "version": "1.0.0",
+  "description": "Monitors Pod resources within namespaces. Depends on Namespace Watcher.",
+  "author": "K8s Desktop Team",
+  "main": "index.js",
+  "permissions": ["kubernetes", "ui", "storage", "notifications"],
+  "category": "Monitoring",
+  "license": {
+    "type": "free",
+    "spdx": "MIT"
+  },
+  "dependencies": {
+    "namespace-watcher": ">=1.0.0"
+  },
+  "configuration": {
+    "title": "Monitor Settings",
+    "properties": {
+      "refreshRate": {
+        "type": "number",
+        "label": "Refresh Rate (ms)",
+        "default": 10000,
+        "min": 1000
+      },
+      "alertThreshold": {
+        "type": "number",
+        "label": "CPU Alert Threshold (%)",
+        "default": 80,
+        "min": 1,
+        "max": 100
+      },
+      "notifyOnAlert": {
+        "type": "boolean",
+        "label": "Show Desktop Notification on Alert",
+        "default": true
+      },
+      "excludedNamespaces": {
+        "type": "array",
+        "label": "Excluded Namespaces",
+        "default": ["kube-system", "kube-public"]
+      }
+    }
+  }
+}
