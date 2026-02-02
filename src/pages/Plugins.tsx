@@ -172,27 +172,29 @@ export default function Plugins() {
 
   return (
     <div className="plugins">
-      <div className="plugins__header">
-        <div className="plugins-header">
-           <h1>Plugins</h1>
-           <p>Manage your installed plugins or discover new ones.</p>
+      <div className="plugins__header-container">
+        <div className="plugins-header-main">
+           <h1 className="plugins__title">Plugins</h1>
+           <p className="plugins__subtitle">Manage your installed plugins or discover new ones.</p>
         </div>
 
         <div className="plugins-actions">
            <button
-             className="btn btn--secondary"
+             className="btn btn--secondary btn--premium"
              onClick={handleImportPlugin}
              disabled={importing}
            >
              {importing ? (
                <span className="spinner spinner--small"></span>
              ) : (
-               <Upload size={16} style={{ marginRight: '8px' }} />
+               <Upload size={16} />
              )}
-             Load Unpacked Plugin
+             <span>Load Unpacked Plugin</span>
            </button>
         </div>
+      </div>
 
+      <div className="plugins-tabs-row">
         <div className="plugins-tabs">
           <button 
             className={`tab-btn ${activeTab === 'installed' ? 'active' : ''}`}

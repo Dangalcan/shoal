@@ -38,50 +38,58 @@
   }
 }
 
-.plugins__header {
+.plugins__header-container {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
   margin-bottom: var(--spacing-xl);
-  padding-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-lg);
   border-bottom: 2px solid var(--bg-tertiary);
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
 }
 
-.plugins__title {
-  font-size: 2.5rem;
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  background: linear-gradient(
-    to right,
-    var(--text-primary),
-    var(--color-primary)
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin: 0;
+.plugins-header-main {
+  flex: 1;
+  min-width: 300px;
 }
 
-/* Tabs */
+.plugins__subtitle {
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin: 4px 0 0 0;
+}
+
+.plugins-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+/* Tabs row styling */
+.plugins-tabs-row {
+  margin-bottom: var(--spacing-xl);
+}
+
 .plugins-tabs {
   display: flex;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-xl);
+  gap: 6px;
   background: var(--bg-secondary);
   padding: 6px;
-  border-radius: 12px;
+  border-radius: 14px;
   width: fit-content;
+  border: 1px solid var(--border-color);
 }
 
 .tab-btn {
   background: none;
   border: none;
-  padding: 10px 24px;
+  padding: 8px 20px;
   color: var(--text-secondary);
   cursor: pointer;
-  font-weight: 600;
-  font-size: 0.95rem;
-  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border-radius: 10px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
@@ -90,13 +98,42 @@
 
 .tab-btn:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='light'] .tab-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .tab-btn.active {
   color: white;
   background: var(--color-primary);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+/* Premium Button Enhancements */
+.btn--premium {
+  white-space: nowrap;
+  background: var(--bg-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.01em;
+  padding: 0 24px !important;
+  height: 44px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+.btn--premium:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.02);
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.1) !important;
+}
+
+.btn--premium:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 /* Grid layout improves */
