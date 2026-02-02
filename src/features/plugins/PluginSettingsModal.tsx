@@ -5,9 +5,10 @@
  */
 
 import { useState, useEffect } from 'react';
-import { X, Save, AlertTriangle } from 'lucide-react';
-import type { Plugin, PluginConfigurationSchema } from '../../../electron/types/plugin-types';
+import { X, AlertTriangle } from 'lucide-react';
+import type { Plugin } from '../../../electron/types/plugin-types';
 import { usePlugins } from './PluginProvider';
+import { PluginConfigurationForm } from '../../components/plugins/PluginConfigurationForm';
 import '../../../styles/components/plugins/LicenseActivationModal.css';
 
 interface PluginSettingsModalProps {
@@ -15,11 +16,13 @@ interface PluginSettingsModalProps {
   onClose: () => void;
 }
 
-export function PluginSettingsModal({ plugin, onClose }: PluginSettingsModalProps) {
+export function PluginSettingsModal({
+  plugin,
+  onClose,
+}: PluginSettingsModalProps) {
   const { getSettings, saveSettings } = usePlugins();
   const [settings, setSettings] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const schema = plugin.manifest.configuration;
@@ -29,17 +32,19 @@ export function PluginSettingsModal({ plugin, onClose }: PluginSettingsModalProp
       setLoading(true);
       try {
         const loaded = await getSettings(plugin.manifest.id);
-        
+
         // Merge with defaults
         const defaults: Record<string, any> = {};
         if (schema?.properties) {
-          Object.entries(schema.properties).forEach(([key, prop]: [string, any]) => {
-             if (prop.default !== undefined) {
-               defaults[key] = prop.default;
-             }
-          });
+          Object.entries(schema.properties).forEach(
+            ([key, prop]: [string, any]) => {
+              if (prop.default !== undefined) {
+                defaults[key] = prop.default;
+              }
+            }
+          );
         }
-        
+
         setSettings({ ...defaults, ...loaded });
       } catch (err: any) {
         setError(err.message || 'Failed to load settings');
@@ -48,25 +53,20 @@ export function PluginSettingsModal({ plugin, onClose }: PluginSettingsModalProp
       }
     };
 
-    loadSettings();
-  }, [plugin.manifest.id]);
+    if (schema) {
+      loadSettings();
+    }
+  }, [plugin.manifest.id, schema]);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
+  const handleSave = async (values: Record<string, any>) => {
     setError(null);
     try {
-      await saveSettings(plugin.manifest.id, settings);
+      await saveSettings(plugin.manifest.id, values);
       onClose();
     } catch (err: any) {
       setError(err.message || 'Failed to save settings');
-    } finally {
-      setSaving(false);
+      throw err; // Re-throw to let form component handle it
     }
-  };
-
-  const handleChange = (key: string, value: any) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
   };
 
   if (!schema) return null;
@@ -78,9 +78,16 @@ export function PluginSettingsModal({ plugin, onClose }: PluginSettingsModalProp
           <X size={20} />
         </button>
 
-        <div className="license-modal__header" style={{ textAlign: 'left', marginBottom: '1rem' }}>
-          <h2 className="license-modal__title">Settings: {plugin.manifest.name}</h2>
-          {schema.title && <p className="license-modal__subtitle">{schema.title}</p>}
+        <div
+          className="license-modal__header"
+          style={{ textAlign: 'left', marginBottom: '1rem' }}
+        >
+          <h2 className="license-modal__title">
+            Settings: {plugin.manifest.name}
+          </h2>
+          {schema.title && (
+            <p className="license-modal__subtitle">{schema.title}</p>
+          )}
         </div>
 
         {error && (
@@ -92,83 +99,18 @@ export function PluginSettingsModal({ plugin, onClose }: PluginSettingsModalProp
 
         {loading ? (
           <div className="plugins__loading">
-             <div className="spinner"></div>
+            <div className="spinner"></div>
           </div>
         ) : (
-          <form onSubmit={handleSave} className="license-modal__form">
-            {Object.entries(schema.properties).map(([key, prop]: [string, any]) => (
-              <div key={key} className="form-group">
-                <label htmlFor={key}>{prop.label}</label>
-                
-                {prop.type === 'boolean' ? (
-                  <div className="checkbox-wrapper">
-                    <input
-                      type="checkbox"
-                      id={key}
-                      checked={!!settings[key]}
-                      onChange={(e) => handleChange(key, e.target.checked)}
-                    />
-                    <span className="checkbox-label">Enable</span>
-                  </div>
-                ) : prop.enum ? (
-                   <select
-                     id={key}
-                     value={settings[key] || ''}
-                     onChange={(e) => handleChange(key, e.target.value)}
-                     className="form-input"
-                   >
-                     {prop.enum.map((opt: any) => (
-                       <option key={opt} value={opt}>{opt}</option>
-                     ))}
-                   </select>
-                ) : prop.multiline ? (
-                   <textarea
-                     id={key}
-                     value={settings[key] || ''}
-                     onChange={(e) => handleChange(key, e.target.value)}
-                     className="form-input"
-                     rows={3}
-                   />
-                ) : (
-                  <input
-                    type={prop.type === 'number' ? 'number' : (prop.secret ? 'password' : 'text')}
-                    id={key}
-                    value={settings[key] || ''}
-                    onChange={(e) => handleChange(key, prop.type === 'number' ? parseFloat(e.target.value) : e.target.value)}
-                    className="form-input"
-                  />
-                )}
-                
-                {prop.description && (
-                  <p className="form-help-text">{prop.description}</p>
-                )}
-              </div>
-            ))}
-
-            <div className="license-modal__actions">
-              <button
-                type="button"
-                className="btn btn--secondary"
-                onClick={onClose}
-                disabled={saving}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="btn btn--primary"
-                disabled={saving}
-              >
-                {saving ? (
-                   <><span className="spinner spinner--small"></span> Saving...</>
-                ) : (
-                   <><Save size={16} /> Save Settings</>
-                )}
-              </button>
-            </div>
-          </form>
+          <PluginConfigurationForm
+            schema={schema}
+            initialValues={settings}
+            onSave={handleSave}
+            onCancel={onClose}
+          />
         )}
       </div>
     </div>
   );
 }
+
