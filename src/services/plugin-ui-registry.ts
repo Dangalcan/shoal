@@ -129,3 +129,18 @@ export function useResourceActions(resourceType: string) {
 
   return actions;
 }
+
+export function usePluginPage(pageId: string) {
+  const [page, setPage] = React.useState(pluginUIRegistry.getPage(pageId));
+
+  React.useEffect(() => {
+    const cleanup = pluginUIRegistry.subscribe(() => {
+      setPage(pluginUIRegistry.getPage(pageId));
+    });
+    return () => {
+      cleanup();
+    };
+  }, [pageId]);
+
+  return page;
+}

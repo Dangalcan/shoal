@@ -5,6 +5,8 @@
   "description": "Monitors Pod resources within namespaces. Depends on Namespace Watcher.",
   "author": "K8s Desktop Team",
   "main": "index.js",
+  "renderer": "renderer.js",
+  "styles": ["styles.css"],
   "permissions": ["kubernetes", "ui", "storage", "notifications"],
   "category": "Monitoring",
   "license": {

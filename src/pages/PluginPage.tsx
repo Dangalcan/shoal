@@ -5,7 +5,7 @@
  */
 
 import { useParams } from 'react-router-dom';
-import { pluginUIRegistry } from '../services/plugin-ui-registry';
+import { usePluginPage } from '../services/plugin-ui-registry';
 import { usePlugins } from '../features/plugins/PluginProvider';
 import { AlertTriangle, Home } from 'lucide-react';
 import { Button } from '../components/ui';
@@ -15,6 +15,7 @@ export function PluginPage() {
   const { pluginId } = useParams<{ pluginId: string }>();
   const navigate = useNavigate();
   const { plugins, loading } = usePlugins();
+  const page = usePluginPage(pluginId || '');
 
   if (loading) {
     return (
@@ -37,8 +38,6 @@ export function PluginPage() {
     );
   }
 
-  const page = pluginUIRegistry.getPage(pluginId!);
-
   if (!page) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8">
@@ -56,13 +55,13 @@ export function PluginPage() {
   const PluginContent = page.component;
 
   return (
-    <div className="plugin-page-container h-full">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold">{plugin.manifest.name}</h1>
-        <p className="text-secondary">{plugin.manifest.description}</p>
+    <div className="plugin-page-container h-full p-8 overflow-auto">
+      <header className="mb-8">
+        <h1 className="text-3xl font-black">{plugin.manifest.name}</h1>
+        <p className="text-secondary font-medium">{plugin.manifest.description}</p>
       </header>
       
-      <div className="plugin-page-content h-[calc(100%-80px)]">
+      <div className="plugin-page-content h-auto">
          <PluginContent />
       </div>
     </div>

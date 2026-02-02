@@ -132,6 +132,22 @@ export class PluginLoader {
         }
       }
 
+      // Resolve renderer styles if present
+      if (manifest.styles && Array.isArray(manifest.styles)) {
+        plugin.rendererStyles = [];
+        for (const stylePath of manifest.styles) {
+          const fullStylePath = path.resolve(pluginPath, stylePath);
+          try {
+            await fs.access(fullStylePath);
+            plugin.rendererStyles.push(fullStylePath);
+          } catch (err) {
+            console.warn(
+              `[PluginLoader] Style entry not found for ${manifest.id}: ${fullStylePath}`
+            );
+          }
+        }
+      }
+
       console.log(
         `[PluginLoader] Discovered plugin: ${manifest.name} (${manifest.id})`
       );

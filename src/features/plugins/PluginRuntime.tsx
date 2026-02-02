@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 interface PluginScriptState {
   pluginId: string;
   scriptElement: HTMLScriptElement | null;
+  styleElements: HTMLLinkElement[];
   loaded: boolean;
 }
 
@@ -49,13 +50,26 @@ export function PluginRuntime() {
       // 2. Load new plugins
       for (const plugin of enabledPlugins) {
         if (!loadedScripts.current.has(plugin.manifest.id)) {
-          console.log(`[PluginRuntime] Loading UI bundle for ${plugin.manifest.id}`);
+          console.log(`[PluginRuntime] Loading UI for ${plugin.manifest.id}`);
           
           try {
+            const styleElements: HTMLLinkElement[] = [];
+
+            // 2.1 Load Styles
+            if (plugin.rendererStyles && plugin.rendererStyles.length > 0) {
+              for (const stylePath of plugin.rendererStyles) {
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = `plugin-file:///${stylePath}`;
+                document.head.appendChild(link);
+                styleElements.push(link);
+              }
+            }
+
+            // 2.2 Load Script
             const script = document.createElement('script');
-            // Use file protocol for local files. 
-            // In production Electron, this might need a custom protocol handler or CSP adjustments.
-            script.src = `file://${plugin.rendererEntry}`; 
+            // Use custom protocol with triple slash for absolute paths
+            script.src = `plugin-file:///${plugin.rendererEntry}`; 
             script.async = true;
             script.type = 'module'; // Assume ES modules for modern plugins
             
@@ -74,6 +88,7 @@ export function PluginRuntime() {
             loadedScripts.current.set(plugin.manifest.id, {
               pluginId: plugin.manifest.id,
               scriptElement: script,
+              styleElements,
               loaded: true
             });
             
@@ -91,14 +106,19 @@ export function PluginRuntime() {
         if (!activeIds.has(id)) {
           console.log(`[PluginRuntime] Unloading UI for ${id}`);
           
+          // Remove script
           if (state.scriptElement && state.scriptElement.parentNode) {
             state.scriptElement.parentNode.removeChild(state.scriptElement);
           }
-          
-          // Note: Removing the script tag DOES NOT remove the code from memory if it executed.
-          // Real dynamic unloading requires a more sophisticated module system (like SystemJS)
-          // or a completely different architecture (iframe/webview).
-          // For now, we accept that global side effects might persist until reload.
+
+          // Remove styles
+          if (state.styleElements) {
+            for (const link of state.styleElements) {
+              if (link.parentNode) {
+                link.parentNode.removeChild(link);
+              }
+            }
+          }
           
           loadedScripts.current.delete(id);
         }

@@ -157,6 +157,7 @@ export interface PluginManifest {
   repository?: string;
   main?: string; // Entry point (relative to plugin root)
   renderer?: string; // UI Entry point (relative to plugin root)
+  styles?: string[]; // UI Stylesheet paths (relative to plugin root)
   permissions?: PluginPermission[];
   license: PluginLicense;
   marketplace?: PluginMarketplaceInfo;
@@ -222,6 +223,7 @@ export interface Plugin {
   deactivate?: () => Promise<void>;
   afterDeactivate?: () => Promise<void>;
   rendererEntry?: string; // Absolute path to renderer entry point
+  rendererStyles?: string[]; // Absolute paths to renderer stylesheets
 }
 
 // ============================================================================

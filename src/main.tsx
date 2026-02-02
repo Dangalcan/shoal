@@ -7,6 +7,13 @@ import { ClusterProvider } from './features/clusters/ClusterContext'
 import '../styles/index.css'
 import { PluginProvider } from './features/plugins/PluginProvider';
 import { PluginRuntime } from './features/plugins/PluginRuntime';
+import * as UI from './components/ui';
+import * as LucideIcons from 'lucide-react';
+
+// Expose React and other common libs for plugins
+(window as any).React = React;
+(window as any).K8sUI = UI;
+(window as any).LucideIcons = LucideIcons;
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>

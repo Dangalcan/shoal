@@ -1,8 +1,17 @@
-import { app, BrowserWindow, ipcMain, Menu, dialog } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  Menu,
+  dialog,
+  protocol,
+  net,
+} from 'electron';
 import path from 'path';
 import { exec } from 'child_process';
 import util from 'util';
 import fs from 'fs/promises';
+import { pathToFileURL } from 'url';
 import { clusterManagementService } from './services/cluster/cluster-management-service';
 import { kubernetesService } from './services/kubernetes/kubernetes-service';
 import { pluginManager } from './services/plugins/plugin-manager';
@@ -20,6 +29,21 @@ process.env.VITE_PUBLIC = app.isPackaged
 
 export let win: BrowserWindow | null;
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
+
+// Register custom protocol as privileged
+// This must be called before app.whenReady()
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'plugin-file',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true,
+    },
+  },
+]);
 
 // Helper to wrap IPC handlers with logging and error handling
 const wrapIpcHandler = <T>(
@@ -535,4 +559,33 @@ app.whenReady().then(async () => {
 
   // 5. Create main window
   createWindow();
+});
+
+// Register custom protocol for local plugin assets
+app.whenReady().then(() => {
+  protocol.handle('plugin-file', async (request) => {
+    try {
+      // Use URL to parse correctly
+      const url = new URL(request.url);
+
+      // On Windows, with triple slash, pathname will be like /C:/Users/...
+      let fullPath = decodeURIComponent(url.pathname);
+
+      // If starts with /C:/, remove leading slash for Node path compatibility
+      if (fullPath.startsWith('/') && /^\/[a-zA-Z]:/.test(fullPath)) {
+        fullPath = fullPath.slice(1);
+      }
+
+      const normalizedPath = path.normalize(fullPath);
+      const fileUrl = pathToFileURL(normalizedPath).toString();
+
+      return await net.fetch(fileUrl);
+    } catch (e: any) {
+      console.error(
+        '[Protocol] Failed to handle plugin-file request:',
+        e.message
+      );
+      return new Response('File not found: ' + e.message, { status: 404 });
+    }
+  });
 });
