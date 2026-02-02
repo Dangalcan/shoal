@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createPluginContext } from '../services/plugins/plugin-context';
+import {
+  createPluginContext,
+  getAllPluginExtensions,
+  clearPluginExtensions,
+} from '../services/plugins/plugin-context';
 import fs from 'fs/promises';
 import { app } from 'electron';
 import child_process from 'child_process';
@@ -281,8 +285,38 @@ describe('Plugin Context', () => {
 
       context.events.off('test-event', spy);
       context.events.emit('test-event', 'again');
-      // Depending on implementation, might check if off works.
-      // Assuming underlying emitter works.
+      expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle once subscription', () => {
+      const spy = vi.fn();
+      context.events.once('once-event', spy);
+      context.events.emit('once-event', '1');
+      context.events.emit('once-event', '2');
+      expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should subscribe to app lifecycle events', () => {
+      const handler = vi.fn();
+      context.events.onClusterConnected(handler);
+      context.events.onResourceCreated(handler);
+      // These subscribe to pluginEventBus
+      // We could verify pluginEventBus calls if we mocked it, but for now just check they don't throw
+    });
+  });
+
+  describe('Extension Helpers', () => {
+    it('should manage extension map', () => {
+      clearPluginExtensions(pluginId);
+      const extensions = getAllPluginExtensions();
+      expect(extensions.has(pluginId)).toBe(false);
+
+      const context = createPluginContext(pluginId, pluginPath, ['ui']);
+      context.ui.registerSidebarItem({ id: 's1', label: 'S1', route: '/r1' });
+
+      expect(getAllPluginExtensions().has(pluginId)).toBe(true);
+      clearPluginExtensions(pluginId);
+      expect(getAllPluginExtensions().has(pluginId)).toBe(false);
     });
   });
 });

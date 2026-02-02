@@ -81,7 +81,7 @@ vi.mock('fs/promises', () => {
   };
 });
 
-// Mock global fetch (still needed for types/globals but unused for main logic now)
+// Mock global fetch
 global.fetch = vi.fn();
 
 describe('MarketplaceService', () => {
@@ -164,12 +164,21 @@ describe('MarketplaceService', () => {
   describe('isNewer', () => {
     it('should compare correctly', () => {
       expect(service.isNewer('1.1.0', '1.0.0')).toBe(true);
+      expect(service.isNewer('1.0.1', '1.0.0')).toBe(true);
+      expect(service.isNewer('2.0.0', '1.9.9')).toBe(true);
+      expect(service.isNewer('1.0.0', '1.0.0')).toBe(false);
+      expect(service.isNewer('0.9.9', '1.0.0')).toBe(false);
       expect(service.isNewer('1.0.0', '1.1.0')).toBe(false);
+    });
+
+    it('should handle incomplete versions', () => {
+      expect(service.isNewer('1.1', '1.0.0')).toBe(true);
+      expect(service.isNewer('1.0.0', '1')).toBe(false);
     });
   });
 
   describe('installPlugin', () => {
-    it('should install plugin successfully', async () => {
+    it('should install plugin successfully (dummy fallback)', async () => {
       const mockPlugin = {
         id: 'p1',
         name: 'Plugin 1',
@@ -188,6 +197,82 @@ describe('MarketplaceService', () => {
       expect(result.success).toBe(true);
       expect(fs.mkdir).toHaveBeenCalled();
       expect(fs.writeFile).toHaveBeenCalled();
+    });
+
+    it('should install plugin from local source using fs.cp if available', async () => {
+      const mockPlugin = {
+        id: 'p1',
+        name: 'Plugin 1',
+        version: '1.0.0',
+        downloadUrl: 'local://p1.zip',
+        manifest: { id: 'p1', version: '1.0.0', main: 'index.js' },
+      };
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify([mockPlugin]));
+      vi.mocked(fs.access).mockResolvedValueOnce(undefined);
+
+      const result = await service.installPlugin('p1');
+      expect(result.success).toBe(true);
+      expect(fs.cp).toHaveBeenCalled();
+    });
+
+    it('should use fallback dummy files if fs.cp is not available', async () => {
+      const mockPlugin = {
+        id: 'p1',
+        name: 'Plugin 1',
+        version: '1.0.0',
+        downloadUrl: 'local://p1.zip',
+        manifest: {
+          id: 'p1',
+          version: '1.0.0',
+          main: 'index.js',
+          renderer: 'renderer.js',
+        },
+      };
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify([mockPlugin]));
+      vi.mocked(fs.access).mockResolvedValueOnce(undefined);
+
+      // Force fs.cp to be undefined to trigger fallback
+      const originalCp = fs.cp;
+      (fs as any).cp = undefined;
+
+      try {
+        const result = await service.installPlugin('p1');
+        expect(result.success).toBe(true);
+        expect(fs.writeFile).toHaveBeenCalledWith(
+          expect.stringContaining('plugin.json'),
+          expect.any(String)
+        );
+        expect(fs.writeFile).toHaveBeenCalledWith(
+          expect.stringContaining('renderer.js'),
+          expect.any(String)
+        );
+      } finally {
+        (fs as any).cp = originalCp;
+      }
+    });
+
+    it('should throw if downloadUrl is not local', async () => {
+      const mockPlugin = {
+        id: 'p1',
+        name: 'Plugin 1',
+        version: '1.0.0',
+        downloadUrl: 'http://remote.zip',
+        manifest: { id: 'p1', version: '1.0.0', main: 'index.js' },
+      };
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify([mockPlugin]));
+
+      const result = await service.installPlugin('p1');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Only local simulation supported');
+    });
+
+    it('should handle installation errors', async () => {
+      vi.mocked(fs.readFile).mockRejectedValue(
+        new Error('Marketplace data missing')
+      );
+      const result = await service.installPlugin('p1');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Marketplace data missing');
     });
   });
 });

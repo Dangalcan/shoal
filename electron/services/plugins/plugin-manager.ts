@@ -627,6 +627,10 @@ export class PluginManager {
     // Delete plugin files from disk only if they are in the user-installed directory
     try {
       const pluginPath = await pluginLoader.getPluginPath(pluginId);
+      if (!pluginPath)
+        console.error(
+          `[ERROR] getPluginPath returned undefined for ${pluginId}`
+        );
       if (pluginPath) {
         const userDataPath = app.getPath('userData');
         const pluginsDir = path.join(userDataPath, 'plugins');
