@@ -100,7 +100,7 @@ describe('Plugin Context', () => {
 
       await context.kubernetes.getResources('pods', 'default');
       expect(execMock).toHaveBeenCalledWith(
-        expect.stringContaining('kubectl get pods -n default'),
+        expect.stringContaining('kubectl get pods  -n default'),
         expect.any(Function)
       );
     });
@@ -116,7 +116,7 @@ describe('Plugin Context', () => {
       await context.kubernetes.createResource({ kind: 'Pod' });
       expect(fs.writeFile).toHaveBeenCalled();
       expect(execMock).toHaveBeenCalledWith(
-        expect.stringContaining('kubectl apply -f'),
+        expect.stringContaining('kubectl apply  -f'),
         expect.any(Function)
       );
     });
@@ -129,7 +129,7 @@ describe('Plugin Context', () => {
 
       await context.kubernetes.deleteResource('pods', 'my-pod', 'all');
       expect(execMock).toHaveBeenCalledWith(
-        expect.stringContaining('kubectl delete pods my-pod'),
+        expect.stringContaining('kubectl delete pods my-pod  '),
         expect.any(Function)
       );
       // Verify it doesn't have -n
@@ -137,7 +137,7 @@ describe('Plugin Context', () => {
 
       await context.kubernetes.deleteResource('pods', 'my-pod', 'default');
       expect(execMock).toHaveBeenCalledWith(
-        expect.stringContaining('kubectl delete pods my-pod -n default'),
+        expect.stringContaining('kubectl delete pods my-pod  -n default'),
         expect.any(Function)
       );
     });
@@ -211,7 +211,7 @@ describe('Plugin Context', () => {
         route: '/my-route',
       });
       expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Registered sidebar item'),
+        expect.stringContaining('Registered/Updated sidebar item'),
         'My Item'
       );
       logSpy.mockRestore();

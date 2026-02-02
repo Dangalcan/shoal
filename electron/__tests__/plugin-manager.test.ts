@@ -20,16 +20,18 @@ vi.mock('../services/plugins/plugin-registry', () => ({
   pluginRegistry: {
     initialize: vi.fn(),
     getPlugin: vi.fn(),
-    getAllPlugins: vi.fn(),
-    getEnabledPlugins: vi.fn(),
+    getAllPlugins: vi.fn(() => []),
+    getEnabledPlugins: vi.fn(() => []),
     registerPlugin: vi.fn(),
     unregisterPlugin: vi.fn(),
     updatePluginState: vi.fn(),
+    updatePluginConfig: vi.fn(),
     enablePlugin: vi.fn(),
     disablePlugin: vi.fn(),
     hasPlugin: vi.fn(),
     isPluginEnabled: vi.fn(),
     setPluginContext: vi.fn(),
+    getPluginContext: vi.fn(),
     clearPluginContext: vi.fn(),
     getPluginSettings: vi.fn(),
     updatePluginSettings: vi.fn(),
@@ -51,6 +53,7 @@ vi.mock('../services/marketplace/marketplace-service', () => ({
 vi.mock('../services/plugins/plugin-context', () => ({
   createPluginContext: vi.fn(),
   getAllPluginExtensions: vi.fn(),
+  clearPluginExtensions: vi.fn(),
 }));
 
 import { marketplaceService } from '../services/marketplace/marketplace-service';
