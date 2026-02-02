@@ -93,6 +93,7 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.invoke('generate-plugin', options),
   reloadPlugin: (pluginId: string) =>
     ipcRenderer.invoke('reload-plugin', pluginId),
+  importLocalPlugin: () => ipcRenderer.invoke('import-local-plugin'),
 
   // Manifests
   getManifests: (clusterContext?: string) =>

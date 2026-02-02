@@ -90,6 +90,9 @@ export function createMockElectronAPI(
       .mockResolvedValue({ success: true, data: undefined }),
     generatePlugin: vi.fn().mockResolvedValue({ success: true, data: true }),
     reloadPlugin: vi.fn().mockResolvedValue({ success: true, data: undefined }),
+    importLocalPlugin: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: 'mock-plugin-id' }),
 
     // Manifests
     getManifests: vi.fn().mockResolvedValue({ success: true, data: [] }),

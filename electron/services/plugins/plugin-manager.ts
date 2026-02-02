@@ -641,6 +641,58 @@ export class PluginManager {
   }
 
   /**
+   * Import a plugin from a local directory
+   */
+  async importPlugin(sourcePath: string): Promise<string> {
+    console.log(`[PluginManager] Importing plugin from: ${sourcePath}`);
+
+    try {
+      // 1. Validate source directory
+      const stats = await fs.promises.stat(sourcePath);
+      if (!stats.isDirectory()) {
+        throw new Error('Source path must be a directory');
+      }
+
+      // 2. Read manifest to get ID
+      const manifestPath = path.join(sourcePath, 'plugin.json');
+      const manifestContent = await fs.promises.readFile(manifestPath, 'utf-8');
+      const manifest = JSON.parse(manifestContent);
+
+      if (!manifest.id) {
+        throw new Error('Invalid manifest: missing plugin ID');
+      }
+
+      // 3. Determine install path
+      // We use the first configured directory which is usually userData/plugins
+      const installDir = pluginLoader['pluginDirectories'][0];
+      const targetPath = path.join(installDir, manifest.id);
+
+      // 4. Check if already exists
+      try {
+        await fs.promises.access(targetPath);
+        throw new Error(`Plugin ${manifest.id} already exists`);
+      } catch (err: any) {
+        if (err.message.includes('already exists')) throw err;
+        // Continue if doesn't exist
+      }
+
+      // 5. Copy files
+      // Node.js fs.cp is available in recent versions (added in v16.7.0)
+      console.log(`[PluginManager] Copying to ${targetPath}`);
+      await fs.promises.cp(sourcePath, targetPath, { recursive: true });
+
+      // 6. Refresh discovery
+      await this.refreshDiscovery(manifest.id);
+
+      console.log(`[PluginManager] Imported ${manifest.id} successfully`);
+      return manifest.id;
+    } catch (error: any) {
+      console.error('[PluginManager] Import failed:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Rediscover a plugin and register it
    */
   async refreshDiscovery(pluginId: string): Promise<void> {

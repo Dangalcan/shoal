@@ -92,6 +92,7 @@ export interface ElectronAPI {
   installPlugin: (pluginId: string) => Promise<Result<void>>;
   generatePlugin: (options: any) => Promise<Result<boolean>>;
   reloadPlugin: (pluginId: string) => Promise<Result<void>>;
+  importLocalPlugin: () => Promise<Result<string>>;
 
   // Manifests
   getManifests: (clusterContext?: string) => Promise<Result<Manifest[]>>;

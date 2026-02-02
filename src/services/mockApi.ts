@@ -128,6 +128,7 @@ export const mockApi: ElectronAPI = {
   installPlugin: async (_id: string) => ({ success: true, data: undefined }),
   generatePlugin: async (_options: any) => ({ success: true, data: true }),
   reloadPlugin: async (_id: string) => ({ success: true, data: undefined }),
+  importLocalPlugin: async () => ({ success: true, data: 'mock-plugin-id' }),
 
   // Manifests
   getManifests: async (_clusterContext?: string) => ({

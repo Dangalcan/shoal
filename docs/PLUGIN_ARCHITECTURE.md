@@ -60,6 +60,7 @@ A comprehensive plugin system with marketplace and licensing support to extend K
 >
 > - `~/.kubernetes-desktop/plugins/` (user-installed plugins)
 > - `<app-path>/plugins/` (bundled plugins)
+> - **Any local directory** (via "Load Unpacked Plugin" feature)
 >
 > **Marketplace Plugins:**
 >

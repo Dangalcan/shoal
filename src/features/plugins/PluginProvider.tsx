@@ -27,6 +27,7 @@ interface PluginContextType {
   generatePlugin: (options: any) => Promise<void>;
   reloadPlugin: (pluginId: string) => Promise<void>;
   uninstallPlugin: (pluginId: string) => Promise<void>;
+  importLocalPlugin: () => Promise<void>;
 }
 
 const PluginContext = createContext<PluginContextType | null>(null);
@@ -237,6 +238,20 @@ export function PluginProvider({ children }: PluginProviderProps) {
     }
   };
 
+  const importLocalPlugin = async () => {
+    try {
+      const result = await api.importLocalPlugin();
+      // result.data may be null if cancelled, string (pluginId) if success
+      if (result.success && result.data) {
+        await refreshPlugins();
+      } else if (!result.success) {
+        throw new Error(result.error || 'Failed to import plugin');
+      }
+    } catch (err: any) {
+      throw new Error(err.message || 'Failed to import plugin');
+    }
+  };
+
   // Load plugins on mount
   useEffect(() => {
     refreshPlugins();
@@ -262,6 +277,7 @@ export function PluginProvider({ children }: PluginProviderProps) {
     generatePlugin,
     reloadPlugin,
     uninstallPlugin,
+    importLocalPlugin,
   };
 
   return <PluginContext.Provider value={value}>{children}</PluginContext.Provider>;

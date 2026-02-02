@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, dialog } from 'electron';
 import path from 'path';
 import { exec } from 'child_process';
 import util from 'util';
@@ -409,6 +409,28 @@ function registerIpcHandlers() {
     'install-plugin',
     wrapIpcHandler('install-plugin', async (_event, pluginId: string) => {
       return await marketplaceService.installPlugin(pluginId);
+    })
+  );
+
+  ipcMain.handle(
+    'import-local-plugin',
+    wrapIpcHandler('import-local-plugin', async () => {
+      if (!win) {
+        throw new Error('No window available');
+      }
+
+      const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+        title: 'Select Plugin Directory',
+        properties: ['openDirectory', 'createDirectory'],
+        buttonLabel: 'Import Plugin',
+      });
+
+      if (canceled || filePaths.length === 0) {
+        return null; // Cancelled
+      }
+
+      const sourcePath = filePaths[0];
+      return await pluginManager.importPlugin(sourcePath);
     })
   );
 

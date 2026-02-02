@@ -10,7 +10,7 @@ import { LicenseActivationModal } from '../features/plugins/LicenseActivationMod
 import { MarketplaceList } from '../features/marketplace/MarketplaceList';
 import { PluginSettingsModal } from '../features/plugins/PluginSettingsModal';
 import { ConfirmModal } from '../components/modals/ConfirmModal';
-import { Settings, RotateCcw, Package, Download, Trash2, Power, AlertCircle, User, Shield, Info, ExternalLink, RefreshCw } from 'lucide-react';
+import { Settings, RotateCcw, Package, Download, Trash2, Power, AlertCircle, User, Shield, Upload } from 'lucide-react';
 import type { Plugin } from '../../electron/types/plugin-types';
 import '../../styles/pages/Plugins.css';
 
@@ -25,7 +25,8 @@ export default function Plugins() {
     deactivateLicense,
     installPlugin,
     reloadPlugin,
-    uninstallPlugin
+    uninstallPlugin,
+    importLocalPlugin
   } = usePlugins();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -33,6 +34,7 @@ export default function Plugins() {
   const [activeSettingsPlugin, setActiveSettingsPlugin] = useState<Plugin | null>(null);
   const [activeTab, setActiveTab] = useState<'installed' | 'marketplace'>('installed');
   const [uninstallingPlugin, setUninstallingPlugin] = useState<Plugin | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const handleTogglePlugin = async (plugin: Plugin) => {
     setActionLoading(plugin.manifest.id);
@@ -77,7 +79,17 @@ export default function Plugins() {
     }
   };
 
-
+  const handleImportPlugin = async () => {
+    setImporting(true);
+    setActionError(null);
+    try {
+      await importLocalPlugin();
+    } catch (err: any) {
+      setActionError(err.message || 'Failed to import plugin');
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const handleUninstallPlugin = (plugin: Plugin) => {
     setUninstallingPlugin(plugin);
@@ -164,6 +176,21 @@ export default function Plugins() {
         <div className="plugins-header">
            <h1>Plugins</h1>
            <p>Manage your installed plugins or discover new ones.</p>
+        </div>
+
+        <div className="plugins-actions">
+           <button
+             className="btn btn--secondary"
+             onClick={handleImportPlugin}
+             disabled={importing}
+           >
+             {importing ? (
+               <span className="spinner spinner--small"></span>
+             ) : (
+               <Upload size={16} style={{ marginRight: '8px' }} />
+             )}
+             Load Unpacked Plugin
+           </button>
         </div>
 
         <div className="plugins-tabs">
