@@ -22,6 +22,9 @@
         "type": "free",
         "spdx": "MIT"
       },
+      "main": "index.js",
+      "renderer": "renderer.js",
+      "styles": ["styles.css"],
       "permissions": ["kubernetes"]
     }
   },
@@ -48,38 +51,9 @@
         "type": "free",
         "spdx": "MIT"
       },
+      "main": "index.js",
+      "data": ["data/default-config.json"],
       "permissions": ["kubernetes", "notifications"]
-    }
-  },
-  {
-    "id": "security-scanner",
-    "name": "Security Scanner",
-    "version": "2.1.0",
-    "description": "Scans pods for vulnerabilities.",
-    "author": "SecCorp",
-    "category": "Security",
-    "price": 9.99,
-    "icon": "",
-    "screenshots": [],
-    "rating": 4.9,
-    "reviews": 310,
-    "downloadUrl": "local://security-scanner-2.1.0.zip",
-    "manifest": {
-      "id": "security-scanner",
-      "name": "Security Scanner",
-      "version": "2.1.0",
-      "description": "Scans pods for vulnerabilities.",
-      "author": "SecCorp",
-      "license": {
-        "type": "paid",
-        "spdx": "Proprietary",
-        "pricing": {
-          "model": "one-time",
-          "price": 9.99,
-          "currency": "USD"
-        }
-      },
-      "permissions": ["kubernetes", "network"]
     }
   }
 ]

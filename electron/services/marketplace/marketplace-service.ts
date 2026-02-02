@@ -116,40 +116,61 @@ export class MarketplaceService {
       const pluginsDir = path.join(app.getPath('userData'), 'plugins');
       const pluginDir = path.join(pluginsDir, pluginId);
 
-      // For local simulation, we might skip actual downloading if URL is fake (local://)
-      // Or we can simulate it by just creating the directory and a dummy manifest
+      // For local simulation, we copy from the local plugins directory if it exists
       if (plugin.downloadUrl.startsWith('local://')) {
         console.log(
           '[MarketplaceService] Simulating local install for',
           pluginId
         );
-        await fs.mkdir(pluginDir, { recursive: true });
+        // Ensure clean start
+        await fs.rm(pluginDir, { recursive: true, force: true });
 
-        // Write manifest
-        const manifestPath = path.join(pluginDir, 'package.json');
-        await fs.writeFile(
-          manifestPath,
-          JSON.stringify(plugin.manifest, null, 2)
-        );
-
-        // Write dummy main entry if needed
-        if (plugin.manifest.main) {
-          await fs.writeFile(
-            path.join(pluginDir, plugin.manifest.main),
-            'module.exports = {}'
+        // Try to copy from source plugins directory
+        const sourcePath = path.join(app.getAppPath(), 'plugins', pluginId);
+        let copied = false;
+        try {
+          await fs.access(sourcePath);
+          await fs.mkdir(pluginDir, { recursive: true });
+          // fs.cp is available in recent Node versions
+          if ((fs as any).cp) {
+            await (fs as any).cp(sourcePath, pluginDir, { recursive: true });
+          } else {
+            // Fallback for older environments: just write manifest and dummy
+            // (though we want to avoid this)
+            throw new Error('fs.cp not available');
+          }
+          console.log(
+            `[MarketplaceService] Copied local plugin from ${sourcePath}`
+          );
+          copied = true;
+        } catch (e) {
+          console.warn(
+            `[MarketplaceService] Source ${sourcePath} not found or copy failed, falling back to dummy files`
           );
         }
-        // Write dummy renderer entry if needed
-        if (plugin.manifest.renderer) {
-          // We might need to ensure the dir exists
-          const rendererDir = path.dirname(
-            path.join(pluginDir, plugin.manifest.renderer)
-          );
-          await fs.mkdir(rendererDir, { recursive: true });
+
+        if (!copied) {
+          await fs.mkdir(pluginDir, { recursive: true });
+
+          // Write manifest
+          const manifestPath = path.join(pluginDir, 'plugin.json');
           await fs.writeFile(
-            path.join(pluginDir, plugin.manifest.renderer),
-            'console.log("Renderer loaded")'
+            manifestPath,
+            JSON.stringify(plugin.manifest, null, 2)
           );
+
+          // Write dummy main entry if needed
+          const mainFile = plugin.manifest.main || 'index.js';
+          const mainPath = path.join(pluginDir, mainFile);
+          await fs.mkdir(path.dirname(mainPath), { recursive: true });
+          await fs.writeFile(mainPath, 'module.exports = {}');
+
+          // Write dummy renderer entry if needed
+          if (plugin.manifest.renderer) {
+            const rendererPath = path.join(pluginDir, plugin.manifest.renderer);
+            await fs.mkdir(path.dirname(rendererPath), { recursive: true });
+            await fs.writeFile(rendererPath, 'console.log("Renderer loaded")');
+          }
         }
       } else {
         // Real download logic intentionally removed/unsupported for now unless we add real URLs

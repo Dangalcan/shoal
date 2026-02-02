@@ -18,6 +18,7 @@ import { marketplaceService } from '../marketplace/marketplace-service';
 import { dependencyResolver } from './dependency-resolver';
 import { dataLoader } from './data-loader';
 import { pluginEventBus } from './plugin-events';
+import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
 
@@ -623,12 +624,21 @@ export class PluginManager {
     await pluginRegistry.unregisterPlugin(pluginId);
     pluginLoader.unregisterPlugin(pluginId);
 
-    // Delete plugin files from disk
+    // Delete plugin files from disk only if they are in the user-installed directory
     try {
       const pluginPath = await pluginLoader.getPluginPath(pluginId);
       if (pluginPath) {
-        await fs.promises.rm(pluginPath, { recursive: true, force: true });
-        console.log(`[PluginManager] Deleted files for plugin ${pluginId}`);
+        const userDataPath = app.getPath('userData');
+        const pluginsDir = path.join(userDataPath, 'plugins');
+
+        if (pluginPath.startsWith(pluginsDir)) {
+          await fs.promises.rm(pluginPath, { recursive: true, force: true });
+          console.log(`[PluginManager] Deleted files for plugin ${pluginId}`);
+        } else {
+          console.log(
+            `[PluginManager] Plugin ${pluginId} is a bundled plugin, skipping file deletion`
+          );
+        }
       }
     } catch (error: any) {
       console.error(

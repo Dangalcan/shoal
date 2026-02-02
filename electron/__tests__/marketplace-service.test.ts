@@ -65,14 +65,21 @@ vi.mock('stream/promises', () => ({
   },
 }));
 
-vi.mock('fs/promises', () => ({
-  default: {
+vi.mock('fs/promises', () => {
+  const mockFsPromises = {
     mkdir: vi.fn().mockResolvedValue(undefined),
     writeFile: vi.fn().mockResolvedValue(undefined),
     unlink: vi.fn().mockResolvedValue(undefined),
     readFile: vi.fn().mockResolvedValue('[]'),
-  },
-}));
+    rm: vi.fn().mockResolvedValue(undefined),
+    access: vi.fn().mockResolvedValue(undefined),
+    cp: vi.fn().mockResolvedValue(undefined),
+  };
+  return {
+    ...mockFsPromises,
+    default: mockFsPromises,
+  };
+});
 
 // Mock global fetch (still needed for types/globals but unused for main logic now)
 global.fetch = vi.fn();
@@ -173,6 +180,9 @@ describe('MarketplaceService', () => {
 
       // Mock getPluginDetails via readFile
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify([mockPlugin]));
+
+      // Force dummy install by making access fail
+      vi.mocked(fs.access).mockRejectedValueOnce(new Error('No source'));
 
       const result = await service.installPlugin('p1');
       expect(result.success).toBe(true);

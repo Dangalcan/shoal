@@ -105,12 +105,6 @@ export class PluginLoader {
         );
       }
 
-      // Check if plugin is already loaded
-      if (this.loadedPlugins.has(manifest.id)) {
-        console.warn(`[PluginLoader] Plugin ${manifest.id} is already loaded`);
-        return null;
-      }
-
       // Create plugin instance
       const plugin: Plugin = {
         manifest,
