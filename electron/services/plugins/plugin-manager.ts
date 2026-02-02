@@ -8,9 +8,16 @@
 import type { Plugin, PluginExtensions } from '../../types/plugin-types';
 import { pluginLoader } from './plugin-loader';
 import { pluginRegistry } from './plugin-registry';
-import { createPluginContext, getAllPluginExtensions } from './plugin-context';
+import {
+  createPluginContext,
+  getAllPluginExtensions,
+  clearPluginExtensions,
+} from './plugin-context';
 import { licenseManager } from '../security/license-manager';
 import { marketplaceService } from '../marketplace/marketplace-service';
+import { dependencyResolver } from './dependency-resolver';
+import { dataLoader } from './data-loader';
+import { pluginEventBus } from './plugin-events';
 import fs from 'fs';
 import path from 'path';
 
@@ -239,6 +246,52 @@ export class PluginManager {
 
       const plugin = entry.plugin;
 
+      // Validate dependencies
+      const allPlugins = new Map(
+        pluginRegistry.getAllPlugins().map((p) => [p.manifest.id, p])
+      );
+
+      const validation = dependencyResolver.validateDependencies(
+        plugin,
+        allPlugins
+      );
+
+      if (!validation.valid) {
+        let errorMsg = `Cannot activate plugin ${pluginId}:\n`;
+
+        if (validation.missing.length > 0) {
+          errorMsg += `Missing dependencies: ${validation.missing.join(', ')}\n`;
+        }
+
+        if (validation.incompatible.length > 0) {
+          errorMsg += 'Incompatible dependencies:\n';
+          validation.incompatible.forEach(
+            ({ pluginId, required, installed }) => {
+              errorMsg += `  - ${pluginId}: requires ${required}, but ${installed} is installed\n`;
+            }
+          );
+        }
+
+        if (validation.circular.length > 0) {
+          errorMsg += `Circular dependencies detected: ${validation.circular
+            .map((c) => c.join(' -> '))
+            .join(', ')}`;
+        }
+
+        throw new Error(errorMsg);
+      }
+
+      // Auto-enable dependencies if needed
+      if (plugin.manifest.dependencies) {
+        for (const depId of Object.keys(plugin.manifest.dependencies)) {
+          const depEntry = pluginRegistry.getPlugin(depId);
+          if (depEntry && !depEntry.config.enabled) {
+            console.log(`[PluginManager] Auto-enabling dependency: ${depId}`);
+            await this.enablePlugin(depId);
+          }
+        }
+      }
+
       // Check license
       const licenseCheck = licenseManager.checkLicense(pluginId);
       if (!licenseCheck.valid) {
@@ -261,18 +314,63 @@ export class PluginManager {
         plugin.manifest.permissions || []
       );
 
+      // Load data files
+      try {
+        const dataFiles = await dataLoader.loadPluginData(
+          pluginPath,
+          plugin.manifest
+        );
+        if (dataFiles.length > 0) {
+          console.log(
+            `[PluginManager] Loaded ${dataFiles.length} data files for ${pluginId}`
+          );
+
+          // Apply data to plugin storage
+          await dataLoader.applyDataToStorage(
+            pluginId,
+            dataFiles,
+            context.storage
+          );
+        }
+      } catch (error: any) {
+        console.error(
+          `[PluginManager] Failed to load data for ${pluginId}:`,
+          error.message
+        );
+        throw error;
+      }
+
       // Load plugin code
       const pluginModule = await pluginLoader.loadPluginCode(
         pluginId,
         pluginPath!
       );
 
+      // Execute beforeActivate hook
+      if (
+        pluginModule.beforeActivate &&
+        typeof pluginModule.beforeActivate === 'function'
+      ) {
+        console.log(`[PluginManager] Executing beforeActivate for ${pluginId}`);
+        await pluginModule.beforeActivate(context);
+      }
+
       // Call activate method if it exists
       if (
         pluginModule.activate &&
         typeof pluginModule.activate === 'function'
       ) {
+        console.log(`[PluginManager] Activating ${pluginId}`);
         await pluginModule.activate(context);
+      }
+
+      // Execute afterActivate hook
+      if (
+        pluginModule.afterActivate &&
+        typeof pluginModule.afterActivate === 'function'
+      ) {
+        console.log(`[PluginManager] Executing afterActivate for ${pluginId}`);
+        await pluginModule.afterActivate(context);
       }
 
       // Store context in registry
@@ -280,6 +378,9 @@ export class PluginManager {
 
       // Update state to enabled
       pluginLoader.updatePluginState(pluginId, 'enabled');
+
+      // Emit plugin activated event
+      pluginEventBus.emitPluginActivated(pluginId);
 
       console.log(`[PluginManager] Plugin ${pluginId} activated successfully`);
     } catch (error: any) {
@@ -308,6 +409,9 @@ export class PluginManager {
         return;
       }
 
+      // Get plugin context
+      const context = pluginRegistry.getPluginContext(pluginId);
+
       // Load plugin code to call deactivate
       try {
         const pluginModule = await pluginLoader.loadPluginCode(
@@ -315,25 +419,58 @@ export class PluginManager {
           pluginPath!
         );
 
+        // Execute beforeDeactivate hook
+        if (
+          pluginModule.beforeDeactivate &&
+          typeof pluginModule.beforeDeactivate === 'function'
+        ) {
+          console.log(
+            `[PluginManager] Executing beforeDeactivate for ${pluginId}`
+          );
+          await pluginModule.beforeDeactivate(context);
+        }
+
         // Call deactivate method if it exists
         if (
           pluginModule.deactivate &&
           typeof pluginModule.deactivate === 'function'
         ) {
+          console.log(`[PluginManager] Deactivating ${pluginId}`);
           await pluginModule.deactivate();
+        }
+
+        // Execute afterDeactivate hook
+        if (
+          pluginModule.afterDeactivate &&
+          typeof pluginModule.afterDeactivate === 'function'
+        ) {
+          console.log(
+            `[PluginManager] Executing afterDeactivate for ${pluginId}`
+          );
+          await pluginModule.afterDeactivate();
         }
       } catch (error) {
         // Plugin might not be loaded, that's okay
+        console.warn(
+          `[PluginManager] Could not execute deactivation hooks for ${pluginId}:`,
+          error
+        );
       }
 
       // Unload plugin code
       await pluginLoader.unloadPluginCode(pluginId, pluginPath!);
+
+      // Clear plugin extensions
+      clearPluginExtensions(pluginId);
 
       // Clear context
       pluginRegistry.clearPluginContext(pluginId);
 
       // Update state to disabled
       pluginLoader.updatePluginState(pluginId, 'disabled');
+
+      // Emit plugin deactivated event
+      pluginEventBus.emitPluginDeactivated(pluginId);
 
       console.log(
         `[PluginManager] Plugin ${pluginId} deactivated successfully`

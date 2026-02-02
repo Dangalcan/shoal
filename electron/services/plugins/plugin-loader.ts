@@ -8,6 +8,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { app } from 'electron';
+import semver from 'semver';
 import type {
   PluginManifest,
   Plugin,
@@ -117,6 +118,20 @@ export class PluginLoader {
         installedAt: new Date().toISOString(),
       };
 
+      // Resolve renderer entry if present
+      if (manifest.renderer) {
+        const rendererPath = path.resolve(pluginPath, manifest.renderer);
+        // Verify it exists
+        try {
+          await fs.access(rendererPath);
+          plugin.rendererEntry = rendererPath;
+        } catch (err) {
+          console.warn(
+            `[PluginLoader] Renderer entry not found for ${manifest.id}: ${rendererPath}`
+          );
+        }
+      }
+
       console.log(
         `[PluginLoader] Discovered plugin: ${manifest.name} (${manifest.id})`
       );
@@ -191,6 +206,23 @@ export class PluginLoader {
       }
       if (!manifest.license.pricing.currency) {
         return 'Invalid pricing: currency is required';
+      }
+    }
+
+    // Validate dependencies format
+    if (manifest.dependencies) {
+      for (const [depId, versionConstraint] of Object.entries(
+        manifest.dependencies
+      )) {
+        // Validate dependency ID format
+        if (!/^[a-z0-9-_]+$/i.test(depId)) {
+          return `Invalid dependency ID format: ${depId}`;
+        }
+
+        // Validate version constraint (semver range)
+        if (!semver.validRange(versionConstraint)) {
+          return `Invalid version constraint for ${depId}: ${versionConstraint}`;
+        }
       }
     }
 

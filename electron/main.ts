@@ -4,6 +4,7 @@ import { exec } from 'child_process';
 import util from 'util';
 import fs from 'fs/promises';
 import { clusterManagementService } from './services/cluster/cluster-management-service';
+import { kubernetesService } from './services/kubernetes/kubernetes-service';
 import { pluginManager } from './services/plugins/plugin-manager';
 import { templateService } from './services/plugins/template-service';
 import { licenseManager } from './services/security/license-manager';
@@ -216,10 +217,11 @@ function registerIpcHandlers() {
         _event,
         { contextName, resourceType, resourceName, namespace }
       ) => {
-        const nsFlag =
-          namespace === 'all' || !namespace ? '' : `-n ${namespace}`;
-        await execPromise(
-          `kubectl delete ${resourceType} ${resourceName} --context ${contextName} ${nsFlag}`
+        return await kubernetesService.deleteResource(
+          resourceType,
+          resourceName,
+          namespace,
+          contextName
         );
       }
     )

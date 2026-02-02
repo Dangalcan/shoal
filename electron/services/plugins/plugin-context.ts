@@ -17,6 +17,7 @@ import type {
   EventsAPI,
   SidebarExtension,
   ResourceActionExtension,
+  PageExtension,
 } from '../../types/plugin-types';
 
 // Import the cluster management service for Kubernetes operations
@@ -24,8 +25,11 @@ import { clusterManagementService } from '../cluster/cluster-management-service'
 import { exec } from 'child_process';
 import util from 'util';
 import { EventEmitter } from 'events';
+import { pluginEventBus } from './plugin-events';
 
 const execPromise = util.promisify(exec);
+
+import { kubernetesService } from '../kubernetes/kubernetes-service';
 
 /**
  * Create a plugin context with controlled API access
@@ -40,12 +44,7 @@ export function createPluginContext(
     ? {
         getResources: async (type: string, namespace: string) => {
           try {
-            const nsFlag = namespace === 'all' ? '-A' : `-n ${namespace}`;
-            const { stdout } = await execPromise(
-              `kubectl get ${type} ${nsFlag} -o json`
-            );
-            const data = JSON.parse(stdout);
-            return data.items || [];
+            return await kubernetesService.getResources(type, namespace);
           } catch (error: any) {
             throw new Error(`Failed to get resources: ${error.message}`);
           }
@@ -53,14 +52,7 @@ export function createPluginContext(
 
         createResource: async (manifest: any) => {
           try {
-            // Write manifest to temp file
-            const tempFile = path.join(
-              app.getPath('temp'),
-              `${pluginId}-create.yaml`
-            );
-            await fs.writeFile(tempFile, JSON.stringify(manifest), 'utf-8');
-            await execPromise(`kubectl apply -f ${tempFile}`);
-            await fs.unlink(tempFile);
+            return await kubernetesService.createResource(manifest);
           } catch (error: any) {
             throw new Error(`Failed to create resource: ${error.message}`);
           }
@@ -68,13 +60,7 @@ export function createPluginContext(
 
         updateResource: async (type: string, name: string, manifest: any) => {
           try {
-            const tempFile = path.join(
-              app.getPath('temp'),
-              `${pluginId}-update.yaml`
-            );
-            await fs.writeFile(tempFile, JSON.stringify(manifest), 'utf-8');
-            await execPromise(`kubectl apply -f ${tempFile}`);
-            await fs.unlink(tempFile);
+            return await kubernetesService.updateResource(type, name, manifest);
           } catch (error: any) {
             throw new Error(`Failed to update resource: ${error.message}`);
           }
@@ -86,8 +72,11 @@ export function createPluginContext(
           namespace: string
         ) => {
           try {
-            const nsFlag = namespace === 'all' ? '' : `-n ${namespace}`;
-            await execPromise(`kubectl delete ${type} ${name} ${nsFlag}`);
+            return await kubernetesService.deleteResource(
+              type,
+              name,
+              namespace
+            );
           } catch (error: any) {
             throw new Error(`Failed to delete resource: ${error.message}`);
           }
@@ -99,10 +88,11 @@ export function createPluginContext(
           command: string
         ) => {
           try {
-            const { stdout } = await execPromise(
-              `kubectl exec ${pod} -n ${namespace} -- ${command}`
+            return await kubernetesService.executeCommand(
+              pod,
+              namespace,
+              command
             );
-            return stdout;
           } catch (error: any) {
             throw new Error(`Failed to execute command: ${error.message}`);
           }
@@ -125,10 +115,20 @@ export function createPluginContext(
           if (!extensions.sidebar) {
             extensions.sidebar = [];
           }
-          extensions.sidebar.push(item);
+
+          // Update existing or add new
+          const existingIndex = extensions.sidebar.findIndex(
+            (i: SidebarExtension) => i.id === item.id
+          );
+          if (existingIndex >= 0) {
+            extensions.sidebar[existingIndex] = item;
+          } else {
+            extensions.sidebar.push(item);
+          }
+
           savePluginExtensions(pluginId, extensions);
           console.log(
-            `[PluginContext] Registered sidebar item for ${pluginId}:`,
+            `[PluginContext] Registered/Updated sidebar item for ${pluginId}:`,
             item.label
           );
         },
@@ -138,14 +138,27 @@ export function createPluginContext(
           if (!extensions.pages) {
             extensions.pages = [];
           }
-          extensions.pages.push({
-            id: `${pluginId}-page`,
+
+          const pageId = `${pluginId}-page`;
+          const existingIndex = extensions.pages.findIndex(
+            (p: PageExtension) => p.id === pageId
+          );
+
+          const newPage = {
+            id: pageId,
             route,
             component: component.toString(),
-          });
+          };
+
+          if (existingIndex >= 0) {
+            extensions.pages[existingIndex] = newPage;
+          } else {
+            extensions.pages.push(newPage);
+          }
+
           savePluginExtensions(pluginId, extensions);
           console.log(
-            `[PluginContext] Registered page for ${pluginId}:`,
+            `[PluginContext] Registered/Updated page for ${pluginId}:`,
             route
           );
         },
@@ -165,10 +178,19 @@ export function createPluginContext(
             resourceTypes: [resourceType],
           };
 
-          extensions.resourceActions.push(fullAction);
+          const existingIndex = extensions.resourceActions.findIndex(
+            (a: ResourceActionExtension) => a.id === action.id
+          );
+
+          if (existingIndex >= 0) {
+            extensions.resourceActions[existingIndex] = fullAction;
+          } else {
+            extensions.resourceActions.push(fullAction);
+          }
+
           savePluginExtensions(pluginId, extensions);
           console.log(
-            `[PluginContext] Registered resource action for ${pluginId}:`,
+            `[PluginContext] Registered/Updated resource action for ${pluginId}:`,
             action.label
           );
         },
@@ -274,9 +296,16 @@ export function createPluginContext(
   // Create Events API (always available)
   const emitter = new EventEmitter();
   const events: EventsAPI = {
+    // Subscribe to events
     on: (event: string, handler: (...args: any[]) => void) => {
       emitter.on(event, handler);
       console.log(`[PluginContext] ${pluginId} subscribed to event: ${event}`);
+    },
+    once: (event: string, handler: (...args: any[]) => void) => {
+      emitter.once(event, handler);
+      console.log(
+        `[PluginContext] ${pluginId} subscribed once to event: ${event}`
+      );
     },
     off: (event: string, handler: (...args: any[]) => void) => {
       emitter.off(event, handler);
@@ -284,9 +313,37 @@ export function createPluginContext(
         `[PluginContext] ${pluginId} unsubscribed from event: ${event}`
       );
     },
+
+    // Emit events
     emit: (event: string, ...args: any[]) => {
       emitter.emit(event, ...args);
       console.log(`[PluginContext] ${pluginId} emitted event: ${event}`);
+    },
+
+    // App lifecycle hooks
+    onClusterConnected: (handler: (cluster: any) => void) => {
+      pluginEventBus.on('cluster:connected', handler);
+      console.log(
+        `[PluginContext] ${pluginId} subscribed to cluster:connected`
+      );
+    },
+    onClusterDisconnected: (handler: (cluster: any) => void) => {
+      pluginEventBus.on('cluster:disconnected', handler);
+      console.log(
+        `[PluginContext] ${pluginId} subscribed to cluster:disconnected`
+      );
+    },
+    onResourceCreated: (handler: (resource: any) => void) => {
+      pluginEventBus.on('resource:created', handler);
+      console.log(`[PluginContext] ${pluginId} subscribed to resource:created`);
+    },
+    onResourceUpdated: (handler: (resource: any) => void) => {
+      pluginEventBus.on('resource:updated', handler);
+      console.log(`[PluginContext] ${pluginId} subscribed to resource:updated`);
+    },
+    onResourceDeleted: (handler: (resource: any) => void) => {
+      pluginEventBus.on('resource:deleted', handler);
+      console.log(`[PluginContext] ${pluginId} subscribed to resource:deleted`);
     },
   };
 
@@ -339,6 +396,10 @@ function getPluginExtensions(pluginId: string): any {
 
 function savePluginExtensions(pluginId: string, extensions: any): void {
   pluginExtensionsMap.set(pluginId, extensions);
+}
+
+export function clearPluginExtensions(pluginId: string): void {
+  pluginExtensionsMap.delete(pluginId);
 }
 
 export function getAllPluginExtensions(): Map<string, any> {

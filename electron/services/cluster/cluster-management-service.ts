@@ -1,5 +1,6 @@
 import * as child_process from 'child_process';
 import util from 'util';
+import { pluginEventBus } from '../plugins/plugin-events';
 
 const execPromise = util.promisify(child_process.exec);
 
@@ -99,6 +100,10 @@ export class ClusterManagementService {
       console.log(
         `[ClusterManager] Successfully deleted cluster and removed context ${contextName}`
       );
+
+      // Emit event
+      pluginEventBus.emitClusterDisconnected({ name: contextName });
+
       return { success: true };
     } catch (error: any) {
       console.error(
@@ -123,6 +128,10 @@ export class ClusterManagementService {
     try {
       await execPromise(command);
       console.log(`[ClusterManager] Successfully created cluster ${name}`);
+
+      // Emit event
+      pluginEventBus.emitClusterConnected({ name, provider });
+
       return { success: true };
     } catch (error: any) {
       console.error(

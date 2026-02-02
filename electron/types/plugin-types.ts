@@ -50,6 +50,30 @@ export interface PluginLicenseInfo {
 }
 
 // ============================================================================
+// Dependency Types
+// ============================================================================
+
+export interface DependencyValidationResult {
+  valid: boolean;
+  missing: string[]; // Missing plugin IDs
+  incompatible: Array<{
+    pluginId: string;
+    required: string;
+    installed: string;
+  }>;
+  circular: string[][]; // Circular dependency chains
+}
+
+// ============================================================================
+// Data Loading Types
+// ============================================================================
+
+export interface PluginDataFile {
+  path: string;
+  content: any; // Parsed JSON content
+}
+
+// ============================================================================
 // Marketplace Types
 // ============================================================================
 
@@ -141,7 +165,8 @@ export interface PluginManifest {
     // Future: dashboard, menu, etc.
   };
   configuration?: PluginConfigurationSchema;
-  dependencies?: Record<string, string>; // Plugin dependencies
+  dependencies?: Record<string, string>; // Plugin dependencies (id: semver range)
+  data?: string[]; // Paths to data files (relative to plugin root)
 }
 
 export interface PluginConfigurationSchema {
@@ -150,13 +175,21 @@ export interface PluginConfigurationSchema {
 }
 
 export interface PluginConfigProperty {
-  type: 'string' | 'number' | 'boolean';
+  type: 'string' | 'number' | 'boolean' | 'select' | 'array';
   label: string;
   description?: string;
   default?: any;
-  enum?: any[];
-  multiline?: boolean; // For strings
+  enum?: any[]; // For select type
+  multiline?: boolean; // For string type
   secret?: boolean; // For passwords/keys
+  min?: number; // For number type
+  max?: number; // For number type
+  required?: boolean;
+  placeholder?: string;
+  validation?: {
+    pattern?: string; // Regex pattern
+    message?: string; // Validation error message
+  };
 }
 
 // ============================================================================
@@ -181,9 +214,14 @@ export interface Plugin {
   hasUpdate?: boolean;
   latestVersion?: string;
 
-  // Lifecycle methods
+  // Lifecycle hooks
+  beforeActivate?: (context: PluginContext) => Promise<void>;
   activate?: (context: PluginContext) => Promise<void>;
+  afterActivate?: (context: PluginContext) => Promise<void>;
+  beforeDeactivate?: (context: PluginContext) => Promise<void>;
   deactivate?: () => Promise<void>;
+  afterDeactivate?: () => Promise<void>;
+  rendererEntry?: string; // Absolute path to renderer entry point
 }
 
 // ============================================================================
@@ -236,9 +274,20 @@ export interface LoggerAPI {
 }
 
 export interface EventsAPI {
+  // Subscribe to events
   on: (event: string, handler: (...args: any[]) => void) => void;
+  once: (event: string, handler: (...args: any[]) => void) => void;
   off: (event: string, handler: (...args: any[]) => void) => void;
+
+  // Emit events
   emit: (event: string, ...args: any[]) => void;
+
+  // App lifecycle hooks
+  onClusterConnected: (handler: (cluster: any) => void) => void;
+  onClusterDisconnected: (handler: (cluster: any) => void) => void;
+  onResourceCreated: (handler: (resource: any) => void) => void;
+  onResourceUpdated: (handler: (resource: any) => void) => void;
+  onResourceDeleted: (handler: (resource: any) => void) => void;
 }
 
 export interface PluginContext {

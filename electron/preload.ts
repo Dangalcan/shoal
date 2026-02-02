@@ -52,10 +52,16 @@ contextBridge.exposeInMainWorld('electron', {
   getKubeconfigPath: () => ipcRenderer.invoke('get-kubeconfig-path'),
   setKubeconfigPath: (path: string) =>
     ipcRenderer.invoke('set-kubeconfig-path', path),
-  onSetKubeconfigPath: (callback: (value: boolean) => void) =>
-    ipcRenderer.on('set-kubeconfig-path', (_event, value) => callback(value)),
-  onPluginNotification: (callback: (data: any) => void) =>
-    ipcRenderer.on('plugin-notification', (_event, value) => callback(value)),
+  onSetKubeconfigPath: (callback: (value: boolean) => void) => {
+    const handler = (_event: any, value: boolean) => callback(value);
+    ipcRenderer.on('set-kubeconfig-path', handler);
+    return () => ipcRenderer.off('set-kubeconfig-path', handler);
+  },
+  onPluginNotification: (callback: (data: any) => void) => {
+    const handler = (_event: any, value: any) => callback(value);
+    ipcRenderer.on('plugin-notification', handler);
+    return () => ipcRenderer.off('plugin-notification', handler);
+  },
 
   // Plugin System
   getPlugins: () => ipcRenderer.invoke('get-plugins'),
