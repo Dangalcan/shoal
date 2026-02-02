@@ -292,12 +292,12 @@ export function useEnabledPlugins(): Plugin[] {
  * Hook to get plugin extensions for a specific extension point
  */
 export function usePluginExtensions(extensionPoint: string) {
-  const { getPluginExtensions } = usePlugins();
+  const { getPluginExtensions, plugins } = usePlugins();
   const [extensions, setExtensions] = useState<any[]>([]);
 
   useEffect(() => {
     getPluginExtensions(extensionPoint).then(setExtensions);
-  }, [extensionPoint]);
+  }, [extensionPoint, plugins]);
 
   return extensions;
 }

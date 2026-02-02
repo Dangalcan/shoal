@@ -89,6 +89,14 @@ class PluginUIRegistry {
 
 export const pluginUIRegistry = new PluginUIRegistry();
 
+// Expose registry globally for external plugins
+declare global {
+  interface Window {
+    pluginUIRegistry: PluginUIRegistry;
+  }
+}
+(window as any).pluginUIRegistry = pluginUIRegistry;
+
 // Hook for React
 export function usePluginWidgets() {
   const [widgets, setWidgets] = React.useState(pluginUIRegistry.getWidgets());
