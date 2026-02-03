@@ -105,8 +105,12 @@ vi.mock('fs', async (importOriginal) => {
 });
 
 import { marketplaceService } from '../services/marketplace/marketplace-service';
-import { getAllPluginExtensions } from '../services/plugins/plugin-context';
+import {
+  getAllPluginExtensions,
+  createPluginContext,
+} from '../services/plugins/plugin-context';
 import { dependencyResolver } from '../services/plugins/dependency-resolver';
+import { dataLoader } from '../services/plugins/data-loader';
 import fs from 'fs';
 
 describe('PluginManager', () => {
@@ -393,6 +397,60 @@ describe('PluginManager', () => {
       consoleSpy.mockRestore();
     });
 
+    it('initialize should auto-enable previously enabled plugins', async () => {
+      vi.mocked(pluginRegistry.initialize).mockResolvedValue(undefined);
+      const mockPlugins = [{ manifest: { id: 'p1' } } as any];
+      vi.mocked(pluginLoader.discoverPlugins).mockResolvedValue(mockPlugins);
+      vi.mocked(pluginRegistry.getEnabledPlugins).mockReturnValue([
+        { manifest: { id: 'p1' }, config: { enabled: true } } as any,
+      ]);
+
+      const activateSpy = vi
+        .spyOn(pluginManager as any, 'activatePlugin')
+        .mockResolvedValue(undefined);
+
+      await pluginManager.initialize();
+
+      expect(activateSpy).toHaveBeenCalledWith('p1');
+      activateSpy.mockRestore();
+    });
+
+    it('initialize should handle errors during auto-enable', async () => {
+      vi.mocked(pluginRegistry.initialize).mockResolvedValue(undefined);
+      vi.mocked(pluginLoader.discoverPlugins).mockResolvedValue([]);
+      vi.mocked(pluginRegistry.getEnabledPlugins).mockReturnValue([
+        { manifest: { id: 'p1' }, config: { enabled: true } } as any,
+      ]);
+
+      const activateSpy = vi
+        .spyOn(pluginManager as any, 'activatePlugin')
+        .mockRejectedValue(new Error('Fail'));
+      const consoleSpy = vi.spyOn(console, 'error');
+
+      await pluginManager.initialize();
+
+      expect(activateSpy).toHaveBeenCalledWith('p1');
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to auto-enable'),
+        'Fail'
+      );
+      activateSpy.mockRestore();
+      consoleSpy.mockRestore();
+    });
+
+    it('initialize should propagate initialization errors', async () => {
+      vi.mocked(pluginRegistry.initialize).mockRejectedValue(
+        new Error('Init fail')
+      );
+      const consoleSpy = vi.spyOn(console, 'error');
+      await expect(pluginManager.initialize()).rejects.toThrow('Init fail');
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to initialize'),
+        'Init fail'
+      );
+      consoleSpy.mockRestore();
+    });
+
     it('activatePlugin should throw if validation fails (missing dependencies)', async () => {
       const pluginId = 'test-plugin';
       vi.mocked(pluginRegistry.getPlugin).mockReturnValue({
@@ -550,6 +608,349 @@ describe('PluginManager', () => {
         pluginId,
         { new: 'val' }
       );
+    });
+  });
+
+  describe('Watcher', () => {
+    it('watchPlugin should start watcher and handle changes', async () => {
+      const pluginId = 'p1';
+      const pluginPath = '/path/to/plugin';
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue(pluginPath);
+
+      let watchCallback: any;
+      const mockWatcher = { close: vi.fn() };
+      (vi.mocked(fs.watch) as any).mockImplementation(
+        (path: any, options: any, cb: any) => {
+          watchCallback = cb;
+          return mockWatcher;
+        }
+      );
+
+      const reloadSpy = vi
+        .spyOn(pluginManager, 'reloadPlugin')
+        .mockResolvedValue(undefined);
+
+      await pluginManager.watchPlugin(pluginId);
+
+      expect(fs.watch).toHaveBeenCalledWith(
+        pluginPath,
+        { recursive: true },
+        expect.any(Function)
+      );
+
+      // Simulate change
+      if (watchCallback) {
+        watchCallback('change', 'file.js');
+      }
+
+      expect(reloadSpy).toHaveBeenCalledWith(pluginId);
+      reloadSpy.mockRestore();
+    });
+
+    it('watchPlugin should not start watcher if already watching', async () => {
+      const pluginId = 'p1';
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
+      vi.mocked(fs.watch).mockReturnValue({ close: vi.fn() } as any);
+
+      await pluginManager.watchPlugin(pluginId);
+      await pluginManager.watchPlugin(pluginId); // Call again
+
+      expect(fs.watch).toHaveBeenCalledTimes(1);
+    });
+
+    it('watchPlugin should handle missing plugin path', async () => {
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue(null);
+      await pluginManager.watchPlugin('p1');
+      expect(fs.watch).not.toHaveBeenCalled();
+    });
+
+    it('watchPlugin should handle errors when starting watcher', async () => {
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
+      vi.mocked(fs.watch).mockImplementation(() => {
+        throw new Error('Watch fail');
+      });
+      const consoleSpy = vi.spyOn(console, 'error');
+
+      await pluginManager.watchPlugin('p1');
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to start watcher'),
+        'Watch fail'
+      );
+      consoleSpy.mockRestore();
+    });
+
+    it('stopWatcher should close watcher if exists', async () => {
+      const pluginId = 'p1';
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
+      const closeMock = vi.fn();
+      vi.mocked(fs.watch).mockReturnValue({ close: closeMock } as any);
+
+      await pluginManager.watchPlugin(pluginId);
+
+      // Access private method via any
+      (pluginManager as any).stopWatcher(pluginId);
+      expect(closeMock).toHaveBeenCalled();
+
+      // Call again should be safe
+      (pluginManager as any).stopWatcher(pluginId);
+      expect(closeMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('watcher callback should handle reload errors', async () => {
+      const pluginId = 'p1';
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
+
+      let watchCallback: any;
+      (vi.mocked(fs.watch) as any).mockImplementation(
+        (path: any, options: any, cb: any) => {
+          watchCallback = cb;
+          return { close: vi.fn() };
+        }
+      );
+
+      const reloadSpy = vi
+        .spyOn(pluginManager, 'reloadPlugin')
+        .mockRejectedValue(new Error('Reload fail'));
+      const consoleSpy = vi.spyOn(console, 'error');
+
+      await pluginManager.watchPlugin(pluginId);
+
+      // Simulate change
+      if (watchCallback) {
+        await watchCallback('change', 'file.js');
+      }
+
+      // Wait for promise resolution (reloadPlugin is async inside callback)
+      await new Promise(process.nextTick);
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Auto-reload failed'),
+        'Reload fail'
+      );
+      consoleSpy.mockRestore();
+      reloadSpy.mockRestore();
+    });
+  });
+
+  describe('Updated Activation Logic', () => {
+    it('activatePlugin should report detailed dependency errors', async () => {
+      const pluginId = 'p1';
+      vi.mocked(pluginRegistry.getPlugin).mockReturnValue({
+        plugin: { manifest: { id: pluginId } },
+      } as any);
+      vi.mocked(dependencyResolver.validateDependencies).mockReturnValue({
+        valid: false,
+        missing: ['m1'],
+        incompatible: [{ pluginId: 'i1', required: '1.0', installed: '0.9' }],
+        circular: [['c1', 'c2']],
+      });
+
+      // All errors are combined in one error message
+      const error = await pluginManager.enablePlugin(pluginId).catch((e) => e);
+      expect(error.message).toContain('Missing dependencies: m1');
+      expect(error.message).toContain('requires 1.0, but 0.9 is installed');
+      expect(error.message).toContain(
+        'Circular dependencies detected: c1 -> c2'
+      );
+    });
+
+    it('activatePlugin should load and apply plugin data', async () => {
+      const pluginId = 'p1';
+      vi.mocked(pluginRegistry.hasPlugin).mockReturnValue(true);
+      vi.mocked(pluginRegistry.getPlugin).mockReturnValue({
+        plugin: { manifest: { id: pluginId } },
+        config: { enabled: true },
+      } as any);
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
+      vi.mocked(pluginLoader.loadPluginCode).mockResolvedValue({});
+
+      // Mock createPluginContext to return a context with storage
+      const mockContext = { storage: {} };
+      vi.mocked(createPluginContext).mockReturnValue(mockContext as any);
+
+      const mockData = [{ kind: 'Dashboard', metadata: { name: 'Dash' } }];
+      vi.mocked(dataLoader.loadPluginData).mockResolvedValue(mockData as any);
+
+      await pluginManager.enablePlugin(pluginId);
+
+      expect(dataLoader.applyDataToStorage).toHaveBeenCalled();
+    });
+
+    it('activatePlugin should fail if data loading fails', async () => {
+      const pluginId = 'p1';
+      vi.mocked(pluginRegistry.hasPlugin).mockReturnValue(true);
+      vi.mocked(pluginRegistry.getPlugin).mockReturnValue({
+        plugin: { manifest: { id: pluginId } },
+        config: { enabled: true },
+      } as any);
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
+      vi.mocked(dataLoader.loadPluginData).mockRejectedValue(
+        new Error('Data fail')
+      );
+
+      const consoleSpy = vi.spyOn(console, 'error');
+      await expect(pluginManager.enablePlugin(pluginId)).rejects.toThrow(
+        'Data fail'
+      );
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to load data'),
+        'Data fail'
+      );
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('Deactivation Edge Cases', () => {
+    it('deactivatePlugin should return early if plugin not found', async () => {
+      const pluginId = 'p1';
+      vi.mocked(pluginRegistry.hasPlugin).mockReturnValue(true);
+      vi.mocked(pluginRegistry.isPluginEnabled).mockReturnValue(true);
+      vi.mocked(pluginRegistry.getPlugin).mockReturnValue({
+        manifest: { id: pluginId },
+      } as any);
+
+      // Mock getPluginPath to return null to trigger early return in deactivatePlugin
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue(null);
+
+      await pluginManager.disablePlugin(pluginId);
+
+      // Should still call getPluginPath but not proceed to clearPluginContext
+      expect(pluginLoader.getPluginPath).toHaveBeenCalledWith(pluginId);
+      expect(pluginRegistry.clearPluginContext).not.toHaveBeenCalled();
+    });
+
+    it('deactivatePlugin should return early if path not found', async () => {
+      const pluginId = 'p1';
+      vi.mocked(pluginRegistry.hasPlugin).mockReturnValue(true);
+      vi.mocked(pluginRegistry.isPluginEnabled).mockReturnValue(true);
+      vi.mocked(pluginRegistry.getPlugin).mockReturnValue({
+        manifest: { id: pluginId },
+      } as any);
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue(null);
+
+      await pluginManager.disablePlugin(pluginId);
+      expect(pluginRegistry.clearPluginContext).not.toHaveBeenCalled();
+    });
+
+    it('deactivatePlugin should handle errors during hook execution', async () => {
+      const pluginId = 'p1';
+      vi.mocked(pluginRegistry.hasPlugin).mockReturnValue(true);
+      vi.mocked(pluginRegistry.isPluginEnabled).mockReturnValue(true);
+      vi.mocked(pluginRegistry.getPlugin).mockReturnValue({
+        manifest: { id: pluginId },
+      } as any);
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
+
+      vi.mocked(pluginLoader.loadPluginCode).mockRejectedValue(
+        new Error('Hook fail')
+      );
+      const consoleSpy = vi.spyOn(console, 'warn');
+
+      await pluginManager.disablePlugin(pluginId);
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Could not execute deactivation hooks'),
+        expect.any(Error)
+      );
+      // Should still proceed to unload
+      expect(pluginLoader.unloadPluginCode).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('Uninstall Edge Cases', () => {
+    it('uninstallPlugin should perform REAL cascading uninstall', async () => {
+      const parentId = 'parent';
+      const childId = 'child';
+      vi.mocked(pluginRegistry.getAllPlugins).mockReturnValue([
+        { manifest: { id: parentId } } as any,
+        { manifest: { id: childId } } as any,
+      ]);
+
+      // Mock getDependents to return child when asked for parent
+      vi.mocked(dependencyResolver.getDependents).mockImplementation((id) => {
+        if (id === parentId) return [{ manifest: { id: childId } } as any];
+        return [];
+      });
+
+      const uninstallSpy = vi.spyOn(pluginManager, 'uninstallPlugin');
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
+
+      await pluginManager.uninstallPlugin(parentId);
+
+      expect(uninstallSpy).toHaveBeenCalledWith(childId);
+      uninstallSpy.mockRestore();
+    });
+
+    it('uninstallPlugin should disable plugin first if enabled', async () => {
+      const pluginId = 'p1';
+      vi.mocked(pluginRegistry.getAllPlugins).mockReturnValue([]);
+      vi.mocked(dependencyResolver.getDependents).mockReturnValue([]);
+      vi.mocked(pluginRegistry.isPluginEnabled).mockReturnValue(true);
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
+
+      const disableSpy = vi
+        .spyOn(pluginManager, 'disablePlugin')
+        .mockResolvedValue(undefined);
+
+      await pluginManager.uninstallPlugin(pluginId);
+
+      expect(disableSpy).toHaveBeenCalledWith(pluginId);
+      disableSpy.mockRestore();
+    });
+
+    it('uninstallPlugin should handle file deletion errors', async () => {
+      const pluginId = 'p1';
+      vi.mocked(pluginRegistry.getAllPlugins).mockReturnValue([]);
+      vi.mocked(dependencyResolver.getDependents).mockReturnValue([]);
+      vi.mocked(pluginRegistry.isPluginEnabled).mockReturnValue(false);
+
+      // Make sure the path matches the pattern: userDataPath/plugins/pluginId
+      const userDataPath = '/mock/user/data';
+      const pluginPath = path.join(userDataPath, 'plugins', pluginId);
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue(pluginPath);
+      vi.mocked(app.getPath).mockReturnValue(userDataPath);
+
+      vi.mocked(fs.promises.rm).mockRejectedValue(new Error('Delete fail'));
+      const consoleSpy = vi.spyOn(console, 'error');
+
+      await pluginManager.uninstallPlugin(pluginId);
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to delete files'),
+        'Delete fail'
+      );
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('Refresh Discovery Edge Cases', () => {
+    it('refreshDiscovery should handle missing plugin path', async () => {
+      const pluginId = 'p1';
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue(null);
+      const warnSpy = vi.spyOn(console, 'warn');
+
+      await pluginManager.refreshDiscovery(pluginId);
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Could not find path')
+      );
+      warnSpy.mockRestore();
+    });
+
+    it('refreshDiscovery should handle load failure', async () => {
+      const pluginId = 'p1';
+      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
+      vi.mocked(pluginLoader.loadPluginFromDirectory).mockResolvedValue(null);
+      const warnSpy = vi.spyOn(console, 'warn');
+
+      await pluginManager.refreshDiscovery(pluginId);
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Could not load plugin')
+      );
+      warnSpy.mockRestore();
     });
   });
 });

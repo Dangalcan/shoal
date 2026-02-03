@@ -4,6 +4,7 @@ import { ClusterDetails } from '../../pages/ClusterDetails'
 import { createMockElectronAPI } from '../utils/mocks'
 // Imports from test-utils consolidated above
 import '../mocks/component-mocks'
+import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { toast } from 'sonner'
 import { 
     mockNamespaces, 
@@ -52,6 +53,17 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
 
 
     let mockApi: ReturnType<typeof createMockElectronAPI>
+
+    function renderPage() {
+        return render(
+            <ClusterDetails />, 
+            { 
+                path: '/cluster/:name', 
+                route: '/cluster/cluster-123',
+                api: mockApi
+            }
+        )
+    }
 
     beforeEach(() => {
         mockApi = createMockElectronAPI()
@@ -152,15 +164,6 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
             expect(headers.length).toBe(1)
         })
     })
-    const renderPage = () => render(
-        <ClusterDetails />, 
-        { 
-            path: '/cluster/:name', 
-            route: '/cluster/cluster-123',
-            api: mockApi
-        }
-    )
-
     it('should navigate back correctly', async () => {
         const { container } = renderPage()
         
@@ -588,6 +591,68 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
     })
 
     describe('Advanced State & Error Handling', () => {
+        it('should handle cluster deletion flow (success)', async () => {
+            renderPage();
+            
+            // Open modal
+            fireEvent.click(screen.getByTitle('Delete Cluster'));
+            expect(screen.getByText(/Are you sure you want to delete cluster "cluster-123"?/i)).toBeInTheDocument();
+            
+            // Confirm deletion - use within to be specific to the modal
+            const modal = screen.getByRole('dialog');
+            const confirmBtn = within(modal).getByRole('button', { name: 'Delete Cluster' });
+            fireEvent.click(confirmBtn);
+            
+            await waitFor(() => {
+                expect(mockApi.deleteCluster).toHaveBeenCalledWith('cluster-123');
+            });
+        });
+
+        it('should handle cluster deletion flow (cancel)', async () => {
+            renderPage();
+            
+            // Open modal
+            fireEvent.click(screen.getByTitle('Delete Cluster'));
+            
+            // Cancel
+            const modal = screen.getByRole('dialog');
+            const cancelBtn = within(modal).getByRole('button', { name: 'Cancel' });
+            fireEvent.click(cancelBtn);
+            
+            await waitFor(() => {
+                expect(screen.queryByText(/Are you sure you want to delete cluster/i)).not.toBeInTheDocument();
+            });
+        });
+
+        it('should handle cluster deletion failure', async () => {
+            mockApi.deleteCluster = vi.fn().mockResolvedValue({ success: false, error: 'Failed' });
+            renderPage();
+            
+            fireEvent.click(screen.getByTitle('Delete Cluster'));
+            const modal = screen.getByRole('dialog');
+            const confirmBtn = within(modal).getByRole('button', { name: 'Delete Cluster' });
+            fireEvent.click(confirmBtn);
+            
+            await waitFor(() => {
+                expect(mockApi.deleteCluster).toHaveBeenCalled();
+                expect(screen.queryByText(/Are you sure you want to delete cluster/i)).not.toBeInTheDocument();
+            });
+        });
+
+        it('should return early in handleDeleteCluster if name is missing', async () => {
+            render(
+                <ClusterDetails />, 
+                { 
+                    path: '/cluster/:name', 
+                    route: '/cluster/', // No name
+                    api: mockApi
+                }
+            );
+            
+            // If name is missing, the Delete button shouldn't even be there
+            expect(screen.queryByTitle('Delete Cluster')).not.toBeInTheDocument();
+        });
+
         it('should switch tabs when active tab becomes hidden', async () => {
              renderPage()
              const tabs = screen.getByRole('banner').querySelector('.tabs-container')!
@@ -686,6 +751,111 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
              
              fireEvent.click(within(thead).getByText('External IP'))
              fireEvent.click(within(thead).getByText('Internal IP'))
+        })
+
+        it('should fallback to pods when visibleResources is empty', async () => {
+             // Mock localStorage to return empty array for visible resources
+             const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => {
+                 if (key === 'k8s_desktop_visible_resources') return '[]'
+                 return null
+             })
+             
+             renderPage()
+             // Component should default to 'pods' if no visible resources match activeTab (it's empty)
+             await waitFor(() => {
+                 expect(screen.getByText('pod-1')).toBeInTheDocument()
+             })
+             spy.mockRestore()
+        })
+
+        it('should handle missing metadata fields in items for branch coverage', async () => {
+             const sparseResources = [
+                 {
+                     type: 'Pod',
+                     metadata: { name: 'sparse-pod' } // No namespace, no creationTimestamp
+                 },
+                 {
+                     type: 'Deployment',
+                     metadata: { name: 'sparse-deploy' } // No namespace
+                 }
+             ]
+             mockApi.getResources = vi.fn().mockResolvedValue({ success: true, data: sparseResources })
+             
+             renderPage()
+             await waitFor(() => expect(screen.getByText('sparse-pod')).toBeInTheDocument())
+             
+             // 1. Delete on the Pod in Pods tab
+             const podRow = screen.getByText('sparse-pod').closest('tr')!
+             vi.spyOn(window, 'confirm').mockReturnValue(true)
+             fireEvent.click(within(podRow).getByTitle('Delete Resource'))
+             
+             expect(mockApi.deleteResource).toHaveBeenCalledWith(expect.objectContaining({
+                 resourceName: 'sparse-pod',
+                 namespace: ''
+             }))
+             
+             // 2. Switch to Deployments tab to test Restart
+             fireEvent.click(screen.getByText('Deployments'))
+             await waitFor(() => expect(screen.getByText('sparse-deploy')).toBeInTheDocument())
+             
+             const deployRow = screen.getByText('sparse-deploy').closest('tr')!
+             
+             // Restart (requires active tab branch)
+             fireEvent.click(within(deployRow).getByTitle('Rollout Restart'))
+             
+             // Wait for promise logic
+             await waitFor(() => expect(mockApi.rolloutRestart).toHaveBeenCalledWith(expect.objectContaining({
+                 resourceName: 'sparse-deploy',
+                 namespace: ''
+             })))
+        })
+
+        describe('Underspecified & Invalid State Fallbacks', () => {
+            it('should handle missing cluster name for branch coverage', async () => {
+                // Route '/cluster' matches path '/cluster', so name is undefined
+                render(<ClusterDetails />, { 
+                    route: '/cluster', 
+                    path: '/cluster' 
+                })
+                
+                // Attempt delete
+                const deleteBtn = await screen.findByTitle('Delete Cluster')
+                fireEvent.click(deleteBtn)
+                
+                // Confirm
+                const confirmBtn = await screen.findByText('Delete Cluster', { selector: 'button' })
+                fireEvent.click(confirmBtn)
+                
+                // Should return early and not call API (Branch 7 variant 0)
+                expect(mockApi.deleteCluster).not.toHaveBeenCalled()
+            })
+
+            it('should hit Branch 0 variant 1 by switching to a valid tab', async () => {
+                renderPage()
+                await waitFor(() => expect(screen.getByText('Pods')).toBeInTheDocument())
+                
+                // Switch to a valid tab
+                fireEvent.click(screen.getByText('Deployments'))
+                
+                // Verification of state change
+                await waitFor(() => {
+                    expect(screen.getByText('Deployments')).toHaveClass('tab-button-active')
+                })
+            })
+
+            it('should handle invalid activeTab from localStorage', async () => {
+                // Must be JSON stringified to be parsed correctly by useLocalStorage
+                localStorage.setItem('cluster-tab-cluster-123', JSON.stringify('invalid-resource-type'))
+                
+                // We want to hit the branches in sortedItems and filteredItems where activeConfig is undefined
+                // before the useEffect resets it to 'pods'.
+                renderPage()
+                
+                // It should stabilize eventually by falling back to pods
+                await waitFor(() => {
+                    expect(screen.getByText('Pods')).toHaveClass('tab-button-active')
+                })
+            })
         })
     })
 })

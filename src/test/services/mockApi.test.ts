@@ -122,4 +122,40 @@ describe('mockApi', () => {
       ).success
     ).toBe(true);
   });
+
+  it('should support plugin system operations', async () => {
+    expect((await mockApi.getPlugins()).success).toBe(true);
+    expect((await mockApi.enablePlugin('test')).success).toBe(true);
+    expect((await mockApi.disablePlugin('test')).success).toBe(true);
+    expect((await mockApi.checkForPluginUpdates()).success).toBe(true);
+    expect((await mockApi.getPluginExtensions()).success).toBe(true);
+    expect((await mockApi.executePluginAction('p', 'a')).success).toBe(true);
+    expect((await mockApi.getPluginSettings('test')).success).toBe(true);
+    expect((await mockApi.setPluginSettings('test', {})).success).toBe(true);
+    expect((await mockApi.uninstallPlugin('test')).success).toBe(true);
+    expect((await mockApi.activatePluginLicense('p', 'k')).success).toBe(true);
+    expect((await mockApi.startPluginTrial('p')).success).toBe(true);
+    expect((await mockApi.deactivatePluginLicense('p')).success).toBe(true);
+    expect((await mockApi.getMarketplacePlugins()).success).toBe(true);
+    expect((await mockApi.installPlugin('test')).success).toBe(true);
+    expect((await mockApi.generatePlugin({})).success).toBe(true);
+    expect((await mockApi.reloadPlugin('test')).success).toBe(true);
+    expect((await mockApi.importLocalPlugin()).success).toBe(true);
+  });
+
+  it('should support manifest operations', async () => {
+    expect((await mockApi.getManifests()).success).toBe(true);
+    expect((await mockApi.saveManifest({})).success).toBe(true);
+    expect((await mockApi.deleteManifest(1)).success).toBe(true);
+    expect((await mockApi.applyManifest(1)).success).toBe(true);
+  });
+
+  it('should have listener methods defined', () => {
+    expect(typeof mockApi.onSetKubeconfigPath).toBe('function');
+    expect(typeof mockApi.onPluginNotification).toBe('function');
+
+    // Call them to cover the empty function bodies
+    mockApi.onSetKubeconfigPath(() => {});
+    mockApi.onPluginNotification(() => {});
+  });
 });

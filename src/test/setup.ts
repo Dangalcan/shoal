@@ -56,6 +56,9 @@ const mockElectronAPI = {
   rolloutRestart: vi.fn().mockResolvedValue({ success: true, data: undefined }),
   deleteResource: vi.fn().mockResolvedValue({ success: true, data: undefined }),
   getAppVersion: vi.fn().mockResolvedValue({ success: true, data: 'v0.1.0' }),
+  getKubeconfigPath: vi.fn().mockResolvedValue({ success: true, data: '' }),
+  setKubeconfigPath: vi.fn().mockResolvedValue({ success: true, data: true }),
+  switchContext: vi.fn().mockResolvedValue({ success: true, data: true }),
 
   // Plugin System
   getPlugins: vi.fn().mockResolvedValue({ success: true, data: [] }),
@@ -84,6 +87,21 @@ const mockElectronAPI = {
   installPlugin: vi.fn().mockResolvedValue({ success: true, data: undefined }),
   generatePlugin: vi.fn().mockResolvedValue({ success: true, data: true }),
   reloadPlugin: vi.fn().mockResolvedValue({ success: true, data: undefined }),
+  importLocalPlugin: vi
+    .fn()
+    .mockResolvedValue({ success: true, data: 'mock-id' }),
+
+  // Manifests
+  getManifests: vi.fn().mockResolvedValue({ success: true, data: [] }),
+  saveManifest: vi.fn().mockResolvedValue({ success: true, data: Date.now() }),
+  deleteManifest: vi.fn().mockResolvedValue({ success: true, data: true }),
+  applyManifest: vi
+    .fn()
+    .mockResolvedValue({ success: true, data: { stdout: '', stderr: '' } }),
+
+  // Listeners
+  onSetKubeconfigPath: vi.fn(),
+  onPluginNotification: vi.fn(),
 };
 
 // Set up window.electron before all tests

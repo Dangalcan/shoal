@@ -104,7 +104,6 @@ describe('ElectronService', () => {
     await electronService.rolloutRestart(args);
     expect(getMockApi().rolloutRestart).toHaveBeenCalledWith(args);
   });
-
   it('deleteResource calls window.electron.deleteResource', async () => {
     const args = {
       contextName: 'ctx',
@@ -114,5 +113,57 @@ describe('ElectronService', () => {
     };
     await electronService.deleteResource(args);
     expect(getMockApi().deleteResource).toHaveBeenCalledWith(args);
+  });
+
+  it('checkForPluginUpdates calls window.electron.checkForPluginUpdates', async () => {
+    await electronService.checkForPluginUpdates();
+    expect(getMockApi().checkForPluginUpdates).toHaveBeenCalled();
+  });
+
+  it('getPlugins calls window.electron.getPlugins', async () => {
+    await electronService.getPlugins();
+    expect(getMockApi().getPlugins).toHaveBeenCalled();
+  });
+
+  it('installPlugin calls window.electron.installPlugin', async () => {
+    await electronService.installPlugin('test-plugin');
+    expect(getMockApi().installPlugin).toHaveBeenCalledWith('test-plugin');
+  });
+
+  it('activatePluginLicense calls window.electron.activatePluginLicense', async () => {
+    await electronService.activatePluginLicense('test-plugin', 'license-key');
+    expect(getMockApi().activatePluginLicense).toHaveBeenCalledWith(
+      'test-plugin',
+      'license-key'
+    );
+  });
+
+  it('startPluginTrial calls window.electron.startPluginTrial', async () => {
+    await electronService.startPluginTrial('test-plugin');
+    expect(getMockApi().startPluginTrial).toHaveBeenCalledWith('test-plugin');
+  });
+
+  it('deactivatePluginLicense calls window.electron.deactivatePluginLicense', async () => {
+    await electronService.deactivatePluginLicense('test-plugin');
+    expect(getMockApi().deactivatePluginLicense).toHaveBeenCalledWith(
+      'test-plugin'
+    );
+  });
+
+  it('generatePlugin calls window.electron.generatePlugin', async () => {
+    const options = { name: 'New Plugin' };
+    await electronService.generatePlugin(options);
+    expect(getMockApi().generatePlugin).toHaveBeenCalledWith(options);
+  });
+
+  it('reloadPlugin calls window.electron.reloadPlugin', async () => {
+    await electronService.reloadPlugin('test-plugin');
+    expect(getMockApi().reloadPlugin).toHaveBeenCalledWith('test-plugin');
+  });
+
+  it('saveManifest calls window.electron.saveManifest', async () => {
+    const manifest = { content: 'yaml' };
+    await electronService.saveManifest(manifest);
+    expect(getMockApi().saveManifest).toHaveBeenCalledWith(manifest);
   });
 });

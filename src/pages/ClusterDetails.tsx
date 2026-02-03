@@ -29,7 +29,11 @@ export function ClusterDetails() {
     const navigate = useNavigate()
     
     // 1. Navigation & Namespace State
-    const [activeTab, setActiveTab] = useState<ResourceType>('pods')
+    const [activeTab, setActiveTab] = useLocalStorage<ResourceType>(
+        `cluster-tab-${name}`,
+        'pods'
+    )
+    console.log('[DEBUG] ClusterDetails Render: name=', name, 'activeTab=', activeTab, 'key=', `cluster-tab-${name}`)
     const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaces(name)
     const { deleteCluster, deleting } = useClusters()
     const [isDeletingCluster, setIsDeletingCluster] = useState(false)
@@ -50,6 +54,9 @@ export function ClusterDetails() {
         RESOURCE_CONFIGS.filter(c => !c.defaultHidden).map(c => c.id)
     )
 
+    const activeConfig = RESOURCE_CONFIGS.find(c => c.id === activeTab)
+    const defaultColumns = activeConfig?.defaultVisibleColumns || []
+
     const {
         sortConfig,
         handleSort,
@@ -59,9 +66,7 @@ export function ClusterDetails() {
         handleColumnToggle,
         resizingId,
         onResizeStart
-    } = useTableState(
-      RESOURCE_CONFIGS.find(c => c.id === activeTab)?.defaultVisibleColumns || []
-    )
+    } = useTableState(defaultColumns)
 
     // Settings UI State
     const [isSettingsOpen, setIsSettingsOpen] = useState(false)

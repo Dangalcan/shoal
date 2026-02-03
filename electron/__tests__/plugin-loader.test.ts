@@ -47,7 +47,10 @@ describe('PluginLoader', () => {
       vi.mocked(fs.readdir).mockImplementation(async (dir: any) => {
         const normalized = fixPath(dir.toString());
         if (normalized.includes('/mock/user/data/plugins')) {
-          return [{ isDirectory: () => true, name: 'plugin1' } as any];
+          return [
+            { isDirectory: () => true, name: 'plugin1' },
+            { isDirectory: () => false, name: 'somefile.txt' }, // Cover file branch
+          ] as any;
         }
         return [];
       }) as any;
@@ -59,7 +62,7 @@ describe('PluginLoader', () => {
         description: 'D',
         author: 'A',
         main: 'index.js',
-        permissions: [],
+        permissions: ['ui'],
         license: { type: 'free', spdx: 'MIT' },
       };
 
@@ -69,37 +72,78 @@ describe('PluginLoader', () => {
       expect(plugins).toHaveLength(1);
       expect(plugins[0].manifest.id).toBe('p1');
     });
+
+    it('should handle directory access failures', async () => {
+      vi.mocked(fs.access).mockRejectedValue(new Error('ENOENT'));
+      const plugins = await loader.discoverPlugins();
+      expect(plugins).toHaveLength(0);
+    });
   });
 
   describe('validateManifest', () => {
+    const baseManifest = {
+      id: 'p1',
+      name: 'P1',
+      version: '1.0.0',
+      description: 'D',
+      author: 'A',
+      main: 'index.js',
+      permissions: ['ui'],
+      license: { type: 'free', spdx: 'MIT' },
+    };
+
+    const testErr = async (m: any, err: string) => {
+      vi.mocked(fs.readFile).mockResolvedValueOnce(JSON.stringify(m));
+      const p = await loader.loadPluginFromDirectory('/p');
+      expect(p?.state).toBe('error');
+      expect(p?.error).toContain(err);
+    };
+
     it('should catch validation errors', async () => {
-      const baseManifest = {
-        id: 'p1',
-        name: 'P1',
-        version: '1.0.0',
-        description: 'D',
-        author: 'A',
-        main: 'index.js',
-        permissions: [],
-        license: { type: 'free', spdx: 'MIT' },
-      };
-
-      const testErr = async (m: any, err: string) => {
-        vi.mocked(fs.readFile).mockResolvedValueOnce(JSON.stringify(m));
-        const p = await loader.loadPluginFromDirectory('/p');
-        expect(p?.state).toBe('error');
-        expect(p?.error).toContain(err);
-      };
-
       await testErr({ ...baseManifest, id: 'bad id!' }, 'Invalid plugin ID');
       await testErr({ ...baseManifest, version: '1.0' }, 'Invalid version');
       await testErr(
         { ...baseManifest, permissions: ['bad'] },
         'Invalid permission'
       );
+    });
+
+    it('should validate missing fields', async () => {
+      // Test one missing field to cover the branch; others are similar
+      const { id, ...noId } = baseManifest;
+      await testErr(noId, 'Missing required field');
+    });
+
+    it('should validate invalid license type', async () => {
+      await testErr(
+        { ...baseManifest, license: { type: 'unknown' } },
+        'Invalid license type'
+      );
+    });
+
+    it('should validate paid plugins pricing', async () => {
       await testErr(
         { ...baseManifest, license: { type: 'paid' } },
         'pricing information'
+      );
+      await testErr(
+        { ...baseManifest, license: { type: 'paid', pricing: { price: 0 } } },
+        'Invalid pricing'
+      );
+      await testErr(
+        { ...baseManifest, license: { type: 'paid', pricing: { price: 10 } } },
+        'currency is required'
+      );
+    });
+
+    it('should validate dependencies', async () => {
+      await testErr(
+        { ...baseManifest, dependencies: { 'bad id!': '1.0.0' } },
+        'Invalid dependency ID'
+      );
+      await testErr(
+        { ...baseManifest, dependencies: { dep1: 'bad-version' } },
+        'Invalid version constraint'
       );
     });
   });
@@ -111,6 +155,47 @@ describe('PluginLoader', () => {
       expect(p).toBeNull();
     });
 
+    it('should handle signature verification failure', async () => {
+      const { signatureService } =
+        await import('../services/security/signature-service');
+      vi.mocked(signatureService.verifyPlugin).mockResolvedValueOnce(false);
+
+      const manifest = {
+        id: 'p1',
+        name: 'P1',
+        version: '1.0.0',
+        description: 'D',
+        author: 'A',
+        main: 'index.js',
+        permissions: ['ui'],
+        license: { type: 'free', spdx: 'MIT' },
+      };
+
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(manifest));
+      const p = await loader.loadPluginFromDirectory('/p');
+      expect(p?.state).toBe('error');
+      expect(p?.error).toContain('Signature verification failed');
+    });
+
+    it('should resolve existing renderer', async () => {
+      const manifest = {
+        id: 'p1',
+        name: 'P1',
+        version: '1.0.0',
+        description: 'D',
+        author: 'A',
+        main: 'index.js',
+        permissions: ['ui'],
+        license: { type: 'free', spdx: 'MIT' },
+        renderer: 'r.js',
+      };
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(manifest));
+      vi.mocked(fs.access).mockResolvedValue(undefined); // All exist
+
+      const p = await loader.loadPluginFromDirectory('/p');
+      expect(fixPath(p?.rendererEntry || '')).toContain('r.js');
+    });
+
     it('should handle optional renderer existence', async () => {
       const manifest = {
         id: 'p1',
@@ -119,7 +204,7 @@ describe('PluginLoader', () => {
         description: 'D',
         author: 'A',
         main: 'index.js',
-        permissions: [],
+        permissions: ['ui'],
         license: { type: 'free', spdx: 'MIT' },
         renderer: 'r.js',
       };
@@ -131,6 +216,128 @@ describe('PluginLoader', () => {
 
       const p = await loader.loadPluginFromDirectory('/p');
       expect(p?.rendererEntry).toBeUndefined();
+    });
+
+    it('should handle renderer styles', async () => {
+      const manifest = {
+        id: 'p1',
+        name: 'P1',
+        version: '1.0.0',
+        description: 'D',
+        author: 'A',
+        main: 'index.js',
+        permissions: ['ui'],
+        license: { type: 'free', spdx: 'MIT' },
+        styles: ['s1.css', 's2.css'],
+      };
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(manifest));
+      vi.mocked(fs.access).mockImplementation(async (p: any) => {
+        if (fixPath(p.toString()).includes('s2.css')) throw new Error('ENOENT');
+        return undefined;
+      }) as any;
+
+      const p = await loader.loadPluginFromDirectory('/p');
+      expect(p?.rendererStyles).toHaveLength(1);
+      expect(fixPath(p?.rendererStyles![0] || '')).toContain('s1.css');
+    });
+  });
+
+  describe('Lifecycle methods', () => {
+    it('loadPluginCode should load module and return it', async () => {
+      const p = { manifest: { id: 'p1', main: 'idx.js' } } as any;
+      loader.registerPlugin(p);
+
+      vi.mocked(fs.access).mockResolvedValue(undefined);
+
+      const mockModule = { start: vi.fn() };
+
+      // Surgical mock for require
+      const Module = await import('module');
+      const originalRequire = Module.default.prototype.require;
+      Module.default.prototype.require = function (id: string) {
+        if (id.endsWith('idx.js')) return mockModule;
+        return originalRequire.apply(this, arguments as any);
+      };
+
+      try {
+        const result = await loader.loadPluginCode('p1', '/p');
+        expect(result).toBe(mockModule);
+      } finally {
+        Module.default.prototype.require = originalRequire;
+      }
+    });
+
+    it('loadPluginCode should throw if plugin not registered', async () => {
+      await expect(loader.loadPluginCode('none', '/p')).rejects.toThrow(
+        'not found'
+      );
+    });
+
+    it('unloadPluginCode should remove from require cache', async () => {
+      const p = { manifest: { id: 'p1', main: 'idx.js' } } as any;
+      loader.registerPlugin(p);
+
+      const pluginPath = 'C:\\mock-plugins';
+      const mainFile = path.join(pluginPath, 'idx.js');
+
+      require.cache[mainFile] = { id: mainFile } as any;
+
+      // Use internal Module._resolveFilename to mock require.resolve globally
+      const Module = await import('module');
+      const spy = vi
+        .spyOn(Module.default as any, '_resolveFilename')
+        .mockReturnValue(mainFile);
+
+      try {
+        await loader.unloadPluginCode('p1', pluginPath);
+        expect(require.cache[mainFile]).toBeUndefined();
+      } finally {
+        spy.mockRestore();
+        delete require.cache[mainFile];
+      }
+    });
+
+    it('unloadPluginCode should do nothing if plugin not registered', async () => {
+      await loader.unloadPluginCode('none', '/p');
+    });
+
+    it('unregisterPlugin should remove from map', () => {
+      const p = { manifest: { id: 'p1' } } as any;
+      loader.registerPlugin(p);
+      expect(loader.getPlugin('p1')).toBeDefined();
+      loader.unregisterPlugin('p1');
+      expect(loader.getPlugin('p1')).toBeUndefined();
+    });
+
+    it('getAllPlugins should return all values', () => {
+      loader.registerPlugin({ manifest: { id: 'p1' } } as any);
+      loader.registerPlugin({ manifest: { id: 'p2' } } as any);
+      expect(loader.getAllPlugins()).toHaveLength(2);
+    });
+
+    it('getPluginPath should find plugin in one of paths', async () => {
+      vi.mocked(fs.access).mockImplementation(async (p: any) => {
+        if (fixPath(p.toString()).includes('/mock/user/data/plugins/p1'))
+          return undefined;
+        throw new Error();
+      }) as any;
+
+      const p = await loader.getPluginPath('p1');
+      expect(fixPath(p || '')).toContain('/mock/user/data/plugins/p1');
+
+      const pNone = await loader.getPluginPath('none');
+      expect(pNone).toBeNull();
+    });
+  });
+
+  describe('Error handling', () => {
+    it('createErrorPlugin should use defaults for missing manifest fields', () => {
+      // Accessing private method for branch coverage
+      const p = (loader as any).createErrorPlugin({}, 'Some error');
+      expect(p.manifest.id).toBe('unknown');
+      expect(p.manifest.name).toBe('Unknown Plugin');
+      expect(p.manifest.version).toBe('0.0.0');
+      expect(p.state).toBe('error');
     });
   });
 
@@ -144,6 +351,11 @@ describe('PluginLoader', () => {
 
       loader.updatePluginState('p1', 'enabled');
       expect(loader.getPlugin('p1')?.error).toBeUndefined();
+    });
+
+    it('updatePluginState should do nothing if plugin not found', () => {
+      // Should not throw
+      loader.updatePluginState('none', 'enabled');
     });
   });
 });

@@ -93,6 +93,9 @@ export function BaseModal({
       <div
         className={`base-modal-container ${className}`}
         style={style}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
         {...props}
       >
         {/* Header */}

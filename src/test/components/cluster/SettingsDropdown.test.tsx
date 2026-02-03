@@ -65,4 +65,39 @@ describe('SettingsDropdown', () => {
     fireEvent.click(nameButton!);
     expect(onToggleColumn).toHaveBeenCalledWith('name');
   });
+
+  it('filters resources based on search query', () => {
+    render(<SettingsDropdown {...defaultProps} isOpen={true} />);
+    const searchInput = screen.getByPlaceholderText('Filter resources...');
+    
+    // Type search query
+    fireEvent.change(searchInput, { target: { value: 'pods' } });
+    
+    expect(screen.getByText('Pods')).toBeInTheDocument();
+    // 'Deployments' should still be there if they match or if category is open
+    // But let's check for something that shouldn't match
+    fireEvent.change(searchInput, { target: { value: 'nonexistentresource' } });
+    expect(screen.queryByText('Pods')).not.toBeInTheDocument();
+  });
+
+  it('toggles resource categories', () => {
+    render(<SettingsDropdown {...defaultProps} isOpen={true} />);
+    
+    // Find a category header (e.g., Workloads)
+    const workloadsHeader = screen.getByText('Workloads').closest('button');
+    expect(workloadsHeader).toBeInTheDocument();
+    
+    // Initially "Pods" should be visible because Workloads is expanded by default
+    expect(screen.getByText('Pods')).toBeInTheDocument();
+    
+    // Click category header to collapse
+    fireEvent.click(workloadsHeader!);
+    
+    // Now "Pods" should be hidden
+    expect(screen.queryByText('Pods')).not.toBeInTheDocument();
+    
+    // Click again to expand
+    fireEvent.click(workloadsHeader!);
+    expect(screen.getByText('Pods')).toBeInTheDocument();
+  });
 });

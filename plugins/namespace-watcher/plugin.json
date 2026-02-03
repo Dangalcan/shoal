@@ -7,6 +7,10 @@
   "main": "index.js",
   "permissions": ["kubernetes", "ui", "storage"],
   "category": "Monitoring",
+  "license": {
+    "type": "free",
+    "spdx": "MIT"
+  },
   "price": 0,
   "icon": "https://api.iconify.design/lucide:eye.svg",
   "data": ["data/default-config.json"],
