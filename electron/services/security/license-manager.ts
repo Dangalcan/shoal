@@ -125,6 +125,7 @@ export class LicenseManager {
       }
 
       // Generate a dummy "signed" license key
+      // TODO: Externalize hardcoded license token prefix
       const activationToken = `OFFLINE-ACTIVATED-${randomUUID()}`;
 
       const licenseInfo: PluginLicenseInfo = {

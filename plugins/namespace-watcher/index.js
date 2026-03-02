@@ -19,9 +19,7 @@ module.exports = {
     context.logger.info('Preparing Namespace Watcher...');
 
     // Check if data was loaded
-    const defaultConfig = await context.storage.get(
-      'data:data/default-config.json'
-    );
+    const defaultConfig = await context.storage.get('data/data/default-config');
     if (defaultConfig) {
       context.logger.info('Default configuration loaded:', defaultConfig);
     }
@@ -213,6 +211,7 @@ async function refreshNamespaces(
     // Filter system namespaces if needed
     let filteredNamespaces = namespaces;
     if (!showSystemNamespaces) {
+      // TODO: Move system namespace filtering to configuration
       filteredNamespaces = namespaces.filter(
         (ns) =>
           !ns.metadata?.name?.startsWith('kube-') &&
@@ -236,6 +235,7 @@ async function refreshNamespaces(
     }
 
     // Update sidebar
+    // TODO: Externalize sidebar registration details
     context.ui.registerSidebarItem({
       id: 'ns-watcher-summary',
       label: `Namespaces (${count})`,
