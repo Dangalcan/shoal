@@ -4,6 +4,7 @@ import { pluginLoader } from '../services/plugins/plugin-loader';
 import { pluginRegistry } from '../services/plugins/plugin-registry';
 import { licenseManager } from '../services/security/license-manager';
 import { app } from 'electron';
+import { pathService } from '../services/plugins/path-service';
 import path from 'path';
 
 // Mock dependencies
@@ -81,6 +82,31 @@ vi.mock('../services/plugins/data-loader', () => ({
   dataLoader: {
     loadPluginData: vi.fn(() => []),
     applyDataToStorage: vi.fn(),
+  },
+}));
+
+vi.mock('../services/plugins/path-service', () => ({
+  pathService: {
+    getUserPluginsDir: vi.fn().mockReturnValue('/mock/user/plugins'),
+    getDiscoveryDirectories: vi.fn().mockReturnValue(['/mock/user/plugins', '/mock/app/plugins']),
+    resolvePluginPath: vi.fn(),
+  },
+}));
+
+vi.mock('../services/plugins/storage-service', () => ({
+  storageService: {
+    migrateFromJson: vi.fn().mockResolvedValue(undefined),
+    get: vi.fn(),
+    set: vi.fn(),
+    delete: vi.fn(),
+    clear: vi.fn(),
+  },
+}));
+
+vi.mock('../services/plugins/plugin-events', () => ({
+  pluginEventBus: {
+    emitPluginActivated: vi.fn(),
+    emitPluginDeactivated: vi.fn(),
   },
 }));
 
@@ -512,9 +538,10 @@ describe('PluginManager', () => {
       vi.mocked(pluginRegistry.getAllPlugins).mockReturnValue([]);
       vi.mocked(dependencyResolver.getDependents).mockReturnValue([]);
       vi.mocked(pluginRegistry.isPluginEnabled).mockReturnValue(false);
-      const pluginPath = path.join('/mock/user/data', 'plugins', pluginId);
+      const pluginsDir = path.resolve('/mock/user/plugins');
+      const pluginPath = path.join(pluginsDir, pluginId);
       vi.mocked(pluginLoader.getPluginPath).mockResolvedValue(pluginPath);
-      vi.mocked(app.getPath).mockReturnValue('/mock/user/data');
+      vi.mocked(pathService.getUserPluginsDir).mockReturnValue(pluginsDir);
 
       await pluginManager.uninstallPlugin(pluginId);
 
@@ -529,9 +556,9 @@ describe('PluginManager', () => {
       vi.mocked(dependencyResolver.getDependents).mockReturnValue([]);
       vi.mocked(pluginRegistry.isPluginEnabled).mockReturnValue(false);
       vi.mocked(pluginLoader.getPluginPath).mockResolvedValue(
-        '/app/bundled/plugin'
+        path.resolve('/app/bundled/plugin')
       );
-      vi.mocked(app.getPath).mockReturnValue('/mock/user/data');
+      vi.mocked(pathService.getUserPluginsDir).mockReturnValue(path.resolve('/mock/user/plugins'));
 
       await pluginManager.uninstallPlugin(pluginId);
 
@@ -906,11 +933,11 @@ describe('PluginManager', () => {
       vi.mocked(dependencyResolver.getDependents).mockReturnValue([]);
       vi.mocked(pluginRegistry.isPluginEnabled).mockReturnValue(false);
 
-      // Make sure the path matches the pattern: userDataPath/plugins/pluginId
-      const userDataPath = '/mock/user/data';
-      const pluginPath = path.join(userDataPath, 'plugins', pluginId);
+      // Make sure the path matches the pattern: pluginsDir/pluginId
+      const pluginsDir = path.resolve('/mock/user/plugins');
+      const pluginPath = path.join(pluginsDir, pluginId);
       vi.mocked(pluginLoader.getPluginPath).mockResolvedValue(pluginPath);
-      vi.mocked(app.getPath).mockReturnValue(userDataPath);
+      vi.mocked(pathService.getUserPluginsDir).mockReturnValue(pluginsDir);
 
       vi.mocked(fs.promises.rm).mockRejectedValue(new Error('Delete fail'));
       const consoleSpy = vi.spyOn(console, 'error');

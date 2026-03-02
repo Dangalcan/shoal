@@ -57,7 +57,7 @@ describe('DataLoader', () => {
 
     await dataLoader.applyDataToStorage('test-plugin', dataFiles, mockStorage);
 
-    expect(mockStorage.set).toHaveBeenCalledWith('data:data/config.json', {
+    expect(mockStorage.set).toHaveBeenCalledWith('data/data/config', {
       a: 1,
     });
   });

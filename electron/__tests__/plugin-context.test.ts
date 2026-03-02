@@ -31,13 +31,30 @@ vi.mock('electron', () => ({
 }));
 
 vi.mock('child_process', () => {
-  return {
-    default: {
-      exec: vi.fn(),
-    },
+  const mocks = {
     exec: vi.fn(),
+    spawn: vi.fn(),
+  };
+  return {
+    ...mocks,
+    default: mocks,
   };
 });
+
+vi.mock('../services/plugins/path-service', () => ({
+  pathService: {
+    getPluginStorageDir: vi.fn().mockReturnValue('/mock/user/data/plugin-storage'),
+  },
+}));
+
+vi.mock('../services/plugins/storage-service', () => ({
+  storageService: {
+    get: vi.fn(),
+    set: vi.fn(),
+    delete: vi.fn(),
+    clear: vi.fn(),
+  },
+}));
 
 // Mock win for notification test
 let mockWin: any = null;
@@ -167,10 +184,57 @@ describe('Plugin Context', () => {
       expect(res).toBe('output');
     });
 
-    it('watchResources should return a cleanup function', () => {
-      const cleanup = context.kubernetes.watchResources('pods', () => {});
-      expect(typeof cleanup).toBe('function');
+    it('watchResources should spawn kubectl with --watch and handle streaming JSON', async () => {
+      let stdoutCallback: any;
+      const watchProcessMock = {
+        stdout: { on: vi.fn((event, cb) => { if (event === 'data') stdoutCallback = cb; }) },
+        stderr: { on: vi.fn() },
+        kill: vi.fn(),
+      };
+      vi.mocked(child_process.spawn).mockReturnValue(watchProcessMock as any);
+
+      const events: any[] = [];
+      const cleanup = context.kubernetes.watchResources('pods', (e) => events.push(e));
+      
+      // Simulate partial JSON chunks
+      stdoutCallback(Buffer.from('{"kind":'));
+      stdoutCallback(Buffer.from('"Pod", "metadata": {"name": "p1"}}'));
+      
+      // Simulate multiple objects in one chunk
+      stdoutCallback(Buffer.from('{"kind": "Pod", "metadata": {"name": "p2"}}{"kind": "Pod", "metad'));
+      stdoutCallback(Buffer.from('ata": {"name": "p3"}}'));
+
+      expect(events).toHaveLength(3);
+      expect(events[0].metadata.name).toBe('p1');
+      expect(events[1].metadata.name).toBe('p2');
+      expect(events[2].metadata.name).toBe('p3');
+
       cleanup();
+      expect(watchProcessMock.kill).toHaveBeenCalled();
+    });
+
+    it('watchResources should handle JSON parse errors and stderr', () => {
+      let stdoutCallback: any;
+      let stderrCallback: any;
+      const watchProcessMock = {
+        stdout: { on: vi.fn((event, cb) => { if (event === 'data') stdoutCallback = cb; }) },
+        stderr: { on: vi.fn((event, cb) => { if (event === 'data') stderrCallback = cb; }) },
+        kill: vi.fn(),
+      };
+      vi.mocked(child_process.spawn).mockReturnValue(watchProcessMock as any);
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      context.kubernetes.watchResources('pods', () => {});
+      
+      // Invalid JSON
+      stdoutCallback(Buffer.from('{invalid}'));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to parse watch event'), expect.any(Error));
+
+      // Stderr data
+      stderrCallback(Buffer.from('error from kubectl'));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Watch error'), 'error from kubectl');
+
+      consoleErrorSpy.mockRestore();
     });
 
     it('should handle errors in all kubernetes methods', async () => {
@@ -216,9 +280,10 @@ describe('Plugin Context', () => {
       let ext = getAllPluginExtensions().get(pluginId);
       expect(ext.pages).toHaveLength(1);
 
-      context.ui.registerPage('/p2', () => 'C2');
+      context.ui.registerPage('/p1', () => 'C2'); // Update existing
       ext = getAllPluginExtensions().get(pluginId);
-      expect(ext.pages[0].route).toBe('/p2');
+      expect(ext.pages).toHaveLength(1);
+      expect(ext.pages[0].component).toContain('C2');
     });
 
     it('registerResourceAction should add and update extension', () => {
@@ -227,8 +292,9 @@ describe('Plugin Context', () => {
       let ext = getAllPluginExtensions().get(pluginId);
       expect(ext.resourceActions).toHaveLength(1);
 
-      context.ui.registerResourceAction('Pod', { ...action, label: 'L2' });
+      context.ui.registerResourceAction('Pod', { id: 'a1', label: 'L2', resourceTypes: ['Pod'] });
       ext = getAllPluginExtensions().get(pluginId);
+      expect(ext.resourceActions).toHaveLength(1);
       expect(ext.resourceActions[0].label).toBe('L2');
     });
 
@@ -252,69 +318,84 @@ describe('Plugin Context', () => {
       context.ui.showNotification('Hello', 'info');
     });
 
-    it('openModal should be callable', () => {
-      context.ui.openModal('Comp');
+    it('openModal should send IPC message', () => {
+      const sendMock = vi.fn();
+      mockWin = { webContents: { send: sendMock } };
+      
+      context.ui.openModal('MyComp', { id: 1 });
+      expect(sendMock).toHaveBeenCalledWith(
+        'plugin-modal',
+        expect.objectContaining({
+          component: 'MyComp',
+          props: { id: 1 },
+          pluginId,
+        })
+      );
     });
   });
 
   describe('Storage API', () => {
     const context = createPluginContext(pluginId, pluginPath, ['storage']);
 
-    it('get should read and parse file', async () => {
-      vi.mocked(fs.readFile).mockResolvedValue('{"a":1}');
+    it('get should call storageService', async () => {
+      const { storageService } = await import('../services/plugins/storage-service');
+      vi.mocked(storageService.get).mockReturnValue({ a: 1 });
       const res = await context.storage.get('k');
       expect(res).toEqual({ a: 1 });
+      expect(storageService.get).toHaveBeenCalledWith(pluginId, 'k');
     });
 
-    it('get should return null on error', async () => {
-      vi.mocked(fs.readFile).mockRejectedValue(new Error('ENOENT'));
-      const res = await context.storage.get('k');
-      expect(res).toBeNull();
-    });
-
-    it('set should write file', async () => {
-      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
-      vi.mocked(fs.mkdir).mockResolvedValue(undefined as any);
+    it('set should call storageService', async () => {
+      const { storageService } = await import('../services/plugins/storage-service');
       await context.storage.set('k', { a: 1 });
-      expect(fs.writeFile).toHaveBeenCalled();
+      expect(storageService.set).toHaveBeenCalledWith(pluginId, 'k', { a: 1 });
     });
 
     it('set should throw on error', async () => {
-      vi.mocked(fs.writeFile).mockRejectedValue(new Error('fail'));
+      const { storageService } = await import('../services/plugins/storage-service');
+      vi.mocked(storageService.set).mockImplementation(() => {
+        throw new Error('fail');
+      });
       await expect(context.storage.set('k', {})).rejects.toThrow(
         'Failed to save data'
       );
+
+      // Branch for non-Error object
+      vi.mocked(storageService.set).mockImplementation(() => {
+        throw 'string error';
+      });
+      await expect(context.storage.set('k', {})).rejects.toThrow(
+        'Failed to save data: string error'
+      );
     });
 
-    it('delete should remove file', async () => {
-      vi.mocked(fs.unlink).mockResolvedValue(undefined);
+    it('delete should call storageService', async () => {
+      const { storageService } = await import('../services/plugins/storage-service');
       await context.storage.delete('k');
-      expect(fs.unlink).toHaveBeenCalled();
+      expect(storageService.delete).toHaveBeenCalledWith(pluginId, 'k');
     });
 
-    it('delete should ignore ENOENT', async () => {
-      const err = new Error('not found');
-      (err as any).code = 'ENOENT';
-      vi.mocked(fs.unlink).mockRejectedValue(err);
-      await expect(context.storage.delete('k')).resolves.not.toThrow();
-    });
-
-    it('delete should throw other errors', async () => {
-      vi.mocked(fs.unlink).mockRejectedValue(new Error('fail'));
+    it('delete should throw on error', async () => {
+      const { storageService } = await import('../services/plugins/storage-service');
+      vi.mocked(storageService.delete).mockImplementation(() => {
+        throw new Error('fail');
+      });
       await expect(context.storage.delete('k')).rejects.toThrow(
         'Failed to delete data'
       );
     });
 
-    it('clear should remove all files', async () => {
-      vi.mocked(fs.readdir).mockResolvedValue(['f1'] as any);
-      vi.mocked(fs.unlink).mockResolvedValue(undefined);
+    it('clear should call storageService', async () => {
+      const { storageService } = await import('../services/plugins/storage-service');
       await context.storage.clear();
-      expect(fs.unlink).toHaveBeenCalled();
+      expect(storageService.clear).toHaveBeenCalledWith(pluginId);
     });
 
     it('clear should throw on error', async () => {
-      vi.mocked(fs.readdir).mockRejectedValue(new Error('fail'));
+      const { storageService } = await import('../services/plugins/storage-service');
+      vi.mocked(storageService.clear).mockImplementation(() => {
+        throw new Error('fail');
+      });
       await expect(context.storage.clear()).rejects.toThrow(
         'Failed to clear storage'
       );
@@ -332,10 +413,10 @@ describe('Plugin Context', () => {
         vi.spyOn(console, 'debug').mockImplementation(() => {}),
       ];
 
-      context.logger.info('i');
-      context.logger.warn('w');
-      context.logger.error('e');
-      context.logger.debug('d');
+      context.logger.info('i', 1);
+      context.logger.warn('w', 2);
+      context.logger.error('e', 3);
+      context.logger.debug('d', 4);
 
       spies.forEach((s) => expect(s).toHaveBeenCalled());
       spies.forEach((s) => s.mockRestore());
@@ -347,6 +428,8 @@ describe('Plugin Context', () => {
 
     it('should handle standard events', () => {
       const spy = vi.fn();
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
       context.events.on('e', spy);
       context.events.emit('e', 1);
       expect(spy).toHaveBeenCalledWith(1);
@@ -359,15 +442,29 @@ describe('Plugin Context', () => {
       context.events.emit('once', 3);
       context.events.emit('once', 4);
       expect(spy).toHaveBeenCalledTimes(2);
+
+      consoleSpy.mockRestore();
     });
 
-    it('should handle app hooks', () => {
+    it('should handle app hooks', async () => {
+      const { pluginEventBus } = await import('../services/plugins/plugin-events');
+      const emitSpy = vi.spyOn(pluginEventBus, 'on');
       const handler = () => {};
+      
       context.events.onClusterConnected(handler);
+      expect(emitSpy).toHaveBeenCalledWith('cluster:connected', handler);
+
       context.events.onClusterDisconnected(handler);
+      expect(emitSpy).toHaveBeenCalledWith('cluster:disconnected', handler);
+
       context.events.onResourceCreated(handler);
+      expect(emitSpy).toHaveBeenCalledWith('resource:created', handler);
+
       context.events.onResourceUpdated(handler);
+      expect(emitSpy).toHaveBeenCalledWith('resource:updated', handler);
+
       context.events.onResourceDeleted(handler);
+      expect(emitSpy).toHaveBeenCalledWith('resource:deleted', handler);
     });
   });
 
@@ -379,6 +476,13 @@ describe('Plugin Context', () => {
       expect(getAllPluginExtensions().has(pluginId)).toBe(true);
       clearPluginExtensions(pluginId);
       expect(getAllPluginExtensions().has(pluginId)).toBe(false);
+    });
+  });
+
+  describe('createDeniedAPI', () => {
+    it('should throw error when any property is accessed', () => {
+      const context = createPluginContext(pluginId, pluginPath, []);
+      expect(() => (context.kubernetes as any).anyMethod()).toThrow(/Permission denied: Plugin does not have 'kubernetes' permission/);
     });
   });
 });

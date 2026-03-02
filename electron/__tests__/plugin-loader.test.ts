@@ -19,6 +19,16 @@ vi.mock('../services/security/signature-service', () => ({
   },
 }));
 
+vi.mock('../services/plugins/path-service', () => ({
+  pathService: {
+    getDiscoveryDirectories: vi.fn().mockReturnValue([
+      '/mock/user/data/plugins',
+      '/mock/app/path/plugins'
+    ]),
+    resolvePluginPath: vi.fn(),
+  },
+}));
+
 vi.mock('fs/promises', () => {
   const mockFs = {
     readdir: vi.fn(),
@@ -315,18 +325,13 @@ describe('PluginLoader', () => {
       expect(loader.getAllPlugins()).toHaveLength(2);
     });
 
-    it('getPluginPath should find plugin in one of paths', async () => {
-      vi.mocked(fs.access).mockImplementation(async (p: any) => {
-        if (fixPath(p.toString()).includes('/mock/user/data/plugins/p1'))
-          return undefined;
-        throw new Error();
-      }) as any;
-
+    it('getPluginPath should use pathService', async () => {
+      const { pathService } = await import('../services/plugins/path-service');
+      vi.mocked(pathService.resolvePluginPath).mockResolvedValue('/mock/path');
+      
       const p = await loader.getPluginPath('p1');
-      expect(fixPath(p || '')).toContain('/mock/user/data/plugins/p1');
-
-      const pNone = await loader.getPluginPath('none');
-      expect(pNone).toBeNull();
+      expect(p).toBe('/mock/path');
+      expect(pathService.resolvePluginPath).toHaveBeenCalledWith('p1');
     });
   });
 
