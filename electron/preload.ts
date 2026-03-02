@@ -62,6 +62,11 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.on('plugin-notification', handler);
     return () => ipcRenderer.off('plugin-notification', handler);
   },
+  onPluginModal: (callback: (data: any) => void) => {
+    const handler = (_event: any, value: any) => callback(value);
+    ipcRenderer.on('plugin-modal', handler);
+    return () => ipcRenderer.off('plugin-modal', handler);
+  },
 
   // Plugin System
   getPlugins: () => ipcRenderer.invoke('get-plugins'),
