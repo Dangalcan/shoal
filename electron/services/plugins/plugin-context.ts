@@ -107,13 +107,11 @@ export function createPluginContext(
 
           console.log(`[PluginContext] ${pluginId} started watching ${type}`);
 
-          const watchProcess = spawn('kubectl', [
-            'get',
-            type,
-            '--watch',
-            '-o',
-            'json',
-          ], { shell: true });
+          const watchProcess = spawn(
+            'kubectl',
+            ['get', type, '--watch', '-o', 'json'],
+            { shell: true }
+          );
 
           let buffer = '';
 
@@ -300,7 +298,9 @@ export function createPluginContext(
           try {
             storageService.set(pluginId, key, value);
           } catch (e) {
-            throw new Error(`Failed to save data: ${e instanceof Error ? e.message : String(e)}`);
+            throw new Error(
+              `Failed to save data: ${e instanceof Error ? e.message : String(e)}`
+            );
           }
         },
 
@@ -308,7 +308,9 @@ export function createPluginContext(
           try {
             storageService.delete(pluginId, key);
           } catch (e) {
-            throw new Error(`Failed to delete data: ${e instanceof Error ? e.message : String(e)}`);
+            throw new Error(
+              `Failed to delete data: ${e instanceof Error ? e.message : String(e)}`
+            );
           }
         },
 
@@ -316,7 +318,9 @@ export function createPluginContext(
           try {
             storageService.clear(pluginId);
           } catch (e) {
-            throw new Error(`Failed to clear storage: ${e instanceof Error ? e.message : String(e)}`);
+            throw new Error(
+              `Failed to clear storage: ${e instanceof Error ? e.message : String(e)}`
+            );
           }
         },
       }
@@ -363,6 +367,27 @@ export function createPluginContext(
     emit: (event: string, ...args: any[]) => {
       emitter.emit(event, ...args);
       console.log(`[PluginContext] ${pluginId} emitted event: ${event}`);
+    },
+
+    // Cross-plugin communication
+    broadcast: (event: string, ...args: any[]) => {
+      pluginEventBus.emit(`plugin-broadcast:${event}`, {
+        sender: pluginId,
+        payload: args,
+      });
+      console.log(`[PluginContext] ${pluginId} broadcasted event: ${event}`);
+    },
+    onBroadcast: (event: string, handler: (...args: any[]) => void) => {
+      pluginEventBus.on(`plugin-broadcast:${event}`, handler);
+      console.log(
+        `[PluginContext] ${pluginId} listening to broadcast: ${event}`
+      );
+    },
+    offBroadcast: (event: string, handler: (...args: any[]) => void) => {
+      pluginEventBus.off(`plugin-broadcast:${event}`, handler);
+      console.log(
+        `[PluginContext] ${pluginId} stopped listening to broadcast: ${event}`
+      );
     },
 
     // App lifecycle hooks

@@ -284,6 +284,11 @@ export interface EventsAPI {
   // Emit events
   emit: (event: string, ...args: any[]) => void;
 
+  // Cross-plugin communication
+  broadcast: (event: string, ...args: any[]) => void;
+  onBroadcast: (event: string, handler: (...args: any[]) => void) => void;
+  offBroadcast: (event: string, handler: (...args: any[]) => void) => void;
+
   // App lifecycle hooks
   onClusterConnected: (handler: (cluster: any) => void) => void;
   onClusterDisconnected: (handler: (cluster: any) => void) => void;
