@@ -22,10 +22,12 @@ import type {
 
 // Import the cluster management service for Kubernetes operations
 import { clusterManagementService } from '../cluster/cluster-management-service';
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 import util from 'util';
 import { EventEmitter } from 'events';
 import { pluginEventBus } from './plugin-events';
+import { pathService } from './path-service';
+import { storageService } from './storage-service';
 
 const execPromise = util.promisify(exec);
 
@@ -99,9 +101,68 @@ export function createPluginContext(
         },
 
         watchResources: (type: string, callback: (event: any) => void) => {
-          // TODO: Implement resource watching
-          console.warn('[PluginContext] Resource watching not yet implemented');
-          return () => {}; // Return cleanup function
+          if (!permissions.includes('kubernetes')) {
+            throw new Error('Permission denied: kubernetes');
+          }
+
+          console.log(`[PluginContext] ${pluginId} started watching ${type}`);
+
+          const watchProcess = spawn('kubectl', [
+            'get',
+            type,
+            '--watch',
+            '-o',
+            'json',
+          ], { shell: true });
+
+          let buffer = '';
+
+          watchProcess.stdout.on('data', (data: Buffer) => {
+            buffer += data.toString();
+
+            // Kubectl outputs one full JSON object at a time for each event.
+            // We can try to parse the buffer. If it fails, we wait for more data.
+            // A simple way is to find the balance of braces.
+            let braceCount = 0;
+            let startIndex = -1;
+
+            for (let i = 0; i < buffer.length; i++) {
+              if (buffer[i] === '{') {
+                if (braceCount === 0) startIndex = i;
+                braceCount++;
+              } else if (buffer[i] === '}') {
+                braceCount--;
+                if (braceCount === 0 && startIndex !== -1) {
+                  const jsonStr = buffer.substring(startIndex, i + 1);
+                  try {
+                    const event = JSON.parse(jsonStr);
+                    callback(event);
+                  } catch (e) {
+                    console.error(
+                      `[PluginContext] Failed to parse watch event for ${pluginId}:`,
+                      e
+                    );
+                  }
+                  // Move buffer forward
+                  buffer = buffer.substring(i + 1);
+                  i = -1; // Reset loop
+                }
+              }
+            }
+          });
+
+          watchProcess.stderr.on('data', (data: Buffer) => {
+            console.error(
+              `[PluginContext] Watch error for ${pluginId} (${type}):`,
+              data.toString()
+            );
+          });
+
+          // Return cleanup function
+          return () => {
+            console.log(`[PluginContext] ${pluginId} stopped watching ${type}`);
+            watchProcess.kill();
+          };
         },
       }
     : (createDeniedAPI('kubernetes') as KubernetesAPI);
@@ -215,8 +276,15 @@ export function createPluginContext(
         },
 
         openModal: (component: any, props?: any) => {
+          const { win } = require('../../main');
+          if (win) {
+            win.webContents.send('plugin-modal', {
+              pluginId,
+              component: component.toString(),
+              props,
+            });
+          }
           console.log(`[PluginContext] Open modal from ${pluginId}`);
-          // TODO: Send to renderer
         },
       }
     : (createDeniedAPI('ui') as UIAPI);
@@ -225,53 +293,30 @@ export function createPluginContext(
   const storage: StorageAPI = permissions.includes('storage')
     ? {
         get: async <T = any>(key: string): Promise<T | null> => {
-          try {
-            const storagePath = getPluginStoragePath(pluginId);
-            const filePath = path.join(storagePath, `${key}.json`);
-            const data = await fs.readFile(filePath, 'utf-8');
-            return JSON.parse(data) as T;
-          } catch (error) {
-            return null;
-          }
+          return storageService.get(pluginId, key);
         },
 
         set: async <T = any>(key: string, value: T): Promise<void> => {
           try {
-            const storagePath = getPluginStoragePath(pluginId);
-            await fs.mkdir(storagePath, { recursive: true });
-            const filePath = path.join(storagePath, `${key}.json`);
-            await fs.writeFile(
-              filePath,
-              JSON.stringify(value, null, 2),
-              'utf-8'
-            );
-          } catch (error: any) {
-            throw new Error(`Failed to save data: ${error.message}`);
+            storageService.set(pluginId, key, value);
+          } catch (e) {
+            throw new Error(`Failed to save data: ${e instanceof Error ? e.message : String(e)}`);
           }
         },
 
         delete: async (key: string): Promise<void> => {
           try {
-            const storagePath = getPluginStoragePath(pluginId);
-            const filePath = path.join(storagePath, `${key}.json`);
-            await fs.unlink(filePath);
-          } catch (error: any) {
-            // Ignore if file doesn't exist
-            if (error.code !== 'ENOENT') {
-              throw new Error(`Failed to delete data: ${error.message}`);
-            }
+            storageService.delete(pluginId, key);
+          } catch (e) {
+            throw new Error(`Failed to delete data: ${e instanceof Error ? e.message : String(e)}`);
           }
         },
 
         clear: async (): Promise<void> => {
           try {
-            const storagePath = getPluginStoragePath(pluginId);
-            const files = await fs.readdir(storagePath);
-            for (const file of files) {
-              await fs.unlink(path.join(storagePath, file));
-            }
-          } catch (error: any) {
-            throw new Error(`Failed to clear storage: ${error.message}`);
+            storageService.clear(pluginId);
+          } catch (e) {
+            throw new Error(`Failed to clear storage: ${e instanceof Error ? e.message : String(e)}`);
           }
         },
       }
@@ -380,12 +425,12 @@ function createDeniedAPI(apiName: string): any {
  * Get plugin storage path
  */
 function getPluginStoragePath(pluginId: string): string {
-  const userDataPath = app.getPath('userData');
-  return path.join(userDataPath, 'plugin-storage', pluginId);
+  return pathService.getPluginStorageDir(pluginId);
 }
 
 /**
  * In-memory storage for plugin extensions (temporary)
+ * // TODO: Replace in-memory registry with a persistent database
  * TODO: Move to proper registry
  */
 const pluginExtensionsMap = new Map<string, any>();
