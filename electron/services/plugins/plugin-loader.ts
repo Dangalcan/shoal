@@ -7,8 +7,8 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import { app } from 'electron';
 import semver from 'semver';
+import { pathService } from './path-service';
 import type {
   PluginManifest,
   Plugin,
@@ -28,15 +28,7 @@ export class PluginLoader {
    * Initialize plugin discovery directories
    */
   private initializePluginDirectories(): void {
-    const userDataPath = app.getPath('userData');
-
-    this.pluginDirectories = [
-      // User-installed plugins
-      path.join(userDataPath, 'plugins'),
-      // Bundled plugins (in app directory)
-      path.join(app.getAppPath(), 'plugins'),
-    ];
-
+    this.pluginDirectories = pathService.getDiscoveryDirectories();
     console.log('[PluginLoader] Plugin directories:', this.pluginDirectories);
   }
 
@@ -281,8 +273,9 @@ export class PluginLoader {
       // Check if file exists
       await fs.access(mainFile);
 
-      // Load the plugin module
-      // Note: Using require for now, but should implement proper sandboxing
+      // Load the plugin module.
+      // We use require() to provide developers with a permissive environment, 
+      // allowing full access to Node.js primitives and application core logic.
       const pluginModule = require(mainFile);
 
       return pluginModule;
@@ -373,17 +366,7 @@ export class PluginLoader {
    * Get plugin installation path by checking all configured directories
    */
   async getPluginPath(pluginId: string): Promise<string | null> {
-    for (const directory of this.pluginDirectories) {
-      const pluginPath = path.join(directory, pluginId);
-      try {
-        await fs.access(pluginPath);
-        return pluginPath;
-      } catch {
-        // Continue to next directory if not found
-        continue;
-      }
-    }
-    return null;
+    return await pathService.resolvePluginPath(pluginId);
   }
 }
 

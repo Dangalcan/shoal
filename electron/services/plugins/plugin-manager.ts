@@ -13,11 +13,13 @@ import {
   getAllPluginExtensions,
   clearPluginExtensions,
 } from './plugin-context';
+import { storageService } from './storage-service';
 import { licenseManager } from '../security/license-manager';
 import { marketplaceService } from '../marketplace/marketplace-service';
 import { dependencyResolver } from './dependency-resolver';
 import { dataLoader } from './data-loader';
 import { pluginEventBus } from './plugin-events';
+import { pathService } from './path-service';
 import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
@@ -335,6 +337,9 @@ export class PluginManager {
         plugin.manifest.permissions || []
       );
 
+      // Migrate legacy JSON storage to SQLite
+      await storageService.migrateFromJson(pluginId);
+
       // Load data files
       try {
         const dataFiles = await dataLoader.loadPluginData(
@@ -633,9 +638,12 @@ export class PluginManager {
         );
       if (pluginPath) {
         const userDataPath = app.getPath('userData');
-        const pluginsDir = path.join(userDataPath, 'plugins');
+        const pluginsDir = path.resolve(pathService.getUserPluginsDir());
+        const absPluginPath = path.resolve(pluginPath);
+        const relative = path.relative(pluginsDir, absPluginPath);
+        const isUserPlugin = !relative.startsWith('..') && !path.isAbsolute(relative);
 
-        if (pluginPath.startsWith(pluginsDir)) {
+        if (isUserPlugin) {
           await fs.promises.rm(pluginPath, { recursive: true, force: true });
           console.log(`[PluginManager] Deleted files for plugin ${pluginId}`);
         } else {
@@ -676,10 +684,8 @@ export class PluginManager {
         throw new Error('Invalid manifest: missing plugin ID');
       }
 
-      // 3. Determine install path
-      // We use the first configured directory which is usually userData/plugins
-      const installDir = pluginLoader['pluginDirectories'][0];
-      const targetPath = path.join(installDir, manifest.id);
+      // Determine install path (usually userData/plugins)
+      const targetPath = path.join(pathService.getUserPluginsDir(), manifest.id);
 
       // 4. Check if already exists
       try {

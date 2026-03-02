@@ -20,23 +20,40 @@ export function PluginRuntime() {
   const { plugins } = usePlugins();
   const loadedScripts = useRef<Map<string, PluginScriptState>>(new Map());
 
-  // Handle Notifications
+  // Handle Notifications & Modals
   useEffect(() => {
-    if (window.electron?.onPluginNotification) {
-      const cleanup = window.electron.onPluginNotification((data: any) => {
-        const { message, type, pluginId } = data;
-        const plugin = plugins.find(p => p.manifest.id === pluginId);
-        const name = plugin ? plugin.manifest.name : pluginId;
-        
-        switch (type) {
-          case 'success': toast.success(message, { description: `From: ${name}` }); break;
-          case 'error': toast.error(message, { description: `From: ${name}` }); break;
-          case 'warning': toast.warning(message, { description: `From: ${name}` }); break;
-          default: toast.info(message, { description: `From: ${name}` });
-        }
+    const electron = window.electron;
+    if (!electron) return;
+
+    const cleanupNotification = electron.onPluginNotification((data: any) => {
+      const { message, type, pluginId } = data;
+      const plugin = plugins.find(p => p.manifest.id === pluginId);
+      const name = plugin ? plugin.manifest.name : pluginId;
+      
+      switch (type) {
+        case 'success': toast.success(message, { description: `From: ${name}` }); break;
+        case 'error': toast.error(message, { description: `From: ${name}` }); break;
+        case 'warning': toast.warning(message, { description: `From: ${name}` }); break;
+        default: toast.info(message, { description: `From: ${name}` });
+      }
+    });
+
+    const cleanupModal = electron.onPluginModal((data: any) => {
+      const { component, props, pluginId } = data;
+      const plugin = plugins.find(p => p.manifest.id === pluginId);
+      const name = plugin ? plugin.manifest.name : pluginId;
+      
+      console.log(`[PluginRuntime] Modal requested from ${name}:`, component, props);
+      toast.info(`Modal requested by ${name}`, { 
+        description: `Component: ${component}. (UI integration pending full renderer registry)`,
+        duration: 5000 
       });
-      return cleanup;
-    }
+    });
+
+    return () => {
+      cleanupNotification();
+      cleanupModal();
+    };
   }, [plugins]);
 
   // Dynamic Plugin Loading
