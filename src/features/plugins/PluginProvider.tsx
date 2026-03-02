@@ -60,31 +60,36 @@ export function PluginProvider({ children }: PluginProviderProps) {
     }
   };
 
-  const enablePlugin = async (pluginId: string) => {
+  const handleActionResult = async (
+    action: () => Promise<{ success: boolean; data?: any; error?: string }>,
+    defaultError: string,
+    refreshOnSuccess = true
+  ) => {
     try {
-      const result = await api.enablePlugin(pluginId);
+      const result = await action();
       if (result.success) {
-        await refreshPlugins();
-      } else {
-        throw new Error(result.error || 'Failed to enable plugin');
+        if (refreshOnSuccess) {
+          await refreshPlugins();
+        }
+        return result.data;
       }
+      throw new Error(result.error || defaultError);
     } catch (err: any) {
-      throw new Error(err.message || 'Failed to enable plugin');
+      throw new Error(err.message || defaultError);
     }
   };
 
-  const disablePlugin = async (pluginId: string) => {
-    try {
-      const result = await api.disablePlugin(pluginId);
-      if (result.success) {
-        await refreshPlugins();
-      } else {
-        throw new Error(result.error || 'Failed to disable plugin');
-      }
-    } catch (err: any) {
-      throw new Error(err.message || 'Failed to disable plugin');
-    }
-  };
+  const enablePlugin = (pluginId: string) => handleActionResult(() => api.enablePlugin(pluginId), 'Failed to enable plugin');
+  const disablePlugin = (pluginId: string) => handleActionResult(() => api.disablePlugin(pluginId), 'Failed to disable plugin');
+  const executePluginAction = (pluginId: string, actionId: string, args?: any) => handleActionResult(() => api.executePluginAction(pluginId, actionId, args), 'Failed to execute plugin action', false);
+  const activateLicense = (pluginId: string, key: string) => handleActionResult(() => api.activatePluginLicense(pluginId, key), 'Failed to activate license');
+  const startTrial = (pluginId: string) => handleActionResult(() => api.startPluginTrial(pluginId), 'Failed to start trial');
+  const deactivateLicense = (pluginId: string) => handleActionResult(() => api.deactivatePluginLicense(pluginId), 'Failed to deactivate license');
+  const installPlugin = (pluginId: string) => handleActionResult(() => api.installPlugin(pluginId), 'Failed to install plugin');
+  const saveSettings = (pluginId: string, settings: Record<string, any>) => handleActionResult(() => api.setPluginSettings(pluginId, settings), 'Failed to save settings', false);
+  const generatePlugin = (options: any) => handleActionResult(() => api.generatePlugin(options), 'Failed to generate plugin');
+  const reloadPlugin = (pluginId: string) => handleActionResult(() => api.reloadPlugin(pluginId), 'Failed to reload plugin');
+  const uninstallPlugin = (pluginId: string) => handleActionResult(() => api.uninstallPlugin(pluginId), 'Failed to uninstall plugin');
 
   const getPluginExtensions = async (extensionPoint?: string) => {
     try {
@@ -96,71 +101,6 @@ export function PluginProvider({ children }: PluginProviderProps) {
     } catch (err) {
       console.error('Failed to get plugin extensions:', err);
       return [];
-    }
-  };
-
-  const executePluginAction = async (pluginId: string, actionId: string, args?: any) => {
-    try {
-      const result = await api.executePluginAction(pluginId, actionId, args);
-      if (result.success) {
-        return result.data;
-      } else {
-        throw new Error(result.error || 'Failed to execute plugin action');
-      }
-    } catch (err: any) {
-      throw new Error(err.message || 'Failed to execute plugin action');
-    }
-  };
-
-  const activateLicense = async (pluginId: string, key: string) => {
-    try {
-      const result = await api.activatePluginLicense(pluginId, key);
-      if (result.success) {
-        await refreshPlugins();
-      } else {
-        throw new Error(result.error || 'Failed to activate license');
-      }
-    } catch (err: any) {
-      throw new Error(err.message || 'Failed to activate license');
-    }
-  };
-
-  const startTrial = async (pluginId: string) => {
-    try {
-      const result = await api.startPluginTrial(pluginId);
-      if (result.success) {
-        await refreshPlugins();
-      } else {
-        throw new Error(result.error || 'Failed to start trial');
-      }
-    } catch (err: any) {
-      throw new Error(err.message || 'Failed to start trial');
-    }
-  };
-
-  const deactivateLicense = async (pluginId: string) => {
-    try {
-      const result = await api.deactivatePluginLicense(pluginId);
-      if (result.success) {
-        await refreshPlugins();
-      } else {
-        throw new Error(result.error || 'Failed to deactivate license');
-      }
-    } catch (err: any) {
-      throw new Error(err.message || 'Failed to deactivate license');
-    }
-  };
-
-  const installPlugin = async (pluginId: string) => {
-    try {
-      const result = await api.installPlugin(pluginId);
-      if (result.success) {
-        await refreshPlugins();
-      } else {
-        throw new Error(result.error || 'Failed to install plugin');
-      }
-    } catch (err: any) {
-      throw new Error(err.message || 'Failed to install plugin');
     }
   };
 
@@ -177,64 +117,12 @@ export function PluginProvider({ children }: PluginProviderProps) {
     }
   };
 
-  const saveSettings = async (pluginId: string, settings: Record<string, any>) => {
-    try {
-      const result = await api.setPluginSettings(pluginId, settings);
-      if (result.success) {
-        // Maybe refresh plugins if settings affect state?
-      } else {
-        throw new Error(result.error || 'Failed to save settings');
-      }
-    } catch (err: any) {
-      throw new Error(err.message || 'Failed to save settings');
-    }
-  };
-
   const checkForUpdates = async () => {
     try {
       await api.checkForPluginUpdates();
       await refreshPlugins();
     } catch (err) {
       console.error('Failed to check for updates:', err);
-    }
-  };
-
-  const generatePlugin = async (options: any) => {
-    try {
-      const result = await api.generatePlugin(options);
-      if (result.success) {
-        await refreshPlugins();
-      } else {
-        throw new Error(result.error || 'Failed to generate plugin');
-      }
-    } catch (err: any) {
-      throw new Error(err.message || 'Failed to generate plugin');
-    }
-  };
-
-  const reloadPlugin = async (pluginId: string) => {
-    try {
-      const result = await api.reloadPlugin(pluginId);
-      if (result.success) {
-        await refreshPlugins();
-      } else {
-        throw new Error(result.error || 'Failed to reload plugin');
-      }
-    } catch (err: any) {
-      throw new Error(err.message || 'Failed to reload plugin');
-    }
-  };
-
-  const uninstallPlugin = async (pluginId: string) => {
-    try {
-      const result = await api.uninstallPlugin(pluginId);
-      if (result.success) {
-        await refreshPlugins();
-      } else {
-        throw new Error(result.error || 'Failed to uninstall plugin');
-      }
-    } catch (err: any) {
-      throw new Error(err.message || 'Failed to uninstall plugin');
     }
   };
 

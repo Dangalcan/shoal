@@ -1,5 +1,5 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { PluginProvider, usePlugins, useEnabledPlugins } from '../../../features/plugins/PluginProvider';
+import { PluginProvider, usePlugins, useEnabledPlugins, usePluginExtensions } from '../../../features/plugins/PluginProvider';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 
@@ -41,6 +41,8 @@ describe('PluginProvider', () => {
     checkForPluginUpdates: vi.fn(),
     generatePlugin: vi.fn(),
     reloadPlugin: vi.fn(),
+    uninstallPlugin: vi.fn(),
+    importLocalPlugin: vi.fn(),
   };
 
   beforeEach(() => {
@@ -107,6 +109,16 @@ describe('PluginProvider', () => {
     expect(screen.queryByTestId('plugin-item')).toBeNull();
     
     spy.mockRestore();
+  });
+
+  it('should handle getPlugins returning false without error message', async () => {
+    mockApi.getPlugins.mockResolvedValue({ success: false });
+    render(
+      <PluginProvider>
+        <TestComponent />
+      </PluginProvider>
+    );
+    await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull());
   });
 
   it('should enable a plugin', async () => {
@@ -254,6 +266,17 @@ describe('PluginProvider', () => {
     spy.mockRestore();
   });
 
+  it('should return empty array when extensions are missing/failed', async () => {
+    mockApi.getPluginExtensions.mockResolvedValue({ success: true, data: null });
+    render(
+      <PluginProvider>
+        <ExtensionsConsumer extensionPoint="test-point" />
+      </PluginProvider>
+    );
+    await waitFor(() => expect(mockApi.getPluginExtensions).toHaveBeenCalledWith('test-point'));
+    await waitFor(() => expect(screen.getByText('Found: 0')).toBeDefined());
+  });
+
   describe('License Management', () => {
     it('should activate license', async () => {
       mockApi.activatePluginLicense.mockResolvedValue({ success: true });
@@ -382,6 +405,53 @@ describe('PluginProvider', () => {
     await waitFor(() => expect(mockApi.getPlugins).toHaveBeenCalled());
   });
 
+  it('should uninstall plugin', async () => {
+    mockApi.uninstallPlugin.mockResolvedValue({ success: true });
+    
+    render(
+      <PluginProvider>
+        <PluginProviderTestConsumer action="uninstallPlugin" pluginId="uninstall-me" />
+      </PluginProvider>
+    );
+    
+    await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull());
+    fireEvent.click(screen.getByText('Action'));
+    
+    await waitFor(() => expect(mockApi.uninstallPlugin).toHaveBeenCalledWith('uninstall-me'));
+    await waitFor(() => expect(mockApi.getPlugins).toHaveBeenCalled());
+  });
+
+  it('should import local plugin with data', async () => {
+    mockApi.importLocalPlugin.mockResolvedValue({ success: true, data: 'imported-id' });
+    
+    render(
+      <PluginProvider>
+        <PluginProviderTestConsumer action="importLocalPlugin" />
+      </PluginProvider>
+    );
+    
+    await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull());
+    fireEvent.click(screen.getByText('Action'));
+    
+    await waitFor(() => expect(mockApi.importLocalPlugin).toHaveBeenCalled());
+    await waitFor(() => expect(mockApi.getPlugins).toHaveBeenCalled());
+  });
+
+  it('should import local plugin returning no data (cancelled)', async () => {
+    mockApi.importLocalPlugin.mockResolvedValue({ success: true, data: null });
+    
+    render(
+      <PluginProvider>
+        <PluginProviderTestConsumer action="importLocalPlugin" />
+      </PluginProvider>
+    );
+    
+    await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull());
+    fireEvent.click(screen.getByText('Action'));
+    
+    await waitFor(() => expect(mockApi.importLocalPlugin).toHaveBeenCalled());
+  });
+
   describe('Error Path Coverage', () => {
     const errorMsg = 'Operation failed';
 
@@ -457,6 +527,31 @@ describe('PluginProvider', () => {
       await waitFor(() => expect(mockApi.setPluginSettings).toHaveBeenCalled());
     });
 
+    it('should handle uninstall failure', async () => {
+      mockApi.uninstallPlugin.mockResolvedValue({ success: false, error: 'fail' });
+      render(<PluginProvider><PluginProviderTestConsumer action="uninstallPlugin" pluginId="test" /></PluginProvider>);
+      await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull());
+      fireEvent.click(screen.getByText('Action'));
+      await waitFor(() => expect(mockApi.uninstallPlugin).toHaveBeenCalled());
+    });
+
+    it('should handle import failure', async () => {
+      mockApi.importLocalPlugin.mockResolvedValue({ success: false, error: 'fail' });
+      render(<PluginProvider><PluginProviderTestConsumer action="importLocalPlugin" /></PluginProvider>);
+      await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull());
+      fireEvent.click(screen.getByText('Action'));
+      await waitFor(() => expect(mockApi.importLocalPlugin).toHaveBeenCalled());
+    });
+
+    it('should handle missing error messages', async () => {
+      // Branch coverage for missing result.error string
+      mockApi.enablePlugin.mockResolvedValue({ success: false });
+      render(<PluginProvider><PluginProviderTestConsumer action="enable" pluginId="test" /></PluginProvider>);
+      await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull());
+      fireEvent.click(screen.getByText('Action'));
+      await waitFor(() => expect(mockApi.enablePlugin).toHaveBeenCalled());
+    });
+
     it('should handle get extensions exception', async () => {
       mockApi.getPluginExtensions.mockRejectedValue(new Error('crash'));
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -470,6 +565,15 @@ describe('PluginProvider', () => {
       await waitFor(() => expect(mockApi.getPluginExtensions).toHaveBeenCalled());
       // The component catches the error and sets state, so it shouldn't crash the renderer
       await waitFor(() => expect(screen.getByText('Found: 0')).toBeDefined());
+      spy.mockRestore();
+    });
+
+    it('should handle get settings exception', async () => {
+      mockApi.getPluginSettings.mockRejectedValue(new Error('crash'));
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      render(<PluginProvider><SettingsConsumer pluginId="test" /></PluginProvider>);
+      await waitFor(() => expect(mockApi.getPluginSettings).toHaveBeenCalled());
+      await waitFor(() => expect(screen.getByText('No settings')).toBeDefined());
       spy.mockRestore();
     });
 
@@ -503,6 +607,17 @@ describe('PluginProvider', () => {
       await waitFor(() => expect(screen.getByTestId('enabled-count').textContent).toBe('1'));
     });
 
+    it('usePluginExtensions should fetch extensions', async () => {
+      mockApi.getPluginExtensions.mockResolvedValue({ success: true, data: [{ id: 'e1' }] });
+      const HookTest = () => {
+        // Need to import usePluginExtensions from Provider
+        const exts = usePluginExtensions('hook-point');
+        return <div data-testid="ext-count">{exts.length}</div>;
+      };
+      render(<PluginProvider><HookTest /></PluginProvider>);
+      await waitFor(() => expect(screen.getByTestId('ext-count').textContent).toBe('1'));
+    });
+
     it('usePlugins should throw outside provider', () => {
       const HookTest = () => {
         usePlugins();
@@ -522,7 +637,7 @@ const PluginProviderTestConsumer = ({ action, pluginId }: { action: string, plug
   const { 
     loading, enablePlugin, disablePlugin, installPlugin, checkForUpdates,
     executePluginAction, activateLicense, deactivateLicense, startTrial,
-    saveSettings, generatePlugin, reloadPlugin
+    saveSettings, generatePlugin, reloadPlugin, uninstallPlugin, importLocalPlugin
   } = usePlugins();
   
   if (loading) return <div>Loading...</div>;
@@ -540,6 +655,8 @@ const PluginProviderTestConsumer = ({ action, pluginId }: { action: string, plug
       if (action === 'saveSettings') await saveSettings(pluginId!, { active: true });
       if (action === 'generatePlugin') await generatePlugin({ name: 'test' });
       if (action === 'reloadPlugin') await reloadPlugin(pluginId!);
+      if (action === 'uninstallPlugin') await uninstallPlugin(pluginId!);
+      if (action === 'importLocalPlugin') await importLocalPlugin();
     } catch (e) {
       // Ignore errors for tests that expect failure unless verified specifically
     }
