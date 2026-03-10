@@ -1,6 +1,6 @@
 /**
  * Storage Service
- * 
+ *
  * Provides a robust SQLite-backed key-value store for plugins.
  * Handles migration from legacy JSON storage.
  */
@@ -35,7 +35,10 @@ export class StorageService {
       )
     `);
 
-    console.log('[StorageService] Plugin storage database initialized at', dbPath);
+    console.log(
+      '[StorageService] Plugin storage database initialized at',
+      dbPath
+    );
   }
 
   /**
@@ -51,7 +54,9 @@ export class StorageService {
     try {
       return JSON.parse(row.value);
     } catch (e) {
-      console.error(`[StorageService] Failed to parse value for ${pluginId}:${key}`);
+      console.error(
+        `[StorageService] Failed to parse value for ${pluginId}:${key}`
+      );
       return null;
     }
   }
@@ -61,13 +66,15 @@ export class StorageService {
    */
   set(pluginId: string, key: string, value: any): void {
     const valueStr = JSON.stringify(value);
-    this.db!.prepare(`
+    this.db!.prepare(
+      `
       INSERT INTO plugin_kv (plugin_id, key, value, updated_at)
       VALUES (?, ?, ?, CURRENT_TIMESTAMP)
       ON CONFLICT(plugin_id, key) DO UPDATE SET
         value = excluded.value,
         updated_at = CURRENT_TIMESTAMP
-    `).run(pluginId, key, valueStr);
+    `
+    ).run(pluginId, key, valueStr);
   }
 
   /**
@@ -83,9 +90,28 @@ export class StorageService {
    * Clear all storage for a plugin
    */
   clear(pluginId: string): void {
-    this.db!.prepare(
-      'DELETE FROM plugin_kv WHERE plugin_id = ?'
-    ).run(pluginId);
+    this.db!.prepare('DELETE FROM plugin_kv WHERE plugin_id = ?').run(pluginId);
+  }
+
+  /**
+   * Get a specific key across all plugins (returns a Map of pluginId -> value)
+   */
+  getAllByKey(key: string): Map<string, any> {
+    const rows = this.db!.prepare(
+      'SELECT plugin_id, value FROM plugin_kv WHERE key = ?'
+    ).all(key) as { plugin_id: string; value: string }[];
+
+    const result = new Map<string, any>();
+    for (const row of rows) {
+      try {
+        result.set(row.plugin_id, JSON.parse(row.value));
+      } catch (e) {
+        console.error(
+          `[StorageService] Failed to parse value for ${row.plugin_id}:${key}`
+        );
+      }
+    }
+    return result;
   }
 
   /**
@@ -93,14 +119,16 @@ export class StorageService {
    */
   async migrateFromJson(pluginId: string): Promise<void> {
     const storagePath = pathService.getPluginStorageDir(pluginId);
-    
+
     try {
       const files = await fs.readdir(storagePath);
-      const jsonFiles = files.filter(f => f.endsWith('.json'));
+      const jsonFiles = files.filter((f) => f.endsWith('.json'));
 
       if (jsonFiles.length === 0) return;
 
-      console.log(`[StorageService] Migrating ${jsonFiles.length} keys for ${pluginId}...`);
+      console.log(
+        `[StorageService] Migrating ${jsonFiles.length} keys for ${pluginId}...`
+      );
 
       for (const file of jsonFiles) {
         const key = path.basename(file, '.json');
@@ -108,20 +136,26 @@ export class StorageService {
           const filePath = path.join(storagePath, file);
           const content = await fs.readFile(filePath, 'utf-8');
           const value = JSON.parse(content);
-          
+
           this.set(pluginId, key, value);
-          
+
           // Rename the file to .json.bak instead of deleting immediately for safety
           await fs.rename(filePath, `${filePath}.bak`);
         } catch (e: any) {
-          console.error(`[StorageService] Migration failed for ${pluginId}:${file}`, e.message);
+          console.error(
+            `[StorageService] Migration failed for ${pluginId}:${file}`,
+            e.message
+          );
         }
       }
-      
+
       console.log(`[StorageService] Migration completed for ${pluginId}`);
     } catch (error: any) {
       if (error.code !== 'ENOENT') {
-        console.error(`[StorageService] Migration error for ${pluginId}:`, error.message);
+        console.error(
+          `[StorageService] Migration error for ${pluginId}:`,
+          error.message
+        );
       }
     }
   }
