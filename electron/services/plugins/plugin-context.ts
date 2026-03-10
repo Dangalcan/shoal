@@ -5,9 +5,6 @@
  * Provides kubernetes, UI, storage, logging, and event APIs to plugins.
  */
 
-import path from 'path';
-import fs from 'fs/promises';
-import { app } from 'electron';
 import type {
   PluginContext,
   KubernetesAPI,
@@ -20,17 +17,10 @@ import type {
   PageExtension,
 } from '../../types/plugin-types';
 
-// Import the cluster management service for Kubernetes operations
-import { clusterManagementService } from '../cluster/cluster-management-service';
-import { exec, spawn } from 'child_process';
-import util from 'util';
+import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
 import { pluginEventBus } from './plugin-events';
-import { pathService } from './path-service';
 import { storageService } from './storage-service';
-
-const execPromise = util.promisify(exec);
-
 import { kubernetesService } from '../kubernetes/kubernetes-service';
 
 /**
@@ -105,13 +95,20 @@ export function createPluginContext(
             throw new Error('Permission denied: kubernetes');
           }
 
+          // Validate resource type to prevent command injection
+          if (!/^[a-zA-Z0-9.\-/]+$/.test(type)) {
+            throw new Error(`Invalid resource type: "${type}"`);
+          }
+
           console.log(`[PluginContext] ${pluginId} started watching ${type}`);
 
-          const watchProcess = spawn(
-            'kubectl',
-            ['get', type, '--watch', '-o', 'json'],
-            { shell: true }
-          );
+          const watchProcess = spawn('kubectl', [
+            'get',
+            type,
+            '--watch',
+            '-o',
+            'json',
+          ]);
 
           let buffer = '';
 
@@ -447,31 +444,23 @@ function createDeniedAPI(apiName: string): any {
 }
 
 /**
- * Get plugin storage path
+ * Persistent registry for plugin extensions backed by SQLite via StorageService.
+ * Uses a reserved storage key scoped to each plugin.
  */
-function getPluginStoragePath(pluginId: string): string {
-  return pathService.getPluginStorageDir(pluginId);
-}
-
-/**
- * In-memory storage for plugin extensions (temporary)
- * // TODO: Replace in-memory registry with a persistent database
- * TODO: Move to proper registry
- */
-const pluginExtensionsMap = new Map<string, any>();
+const EXTENSIONS_STORAGE_KEY = '__extensions__';
 
 function getPluginExtensions(pluginId: string): any {
-  return pluginExtensionsMap.get(pluginId) || {};
+  return storageService.get(pluginId, EXTENSIONS_STORAGE_KEY) || {};
 }
 
 function savePluginExtensions(pluginId: string, extensions: any): void {
-  pluginExtensionsMap.set(pluginId, extensions);
+  storageService.set(pluginId, EXTENSIONS_STORAGE_KEY, extensions);
 }
 
 export function clearPluginExtensions(pluginId: string): void {
-  pluginExtensionsMap.delete(pluginId);
+  storageService.delete(pluginId, EXTENSIONS_STORAGE_KEY);
 }
 
 export function getAllPluginExtensions(): Map<string, any> {
-  return pluginExtensionsMap;
+  return storageService.getAllByKey(EXTENSIONS_STORAGE_KEY);
 }
