@@ -8,17 +8,19 @@
 import { randomUUID } from 'crypto';
 import { machineIdSync } from 'node-machine-id';
 import { pluginRegistry } from '../plugins/plugin-registry';
-import type {
-  PluginLicenseInfo,
-  Plugin,
-  PluginLicenseType,
-} from '../../types/plugin-types';
+import type { PluginLicenseInfo } from '../../types/plugin-types';
 
 export interface LicenseValidationResult {
   valid: boolean;
   error?: string;
   licenseInfo?: PluginLicenseInfo;
 }
+
+const LICENSE_TOKEN_PREFIX = 'OFFLINE-ACTIVATED-';
+
+const TRIAL_DURATION_DAYS = 14;
+const GRACE_PERIOD_DAYS = 7;
+const REVERIFICATION_INTERVAL_HOURS = 24;
 
 export class LicenseManager {
   /**
@@ -72,9 +74,6 @@ export class LicenseManager {
     }
 
     // --- Offline Grace Period Logic ---
-    const GRACE_PERIOD_DAYS = 7;
-    const REVERIFICATION_INTERVAL_HOURS = 24;
-
     const lastVerified = licenseInfo.lastVerifiedAt
       ? new Date(licenseInfo.lastVerifiedAt)
       : new Date(licenseInfo.activatedAt || 0);
@@ -115,33 +114,54 @@ export class LicenseManager {
         `[LicenseManager] Activating license for ${pluginId} with key ${licenseKey}...`
       );
 
-      // Simulate network delay for realism
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      // In a real offline scenario, we would verify a cryptographic signature here.
-      // For now, we simulate a successful activation if the key format is valid-ish.
       if (!licenseKey || licenseKey.length < 5) {
         throw new Error('Invalid license key format');
       }
 
-      // Generate a dummy "signed" license key
-      // TODO: Externalize hardcoded license token prefix
-      const activationToken = `OFFLINE-ACTIVATED-${randomUUID()}`;
+      const backendUrl = process.env.MARKETPLACE_BACKEND_URL;
+      let activationToken: string;
+      let isTrialActive = licenseKey === 'TRIAL-REQUEST';
+
+      if (backendUrl) {
+        // Real backend activation
+        const response = await fetch(`${backendUrl}/licenses/activate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pluginId, machineId: mId, licenseKey }),
+        });
+        if (!response.ok) {
+          const err = await response
+            .json()
+            .catch(() => ({ error: `HTTP ${response.status}` }));
+          throw new Error(err.error || `Activation failed: ${response.status}`);
+        }
+        const result = await response.json();
+        activationToken = result.licenseKey;
+        isTrialActive = result.type === 'trial';
+        console.log(
+          `[LicenseManager] Backend activation succeeded for ${pluginId}`
+        );
+      } else {
+        // Offline fallback
+        console.warn(
+          `[LicenseManager] MARKETPLACE_BACKEND_URL not set — using offline activation for ${pluginId}`
+        );
+        activationToken = `${LICENSE_TOKEN_PREFIX}${randomUUID()}`;
+      }
 
       const licenseInfo: PluginLicenseInfo = {
         isActive: true,
         licenseKey: activationToken,
         activatedAt: new Date().toISOString(),
-        isTrialActive: licenseKey === 'TRIAL-REQUEST',
+        isTrialActive,
         features: ['all'],
         installationId: mId,
         lastVerifiedAt: new Date().toISOString(),
       };
 
-      if (licenseInfo.isTrialActive) {
-        // Set trial end to 30 days from now
+      if (isTrialActive) {
         const end = new Date();
-        end.setDate(end.getDate() + 30);
+        end.setDate(end.getDate() + TRIAL_DURATION_DAYS);
         licenseInfo.trialEndsAt = end.toISOString();
       }
 

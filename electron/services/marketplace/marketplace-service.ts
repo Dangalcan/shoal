@@ -116,66 +116,79 @@ export class MarketplaceService {
       const pluginsDir = path.join(app.getPath('userData'), 'plugins');
       const pluginDir = path.join(pluginsDir, pluginId);
 
-      // For local simulation, we copy from the local plugins directory if it exists
+      // Ensure clean install directory
+      await fs.rm(pluginDir, { recursive: true, force: true });
+
       if (plugin.downloadUrl.startsWith('local://')) {
+        // Local simulation: copy from the bundled plugins directory
         console.log(
-          '[MarketplaceService] Simulating local install for',
+          '[MarketplaceService] Installing from local source for',
           pluginId
         );
-        // Ensure clean start
-        await fs.rm(pluginDir, { recursive: true, force: true });
-
-        // Try to copy from source plugins directory
         const sourcePath = path.join(app.getAppPath(), 'plugins', pluginId);
         let copied = false;
+
         try {
           await fs.access(sourcePath);
           await fs.mkdir(pluginDir, { recursive: true });
-          // fs.cp is available in recent Node versions
-          if ((fs as any).cp) {
-            await (fs as any).cp(sourcePath, pluginDir, { recursive: true });
-          } else {
-            // Fallback for older environments: just write manifest and dummy
-            // (though we want to avoid this)
-            throw new Error('fs.cp not available');
+          if (fs.cp) {
+            await fs.cp(sourcePath, pluginDir, { recursive: true });
+            console.log(
+              `[MarketplaceService] Copied local plugin from ${sourcePath}`
+            );
+            copied = true;
           }
-          console.log(
-            `[MarketplaceService] Copied local plugin from ${sourcePath}`
-          );
-          copied = true;
         } catch (e) {
           console.warn(
-            `[MarketplaceService] Source ${sourcePath} not found or copy failed, falling back to dummy files`
+            `[MarketplaceService] Source ${sourcePath} not accessible or copy failed, writing dummy files`
           );
         }
 
         if (!copied) {
           await fs.mkdir(pluginDir, { recursive: true });
-
-          // Write manifest
-          const manifestPath = path.join(pluginDir, 'plugin.json');
           await fs.writeFile(
-            manifestPath,
+            path.join(pluginDir, 'plugin.json'),
             JSON.stringify(plugin.manifest, null, 2)
           );
-
-          // Write dummy main entry if needed
           const mainFile = plugin.manifest.main || 'index.js';
           const mainPath = path.join(pluginDir, mainFile);
           await fs.mkdir(path.dirname(mainPath), { recursive: true });
           await fs.writeFile(mainPath, 'module.exports = {}');
-
-          // Write dummy renderer entry if needed
           if (plugin.manifest.renderer) {
             const rendererPath = path.join(pluginDir, plugin.manifest.renderer);
             await fs.mkdir(path.dirname(rendererPath), { recursive: true });
             await fs.writeFile(rendererPath, 'console.log("Renderer loaded")');
           }
         }
+      } else if (
+        plugin.downloadUrl.startsWith('http://') ||
+        plugin.downloadUrl.startsWith('https://')
+      ) {
+        // Real HTTP download
+        console.log(
+          `[MarketplaceService] Downloading ${plugin.name} from ${plugin.downloadUrl}`
+        );
+        const response = await fetch(plugin.downloadUrl);
+        if (!response.ok || !response.body) {
+          throw new Error(
+            `Download failed: ${response.status} ${response.statusText}`
+          );
+        }
+        const zipPath = path.join(
+          app.getPath('temp'),
+          `${pluginId}-${plugin.version}.zip`
+        );
+        const fileStream = createWriteStream(zipPath);
+        await pipeline(response.body as any, fileStream);
+
+        await fs.mkdir(pluginDir, { recursive: true });
+        const zip = new AdmZip(zipPath);
+        zip.extractAllTo(pluginDir, true);
+        await fs.unlink(zipPath).catch(() => {});
+        console.log(`[MarketplaceService] Extracted plugin to ${pluginDir}`);
       } else {
-        // Real download logic intentionally removed/unsupported for now unless we add real URLs
         throw new Error(
-          'Only local simulation supported currently. Download URL must start with local://'
+          `Unsupported download URL scheme for plugin "${pluginId}". Expected local:// or http(s)://`
         );
       }
 
@@ -190,20 +203,13 @@ export class MarketplaceService {
   }
 
   private async loadLocalMarketplaceData(): Promise<MarketplaceEntry[]> {
-    const dataPath = path.join(
-      app.getAppPath(),
-      'electron/data/marketplace.json'
-    );
-    // In production, app.getAppPath() might be inside an asar archive, but fs/promises handles it usually?
-    // Actually usually better to bundle it or copy it.
-    // For dev, it works.
+    // In packaged builds app.getAppPath() points inside the asar archive where fs reads work,
+    // but the data dir is copied alongside it under process.resourcesPath.
+    const basePath = app.isPackaged ? process.resourcesPath : app.getAppPath();
+    const dataPath = path.join(basePath, 'electron/data/marketplace.json');
     const raw = await fs.readFile(dataPath, 'utf-8');
     return JSON.parse(raw);
   }
-
-  // Removed downloadPlugin and extractPlugin as they are not needed for this local simulation phase
-  // or we can keep them if we intend to support real URLs later.
-  // For now I'll just remove them to be clean as per request "replace mock implementations".
 
   /**
    * Helper to compare versions

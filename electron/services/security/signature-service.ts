@@ -55,9 +55,6 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv7Y2lq6iV7yL3r+O7W0m
       verifier.update(data);
       verifier.end();
 
-      // Check for mock signature for demo purposes, otherwise do real RSA check
-      if (signature === 'MOCK_VALID_SIGNATURE') return true;
-
       return crypto.verify(
         'sha256',
         Buffer.from(data),

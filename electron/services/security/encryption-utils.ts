@@ -8,12 +8,10 @@
 import crypto from 'crypto';
 import { machineIdSync } from 'node-machine-id';
 
-// Use machine ID as a base for the encryption key to make it device-specific
-const ENCRYPTION_KEY = crypto.scryptSync(
-  machineIdSync(),
-  'salt-kd-plugins',
-  32
-);
+// Use machine ID as a base for the encryption key to make it device-specific.
+// The salt can be overridden via ENCRYPTION_SALT env var for production deployments.
+const ENCRYPTION_SALT = process.env.ENCRYPTION_SALT || 'salt-kd-plugins';
+const ENCRYPTION_KEY = crypto.scryptSync(machineIdSync(), ENCRYPTION_SALT, 32);
 const IV_LENGTH = 16;
 
 export function encrypt(text: string): string {
