@@ -22,6 +22,10 @@ import { manifestDb } from './database';
 
 const execPromise = util.promisify(exec);
 
+const DEFAULT_LOG_TAIL_LINES = 200;
+const DEFAULT_WINDOW_WIDTH = 1200;
+const DEFAULT_WINDOW_HEIGHT = 800;
+
 process.env.DIST = path.join(__dirname, '../dist');
 process.env.VITE_PUBLIC = app.isPackaged
   ? process.env.DIST
@@ -171,7 +175,7 @@ function registerIpcHandlers() {
       async (_event, { contextName, podName, namespace, tailLines }) => {
         const nsFlag =
           !namespace || namespace === 'all' ? '' : `-n ${namespace}`;
-        const tail = tailLines || 200;
+        const tail = tailLines || DEFAULT_LOG_TAIL_LINES;
         const { stdout } = await execPromise(
           `kubectl logs ${podName} --context ${contextName} ${nsFlag} --tail=${tail}`
         );
@@ -498,8 +502,8 @@ function createWindow() {
   }
 
   win = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: DEFAULT_WINDOW_WIDTH,
+    height: DEFAULT_WINDOW_HEIGHT,
     icon: path.join(publicDir, 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
