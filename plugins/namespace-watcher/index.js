@@ -32,6 +32,20 @@ module.exports = {
   activate: async (context) => {
     context.logger.info('Namespace Watcher starting up...');
 
+    // Load default configuration (data file bundled with the plugin)
+    const defaultConfig =
+      (await context.storage.get('data/data/default-config')) || {};
+    const systemNamespaces = defaultConfig.defaultNamespaces || ['default'];
+    const systemNamespacePrefixes = defaultConfig.systemNamespacePrefixes || [
+      'kube-',
+    ];
+    const sidebarConfig = defaultConfig.sidebar || {
+      id: 'ns-watcher-summary',
+      icon: 'eye',
+      route: '/plugin/namespace-watcher',
+      order: 100,
+    };
+
     // Load settings
     const settings = (await context.storage.get('settings')) || {};
     const refreshIntervalSeconds = settings.refreshInterval || 30;
@@ -46,6 +60,16 @@ module.exports = {
       notificationLevel,
     });
 
+    // Bundle config into a single object to pass around
+    const config = {
+      showSystemNamespaces,
+      alertThreshold,
+      notificationLevel,
+      systemNamespaces,
+      systemNamespacePrefixes,
+      sidebarConfig,
+    };
+
     // Subscribe to cluster events
     context.events.onClusterConnected(async (cluster) => {
       context.logger.info(`Connected to cluster: ${cluster.name || 'unknown'}`);
@@ -57,12 +81,7 @@ module.exports = {
         );
       }
 
-      await refreshNamespaces(
-        context,
-        showSystemNamespaces,
-        alertThreshold,
-        notificationLevel
-      );
+      await refreshNamespaces(context, config);
     });
 
     context.events.onClusterDisconnected(async (cluster) => {
@@ -92,12 +111,7 @@ module.exports = {
           );
         }
 
-        await refreshNamespaces(
-          context,
-          showSystemNamespaces,
-          alertThreshold,
-          notificationLevel
-        );
+        await refreshNamespaces(context, config);
       }
     });
 
@@ -112,32 +126,17 @@ module.exports = {
           );
         }
 
-        await refreshNamespaces(
-          context,
-          showSystemNamespaces,
-          alertThreshold,
-          notificationLevel
-        );
+        await refreshNamespaces(context, config);
       }
     });
 
     // Initial load
-    await refreshNamespaces(
-      context,
-      showSystemNamespaces,
-      alertThreshold,
-      notificationLevel
-    );
+    await refreshNamespaces(context, config);
 
     // Set up periodic refresh
     refreshInterval = setInterval(async () => {
       try {
-        await refreshNamespaces(
-          context,
-          showSystemNamespaces,
-          alertThreshold,
-          notificationLevel
-        );
+        await refreshNamespaces(context, config);
       } catch (error) {
         context.logger.error('Failed to refresh namespaces:', error);
       }
@@ -196,27 +195,32 @@ module.exports = {
 /**
  * Helper function to refresh namespace data
  */
-async function refreshNamespaces(
-  context,
-  showSystemNamespaces,
-  alertThreshold,
-  notificationLevel
-) {
+async function refreshNamespaces(context, config) {
+  const {
+    showSystemNamespaces,
+    alertThreshold,
+    notificationLevel,
+    systemNamespaces,
+    systemNamespacePrefixes,
+    sidebarConfig,
+  } = config;
   try {
     const namespaces = await context.kubernetes.getResources(
       'namespaces',
       'all'
     );
 
-    // Filter system namespaces if needed
+    // Filter system namespaces using configurable lists from default-config.json
     let filteredNamespaces = namespaces;
     if (!showSystemNamespaces) {
-      // TODO: Move system namespace filtering to configuration
-      filteredNamespaces = namespaces.filter(
-        (ns) =>
-          !ns.metadata?.name?.startsWith('kube-') &&
-          ns.metadata?.name !== 'default'
-      );
+      filteredNamespaces = namespaces.filter((ns) => {
+        const name = ns.metadata?.name || '';
+        const isExact = systemNamespaces.includes(name);
+        const isPrefix = systemNamespacePrefixes.some((p) =>
+          name.startsWith(p)
+        );
+        return !isExact && !isPrefix;
+      });
     }
 
     const count = filteredNamespaces.length;
@@ -234,14 +238,13 @@ async function refreshNamespaces(
       );
     }
 
-    // Update sidebar
-    // TODO: Externalize sidebar registration details
+    // Update sidebar using configuration from default-config.json
     context.ui.registerSidebarItem({
-      id: 'ns-watcher-summary',
+      id: sidebarConfig.id,
       label: `Namespaces (${count})`,
-      icon: 'eye',
-      route: '/plugin/namespace-watcher',
-      order: 100,
+      icon: sidebarConfig.icon,
+      route: sidebarConfig.route,
+      order: sidebarConfig.order,
     });
 
     // Save to storage

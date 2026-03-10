@@ -36,9 +36,20 @@ import { mockApi } from './mockApi';
  * </ApiProvider>
  * ```
  */
-export function ApiProvider({ children, api = window.electron || mockApi }: ApiProviderProps) {
-  console.log('[ApiProvider] Initializing with api:', api === mockApi ? 'Mock API' : 'Electron API');
-  return <ApiContext.Provider value={api}>{children}</ApiContext.Provider>;
+function resolveApi(provided?: ElectronAPI): ElectronAPI {
+  if (provided) return provided;
+  if (window.electron) return window.electron;
+  console.warn(
+    '[ApiProvider] window.electron is not available — falling back to mock API. ' +
+    'This should only happen in tests or browser environments.'
+  );
+  return mockApi;
+}
+
+export function ApiProvider({ children, api }: ApiProviderProps) {
+  const resolvedApi = resolveApi(api);
+  console.log('[ApiProvider] Initializing with api:', resolvedApi === mockApi ? 'Mock API' : 'Electron API');
+  return <ApiContext.Provider value={resolvedApi}>{children}</ApiContext.Provider>;
 }
 
 /**

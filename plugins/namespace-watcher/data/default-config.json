@@ -5,6 +5,13 @@
     "kube-public",
     "kube-node-lease"
   ],
+  "systemNamespacePrefixes": ["kube-"],
   "monitoringEnabled": true,
-  "lastSync": null
+  "lastSync": null,
+  "sidebar": {
+    "id": "ns-watcher-summary",
+    "icon": "eye",
+    "route": "/plugin/namespace-watcher",
+    "order": 100
+  }
 }
