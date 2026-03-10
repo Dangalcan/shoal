@@ -102,6 +102,13 @@ class ManifestDatabase {
     ).get(id) as Manifest;
     if (!manifest) throw new Error('Manifest not found');
 
+    // Validate context name to prevent shell injection — only allow safe k8s context characters
+    if (!/^[a-zA-Z0-9._\-:@/]+$/.test(manifest.cluster_context)) {
+      throw new Error(
+        `Invalid cluster context name: "${manifest.cluster_context}"`
+      );
+    }
+
     // Write content to a temporary file
     const tempFilePath = path.join(app.getPath('temp'), `manifest-${id}.yaml`);
     await fs.writeFile(tempFilePath, manifest.content);
@@ -112,8 +119,14 @@ class ManifestDatabase {
       );
       return { stdout, stderr };
     } finally {
-      // Cleanup
-      await fs.unlink(tempFilePath).catch(() => {});
+      await fs
+        .unlink(tempFilePath)
+        .catch((e) =>
+          console.warn(
+            `[Database] Failed to clean up temp file ${tempFilePath}:`,
+            e
+          )
+        );
     }
   }
 }
