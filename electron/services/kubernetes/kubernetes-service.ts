@@ -60,9 +60,14 @@ export class KubernetesService {
       );
       throw error;
     } finally {
-      try {
-        await fs.unlink(tempFile);
-      } catch (e) {}
+      await fs
+        .unlink(tempFile)
+        .catch((e) =>
+          console.warn(
+            `[KubernetesService] Failed to clean up temp file ${tempFile}:`,
+            e
+          )
+        );
     }
   }
 
@@ -92,9 +97,14 @@ export class KubernetesService {
       );
       throw error;
     } finally {
-      try {
-        await fs.unlink(tempFile);
-      } catch (e) {}
+      await fs
+        .unlink(tempFile)
+        .catch((e) =>
+          console.warn(
+            `[KubernetesService] Failed to clean up temp file ${tempFile}:`,
+            e
+          )
+        );
     }
   }
 
