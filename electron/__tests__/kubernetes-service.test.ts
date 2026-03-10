@@ -148,5 +148,153 @@ describe('KubernetesService', () => {
         expect.any(Function)
       );
     });
+
+    it('should include context flag when contextName is supplied', async () => {
+      vi.mocked(exec).mockImplementation(((cmd: string, cb: any) => {
+        cb(null, { stdout: 'output' });
+      }) as any);
+
+      await service.executeCommand('p1', 'default', 'ls', 'my-context');
+      expect(exec).toHaveBeenCalledWith(
+        expect.stringMatching(/--context my-context/),
+        expect.any(Function)
+      );
+    });
+
+    it('should throw on exec error', async () => {
+      vi.mocked(exec).mockImplementation(((cmd: string, cb: any) => {
+        cb(new Error('exec failed'), { stdout: '', stderr: 'error' });
+      }) as any);
+
+      await expect(
+        service.executeCommand('p1', 'default', 'ls')
+      ).rejects.toThrow('exec failed');
+    });
+  });
+
+  describe('getResources with context', () => {
+    it('should include context flag when contextName is supplied', async () => {
+      vi.mocked(exec).mockImplementation(((cmd: string, cb: any) => {
+        cb(null, { stdout: JSON.stringify({ items: [] }) });
+      }) as any);
+
+      await service.getResources('pods', 'default', 'staging-context');
+      expect(exec).toHaveBeenCalledWith(
+        expect.stringMatching(/--context staging-context/),
+        expect.any(Function)
+      );
+    });
+
+    it('should return empty array when items is missing from response', async () => {
+      vi.mocked(exec).mockImplementation(((cmd: string, cb: any) => {
+        cb(null, { stdout: JSON.stringify({}) });
+      }) as any);
+
+      const result = await service.getResources('pods', 'default');
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('createResource error handling', () => {
+    it('should clean up temp file even when kubectl fails', async () => {
+      const manifest = { kind: 'Pod', metadata: { name: 'p1' } };
+      vi.mocked(exec).mockImplementation(((cmd: string, cb: any) => {
+        cb(new Error('apply failed'), { stdout: '', stderr: 'error' });
+      }) as any);
+
+      await expect(service.createResource(manifest)).rejects.toThrow(
+        'apply failed'
+      );
+      expect(fs.unlink).toHaveBeenCalled();
+    });
+
+    it('should include context flag in createResource', async () => {
+      const manifest = { kind: 'Pod', metadata: { name: 'p1' } };
+      vi.mocked(exec).mockImplementation(((cmd: string, cb: any) => {
+        cb(null, { stdout: 'created' });
+      }) as any);
+
+      await service.createResource(manifest, 'prod-context');
+      expect(exec).toHaveBeenCalledWith(
+        expect.stringMatching(/--context prod-context/),
+        expect.any(Function)
+      );
+    });
+  });
+
+  describe('updateResource error handling', () => {
+    it('should clean up temp file even when kubectl fails', async () => {
+      const manifest = { kind: 'Pod', metadata: { name: 'p1' } };
+      vi.mocked(exec).mockImplementation(((cmd: string, cb: any) => {
+        cb(new Error('update failed'), { stdout: '', stderr: 'error' });
+      }) as any);
+
+      await expect(
+        service.updateResource('pods', 'p1', manifest)
+      ).rejects.toThrow('update failed');
+      expect(fs.unlink).toHaveBeenCalled();
+    });
+
+    it('should include context flag in updateResource', async () => {
+      const manifest = { kind: 'Pod', metadata: { name: 'p1' } };
+      vi.mocked(exec).mockImplementation(((cmd: string, cb: any) => {
+        cb(null, { stdout: 'updated' });
+      }) as any);
+
+      await service.updateResource('pods', 'p1', manifest, 'dev-context');
+      expect(exec).toHaveBeenCalledWith(
+        expect.stringMatching(/--context dev-context/),
+        expect.any(Function)
+      );
+    });
+  });
+
+  describe('deleteResource edge cases', () => {
+    it('should omit namespace flag when namespace is empty string', async () => {
+      vi.mocked(exec).mockImplementation(((cmd: string, cb: any) => {
+        cb(null, { stdout: 'deleted' });
+      }) as any);
+
+      await service.deleteResource('pods', 'p1', '');
+      // No -n flag expected
+      expect(exec).toHaveBeenCalledWith(
+        expect.not.stringMatching(/-n /),
+        expect.any(Function)
+      );
+    });
+
+    it('should omit namespace flag when namespace is "all"', async () => {
+      vi.mocked(exec).mockImplementation(((cmd: string, cb: any) => {
+        cb(null, { stdout: 'deleted' });
+      }) as any);
+
+      await service.deleteResource('pods', 'p1', 'all');
+      expect(exec).toHaveBeenCalledWith(
+        expect.not.stringMatching(/-n all/),
+        expect.any(Function)
+      );
+    });
+
+    it('should include context flag in deleteResource', async () => {
+      vi.mocked(exec).mockImplementation(((cmd: string, cb: any) => {
+        cb(null, { stdout: 'deleted' });
+      }) as any);
+
+      await service.deleteResource('pods', 'p1', 'default', 'prod-context');
+      expect(exec).toHaveBeenCalledWith(
+        expect.stringMatching(/--context prod-context/),
+        expect.any(Function)
+      );
+    });
+
+    it('should throw on delete error', async () => {
+      vi.mocked(exec).mockImplementation(((cmd: string, cb: any) => {
+        cb(new Error('delete failed'), { stdout: '', stderr: 'error' });
+      }) as any);
+
+      await expect(
+        service.deleteResource('pods', 'p1', 'default')
+      ).rejects.toThrow('delete failed');
+    });
   });
 });

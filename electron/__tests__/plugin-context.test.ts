@@ -49,12 +49,16 @@ vi.mock('../services/plugins/path-service', () => ({
   },
 }));
 
+// In-memory store that backs the stateful storageService mock
+const mockStore = new Map<string, Map<string, any>>();
+
 vi.mock('../services/plugins/storage-service', () => ({
   storageService: {
     get: vi.fn(),
     set: vi.fn(),
     delete: vi.fn(),
     clear: vi.fn(),
+    getAllByKey: vi.fn(),
   },
 }));
 
@@ -80,9 +84,49 @@ describe('Plugin Context', () => {
   const pluginId = 'test-plugin';
   const pluginPath = '/plugins/test-plugin';
 
-  beforeEach(() => {
-    vi.clearAllMocks();
+  beforeEach(async () => {
+    // resetAllMocks resets both call history AND any overridden implementations
+    // (e.g. mockImplementation(() => { throw }) set in a previous test)
+    vi.resetAllMocks();
+    mockStore.clear();
+
+    // Re-apply stateful implementations so UI/extension tests work without
+    // manual mock setup, and clearPluginExtensions() below doesn't throw
+    const { storageService } =
+      await import('../services/plugins/storage-service');
+    vi.mocked(storageService.get).mockImplementation(
+      (pluginId: string, key: string) =>
+        mockStore.get(pluginId)?.get(key) ?? null
+    );
+    vi.mocked(storageService.set).mockImplementation(
+      (pluginId: string, key: string, value: any) => {
+        if (!mockStore.has(pluginId)) mockStore.set(pluginId, new Map());
+        mockStore.get(pluginId)!.set(key, value);
+      }
+    );
+    vi.mocked(storageService.delete).mockImplementation(
+      (pluginId: string, key: string) => {
+        mockStore.get(pluginId)?.delete(key);
+      }
+    );
+    vi.mocked(storageService.clear).mockImplementation((pluginId: string) => {
+      mockStore.delete(pluginId);
+    });
+    vi.mocked(storageService.getAllByKey).mockImplementation((key: string) => {
+      const result = new Map<string, any>();
+      for (const [pid, keyMap] of mockStore.entries()) {
+        if (keyMap.has(key)) result.set(pid, keyMap.get(key));
+      }
+      return result;
+    });
+
     vi.mocked(app.getPath).mockReturnValue('/userData');
+
+    // Re-apply Promise return values for fs mocks — vi.resetAllMocks() clears mockResolvedValue
+    vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+    vi.mocked(fs.unlink).mockResolvedValue(undefined);
+
     clearPluginExtensions(pluginId);
     mockWin = null;
   });

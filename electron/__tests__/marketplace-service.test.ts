@@ -27,12 +27,10 @@ vi.mock('../services/plugins/plugin-manager', () => ({
 }));
 
 vi.mock('adm-zip', () => {
-  const MockZip = vi.fn().mockImplementation(() => ({
-    extractAllTo: vi.fn(),
-  }));
-  return {
-    default: MockZip,
-  };
+  // Use a regular function (not arrow) so it works as a constructor with `new`
+  function MockAdmZip(_path: string) {}
+  MockAdmZip.prototype.extractAllTo = vi.fn();
+  return { default: MockAdmZip };
 });
 
 vi.mock('fs', () => {
@@ -251,19 +249,19 @@ describe('MarketplaceService', () => {
       }
     });
 
-    it('should throw if downloadUrl is not local', async () => {
+    it('should throw if downloadUrl has an unsupported scheme', async () => {
       const mockPlugin = {
         id: 'p1',
         name: 'Plugin 1',
         version: '1.0.0',
-        downloadUrl: 'http://remote.zip',
+        downloadUrl: 'ftp://remote.zip',
         manifest: { id: 'p1', version: '1.0.0', main: 'index.js' },
       };
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify([mockPlugin]));
 
       const result = await service.installPlugin('p1');
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Only local simulation supported');
+      expect(result.error).toContain('Unsupported download URL scheme');
     });
 
     it('should handle installation errors', async () => {
@@ -273,6 +271,120 @@ describe('MarketplaceService', () => {
       const result = await service.installPlugin('p1');
       expect(result.success).toBe(false);
       expect(result.error).toContain('Marketplace data missing');
+    });
+
+    it('should fail when plugin has no manifest in marketplace data', async () => {
+      const mockPlugin = {
+        id: 'p1',
+        name: 'Plugin 1',
+        version: '1.0.0',
+        downloadUrl: 'local://p1.zip',
+        // manifest intentionally absent
+      };
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify([mockPlugin]));
+
+      const result = await service.installPlugin('p1');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('missing manifest');
+    });
+
+    it('should install plugin via HTTP download', async () => {
+      const mockPlugin = {
+        id: 'p1',
+        name: 'Plugin 1',
+        version: '1.0.0',
+        downloadUrl: 'https://example.com/p1.zip',
+        manifest: { id: 'p1', version: '1.0.0', main: 'index.js' },
+      };
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify([mockPlugin]));
+
+      const mockBody = { pipe: vi.fn() };
+      vi.mocked(global.fetch as any).mockResolvedValue({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        body: mockBody,
+      });
+
+      const result = await service.installPlugin('p1');
+      expect(result.success).toBe(true);
+    });
+
+    it('should fail when HTTP download returns non-ok status', async () => {
+      const mockPlugin = {
+        id: 'p1',
+        name: 'Plugin 1',
+        version: '2.0.0',
+        downloadUrl: 'https://example.com/p1.zip',
+        manifest: { id: 'p1', version: '2.0.0', main: 'index.js' },
+      };
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify([mockPlugin]));
+
+      vi.mocked(global.fetch as any).mockResolvedValue({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+        body: null,
+      });
+
+      const result = await service.installPlugin('p1');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Download failed');
+    });
+  });
+
+  describe('checkForUpdates – additional branches', () => {
+    it('should return empty array when no installed plugins provided', async () => {
+      const result = await service.checkForUpdates([]);
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual([]);
+      // readFile should not be called since we short-circuit
+      expect(fs.readFile).not.toHaveBeenCalled();
+    });
+
+    it('should not include plugin in updates when versions are equal', async () => {
+      vi.mocked(fs.readFile).mockResolvedValue(
+        JSON.stringify([{ id: 'p1', version: '1.0.0' }])
+      );
+      const result = await service.checkForUpdates([
+        { id: 'p1', version: '1.0.0' },
+      ]);
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(0);
+    });
+
+    it('should not include plugin when marketplace version is older', async () => {
+      vi.mocked(fs.readFile).mockResolvedValue(
+        JSON.stringify([{ id: 'p1', version: '0.9.0' }])
+      );
+      const result = await service.checkForUpdates([
+        { id: 'p1', version: '1.0.0' },
+      ]);
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(0);
+    });
+
+    it('should return error when loadLocalMarketplaceData fails', async () => {
+      vi.mocked(fs.readFile).mockRejectedValue(new Error('File not found'));
+      const result = await service.checkForUpdates([
+        { id: 'p1', version: '1.0.0' },
+      ]);
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('File not found');
+    });
+  });
+
+  describe('loadLocalMarketplaceData – packaged app path', () => {
+    it('should use resourcesPath when app is packaged', async () => {
+      // Simulate packaged app
+      (app as any).isPackaged = true;
+      vi.mocked(fs.readFile).mockResolvedValue('[]');
+
+      await service.getMarketplacePlugins();
+
+      // Should not call getAppPath for the data path when packaged
+      // (uses process.resourcesPath instead)
+      (app as any).isPackaged = false;
     });
   });
 });

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { LicenseManager } from '../services/security/license-manager';
 import { pluginRegistry } from '../services/plugins/plugin-registry';
 import { machineIdSync } from 'node-machine-id';
@@ -279,7 +279,7 @@ describe('LicenseManager', () => {
         plugin: { licenseInfo: { isActive: true } } as any,
         config: { enabled: true },
       });
-      vi.mocked(pluginRegistry.updatePluginConfig).mockRejectedValue(
+      vi.mocked(pluginRegistry.updatePluginConfig).mockRejectedValueOnce(
         new Error('Update failed')
       );
 
@@ -300,6 +300,182 @@ describe('LicenseManager', () => {
 
       const result = licenseManager.getLicenseInfo('plugin-1');
       expect(result).toEqual(mockInfo);
+    });
+
+    it('should return undefined when plugin is not registered', () => {
+      vi.mocked(pluginRegistry.getPlugin).mockReturnValue(undefined);
+      const result = licenseManager.getLicenseInfo('unknown');
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('checkLicense grace period – lastVerifiedAt absent', () => {
+    it('should use activatedAt as fallback when lastVerifiedAt is missing', () => {
+      // 5 days ago → inside grace period (7 days) → valid
+      const fiveDaysAgo = new Date();
+      fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
+
+      vi.mocked(pluginRegistry.getPlugin).mockReturnValue({
+        plugin: {
+          manifest: { license: { type: 'paid' } },
+          licenseInfo: {
+            isActive: true,
+            activatedAt: fiveDaysAgo.toISOString(),
+            lastVerifiedAt: undefined,
+          },
+        } as any,
+        config: { enabled: true },
+      });
+
+      const result = licenseManager.checkLicense('fallback-plugin');
+      expect(result.valid).toBe(true);
+    });
+
+    it('should fail when activatedAt is also absent (falls back to epoch → long ago)', () => {
+      vi.mocked(pluginRegistry.getPlugin).mockReturnValue({
+        plugin: {
+          manifest: { license: { type: 'paid' } },
+          licenseInfo: {
+            isActive: true,
+            activatedAt: undefined,
+            lastVerifiedAt: undefined,
+          },
+        } as any,
+        config: { enabled: true },
+      });
+
+      const result = licenseManager.checkLicense('epoch-plugin');
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('verification required');
+    });
+  });
+
+  describe('activateLicense – backend path', () => {
+    beforeEach(() => {
+      process.env.MARKETPLACE_BACKEND_URL = 'https://example.com/api';
+    });
+
+    afterEach(() => {
+      delete process.env.MARKETPLACE_BACKEND_URL;
+    });
+
+    it('should activate via backend when MARKETPLACE_BACKEND_URL is set', async () => {
+      vi.mocked(global.fetch as any).mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          licenseKey: 'backend-token-xyz',
+          type: 'paid',
+        }),
+      });
+
+      const result = await licenseManager.activateLicense(
+        'plugin-1',
+        'VALID-KEY-123'
+      );
+
+      expect(result.success).toBe(true);
+      expect(pluginRegistry.updatePluginConfig).toHaveBeenCalledWith(
+        'plugin-1',
+        expect.objectContaining({
+          licenseInfo: expect.objectContaining({
+            isActive: true,
+            licenseKey: 'backend-token-xyz',
+            isTrialActive: false,
+          }),
+        })
+      );
+    });
+
+    it('should mark isTrialActive when backend returns type "trial"', async () => {
+      vi.mocked(global.fetch as any).mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          licenseKey: 'trial-token',
+          type: 'trial',
+        }),
+      });
+
+      const result = await licenseManager.activateLicense(
+        'plugin-1',
+        'TRIAL-KEY-99999'
+      );
+
+      expect(result.success).toBe(true);
+      expect(pluginRegistry.updatePluginConfig).toHaveBeenCalledWith(
+        'plugin-1',
+        expect.objectContaining({
+          licenseInfo: expect.objectContaining({
+            isTrialActive: true,
+            trialEndsAt: expect.any(String),
+          }),
+        })
+      );
+    });
+
+    it('should fail when backend returns non-ok response with JSON error', async () => {
+      vi.mocked(global.fetch as any).mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({ error: 'License key already used' }),
+      });
+
+      const result = await licenseManager.activateLicense(
+        'plugin-1',
+        'USED-KEY-123'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('License key already used');
+    });
+
+    it('should fail when backend returns non-ok with non-JSON body', async () => {
+      vi.mocked(global.fetch as any).mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: async () => {
+          throw new Error('not json');
+        },
+      });
+
+      const result = await licenseManager.activateLicense(
+        'plugin-1',
+        'BAD-KEY-12345'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('HTTP 500');
+    });
+  });
+
+  describe('activateLicense – offline trial', () => {
+    it('should set isTrialActive and trialEndsAt for TRIAL-REQUEST key offline', async () => {
+      // No MARKETPLACE_BACKEND_URL set – uses offline path
+      const result = await licenseManager.activateLicense(
+        'plugin-1',
+        'TRIAL-REQUEST'
+      );
+
+      expect(result.success).toBe(true);
+      expect(pluginRegistry.updatePluginConfig).toHaveBeenCalledWith(
+        'plugin-1',
+        expect.objectContaining({
+          licenseInfo: expect.objectContaining({
+            isTrialActive: true,
+            trialEndsAt: expect.any(String),
+          }),
+        })
+      );
+    });
+  });
+
+  describe('deactivateLicense – plugin not found', () => {
+    it('should return error when plugin is not in registry at all', async () => {
+      vi.mocked(pluginRegistry.getPlugin).mockReturnValue(undefined);
+
+      const result = await licenseManager.deactivateLicense('ghost-plugin');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('No active license to deactivate');
     });
   });
 });
