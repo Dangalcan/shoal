@@ -195,15 +195,27 @@ export function createPluginContext(
             extensions.pages = [];
           }
 
+          // `component` must be a string — either a renderer-relative module path
+          // (e.g. "./pages/MyPage") or a named export identifier.  Passing an
+          // actual function here is a mistake: main-process code cannot be
+          // serialised and sent to the renderer.
+          if (typeof component !== 'string') {
+            throw new Error(
+              `[PluginContext] registerPage: "component" must be a string ` +
+                `(renderer module path or export name), not ${typeof component}. ` +
+                `UI components must live in the plugin's renderer entry file.`
+            );
+          }
+
           const pageId = `${pluginId}-page`;
           const existingIndex = extensions.pages.findIndex(
             (p: PageExtension) => p.id === pageId
           );
 
-          const newPage = {
+          const newPage: PageExtension = {
             id: pageId,
             route,
-            component: component.toString(),
+            component,
           };
 
           if (existingIndex >= 0) {
@@ -255,7 +267,7 @@ export function createPluginContext(
           message: string,
           type: 'success' | 'error' | 'info' | 'warning'
         ) => {
-          const { win } = require('../../main');
+          const win = pluginEventBus.getMainWindow();
           if (win) {
             win.webContents.send('plugin-notification', {
               pluginId,
@@ -270,12 +282,17 @@ export function createPluginContext(
           );
         },
 
-        openModal: (component: any, props?: any) => {
-          const { win } = require('../../main');
+        openModal: (component: string, props?: any) => {
+          if (typeof component !== 'string') {
+            throw new Error(
+              `[PluginContext] openModal: "component" must be a string (renderer module path), not ${typeof component}.`
+            );
+          }
+          const win = pluginEventBus.getMainWindow();
           if (win) {
             win.webContents.send('plugin-modal', {
               pluginId,
-              component: component.toString(),
+              component,
               props,
             });
           }

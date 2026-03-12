@@ -332,6 +332,7 @@ export interface MarketplaceEntry {
   name: string;
   version: string;
   description: string;
+  longDescription?: string;
   author: string;
   category:
     | 'Monitoring'
@@ -339,13 +340,18 @@ export interface MarketplaceEntry {
     | 'DevTools'
     | 'Networking'
     | 'Themes'
-    | 'Logging';
+    | 'Logging'
+    | 'Storage'
+    | 'CI/CD';
   price: number;
   icon: string;
   screenshots: string[];
   rating: number;
   reviews: number;
   downloadUrl: string;
+  tags: string[];
+  featured?: boolean;
+  changelog?: string;
   manifest?: PluginManifest;
 }
 
@@ -367,7 +373,6 @@ export interface MarketplaceFilters {
 
 export interface PluginInstallOptions {
   enableAfterInstall?: boolean;
-  skipSignatureVerification?: boolean; // For development only
 }
 
 // ============================================================================

@@ -5,11 +5,25 @@
  */
 
 import { EventEmitter } from 'events';
+import type { BrowserWindow } from 'electron';
 
 export class PluginEventBus extends EventEmitter {
+  /** Reference to the main BrowserWindow, set by main.ts after window creation. */
+  private mainWindow: BrowserWindow | null = null;
+
   constructor() {
     super();
     this.setMaxListeners(100); // Allow many plugins to listen
+  }
+
+  /** Called once by main.ts after the window is ready. */
+  setMainWindow(win: BrowserWindow): void {
+    this.mainWindow = win;
+  }
+
+  /** Returns the main window, or null if not yet created. */
+  getMainWindow(): BrowserWindow | null {
+    return this.mainWindow;
   }
 
   /**
