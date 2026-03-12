@@ -23,10 +23,20 @@
   border-radius: var(--border-radius-lg);
   width: 100%;
   max-width: 480px;
+  max-height: 85vh;
   padding: var(--spacing-xl);
   position: relative;
   box-shadow: var(--shadow-lg);
   animation: slideIn 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.license-modal__body {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 @keyframes fadeIn {
@@ -139,6 +149,25 @@
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 2px var(--primary-bg);
+}
+
+.form-input--error {
+  border-color: var(--error-border);
+}
+
+.form-input--error:focus {
+  border-color: var(--error-border);
+  box-shadow: 0 0 0 2px var(--error-bg);
+}
+
+.form-hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  margin-top: var(--spacing-xs);
+}
+
+.form-hint--error {
+  color: var(--error-text);
 }
 
 .license-modal__pricing {
