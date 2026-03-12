@@ -7,3 +7,8 @@ coverage
 prompts.txt
 .env
 release
+e2e-report
+test-results
+licenses.db
+licenses.db-shm
+licenses.db-wal

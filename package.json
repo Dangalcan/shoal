@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:react\" \"npm run dev:electron\" \"npm run dev:backend\"",
     "dev:react": "vite",
-    "dev:electron": "npm run build:electron && wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .",
+    "dev:electron": "npm run build:electron && wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 ALLOW_UNSIGNED_PLUGINS=true electron .",
     "dev:backend": "cd marketplace-backend && npm run dev",
     "build:electron": "tsc -p electron/tsconfig.json",
     "build:react": "tsc && vite build",
@@ -16,6 +16,9 @@
     "test": "vitest --run",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --run --coverage",
+    "test:e2e": "npm run build:react && npm run build:electron && playwright test",
+    "test:e2e:interactive": "npm run build:react && npm run build:electron && playwright test e2e/explore.spec.ts --headed --debug",
+    "test:e2e:report": "playwright show-report e2e-report",
     "lint": "npm run lint:eslint && npm run lint:prettier",
     "lint:eslint": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:prettier": "prettier --check '**/*.{cjs,js,ts,css,md}'",
@@ -58,6 +61,7 @@
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.3",
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.1.18",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
