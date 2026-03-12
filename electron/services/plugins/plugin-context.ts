@@ -285,7 +285,7 @@ export function createPluginContext(
         openModal: (component: string, props?: any) => {
           if (typeof component !== 'string') {
             throw new Error(
-              `[PluginContext] openModal: "component" must be a string (renderer module path), not ${typeof component}.`
+              `[PluginContext] openModal: "component" must be a string (modal ID registered via pluginUIRegistry.registerModal), not ${typeof component}.`
             );
           }
           const win = pluginEventBus.getMainWindow();
