@@ -63,7 +63,7 @@ const mockElectronAPI = {
   // Plugin System
   getPlugins: vi.fn().mockResolvedValue({ success: true, data: [] }),
   enablePlugin: vi.fn().mockResolvedValue({ success: true, data: true }),
-  disablePlugin: vi.fn().mockResolvedValue({ success: true, data: undefined }),
+  disablePlugin: vi.fn().mockResolvedValue({ success: true, data: [] }),
   checkForPluginUpdates: vi
     .fn()
     .mockResolvedValue({ success: true, data: undefined }),

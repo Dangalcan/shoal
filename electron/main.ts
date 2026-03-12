@@ -392,8 +392,7 @@ function registerIpcHandlers() {
   ipcMain.handle(
     'disable-plugin',
     wrapIpcHandler('disable-plugin', async (_event, pluginId: string) => {
-      await pluginManager.disablePlugin(pluginId);
-      return true;
+      return await pluginManager.disablePlugin(pluginId);
     })
   );
 

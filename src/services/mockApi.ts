@@ -96,7 +96,10 @@ export const mockApi: ElectronAPI = {
   // Plugin System
   getPlugins: async () => ({ success: true, data: [] }),
   enablePlugin: async (_id: string) => ({ success: true, data: true }),
-  disablePlugin: async (_id: string) => ({ success: true, data: undefined }),
+  disablePlugin: async (_id: string) => ({
+    success: true,
+    data: [] as string[],
+  }),
   checkForPluginUpdates: async () => ({ success: true, data: undefined }),
   getPluginExtensions: async (_point?: string) => ({
     success: true,
