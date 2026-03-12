@@ -5,7 +5,7 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   test: {
-    exclude: [...configDefaults.exclude, '**/dist-electron/**'],
+    exclude: [...configDefaults.exclude, '**/dist-electron/**', 'e2e/**'],
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
