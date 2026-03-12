@@ -140,9 +140,10 @@ export class PluginManager {
   }
 
   /**
-   * Disable a plugin
+   * Disable a plugin.
+   * Returns the IDs of any plugins that were cascade-disabled as a side effect.
    */
-  async disablePlugin(pluginId: string): Promise<void> {
+  async disablePlugin(pluginId: string): Promise<string[]> {
     console.log(`[PluginManager] Disabling plugin: ${pluginId}`);
 
     // Check if plugin exists
@@ -151,6 +152,7 @@ export class PluginManager {
     }
 
     // --- Cascading Disable Logic ---
+    const cascaded: string[] = [];
     const activePlugins = pluginRegistry.getEnabledPlugins();
     const dependents = dependencyResolver.getDependents(
       pluginId,
@@ -165,7 +167,8 @@ export class PluginManager {
         console.log(
           `[PluginManager] Cascading disable for dependent: ${dependent.manifest.id}`
         );
-        await this.disablePlugin(dependent.manifest.id);
+        const subCascaded = await this.disablePlugin(dependent.manifest.id);
+        cascaded.push(dependent.manifest.id, ...subCascaded);
       }
     }
     // -------------------------------
@@ -180,6 +183,7 @@ export class PluginManager {
     await pluginRegistry.disablePlugin(pluginId);
 
     console.log(`[PluginManager] Plugin ${pluginId} disabled successfully`);
+    return cascaded;
   }
 
   /**
