@@ -27,6 +27,7 @@ import path from 'path';
 export class PluginManager {
   private initialized = false;
   private watchers: Map<string, fs.FSWatcher> = new Map();
+  private reloadTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
   /**
    * Initialize the plugin system
@@ -219,6 +220,8 @@ export class PluginManager {
     );
 
     try {
+      const DEBOUNCE_MS = 500;
+
       const watcher = fs.watch(
         pluginPath,
         { recursive: true },
@@ -226,13 +229,22 @@ export class PluginManager {
           console.log(
             `[PluginManager] Change detected in ${pluginId}: ${event} ${filename}`
           );
-          // Debounce reload
-          this.reloadPlugin(pluginId).catch((err) => {
-            console.error(
-              `[PluginManager] Auto-reload failed for ${pluginId}:`,
-              err.message
-            );
-          });
+
+          // Debounce: cancel any pending reload before scheduling a new one.
+          const existing = this.reloadTimers.get(pluginId);
+          if (existing) clearTimeout(existing);
+
+          const timer = setTimeout(() => {
+            this.reloadTimers.delete(pluginId);
+            this.reloadPlugin(pluginId).catch((err) => {
+              console.error(
+                `[PluginManager] Auto-reload failed for ${pluginId}:`,
+                err.message
+              );
+            });
+          }, DEBOUNCE_MS);
+
+          this.reloadTimers.set(pluginId, timer);
         }
       );
 
@@ -249,6 +261,12 @@ export class PluginManager {
    * Stop watching a plugin directory
    */
   private stopWatcher(pluginId: string): void {
+    const timer = this.reloadTimers.get(pluginId);
+    if (timer) {
+      clearTimeout(timer);
+      this.reloadTimers.delete(pluginId);
+    }
+
     const watcher = this.watchers.get(pluginId);
     if (watcher) {
       watcher.close();
@@ -641,7 +659,8 @@ export class PluginManager {
         const pluginsDir = path.resolve(pathService.getUserPluginsDir());
         const absPluginPath = path.resolve(pluginPath);
         const relative = path.relative(pluginsDir, absPluginPath);
-        const isUserPlugin = !relative.startsWith('..') && !path.isAbsolute(relative);
+        const isUserPlugin =
+          !relative.startsWith('..') && !path.isAbsolute(relative);
 
         if (isUserPlugin) {
           await fs.promises.rm(pluginPath, { recursive: true, force: true });
@@ -685,7 +704,10 @@ export class PluginManager {
       }
 
       // Determine install path (usually userData/plugins)
-      const targetPath = path.join(pathService.getUserPluginsDir(), manifest.id);
+      const targetPath = path.join(
+        pathService.getUserPluginsDir(),
+        manifest.id
+      );
 
       // 4. Check if already exists
       try {
