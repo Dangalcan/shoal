@@ -33,8 +33,7 @@ export function ClusterDetails() {
         `cluster-tab-${name}`,
         'pods'
     )
-    console.log('[DEBUG] ClusterDetails Render: name=', name, 'activeTab=', activeTab, 'key=', `cluster-tab-${name}`)
-    const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaces(name)
+const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaces(name)
     const { deleteCluster, deleting } = useClusters()
     const [isDeletingCluster, setIsDeletingCluster] = useState(false)
 
