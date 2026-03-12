@@ -104,7 +104,8 @@ export interface ElectronAPI {
 
   // Listeners
   onSetKubeconfigPath: (callback: (value: boolean) => void) => void;
-  onPluginNotification: (callback: (data: any) => void) => void;
+  onPluginNotification: (callback: (data: any) => void) => () => void;
+  onPluginModal: (callback: (data: any) => void) => () => void;
 }
 
 export interface MarketplaceEntry {
@@ -112,10 +113,21 @@ export interface MarketplaceEntry {
   name: string;
   version: string;
   description: string;
+  longDescription?: string;
   author: string;
   category: string;
   icon?: string;
   price: number;
+  screenshots?: string[];
+  rating?: number;
+  reviews?: number;
+  downloadUrl?: string;
+  tags?: string[];
+  featured?: boolean;
+  changelog?: string;
+  manifest?: {
+    permissions?: string[];
+  };
 }
 
 declare global {
