@@ -30,6 +30,7 @@ export type ResourceType =
   | 'ingress'
   | 'ingressclass'
   | 'networkpolicy'
+  | 'configmaps'
   | 'secrets'
   | 'serviceaccounts'
   | 'storageclass'
