@@ -38,6 +38,16 @@ export function PluginPage() {
     );
   }
 
+  // Plugin is enabled but script is still loading — wait for it to register a page
+  if (!page && plugin.rendererEntry) {
+    return (
+      <div className="flex items-center justify-center h-full gap-3">
+        <div className="spinner" />
+        <p>Loading {plugin.manifest.name}...</p>
+      </div>
+    );
+  }
+
   if (!page) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8">
