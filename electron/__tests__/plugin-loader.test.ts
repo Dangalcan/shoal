@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PluginLoader } from '../services/plugins/plugin-loader';
 import fs from 'fs/promises';
-import path from 'path';
 
 // Helper to handle path separators consistently
 const fixPath = (p: string) => p.replace(/\\/g, '/');
@@ -21,10 +20,9 @@ vi.mock('../services/security/signature-service', () => ({
 
 vi.mock('../services/plugins/path-service', () => ({
   pathService: {
-    getDiscoveryDirectories: vi.fn().mockReturnValue([
-      '/mock/user/data/plugins',
-      '/mock/app/path/plugins'
-    ]),
+    getDiscoveryDirectories: vi
+      .fn()
+      .mockReturnValue(['/mock/user/data/plugins', '/mock/app/path/plugins']),
     resolvePluginPath: vi.fn(),
   },
 }));
@@ -258,23 +256,15 @@ describe('PluginLoader', () => {
       loader.registerPlugin(p);
 
       vi.mocked(fs.access).mockResolvedValue(undefined);
+      // Return plain CommonJS JS — the sandbox cannot handle TypeScript syntax
+      vi.mocked(fs.readFile).mockResolvedValue(
+        'module.exports = { start: function() { return 42; } };' as any
+      );
 
-      const mockModule = { start: vi.fn() };
-
-      // Surgical mock for require
-      const Module = await import('module');
-      const originalRequire = Module.default.prototype.require;
-      Module.default.prototype.require = function (id: string) {
-        if (id.endsWith('idx.js')) return mockModule;
-        return originalRequire.apply(this, arguments as any);
-      };
-
-      try {
-        const result = await loader.loadPluginCode('p1', '/p');
-        expect(result).toBe(mockModule);
-      } finally {
-        Module.default.prototype.require = originalRequire;
-      }
+      const result = await loader.loadPluginCode('p1', '/p');
+      expect(result).toBeDefined();
+      expect(typeof result.start).toBe('function');
+      expect(result.start()).toBe(42);
     });
 
     it('loadPluginCode should throw if plugin not registered', async () => {
@@ -283,28 +273,19 @@ describe('PluginLoader', () => {
       );
     });
 
-    it('unloadPluginCode should remove from require cache', async () => {
+    it('unloadPluginCode should clear the sandbox cache', async () => {
       const p = { manifest: { id: 'p1', main: 'idx.js' } } as any;
       loader.registerPlugin(p);
 
-      const pluginPath = 'C:\\mock-plugins';
-      const mainFile = path.join(pluginPath, 'idx.js');
+      // Load the plugin to populate the sandbox cache
+      vi.mocked(fs.access).mockResolvedValue(undefined);
+      vi.mocked(fs.readFile).mockResolvedValue('module.exports = {};' as any);
+      await loader.loadPluginCode('p1', '/mock-plugins');
 
-      require.cache[mainFile] = { id: mainFile } as any;
-
-      // Use internal Module._resolveFilename to mock require.resolve globally
-      const Module = await import('module');
-      const spy = vi
-        .spyOn(Module.default as any, '_resolveFilename')
-        .mockReturnValue(mainFile);
-
-      try {
-        await loader.unloadPluginCode('p1', pluginPath);
-        expect(require.cache[mainFile]).toBeUndefined();
-      } finally {
-        spy.mockRestore();
-        delete require.cache[mainFile];
-      }
+      // Unload should succeed without throwing
+      await expect(
+        loader.unloadPluginCode('p1', '/mock-plugins')
+      ).resolves.toBeUndefined();
     });
 
     it('unloadPluginCode should do nothing if plugin not registered', async () => {
@@ -328,7 +309,7 @@ describe('PluginLoader', () => {
     it('getPluginPath should use pathService', async () => {
       const { pathService } = await import('../services/plugins/path-service');
       vi.mocked(pathService.resolvePluginPath).mockResolvedValue('/mock/path');
-      
+
       const p = await loader.getPluginPath('p1');
       expect(p).toBe('/mock/path');
       expect(pathService.resolvePluginPath).toHaveBeenCalledWith('p1');

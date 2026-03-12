@@ -936,7 +936,7 @@ describe('PluginManager', () => {
 
       const disableSpy = vi
         .spyOn(pluginManager, 'disablePlugin')
-        .mockResolvedValue(undefined);
+        .mockResolvedValue([]);
 
       await pluginManager.uninstallPlugin(pluginId);
 
