@@ -6,6 +6,7 @@
  */
 
 import { randomUUID } from 'crypto';
+import { app } from 'electron';
 import { machineIdSync } from 'node-machine-id';
 import { pluginRegistry } from '../plugins/plugin-registry';
 import type { PluginLicenseInfo } from '../../types/plugin-types';
@@ -99,10 +100,18 @@ export class LicenseManager {
   }
 
   /**
-   * Activate a license key for a plugin via backend.
-   */
-  /**
-   * Activate a license key for a plugin (Offline Simulation).
+   * Activate a license key for a plugin.
+   *
+   * When MARKETPLACE_BACKEND_URL is set the key is validated against the
+   * remote licensing server and a signed activation token is returned.
+   *
+   * When MARKETPLACE_BACKEND_URL is NOT set the app is running without a
+   * marketplace backend (e.g. self-hosted / air-gapped environment).  In this
+   * mode a local offline token is generated so the UX is not broken, but the
+   * token carries no cryptographic proof of purchase — it is intended only for
+   * development and self-hosted deployments where the operator controls both
+   * the app and the plugins.  Production builds shipped to end-users should
+   * always have MARKETPLACE_BACKEND_URL configured.
    */
   async activateLicense(
     pluginId: string,
@@ -110,9 +119,6 @@ export class LicenseManager {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const mId = machineIdSync();
-      console.log(
-        `[LicenseManager] Activating license for ${pluginId} with key ${licenseKey}...`
-      );
 
       if (!licenseKey || licenseKey.length < 5) {
         throw new Error('Invalid license key format');
@@ -123,7 +129,7 @@ export class LicenseManager {
       let isTrialActive = licenseKey === 'TRIAL-REQUEST';
 
       if (backendUrl) {
-        // Real backend activation
+        // Remote activation via marketplace backend.
         const response = await fetch(`${backendUrl}/licenses/activate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -142,9 +148,17 @@ export class LicenseManager {
           `[LicenseManager] Backend activation succeeded for ${pluginId}`
         );
       } else {
-        // Offline fallback
+        // Offline / no-backend fallback — see JSDoc above.
+        if (app?.isPackaged) {
+          throw new Error(
+            'License activation requires MARKETPLACE_BACKEND_URL to be configured in production builds. ' +
+              'Contact your system administrator or set MARKETPLACE_BACKEND_URL in the environment.'
+          );
+        }
         console.warn(
-          `[LicenseManager] MARKETPLACE_BACKEND_URL not set — using offline activation for ${pluginId}`
+          `[LicenseManager] MARKETPLACE_BACKEND_URL is not set. ` +
+            `Issuing an offline activation token for "${pluginId}". ` +
+            `This is only suitable for development or self-hosted deployments.`
         );
         activationToken = `${LICENSE_TOKEN_PREFIX}${randomUUID()}`;
       }
