@@ -11,7 +11,15 @@ import '../../styles/components/Sidebar.css'
 export function Sidebar() {
     const { theme, toggleTheme } = useTheme();
     const [version, setVersion] = useState<string>('v0.1.0');
-    const pluginExtensions = usePluginExtensions('sidebar');
+    const { plugins } = usePlugins();
+    const allExtensions = usePluginExtensions('sidebar');
+
+    // Only show sidebar entries for plugins that have a renderer (UI page)
+    const pluginExtensions = allExtensions.filter((ext: any) => {
+        const pluginId = ext.route?.split('/plugin/')?.[1];
+        const plugin = plugins.find(p => p.manifest.id === pluginId);
+        return plugin?.manifest.renderer != null;
+    });
 
     useEffect(() => {
         const fetchVersion = async () => {
