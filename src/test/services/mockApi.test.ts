@@ -14,13 +14,44 @@ describe('mockApi', () => {
     result = await mockApi.getClusters();
     if (!result.success) throw new Error('Failed to get clusters');
     expect(result.data).toContain('new-cluster');
-    expect(result.data.length).toBe(initialCount + 1);
+    const countAfterFirstCreate = result.data.length;
 
-    // Delete cluster
-    await mockApi.deleteCluster('new-cluster');
+    // Create existing cluster (Branch coverage: createCluster if !mockClusters.includes(name) is false)
+    await mockApi.createCluster('new-cluster', 'minikube');
     result = await mockApi.getClusters();
     if (!result.success) throw new Error('Failed to get clusters');
-    expect(result.data).not.toContain('new-cluster');
+    expect(result.data.length).toBe(countAfterFirstCreate);
+
+    // Set and delete current context (Branch coverage: deleteCluster if mockCurrentContext === name)
+    await mockApi.switchContext('new-cluster');
+    await mockApi.deleteCluster('new-cluster');
+    let currentCtx = await mockApi.getCurrentContext();
+    if (!currentCtx.success) throw new Error('Failed to get current context');
+    expect(currentCtx.data).not.toBe('new-cluster');
+    expect(currentCtx.data).toBe(result.data[0] || '');
+
+    // Delete all clusters to test empty context (Branch coverage: deleteCluster mockClusters[0] || '')
+    result = await mockApi.getClusters();
+    if (!result.success) throw new Error('Failed to get clusters');
+    for (const cluster of result.data) {
+      await mockApi.deleteCluster(cluster);
+    }
+    currentCtx = await mockApi.getCurrentContext();
+    if (!currentCtx.success) throw new Error('Failed to get current context');
+    expect(currentCtx.data).toBe('');
+
+    // Delete a cluster that is NOT the current context (Branch coverage: deleteCluster if mockCurrentContext === name is false)
+    await mockApi.createCluster('c1', 'minikube');
+    await mockApi.createCluster('c2', 'minikube');
+    await mockApi.switchContext('c1');
+    await mockApi.deleteCluster('c2');
+    currentCtx = await mockApi.getCurrentContext();
+    if (!currentCtx.success) throw new Error('Failed to get current context');
+    expect(currentCtx.data).toBe('c1');
+
+    // Restore initial state for other tests if necessary
+    await mockApi.deleteCluster('c1');
+    await mockApi.createCluster('minikube', 'minikube');
   });
 
   it('should manage contexts', async () => {

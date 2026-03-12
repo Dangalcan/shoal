@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '../utils'
 import { Sidebar } from '../../components/Sidebar'
 import { useTheme } from '../../hooks'
-import { usePluginExtensions } from '../../features/plugins/PluginProvider'
+import { usePluginExtensions, usePlugins } from '../../features/plugins/PluginProvider'
 
 const mockToggleTheme = vi.fn();
 vi.mock('../../hooks', async () => {
@@ -64,27 +64,32 @@ describe('Sidebar', () => {
     })
 
     it('renders plugin extensions when present', () => {
+        vi.mocked(usePlugins).mockReturnValue({
+            plugins: [{ manifest: { id: 'plugin1', name: 'Plugin 1', renderer: 'index.js' } }]
+        } as any);
         vi.mocked(usePluginExtensions).mockReturnValue([
-            { id: 'plugin1', label: 'Plugin 1', route: '/plugin1' }
+            { id: 'plugin1', label: 'Plugin 1', route: '/plugin/plugin1' }
         ]);
-        
+
         render(<Sidebar />)
-        
-        // Use a more specific query for the divider
+
         expect(screen.getByText('Plugins', { selector: '.sidebar-divider' })).toBeInTheDocument()
         expect(screen.getByText('Plugin 1')).toBeInTheDocument()
-        
+
         const pluginLink = screen.getByText('Plugin 1').closest('a')
-        expect(pluginLink).toHaveAttribute('href', '/plugin1')
+        expect(pluginLink).toHaveAttribute('href', '/plugin/plugin1')
     })
 
     it('highlights active plugin link', () => {
+        vi.mocked(usePlugins).mockReturnValue({
+            plugins: [{ manifest: { id: 'plugin1', name: 'Plugin 1', renderer: 'index.js' } }]
+        } as any);
         vi.mocked(usePluginExtensions).mockReturnValue([
-            { id: 'plugin1', label: 'Plugin 1', route: '/plugin1' }
+            { id: 'plugin1', label: 'Plugin 1', route: '/plugin/plugin1' }
         ]);
-        
-        render(<Sidebar />, { initialEntries: ['/plugin1'] })
-        
+
+        render(<Sidebar />, { initialEntries: ['/plugin/plugin1'] })
+
         const pluginLink = screen.getByText('Plugin 1').closest('a')
         expect(pluginLink).toHaveClass('sidebar-link-active')
     })

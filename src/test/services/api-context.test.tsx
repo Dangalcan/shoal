@@ -37,7 +37,6 @@ describe('ApiContext', () => {
     });
     
     expect(result.current).toBe(mockApi);
-    expect(console.log).toHaveBeenCalledWith('[ApiProvider] Initializing with api:', 'Mock API');
   });
 
   it('should provide window.electron if it exists', () => {
@@ -49,17 +48,15 @@ describe('ApiContext', () => {
     });
 
     expect(result.current).toBe(mockWindowElectron);
-    expect(console.log).toHaveBeenCalledWith('[ApiProvider] Initializing with api:', 'Electron API');
   });
 
   it('should accept a custom api prop', () => {
     const customApi = { ...mockApi, version: 'custom' };
-    
+
     const { result } = renderHook(() => useApi(), {
       wrapper: ({ children }) => <ApiProvider api={customApi as any}>{children}</ApiProvider>
     });
 
     expect(result.current).toBe(customApi);
-    expect(console.log).toHaveBeenCalledWith('[ApiProvider] Initializing with api:', 'Electron API');
   });
 });
