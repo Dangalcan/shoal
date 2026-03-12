@@ -34,49 +34,47 @@ export default function Plugins() {
   const [activeSettingsPlugin, setActiveSettingsPlugin] = useState<Plugin | null>(null);
   const [activeTab, setActiveTab] = useState<'installed' | 'marketplace'>('installed');
   const [uninstallingPlugin, setUninstallingPlugin] = useState<Plugin | null>(null);
+  const [updatingPlugin, setUpdatingPlugin] = useState<Plugin | null>(null);
+  const [deactivatingLicensePlugin, setDeactivatingLicensePlugin] = useState<Plugin | null>(null);
   const [importing, setImporting] = useState(false);
 
-  const handleTogglePlugin = async (plugin: Plugin) => {
-    setActionLoading(plugin.manifest.id);
+  // Shared wrapper: sets loading/error state around an async plugin action
+  const withAction = async (pluginId: string, fn: () => Promise<void>, fallbackMsg = 'Action failed') => {
+    setActionLoading(pluginId);
     setActionError(null);
-
     try {
-      if (plugin.state === 'enabled') {
-        await disablePlugin(plugin.manifest.id);
-      } else {
-        await enablePlugin(plugin.manifest.id);
-      }
+      await fn();
     } catch (err: any) {
-      setActionError(err.message || 'Failed to toggle plugin');
+      setActionError(err.message || fallbackMsg);
     } finally {
       setActionLoading(null);
     }
   };
 
-  const handleReloadPlugin = async (plugin: Plugin) => {
-    setActionLoading(plugin.manifest.id);
-    setActionError(null);
-    try {
-      await reloadPlugin(plugin.manifest.id);
-    } catch (err: any) {
-      setActionError(err.message || 'Failed to reload plugin');
-    } finally {
-      setActionLoading(null);
-    }
-  };
+  const handleTogglePlugin = (plugin: Plugin) =>
+    withAction(
+      plugin.manifest.id,
+      () => plugin.state === 'enabled'
+        ? disablePlugin(plugin.manifest.id)
+        : enablePlugin(plugin.manifest.id),
+      'Failed to toggle plugin'
+    );
 
-  const handleUpdatePlugin = async (plugin: Plugin) => {
-    if (!confirm(`Update ${plugin.manifest.name} to v${plugin.latestVersion}?`)) return;
+  const handleReloadPlugin = (plugin: Plugin) =>
+    withAction(plugin.manifest.id, () => reloadPlugin(plugin.manifest.id), 'Failed to reload plugin');
 
-    setActionLoading(plugin.manifest.id);
-    setActionError(null);
-    try {
-      await installPlugin(plugin.manifest.id);
-    } catch (err: any) {
-      setActionError(err.message || 'Failed to update plugin');
-    } finally {
-      setActionLoading(null);
-    }
+  const handleUpdatePlugin = (plugin: Plugin) => setUpdatingPlugin(plugin);
+
+  const confirmUpdate = () => {
+    if (!updatingPlugin) return;
+    withAction(
+      updatingPlugin.manifest.id,
+      async () => {
+        await installPlugin(updatingPlugin.manifest.id);
+        setUpdatingPlugin(null);
+      },
+      'Failed to update plugin'
+    );
   };
 
   const handleImportPlugin = async () => {
@@ -91,54 +89,31 @@ export default function Plugins() {
     }
   };
 
-  const handleUninstallPlugin = (plugin: Plugin) => {
-    setUninstallingPlugin(plugin);
-  };
+  const handleUninstallPlugin = (plugin: Plugin) => setUninstallingPlugin(plugin);
 
-  const confirmUninstall = async () => {
+  const confirmUninstall = () => {
     if (!uninstallingPlugin) return;
-
-    setActionLoading(uninstallingPlugin.manifest.id);
-    setActionError(null);
-    try {
-      await uninstallPlugin(uninstallingPlugin.manifest.id);
-      setUninstallingPlugin(null);
-    } catch (err: any) {
-      setActionError(err.message || 'Failed to uninstall plugin');
-    } finally {
-      setActionLoading(null);
-    }
+    withAction(
+      uninstallingPlugin.manifest.id,
+      async () => {
+        if (uninstallingPlugin.state === 'enabled') {
+          await disablePlugin(uninstallingPlugin.manifest.id);
+        }
+        await uninstallPlugin(uninstallingPlugin.manifest.id);
+        setUninstallingPlugin(null);
+      },
+      'Failed to uninstall plugin'
+    );
   };
 
-  const getPluginStateClass = (state: string) => {
-    switch (state) {
-      case 'enabled':
-        return 'plugin-state--enabled';
-      case 'disabled':
-        return 'plugin-state--disabled';
-      case 'error':
-        return 'plugin-state--error';
-      case 'loading':
-        return 'plugin-state--loading';
-      default:
-        return '';
-    }
+  const PLUGIN_STATE_MAP: Record<string, { label: string; className: string }> = {
+    enabled:  { label: 'Enabled',    className: 'plugin-state--enabled' },
+    disabled: { label: 'Disabled',   className: 'plugin-state--disabled' },
+    error:    { label: 'Error',      className: 'plugin-state--error' },
+    loading:  { label: 'Loading...', className: 'plugin-state--loading' },
   };
-
-  const getPluginStateLabel = (state: string) => {
-    switch (state) {
-      case 'enabled':
-        return 'Enabled';
-      case 'disabled':
-        return 'Disabled';
-      case 'error':
-        return 'Error';
-      case 'loading':
-        return 'Loading...';
-      default:
-        return state;
-    }
-  };
+  const getPluginStateClass = (state: string) => PLUGIN_STATE_MAP[state]?.className ?? '';
+  const getPluginStateLabel = (state: string) => PLUGIN_STATE_MAP[state]?.label ?? state;
 
   if (loading) {
     return (
@@ -333,13 +308,9 @@ export default function Plugins() {
                             Activate License
                           </button>
                         ) : (
-                          <button 
+                          <button
                             className="btn btn--secondary"
-                            onClick={async () => {
-                              if (confirm('Are you sure you want to deactivate this license?')) {
-                                await deactivateLicense(plugin.manifest.id);
-                              }
-                            }}
+                            onClick={() => setDeactivatingLicensePlugin(plugin)}
                           >
                             Deactivate License
                           </button>
@@ -379,16 +350,14 @@ export default function Plugins() {
                       </button>
                     )}
 
-                    {plugin.state !== 'enabled' && (
-                      <button
-                        className="btn btn--secondary btn--icon btn--danger-hover"
-                        onClick={() => handleUninstallPlugin(plugin)}
-                        disabled={actionLoading === plugin.manifest.id}
-                        title="Uninstall Plugin"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
+                    <button
+                      className="btn btn--secondary btn--icon btn--danger-hover"
+                      onClick={() => handleUninstallPlugin(plugin)}
+                      disabled={actionLoading === plugin.manifest.id}
+                      title="Uninstall Plugin"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -420,6 +389,38 @@ export default function Plugins() {
         confirmLabel="Uninstall"
         variant="danger"
         loading={actionLoading === uninstallingPlugin?.manifest.id}
+      />
+
+      <ConfirmModal
+        isOpen={!!updatingPlugin}
+        onClose={() => setUpdatingPlugin(null)}
+        onConfirm={confirmUpdate}
+        title="Update Plugin"
+        message={updatingPlugin ? `Update ${updatingPlugin.manifest.name} to v${updatingPlugin.latestVersion}?` : ''}
+        confirmLabel="Update"
+        variant="info"
+        loading={actionLoading === updatingPlugin?.manifest.id}
+      />
+
+      <ConfirmModal
+        isOpen={!!deactivatingLicensePlugin}
+        onClose={() => setDeactivatingLicensePlugin(null)}
+        onConfirm={() => {
+          if (!deactivatingLicensePlugin) return;
+          withAction(
+            deactivatingLicensePlugin.manifest.id,
+            async () => {
+              await deactivateLicense(deactivatingLicensePlugin.manifest.id);
+              setDeactivatingLicensePlugin(null);
+            },
+            'Failed to deactivate license'
+          );
+        }}
+        title="Deactivate License"
+        message={deactivatingLicensePlugin ? `Deactivate the license for ${deactivatingLicensePlugin.manifest.name}? You will need to re-enter your license key to use it again.` : ''}
+        confirmLabel="Deactivate"
+        variant="warning"
+        loading={actionLoading === deactivatingLicensePlugin?.manifest.id}
       />
     </div>
   );

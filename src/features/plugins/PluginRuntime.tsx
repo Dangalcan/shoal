@@ -86,9 +86,8 @@ export function PluginRuntime() {
             // 2.2 Load Script
             const script = document.createElement('script');
             // Use custom protocol with triple slash for absolute paths
-            script.src = `plugin-file:///${plugin.rendererEntry}`; 
+            script.src = `plugin-file:///${plugin.rendererEntry}`;
             script.async = true;
-            script.type = 'module'; // Assume ES modules for modern plugins
             
             script.onload = () => {
               console.log(`[PluginRuntime] Successfully loaded UI for ${plugin.manifest.id}`);

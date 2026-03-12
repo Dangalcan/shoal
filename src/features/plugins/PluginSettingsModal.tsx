@@ -97,18 +97,20 @@ export function PluginSettingsModal({
           </div>
         )}
 
-        {loading ? (
-          <div className="plugins__loading">
-            <div className="spinner"></div>
-          </div>
-        ) : (
-          <PluginConfigurationForm
-            schema={schema}
-            initialValues={settings}
-            onSave={handleSave}
-            onCancel={onClose}
-          />
-        )}
+        <div className="license-modal__body">
+          {loading ? (
+            <div className="plugins__loading">
+              <div className="spinner"></div>
+            </div>
+          ) : (
+            <PluginConfigurationForm
+              schema={schema}
+              initialValues={settings}
+              onSave={handleSave}
+              onCancel={onClose}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

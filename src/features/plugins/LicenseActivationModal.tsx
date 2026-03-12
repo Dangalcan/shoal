@@ -15,19 +15,24 @@ interface LicenseActivationModalProps {
   onClose: () => void;
 }
 
+const LICENSE_KEY_RE = /^[A-Z]{2,10}-[A-Z0-9]{4,}(-[A-Z0-9]{4,})+$/;
+
 export function LicenseActivationModal({ plugin, onClose }: LicenseActivationModalProps) {
   const { activateLicense, startTrial } = usePlugins();
   const [licenseKey, setLicenseKey] = useState('');
+  const [keyTouched, setKeyTouched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const pricing = plugin.manifest.license.pricing;
   const trialAvailable = pricing?.trialDays && !plugin.licenseInfo?.trialEndsAt;
+  const keyValid = LICENSE_KEY_RE.test(licenseKey);
+  const showKeyError = keyTouched && licenseKey.length > 0 && !keyValid;
 
   const handleActivate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!licenseKey.trim()) return;
+    if (!keyValid) return;
 
     setLoading(true);
     setError(null);
@@ -96,18 +101,29 @@ export function LicenseActivationModal({ plugin, onClose }: LicenseActivationMod
               type="text"
               id="licenseKey"
               value={licenseKey}
-              onChange={(e) => setLicenseKey(e.target.value)}
+              onChange={(e) => setLicenseKey(e.target.value.toUpperCase())}
+              onBlur={() => setKeyTouched(true)}
               placeholder="PRO-XXXX-XXXX-XXXX"
-              className="form-input"
+              className={`form-input${showKeyError ? ' form-input--error' : ''}`}
               disabled={loading || !!success}
+              autoComplete="off"
+              spellCheck={false}
             />
+            {showKeyError && (
+              <p className="form-hint form-hint--error">
+                Format: PREFIX-XXXX-XXXX (e.g. PRO-AB12-CD34-EF56)
+              </p>
+            )}
+            {!showKeyError && licenseKey.length === 0 && (
+              <p className="form-hint">Enter the key exactly as received (case-insensitive)</p>
+            )}
           </div>
 
           <div className="license-modal__actions">
             <button
               type="submit"
               className="btn btn--primary btn--full"
-              disabled={loading || !licenseKey.trim() || !!success}
+              disabled={loading || !keyValid || !!success}
             >
               {loading ? 'Activating...' : 'Activate License'}
             </button>
@@ -146,7 +162,7 @@ export function LicenseActivationModal({ plugin, onClose }: LicenseActivationMod
         <div className="license-modal__footer">
           <p>
             Don't have a license?{' '}
-            <a href={plugin.manifest.homepage} target="_blank" rel="noopener noreferrer">
+            <a href={plugin.manifest.homepage ?? 'https://k8s-desktop.app/plugins'} target="_blank" rel="noopener noreferrer">
               Purchase one here
             </a>
           </p>
