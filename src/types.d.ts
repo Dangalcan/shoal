@@ -68,7 +68,7 @@ export interface ElectronAPI {
   // Plugin System
   getPlugins: () => Promise<Result<Plugin[]>>;
   enablePlugin: (pluginId: string) => Promise<Result<boolean>>;
-  disablePlugin: (pluginId: string) => Promise<Result<void>>;
+  disablePlugin: (pluginId: string) => Promise<Result<string[]>>;
   checkForPluginUpdates: () => Promise<Result<void>>;
   getPluginExtensions: (extensionPoint?: string) => Promise<Result<any[]>>;
   executePluginAction: (

@@ -6,7 +6,9 @@
  */
 
 import fs from 'fs/promises';
+import { readFileSync } from 'fs';
 import path from 'path';
+import vm from 'vm';
 import semver from 'semver';
 import { pathService } from './path-service';
 import type {
@@ -16,9 +18,23 @@ import type {
 } from '../../types/plugin-types';
 import { signatureService } from '../security/signature-service';
 
+// Node.js built-ins that are safe to expose to plugin code (no I/O, no process spawning)
+const ALLOWED_BUILTINS = new Set([
+  'path',
+  'util',
+  'os',
+  'url',
+  'querystring',
+  'events',
+  'stream',
+  'crypto',
+]);
+
 export class PluginLoader {
   private pluginDirectories: string[] = [];
   private loadedPlugins: Map<string, Plugin> = new Map();
+  // Per-plugin module cache used by the sandboxed require (replaces require.cache)
+  private sandboxCaches: Map<string, Map<string, any>> = new Map();
 
   constructor() {
     this.initializePluginDirectories();
@@ -256,7 +272,13 @@ export class PluginLoader {
   }
 
   /**
-   * Load plugin code (activate)
+   * Load plugin code into a VM sandbox (activate).
+   *
+   * Plugins run in an isolated V8 context with no access to Node.js I/O APIs.
+   * They receive the `context` object (passed by plugin-manager during activate)
+   * as their only interaction surface.  A restricted `require` is provided that
+   * allows relative imports within the plugin directory and a safe built-in
+   * allowlist (path, util, os, url, querystring, events, stream, crypto).
    */
   async loadPluginCode(pluginId: string, pluginPath: string): Promise<any> {
     try {
@@ -270,14 +292,21 @@ export class PluginLoader {
         plugin.manifest.main || 'index.js'
       );
 
-      // Check if file exists
       await fs.access(mainFile);
 
-      // Load the plugin module.
-      // We use require() to provide developers with a permissive environment, 
-      // allowing full access to Node.js primitives and application core logic.
-      const pluginModule = require(mainFile);
+      const code = await fs.readFile(mainFile, 'utf8');
+      const moduleCache = new Map<string, any>();
+      const pluginModule = this.executeInSandbox(
+        code,
+        mainFile,
+        pluginPath,
+        moduleCache
+      );
 
+      this.sandboxCaches.set(pluginId, moduleCache);
+      console.log(
+        `[PluginLoader] Loaded plugin code for ${pluginId} (sandboxed)`
+      );
       return pluginModule;
     } catch (error: any) {
       console.error(
@@ -289,23 +318,11 @@ export class PluginLoader {
   }
 
   /**
-   * Unload plugin code (deactivate)
+   * Unload plugin code (deactivate) — clears the sandbox module cache.
    */
-  async unloadPluginCode(pluginId: string, pluginPath: string): Promise<void> {
+  async unloadPluginCode(pluginId: string, _pluginPath: string): Promise<void> {
     try {
-      const plugin = this.loadedPlugins.get(pluginId);
-      if (!plugin) {
-        return;
-      }
-
-      const mainFile = path.join(
-        pluginPath,
-        plugin.manifest.main || 'index.js'
-      );
-
-      // Remove from require cache
-      delete require.cache[require.resolve(mainFile)];
-
+      this.sandboxCaches.delete(pluginId);
       console.log(`[PluginLoader] Unloaded plugin code for ${pluginId}`);
     } catch (error: any) {
       console.error(
@@ -313,6 +330,103 @@ export class PluginLoader {
         error.message
       );
     }
+  }
+
+  /**
+   * Execute plugin code in a sandboxed VM context.
+   *
+   * @param code     - Source code string (CommonJS JS)
+   * @param filename - Absolute path used for stack traces and relative require resolution
+   * @param pluginDir - Root directory of the plugin (require cannot escape above this)
+   * @param moduleCache - Shared cache for this plugin's load session (handles circular requires)
+   */
+  private executeInSandbox(
+    code: string,
+    filename: string,
+    pluginDir: string,
+    moduleCache: Map<string, any>
+  ): any {
+    const moduleObj = { exports: {} as any };
+
+    const sandboxedRequire = (specifier: string): any => {
+      // Allow safe Node.js built-ins
+      if (ALLOWED_BUILTINS.has(specifier)) {
+        return require(specifier);
+      }
+
+      // Allow relative imports within the plugin directory
+      if (specifier.startsWith('./') || specifier.startsWith('../')) {
+        const resolved = path.resolve(path.dirname(filename), specifier);
+
+        // Block path traversal outside the plugin directory
+        if (!resolved.startsWith(path.resolve(pluginDir))) {
+          throw new Error(
+            `[PluginSandbox] Path traversal blocked: "${specifier}"`
+          );
+        }
+
+        // Try the path as-is, then with .js and /index.js suffixes
+        const candidates = [
+          resolved,
+          `${resolved}.js`,
+          path.join(resolved, 'index.js'),
+        ];
+        for (const candidate of candidates) {
+          if (moduleCache.has(candidate)) {
+            return moduleCache.get(candidate); // cycle protection
+          }
+          try {
+            const childCode = readFileSync(candidate, 'utf8');
+            moduleCache.set(candidate, {}); // reserve slot before recursing
+            const childExports = this.executeInSandbox(
+              childCode,
+              candidate,
+              pluginDir,
+              moduleCache
+            );
+            moduleCache.set(candidate, childExports);
+            return childExports;
+          } catch {
+            continue;
+          }
+        }
+        throw new Error(`[PluginSandbox] Cannot find module: "${specifier}"`);
+      }
+
+      throw new Error(
+        `[PluginSandbox] Module "${specifier}" is not allowed. ` +
+          `Plugins may only import relative files or: ${[...ALLOWED_BUILTINS].join(', ')}`
+      );
+    };
+
+    const context = vm.createContext({
+      module: moduleObj,
+      exports: moduleObj.exports,
+      require: sandboxedRequire,
+      __dirname: path.dirname(filename),
+      __filename: filename,
+      console,
+      Buffer,
+      setTimeout,
+      clearTimeout,
+      setInterval,
+      clearInterval,
+      setImmediate,
+      clearImmediate,
+      queueMicrotask,
+      // Stripped-down process — no env, no exit, no spawn
+      process: {
+        platform: process.platform,
+        version: process.version,
+        versions: process.versions,
+        env: {},
+      },
+    });
+
+    const script = new vm.Script(code, { filename });
+    script.runInContext(context, { timeout: 10_000 });
+
+    return moduleObj.exports;
   }
 
   /**

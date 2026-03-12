@@ -7,6 +7,7 @@
 import { createContext, useContext, ReactNode, useEffect, useState } from 'react';
 import type { Plugin } from '../../../electron/types/plugin-types';
 import { useApi } from '../../services/api-context';
+import { toast } from 'sonner';
 
 interface PluginContextType {
   plugins: Plugin[];
@@ -80,7 +81,21 @@ export function PluginProvider({ children }: PluginProviderProps) {
   };
 
   const enablePlugin = (pluginId: string) => handleActionResult(() => api.enablePlugin(pluginId), 'Failed to enable plugin');
-  const disablePlugin = (pluginId: string) => handleActionResult(() => api.disablePlugin(pluginId), 'Failed to disable plugin');
+
+  const disablePlugin = async (pluginId: string): Promise<void> => {
+    const result = await api.disablePlugin(pluginId);
+    if (!result.success) throw new Error(result.error || 'Failed to disable plugin');
+    const cascaded = result.data ?? [];
+    const cascadeNames = cascaded.map(
+      id => plugins.find(p => p.manifest.id === id)?.manifest.name ?? id
+    );
+    await refreshPlugins();
+    if (cascadeNames.length > 0) {
+      toast.warning(`Also disabled: ${cascadeNames.join(', ')}`, {
+        description: 'These plugins depended on the one you disabled.',
+      });
+    }
+  };
   const executePluginAction = (pluginId: string, actionId: string, args?: any) => handleActionResult(() => api.executePluginAction(pluginId, actionId, args), 'Failed to execute plugin action', false);
   const activateLicense = (pluginId: string, key: string) => handleActionResult(() => api.activatePluginLicense(pluginId, key), 'Failed to activate license');
   const startTrial = (pluginId: string) => handleActionResult(() => api.startPluginTrial(pluginId), 'Failed to start trial');

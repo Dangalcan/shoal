@@ -5,9 +5,10 @@
  * Monitors enabled plugins and injects their renderer entry scripts.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePlugins } from './PluginProvider';
 import { toast } from 'sonner';
+import { pluginUIRegistry } from '../../services/plugin-ui-registry';
 
 interface PluginScriptState {
   pluginId: string;
@@ -16,9 +17,16 @@ interface PluginScriptState {
   loaded: boolean;
 }
 
+interface ActiveModal {
+  id: string;
+  props: Record<string, any>;
+  pluginId: string;
+}
+
 export function PluginRuntime() {
   const { plugins } = usePlugins();
   const loadedScripts = useRef<Map<string, PluginScriptState>>(new Map());
+  const [activeModal, setActiveModal] = useState<ActiveModal | null>(null);
 
   // Handle Notifications & Modals
   useEffect(() => {
@@ -29,7 +37,7 @@ export function PluginRuntime() {
       const { message, type, pluginId } = data;
       const plugin = plugins.find(p => p.manifest.id === pluginId);
       const name = plugin ? plugin.manifest.name : pluginId;
-      
+
       switch (type) {
         case 'success': toast.success(message, { description: `From: ${name}` }); break;
         case 'error': toast.error(message, { description: `From: ${name}` }); break;
@@ -42,12 +50,14 @@ export function PluginRuntime() {
       const { component, props, pluginId } = data;
       const plugin = plugins.find(p => p.manifest.id === pluginId);
       const name = plugin ? plugin.manifest.name : pluginId;
-      
-      console.log(`[PluginRuntime] Modal requested from ${name}:`, component, props);
-      toast.info(`Modal requested by ${name}`, { 
-        description: `Component: ${component}. (UI integration pending full renderer registry)`,
-        duration: 5000 
-      });
+
+      const registration = pluginUIRegistry.getModal(component);
+      if (!registration) {
+        toast.error(`Plugin modal not found: "${component}"`, { description: `From: ${name}` });
+        return;
+      }
+
+      setActiveModal({ id: component, props: props ?? {}, pluginId });
     });
 
     return () => {
@@ -145,6 +155,12 @@ export function PluginRuntime() {
 
   }, [plugins]);
 
-  return null; // Side-effect only component
+  if (!activeModal) return null;
+
+  const registration = pluginUIRegistry.getModal(activeModal.id);
+  if (!registration) return null;
+
+  const ModalComponent = registration.component;
+  return <ModalComponent onClose={() => setActiveModal(null)} {...activeModal.props} />;
 }
 

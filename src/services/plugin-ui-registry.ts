@@ -26,10 +26,16 @@ export interface ResourceActionExtension {
   onClick: (resource: any) => void;
 }
 
+export interface PluginModal {
+  id: string;
+  component: React.ComponentType<any>;
+}
+
 class PluginUIRegistry {
   private widgets: Map<string, DashboardWidget> = new Map();
   private pages: Map<string, PluginPage> = new Map();
   private resourceActions: Map<string, ResourceActionExtension> = new Map();
+  private modals: Map<string, PluginModal> = new Map();
   private listeners: Set<() => void> = new Set();
 
   registerWidget(widget: DashboardWidget) {
@@ -60,6 +66,18 @@ class PluginUIRegistry {
   unregisterResourceAction(actionId: string) {
     this.resourceActions.delete(actionId);
     this.notify();
+  }
+
+  registerModal(modal: PluginModal) {
+    this.modals.set(modal.id, modal);
+  }
+
+  unregisterModal(modalId: string) {
+    this.modals.delete(modalId);
+  }
+
+  getModal(modalId: string): PluginModal | undefined {
+    return this.modals.get(modalId);
   }
 
   getWidgets(): DashboardWidget[] {
