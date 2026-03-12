@@ -15,6 +15,7 @@ import { pathToFileURL } from 'url';
 import { clusterManagementService } from './services/cluster/cluster-management-service';
 import { kubernetesService } from './services/kubernetes/kubernetes-service';
 import { pluginManager } from './services/plugins/plugin-manager';
+import { pluginEventBus } from './services/plugins/plugin-events';
 import { templateService } from './services/plugins/template-service';
 import { licenseManager } from './services/security/license-manager';
 import { marketplaceService } from './services/marketplace/marketplace-service';
@@ -25,6 +26,49 @@ const execPromise = util.promisify(exec);
 const DEFAULT_LOG_TAIL_LINES = 200;
 const DEFAULT_WINDOW_WIDTH = 1200;
 const DEFAULT_WINDOW_HEIGHT = 800;
+
+// ---------------------------------------------------------------------------
+// Input validation helpers — all kubectl arguments must pass before use in
+// shell commands to prevent command injection from a compromised renderer.
+// ---------------------------------------------------------------------------
+
+const ALLOWED_TOOLS = new Set([
+  'kubectl',
+  'helm',
+  'kind',
+  'minikube',
+  'k3d',
+  'k9s',
+  'kubectx',
+  'kubens',
+  'docker',
+  'podman',
+]);
+
+/** Kubernetes context names: alphanumeric + .-_@/:  */
+const CONTEXT_NAME_RE = /^[a-zA-Z0-9._\-@/:]+$/;
+/** Kubernetes resource types: alphanumeric + ./  */
+const RESOURCE_TYPE_RE = /^[a-zA-Z0-9./]+$/;
+/** Kubernetes namespaces: RFC 1123 DNS label, or the literal "all" */
+const NAMESPACE_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$|^all$/;
+/** Kubernetes resource/pod names: alphanumeric + .-_ */
+const RESOURCE_NAME_RE = /^[a-zA-Z0-9._\-]+$/;
+
+function assertContext(v: string) {
+  if (!v || !CONTEXT_NAME_RE.test(v))
+    throw new Error(`Invalid context name: "${v}"`);
+}
+function assertResourceType(v: string) {
+  if (!v || !RESOURCE_TYPE_RE.test(v))
+    throw new Error(`Invalid resource type: "${v}"`);
+}
+function assertNamespace(v: string) {
+  if (!v || !NAMESPACE_RE.test(v)) throw new Error(`Invalid namespace: "${v}"`);
+}
+function assertResourceName(v: string) {
+  if (!v || !RESOURCE_NAME_RE.test(v))
+    throw new Error(`Invalid resource name: "${v}"`);
+}
 
 process.env.DIST = path.join(__dirname, '../dist');
 process.env.VITE_PUBLIC = app.isPackaged
@@ -82,6 +126,13 @@ function registerIpcHandlers() {
   ipcMain.handle(
     'run-command',
     wrapIpcHandler('run-command', async (_event, command) => {
+      // Only allow commands that start with a known safe tool name.
+      const firstWord = String(command).trimStart().split(/\s+/)[0];
+      if (!ALLOWED_TOOLS.has(firstWord)) {
+        throw new Error(
+          `Command not allowed: "${firstWord}". Only Kubernetes tooling is permitted.`
+        );
+      }
       const { stdout, stderr } = await execPromise(command as string);
       return { stdout, stderr };
     })
@@ -90,6 +141,9 @@ function registerIpcHandlers() {
   ipcMain.handle(
     'check-tool',
     wrapIpcHandler('check-tool', async (_event, tool) => {
+      if (!ALLOWED_TOOLS.has(String(tool))) {
+        throw new Error(`Tool not allowed: "${tool}"`);
+      }
       await execPromise(`${tool} --version`);
       return true;
     })
@@ -123,6 +177,7 @@ function registerIpcHandlers() {
   ipcMain.handle(
     'switch-context',
     wrapIpcHandler('switch-context', async (_event, contextName) => {
+      assertContext(contextName);
       await execPromise(`kubectl config use-context ${contextName}`);
       return true;
     })
@@ -131,6 +186,7 @@ function registerIpcHandlers() {
   ipcMain.handle(
     'get-pods',
     wrapIpcHandler('get-pods', async (_event, contextName) => {
+      assertContext(contextName);
       const { stdout } = await execPromise(
         `kubectl get pods --context ${contextName} -A -o json`
       );
@@ -142,6 +198,7 @@ function registerIpcHandlers() {
   ipcMain.handle(
     'get-namespaces',
     wrapIpcHandler('get-namespaces', async (_event, contextName) => {
+      assertContext(contextName);
       const { stdout } = await execPromise(
         `kubectl get namespaces --context ${contextName} -o name`
       );
@@ -158,6 +215,9 @@ function registerIpcHandlers() {
     wrapIpcHandler(
       'get-resources',
       async (_event, { contextName, resourceType, namespace }) => {
+        assertContext(contextName);
+        assertResourceType(resourceType);
+        if (namespace !== 'all') assertNamespace(namespace);
         const nsFlag = namespace === 'all' ? '-A' : `-n ${namespace}`;
         const { stdout } = await execPromise(
           `kubectl get ${resourceType} --context ${contextName} ${nsFlag} -o json`
@@ -173,9 +233,15 @@ function registerIpcHandlers() {
     wrapIpcHandler(
       'get-logs',
       async (_event, { contextName, podName, namespace, tailLines }) => {
+        assertContext(contextName);
+        assertResourceName(podName);
+        if (namespace && namespace !== 'all') assertNamespace(namespace);
         const nsFlag =
           !namespace || namespace === 'all' ? '' : `-n ${namespace}`;
-        const tail = tailLines || DEFAULT_LOG_TAIL_LINES;
+        const tail =
+          Number.isInteger(tailLines) && tailLines > 0
+            ? tailLines
+            : DEFAULT_LOG_TAIL_LINES;
         const { stdout } = await execPromise(
           `kubectl logs ${podName} --context ${contextName} ${nsFlag} --tail=${tail}`
         );
@@ -192,6 +258,10 @@ function registerIpcHandlers() {
         _event,
         { contextName, resourceType, resourceName, namespace }
       ) => {
+        assertContext(contextName);
+        assertResourceType(resourceType);
+        assertResourceName(resourceName);
+        if (namespace && namespace !== 'all') assertNamespace(namespace);
         const nsFlag =
           !namespace || namespace === 'all' ? '' : `-n ${namespace}`;
         const { stdout } = await execPromise(
@@ -210,6 +280,10 @@ function registerIpcHandlers() {
         _event,
         { contextName, resourceType, resourceName, namespace }
       ) => {
+        assertContext(contextName);
+        assertResourceType(resourceType);
+        assertResourceName(resourceName);
+        if (namespace && namespace !== 'all') assertNamespace(namespace);
         const nsFlag =
           !namespace || namespace === 'all' ? '' : `-n ${namespace}`;
         const { stdout } = await execPromise(
@@ -228,6 +302,10 @@ function registerIpcHandlers() {
         _event,
         { contextName, resourceType, resourceName, namespace }
       ) => {
+        assertContext(contextName);
+        assertResourceType(resourceType);
+        assertResourceName(resourceName);
+        if (namespace && namespace !== 'all') assertNamespace(namespace);
         const nsFlag =
           !namespace || namespace === 'all' ? '' : `-n ${namespace}`;
         await execPromise(
@@ -515,6 +593,9 @@ function createWindow() {
   } else {
     win.loadFile(path.join(dist, 'index.html'));
   }
+
+  // Make the window available to plugin context without circular imports.
+  pluginEventBus.setMainWindow(win);
 }
 
 app.on('window-all-closed', () => {
