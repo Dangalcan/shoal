@@ -144,5 +144,6 @@ export const mockApi: ElectronAPI = {
 
   // Listeners
   onSetKubeconfigPath: (_callback: (value: boolean) => void) => {},
-  onPluginNotification: (_callback: (data: any) => void) => {},
+  onPluginNotification: (_callback: (data: any) => void) => () => {},
+  onPluginModal: (_callback: (data: any) => void) => () => {},
 };

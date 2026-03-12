@@ -104,7 +104,8 @@ export function createMockElectronAPI(
     }),
 
     onSetKubeconfigPath: vi.fn(),
-    onPluginNotification: vi.fn(),
+    onPluginNotification: vi.fn().mockReturnValue(() => {}),
+    onPluginModal: vi.fn().mockReturnValue(() => {}),
     ...overrides,
   };
 }
