@@ -41,6 +41,13 @@
         "type": "array",
         "label": "Excluded Namespaces",
         "default": ["kube-system", "kube-public"]
+      },
+      "restartThreshold": {
+        "type": "number",
+        "label": "Restart Alert Threshold (per scan)",
+        "description": "Alert when a pod's restart count increases by this many since the last scan.",
+        "default": 3,
+        "min": 1
       }
     }
   }
