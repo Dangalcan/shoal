@@ -36,19 +36,32 @@ import { mockApi } from './mockApi';
  * </ApiProvider>
  * ```
  */
+const IS_TEST = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
+
 function resolveApi(provided?: ElectronAPI): ElectronAPI {
   if (provided) return provided;
   if (window.electron) return window.electron;
-  console.warn(
-    '[ApiProvider] window.electron is not available — falling back to mock API. ' +
-    'This should only happen in tests or browser environments.'
+  if (IS_TEST) {
+    return mockApi;
+  }
+  console.error(
+    '[ApiProvider] window.electron is not available in a non-test environment. ' +
+    'The Electron preload script may not have run correctly.'
   );
+  // Return mock so the UI can at least render an error state instead of crashing
   return mockApi;
 }
 
 export function ApiProvider({ children, api }: ApiProviderProps) {
   const resolvedApi = resolveApi(api);
-  console.log('[ApiProvider] Initializing with api:', resolvedApi === mockApi ? 'Mock API' : 'Electron API');
+  const usingMock = resolvedApi === mockApi && !api;
+  if (usingMock && !IS_TEST) {
+    return (
+      <div style={{ padding: '2rem', color: 'red', fontFamily: 'monospace' }}>
+        <strong>Fatal:</strong> Electron IPC bridge not found. Please restart the application.
+      </div>
+    );
+  }
   return <ApiContext.Provider value={resolvedApi}>{children}</ApiContext.Provider>;
 }
 
