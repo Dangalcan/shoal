@@ -27,11 +27,11 @@ The plugin system is composed of several key services:
 
 ### 2.2. Incomplete API Implementation
 
-Several core features in `PluginContext` are currently marked with `TODO`:
+Several features in `PluginContext` are still pending:
 
-- `watchResources`: Essential for creating reactive plugins (e.g., real-time monitoring).
-- `openModal`: Plugins cannot currently trigger standard UI modals in the renderer.
-- `in-memory extensions registry`: The registration of UI extensions (sidebar, pages) is not persistent across restarts if not explicitly handled.
+- `watchResources`: Essential for creating reactive plugins (e.g., real-time monitoring). Still marked TODO in `plugin-context.ts`.
+- `openModal`: The IPC event (`plugin-modal`) is now emitted from the main process and an `onPluginModal` listener is exposed in `preload.ts`. However, the renderer does not yet have a generic handler to mount arbitrary plugin-defined React components from these events. Full round-trip support is a pending TODO.
+- Plugin UI extensions (sidebar items, pages) are registered in an in-memory registry per session. They are re-registered on each plugin activation (at startup or on enable), so persistence across restarts works correctly as long as the plugin remains enabled.
 
 ### 2.3. Platform Specificity & Pathing
 

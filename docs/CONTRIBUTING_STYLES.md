@@ -367,15 +367,19 @@ Variations or states (use `--`)
 
 ### Dark Mode (Default)
 
+The application ships with a dark theme. CSS variables are scoped to `[data-theme='dark']` in `styles/index.css`.
+
 ```css
-:root {
+[data-theme='dark'] {
   --color-bg: #0f172a;
   --color-surface: #1e293b;
   --color-text: #f1f5f9;
 }
 ```
 
-### Light Mode (Future)
+### Light Mode (Not yet implemented)
+
+A light mode theme selector is not currently available in the Settings UI. When adding light-mode support, override variables under a `[data-theme='light']` selector:
 
 ```css
 [data-theme='light'] {

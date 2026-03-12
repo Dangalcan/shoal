@@ -7,6 +7,7 @@ Welcome to **Kubernetes Desktop**, your modern cockpit for Kubernetes management
 - [Getting Started](#getting-started)
 - [Cluster Management](#cluster-management)
 - [Managing Resources](#managing-resources)
+- [Manifests](#manifests)
 - [Using Plugins](#using-plugins)
 - [Settings & Configuration](#settings--configuration)
 
@@ -61,6 +62,33 @@ Click on a resource name to view more options:
 - **YAML View**: Inspect the live YAML manifest of the resource.
 - **Logs**: Stream live logs from your containers.
 - **Restart/Delete**: Safely perform rollouts or deletions directly from the UI.
+
+---
+
+## Manifests
+
+The **Manifests** page lets you store, edit, and apply Kubernetes resource manifests (YAML) directly from the UI without leaving the application.
+
+### Saving a Manifest
+
+1. Navigate to **"Manifests"** in the sidebar.
+2. Click **"New Manifest"** (or the `+` button).
+3. Give it a name and paste or type your YAML content.
+4. Click **"Save"**. The manifest is persisted in the local SQLite database.
+
+You can also **drag and drop** a `.yaml` or `.json` file onto the editor, or use the file upload button to import from disk.
+
+### Editing a Manifest
+
+Click the **edit** icon next to any saved manifest to open it in the editor. Make your changes and click **"Save"**.
+
+### Applying a Manifest
+
+Click the **play** icon (▶) next to a manifest to run `kubectl apply` against the **currently active** cluster context. The result (success or error output) is displayed inline.
+
+### Deleting a Manifest
+
+Click the **trash** icon and confirm the deletion.
 
 ---
 

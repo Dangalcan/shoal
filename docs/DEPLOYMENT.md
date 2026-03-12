@@ -49,18 +49,17 @@ npm run build
 
 ### 3. Platform-Specific Commands
 
-You can build specifically for your current platform or others (if supported):
+Use the dedicated per-platform scripts:
 
 ```bash
-# Windows
-npm run build -- --win
+# Windows (produces .exe NSIS installer and portable .exe)
+npm run build:win
 
-# macOS
-npm run build -- --mac
-
-# Linux
-npm run build -- --linux
+# Linux (produces .AppImage and .deb)
+npm run build:linux
 ```
+
+> **Note:** There is no dedicated macOS build script. macOS builds require running `electron-builder --mac` manually with appropriate signing environment variables set.
 
 ---
 
@@ -89,7 +88,7 @@ Signing your application is critical to avoid "Unknown Publisher" warnings and t
 
 ## Distribution
 
-Official releases are generated in the `dist/` directory.
+Official releases are generated in the `release/` directory.
 
 ### Output Formats
 
