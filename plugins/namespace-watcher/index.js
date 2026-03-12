@@ -19,7 +19,7 @@ module.exports = {
     context.logger.info('Preparing Namespace Watcher...');
 
     // Check if data was loaded
-    const defaultConfig = await context.storage.get('data/data/default-config');
+    const defaultConfig = await context.storage.get('data/default-config');
     if (defaultConfig) {
       context.logger.info('Default configuration loaded:', defaultConfig);
     }
@@ -34,7 +34,7 @@ module.exports = {
 
     // Load default configuration (data file bundled with the plugin)
     const defaultConfig =
-      (await context.storage.get('data/data/default-config')) || {};
+      (await context.storage.get('data/default-config')) || {};
     const systemNamespaces = defaultConfig.defaultNamespaces || ['default'];
     const systemNamespacePrefixes = defaultConfig.systemNamespacePrefixes || [
       'kube-',
