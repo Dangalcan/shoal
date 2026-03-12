@@ -155,7 +155,7 @@ describe('MarketplaceService', () => {
       ]);
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
-      expect(result.data![0].version).toBe('1.1.0');
+      expect(result.data![0].latestVersion).toBe('1.1.0');
     });
   });
 
@@ -176,7 +176,7 @@ describe('MarketplaceService', () => {
   });
 
   describe('installPlugin', () => {
-    it('should install plugin successfully (dummy fallback)', async () => {
+    it('should fail with a clear error when bundled source is not found', async () => {
       const mockPlugin = {
         id: 'p1',
         name: 'Plugin 1',
@@ -185,16 +185,18 @@ describe('MarketplaceService', () => {
         manifest: { id: 'p1', version: '1.0.0', main: 'index.js' },
       };
 
-      // Mock getPluginDetails via readFile
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify([mockPlugin]));
 
-      // Force dummy install by making access fail
-      vi.mocked(fs.access).mockRejectedValueOnce(new Error('No source'));
+      // Source directory does not exist — should fail loudly, not write dummy stubs.
+      vi.mocked(fs.access).mockRejectedValueOnce(
+        Object.assign(new Error('ENOENT'), { code: 'ENOENT' })
+      );
 
       const result = await service.installPlugin('p1');
-      expect(result.success).toBe(true);
-      expect(fs.mkdir).toHaveBeenCalled();
-      expect(fs.writeFile).toHaveBeenCalled();
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Bundled plugin source not found');
+      // No dummy files should be written
+      expect(fs.writeFile).not.toHaveBeenCalled();
     });
 
     it('should install plugin from local source using fs.cp if available', async () => {
@@ -213,7 +215,7 @@ describe('MarketplaceService', () => {
       expect(fs.cp).toHaveBeenCalled();
     });
 
-    it('should use fallback dummy files if fs.cp is not available', async () => {
+    it('should fail gracefully when fs.cp throws during local install', async () => {
       const mockPlugin = {
         id: 'p1',
         name: 'Plugin 1',
@@ -227,26 +229,15 @@ describe('MarketplaceService', () => {
         },
       };
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify([mockPlugin]));
+      // Source exists but fs.cp fails (e.g. permissions error)
       vi.mocked(fs.access).mockResolvedValueOnce(undefined);
+      vi.mocked(fs.cp).mockRejectedValueOnce(new Error('Permission denied'));
 
-      // Force fs.cp to be undefined to trigger fallback
-      const originalCp = fs.cp;
-      (fs as any).cp = undefined;
-
-      try {
-        const result = await service.installPlugin('p1');
-        expect(result.success).toBe(true);
-        expect(fs.writeFile).toHaveBeenCalledWith(
-          expect.stringContaining('plugin.json'),
-          expect.any(String)
-        );
-        expect(fs.writeFile).toHaveBeenCalledWith(
-          expect.stringContaining('renderer.js'),
-          expect.any(String)
-        );
-      } finally {
-        (fs as any).cp = originalCp;
-      }
+      const result = await service.installPlugin('p1');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Permission denied');
+      // No dummy stub files should be written as a fallback
+      expect(fs.writeFile).not.toHaveBeenCalled();
     });
 
     it('should throw if downloadUrl has an unsupported scheme', async () => {
@@ -273,19 +264,20 @@ describe('MarketplaceService', () => {
       expect(result.error).toContain('Marketplace data missing');
     });
 
-    it('should fail when plugin has no manifest in marketplace data', async () => {
+    it('should succeed when plugin has no manifest field in marketplace entry (manifest comes from bundle)', async () => {
+      // In the new architecture the manifest is read from the installed plugin bundle,
+      // not from the marketplace catalog entry. A missing manifest field is fine.
       const mockPlugin = {
         id: 'p1',
         name: 'Plugin 1',
         version: '1.0.0',
         downloadUrl: 'local://p1.zip',
-        // manifest intentionally absent
+        // manifest intentionally absent — the bundle provides it
       };
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify([mockPlugin]));
 
       const result = await service.installPlugin('p1');
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('missing manifest');
+      expect(result.success).toBe(true);
     });
 
     it('should install plugin via HTTP download', async () => {
@@ -318,14 +310,22 @@ describe('MarketplaceService', () => {
         downloadUrl: 'https://example.com/p1.zip',
         manifest: { id: 'p1', version: '2.0.0', main: 'index.js' },
       };
-      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify([mockPlugin]));
 
-      vi.mocked(global.fetch as any).mockResolvedValue({
-        ok: false,
-        status: 404,
-        statusText: 'Not Found',
-        body: null,
-      });
+      // First fetch: getPluginDetails succeeds and returns the plugin entry.
+      // Second fetch: the actual file download returns a non-ok status.
+      vi.mocked(global.fetch as any)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          json: async () => mockPlugin,
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 404,
+          statusText: 'Not Found',
+          body: null,
+        });
 
       const result = await service.installPlugin('p1');
       expect(result.success).toBe(false);

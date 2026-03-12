@@ -88,7 +88,9 @@ vi.mock('../services/plugins/data-loader', () => ({
 vi.mock('../services/plugins/path-service', () => ({
   pathService: {
     getUserPluginsDir: vi.fn().mockReturnValue('/mock/user/plugins'),
-    getDiscoveryDirectories: vi.fn().mockReturnValue(['/mock/user/plugins', '/mock/app/plugins']),
+    getDiscoveryDirectories: vi
+      .fn()
+      .mockReturnValue(['/mock/user/plugins', '/mock/app/plugins']),
     resolvePluginPath: vi.fn(),
   },
 }));
@@ -558,7 +560,9 @@ describe('PluginManager', () => {
       vi.mocked(pluginLoader.getPluginPath).mockResolvedValue(
         path.resolve('/app/bundled/plugin')
       );
-      vi.mocked(pathService.getUserPluginsDir).mockReturnValue(path.resolve('/mock/user/plugins'));
+      vi.mocked(pathService.getUserPluginsDir).mockReturnValue(
+        path.resolve('/mock/user/plugins')
+      );
 
       await pluginManager.uninstallPlugin(pluginId);
 
@@ -640,6 +644,8 @@ describe('PluginManager', () => {
 
   describe('Watcher', () => {
     it('watchPlugin should start watcher and handle changes', async () => {
+      vi.useFakeTimers();
+
       const pluginId = 'p1';
       const pluginPath = '/path/to/plugin';
       vi.mocked(pluginLoader.getPluginPath).mockResolvedValue(pluginPath);
@@ -665,13 +671,19 @@ describe('PluginManager', () => {
         expect.any(Function)
       );
 
-      // Simulate change
+      // Simulate file-system change
       if (watchCallback) {
         watchCallback('change', 'file.js');
       }
 
+      // Advance past the 500 ms debounce window
+      vi.advanceTimersByTime(500);
+      // Allow the async reload to execute
+      await Promise.resolve();
+
       expect(reloadSpy).toHaveBeenCalledWith(pluginId);
       reloadSpy.mockRestore();
+      vi.useRealTimers();
     });
 
     it('watchPlugin should not start watcher if already watching', async () => {
@@ -725,6 +737,8 @@ describe('PluginManager', () => {
     });
 
     it('watcher callback should handle reload errors', async () => {
+      vi.useFakeTimers();
+
       const pluginId = 'p1';
       vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
 
@@ -743,19 +757,22 @@ describe('PluginManager', () => {
 
       await pluginManager.watchPlugin(pluginId);
 
-      // Simulate change
+      // Simulate file-system change
       if (watchCallback) {
-        await watchCallback('change', 'file.js');
+        watchCallback('change', 'file.js');
       }
 
-      // Wait for promise resolution (reloadPlugin is async inside callback)
-      await new Promise(process.nextTick);
+      // Advance past the 500 ms debounce, then allow the rejection to propagate
+      vi.advanceTimersByTime(500);
+      await Promise.resolve();
+      await Promise.resolve(); // two ticks: one for setTimeout, one for rejected promise
 
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('Auto-reload failed'),
         'Reload fail'
       );
       consoleSpy.mockRestore();
+      vi.useRealTimers();
       reloadSpy.mockRestore();
     });
   });

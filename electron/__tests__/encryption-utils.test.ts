@@ -1,8 +1,30 @@
 import { describe, it, expect, vi } from 'vitest';
 
-// Mock node-machine-id BEFORE importing the module under test.
-// The module computes ENCRYPTION_KEY at load time using machineIdSync(),
-// so the mock must be hoisted (vi.mock is hoisted automatically).
+// Mock electron so app.getPath('userData') resolves without a real app.
+vi.mock('electron', () => ({
+  app: {
+    getPath: vi.fn(() => '/mock/user/data'),
+  },
+}));
+
+// Mock the synchronous fs module used by getOrCreateSalt().
+// We return a stable, deterministic salt so the encryption key is consistent
+// within a test run, without touching the real filesystem.
+vi.mock('fs', () => {
+  const mockSalt = 'a'.repeat(64); // 64 hex chars = 32 bytes
+  return {
+    default: {
+      readFileSync: vi.fn(() => mockSalt),
+      writeFileSync: vi.fn(),
+      mkdirSync: vi.fn(),
+    },
+    readFileSync: vi.fn(() => mockSalt),
+    writeFileSync: vi.fn(),
+    mkdirSync: vi.fn(),
+  };
+});
+
+// Mock node-machine-id so machineIdSync() returns a stable value.
 vi.mock('node-machine-id', () => ({
   machineIdSync: vi.fn(() => 'test-machine-id-stable'),
 }));

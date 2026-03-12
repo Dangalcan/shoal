@@ -45,7 +45,20 @@ describe('SignatureService', () => {
       expect(result).toBe(false);
     });
 
-    it('should return true for an unsigned plugin (no signature file)', async () => {
+    it('should return false for an unsigned plugin (no signature file) by default', async () => {
+      vi.mocked(fs.readFile)
+        .mockResolvedValueOnce('{"id":"test-plugin","version":"1.0.0"}')
+        .mockRejectedValueOnce(
+          Object.assign(new Error('ENOENT'), { code: 'ENOENT' })
+        );
+
+      const result = await service.verifyPlugin('/fake/plugin/path');
+      expect(result).toBe(false);
+    });
+
+    it('should return true for an unsigned plugin when ALLOW_UNSIGNED_PLUGINS=true', async () => {
+      vi.stubEnv('ALLOW_UNSIGNED_PLUGINS', 'true');
+
       vi.mocked(fs.readFile)
         .mockResolvedValueOnce('{"id":"test-plugin","version":"1.0.0"}')
         .mockRejectedValueOnce(
@@ -54,6 +67,8 @@ describe('SignatureService', () => {
 
       const result = await service.verifyPlugin('/fake/plugin/path');
       expect(result).toBe(true);
+
+      vi.unstubAllEnvs();
     });
 
     it('should return false when signature verification fails', async () => {

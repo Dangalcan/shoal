@@ -7,7 +7,6 @@ import {
 import fs from 'fs/promises';
 import { app } from 'electron';
 import child_process from 'child_process';
-import Module from 'module';
 
 // Mocks
 vi.mock('fs/promises', () => {
@@ -62,23 +61,28 @@ vi.mock('../services/plugins/storage-service', () => ({
   },
 }));
 
-// Mock win for notification test
+// Mock win for notification / modal tests.
+// plugin-context now reads the window via pluginEventBus.getMainWindow(),
+// so we mock the event bus and make getMainWindow return the current mockWin.
 let mockWin: any = null;
 
-// Mock Module.prototype.require to handle the dynamic require('../../main') in plugin-context.ts
-const originalRequire = Module.prototype.require;
-// @ts-ignore
-Module.prototype.require = function (id: string) {
-  if (
-    id === '../../main' ||
-    id === '../main' ||
-    id.endsWith('main') ||
-    id.endsWith('main.ts')
-  ) {
-    return { win: mockWin };
-  }
-  return originalRequire.apply(this, arguments as any);
-};
+vi.mock('../services/plugins/plugin-events', () => ({
+  pluginEventBus: {
+    getMainWindow: vi.fn(() => mockWin),
+    setMainWindow: vi.fn(),
+    on: vi.fn(),
+    once: vi.fn(),
+    off: vi.fn(),
+    emit: vi.fn(),
+    emitClusterConnected: vi.fn(),
+    emitClusterDisconnected: vi.fn(),
+    emitResourceCreated: vi.fn(),
+    emitResourceUpdated: vi.fn(),
+    emitResourceDeleted: vi.fn(),
+    emitPluginActivated: vi.fn(),
+    emitPluginDeactivated: vi.fn(),
+  },
+}));
 
 describe('Plugin Context', () => {
   const pluginId = 'test-plugin';
@@ -129,6 +133,11 @@ describe('Plugin Context', () => {
 
     clearPluginExtensions(pluginId);
     mockWin = null;
+
+    // Re-apply dynamic implementation after vi.resetAllMocks() clears it.
+    const { pluginEventBus } =
+      await import('../services/plugins/plugin-events');
+    vi.mocked(pluginEventBus.getMainWindow).mockImplementation(() => mockWin);
   });
 
   describe('Permissions', () => {
@@ -348,14 +357,21 @@ describe('Plugin Context', () => {
     });
 
     it('registerPage should add and update page extension', () => {
-      context.ui.registerPage('/p1', () => 'C1');
+      // component must be a string (renderer module path or export name)
+      context.ui.registerPage('/p1', './pages/PageC1');
       let ext = getAllPluginExtensions().get(pluginId);
       expect(ext.pages).toHaveLength(1);
 
-      context.ui.registerPage('/p1', () => 'C2'); // Update existing
+      context.ui.registerPage('/p1', './pages/PageC2'); // Update existing
       ext = getAllPluginExtensions().get(pluginId);
       expect(ext.pages).toHaveLength(1);
-      expect(ext.pages[0].component).toContain('C2');
+      expect(ext.pages[0].component).toBe('./pages/PageC2');
+    });
+
+    it('registerPage should throw when a non-string component is passed', () => {
+      expect(() => context.ui.registerPage('/p1', () => 'MyComponent')).toThrow(
+        /must be a string/
+      );
     });
 
     it('registerResourceAction should add and update extension', () => {

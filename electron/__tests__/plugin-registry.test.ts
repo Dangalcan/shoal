@@ -154,7 +154,7 @@ describe('PluginRegistry', () => {
 
       const entry = registry.getPlugin('p3');
       expect(entry?.config.enabled).toBe(true);
-      expect(entry?.config.settings.theme).toBe('dark');
+      expect(entry?.config.settings?.theme).toBe('dark');
     });
 
     it('should sync licenseInfo from config to plugin instance', async () => {
