@@ -4,6 +4,7 @@ import { app } from 'electron';
 import { exec } from 'child_process';
 import util from 'util';
 import fs from 'fs/promises';
+import log from './logger';
 
 const execPromise = util.promisify(exec);
 
@@ -38,7 +39,7 @@ class ManifestDatabase {
       )
     `);
 
-    console.log('[Database] Manifest database initialized at', dbPath);
+    log.info('[Database] Manifest database initialized at', dbPath);
   }
 
   private ensureInitialized() {
@@ -122,7 +123,7 @@ class ManifestDatabase {
       await fs
         .unlink(tempFilePath)
         .catch((e) =>
-          console.warn(
+          log.warn(
             `[Database] Failed to clean up temp file ${tempFilePath}:`,
             e
           )
