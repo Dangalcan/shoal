@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import type { K8sResource } from '../types/k8s-types';
 
 export interface DashboardWidget {
   id: string;
@@ -23,7 +24,7 @@ export interface ResourceActionExtension {
   label: string;
   icon?: React.ReactNode;
   resourceTypes: string[];
-  onClick: (resource: any) => void;
+  onClick: (resource: K8sResource) => void;
 }
 
 export interface PluginModal {
@@ -113,7 +114,58 @@ declare global {
     pluginUIRegistry: PluginUIRegistry;
   }
 }
-(window as any).pluginUIRegistry = pluginUIRegistry;
+window.pluginUIRegistry = pluginUIRegistry;
+
+// ---------------------------------------------------------------------------
+// Plugin Script State Tracker
+// Tracks whether a plugin's renderer script is loading, loaded, or failed.
+// Used by PluginRuntime (writes) and PluginPage (reads).
+// ---------------------------------------------------------------------------
+
+export type PluginScriptStatus = 'loading' | 'loaded' | 'error';
+
+class PluginScriptTracker {
+  private statuses: Map<string, PluginScriptStatus> = new Map();
+  private listeners: Set<() => void> = new Set();
+
+  setStatus(pluginId: string, status: PluginScriptStatus) {
+    this.statuses.set(pluginId, status);
+    this.listeners.forEach((l) => l());
+  }
+
+  getStatus(pluginId: string): PluginScriptStatus | undefined {
+    return this.statuses.get(pluginId);
+  }
+
+  clear(pluginId: string) {
+    this.statuses.delete(pluginId);
+    this.listeners.forEach((l) => l());
+  }
+
+  subscribe(listener: () => void) {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+}
+
+export const pluginScriptTracker = new PluginScriptTracker();
+
+export function usePluginScriptStatus(
+  pluginId: string
+): PluginScriptStatus | undefined {
+  const [status, setStatus] = React.useState(
+    pluginScriptTracker.getStatus(pluginId)
+  );
+
+  React.useEffect(() => {
+    setStatus(pluginScriptTracker.getStatus(pluginId));
+    return pluginScriptTracker.subscribe(() => {
+      setStatus(pluginScriptTracker.getStatus(pluginId));
+    });
+  }, [pluginId]);
+
+  return status;
+}
 
 // Hook for React
 export function usePluginWidgets() {
@@ -137,6 +189,7 @@ export function useResourceActions(resourceType: string) {
   );
 
   React.useEffect(() => {
+    setActions(pluginUIRegistry.getResourceActions(resourceType));
     const cleanup = pluginUIRegistry.subscribe(() => {
       setActions(pluginUIRegistry.getResourceActions(resourceType));
     });
@@ -152,6 +205,7 @@ export function usePluginPage(pageId: string) {
   const [page, setPage] = React.useState(pluginUIRegistry.getPage(pageId));
 
   React.useEffect(() => {
+    setPage(pluginUIRegistry.getPage(pageId));
     const cleanup = pluginUIRegistry.subscribe(() => {
       setPage(pluginUIRegistry.getPage(pageId));
     });

@@ -5,7 +5,7 @@
  */
 
 import { useParams } from 'react-router-dom';
-import { usePluginPage } from '../services/plugin-ui-registry';
+import { usePluginPage, usePluginScriptStatus } from '../services/plugin-ui-registry';
 import { usePlugins } from '../features/plugins/PluginProvider';
 import { AlertTriangle, Home } from 'lucide-react';
 import { Button } from '../components/ui';
@@ -16,6 +16,7 @@ export function PluginPage() {
   const navigate = useNavigate();
   const { plugins, loading } = usePlugins();
   const page = usePluginPage(pluginId || '');
+  const scriptStatus = usePluginScriptStatus(pluginId || '');
 
   if (loading) {
     return (
@@ -38,7 +39,21 @@ export function PluginPage() {
     );
   }
 
-  // Plugin is enabled but script is still loading — wait for it to register a page
+  // Script failed to load
+  if (scriptStatus === 'error') {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8">
+        <AlertTriangle size={48} className="text-error" />
+        <h2>Failed to Load Plugin UI</h2>
+        <p>The UI bundle for <strong>{plugin.manifest.name}</strong> could not be loaded.</p>
+        <Button onClick={() => navigate('/')} variant="secondary">
+          <Home size={16} className="mr-2" /> Back to Dashboard
+        </Button>
+      </div>
+    );
+  }
+
+  // Script is loading or hasn't started yet — wait for it to register a page
   if (!page && plugin.rendererEntry) {
     return (
       <div className="flex items-center justify-center h-full gap-3">
@@ -61,19 +76,12 @@ export function PluginPage() {
     );
   }
 
-  // Render the plugin component
+  // Render the plugin component — plugins own their full container and layout.
   const PluginContent = page.component;
 
   return (
-    <div className="plugin-page-container h-full p-8 overflow-auto">
-      <header className="mb-8">
-        <h1 className="text-3xl font-black">{plugin.manifest.name}</h1>
-        <p className="text-secondary font-medium">{plugin.manifest.description}</p>
-      </header>
-      
-      <div className="plugin-page-content h-auto">
-         <PluginContent />
-      </div>
+    <div key={pluginId} className="plugin-page-container h-full p-8 overflow-auto">
+      <PluginContent />
     </div>
   );
 }
