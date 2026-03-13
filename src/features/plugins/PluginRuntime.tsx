@@ -8,7 +8,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePlugins } from './PluginProvider';
 import { toast } from 'sonner';
-import { pluginUIRegistry } from '../../services/plugin-ui-registry';
+import { pluginUIRegistry, pluginScriptTracker } from '../../services/plugin-ui-registry';
+import type { PluginNotificationData, PluginModalData } from '../../types';
 
 interface PluginScriptState {
   pluginId: string;
@@ -19,7 +20,7 @@ interface PluginScriptState {
 
 interface ActiveModal {
   id: string;
-  props: Record<string, any>;
+  props: Record<string, unknown>;
   pluginId: string;
 }
 
@@ -33,7 +34,7 @@ export function PluginRuntime() {
     const electron = window.electron;
     if (!electron) return;
 
-    const cleanupNotification = electron.onPluginNotification((data: any) => {
+    const cleanupNotification = electron.onPluginNotification((data: PluginNotificationData) => {
       const { message, type, pluginId } = data;
       const plugin = plugins.find(p => p.manifest.id === pluginId);
       const name = plugin ? plugin.manifest.name : pluginId;
@@ -46,7 +47,7 @@ export function PluginRuntime() {
       }
     });
 
-    const cleanupModal = electron.onPluginModal((data: any) => {
+    const cleanupModal = electron.onPluginModal((data: PluginModalData) => {
       const { component, props, pluginId } = data;
       const plugin = plugins.find(p => p.manifest.id === pluginId);
       const name = plugin ? plugin.manifest.name : pluginId;
@@ -77,8 +78,6 @@ export function PluginRuntime() {
       // 2. Load new plugins
       for (const plugin of enabledPlugins) {
         if (!loadedScripts.current.has(plugin.manifest.id)) {
-          console.log(`[PluginRuntime] Loading UI for ${plugin.manifest.id}`);
-          
           try {
             const styleElements: HTMLLinkElement[] = [];
 
@@ -98,28 +97,29 @@ export function PluginRuntime() {
             // Use custom protocol with triple slash for absolute paths
             script.src = `plugin-file:///${plugin.rendererEntry}`;
             script.async = true;
-            
+
+            pluginScriptTracker.setStatus(plugin.manifest.id, 'loading');
+
             script.onload = () => {
-              console.log(`[PluginRuntime] Successfully loaded UI for ${plugin.manifest.id}`);
-              toast.success(`Loaded plugin UI: ${plugin.manifest.name}`);
+              pluginScriptTracker.setStatus(plugin.manifest.id, 'loaded');
             };
-            
-            script.onerror = (e) => {
-              console.error(`[PluginRuntime] Failed to load UI for ${plugin.manifest.id}`, e);
+
+            script.onerror = () => {
+              pluginScriptTracker.setStatus(plugin.manifest.id, 'error');
               toast.error(`Failed to load plugin UI: ${plugin.manifest.name}`);
             };
 
             document.body.appendChild(script);
-            
+
             loadedScripts.current.set(plugin.manifest.id, {
               pluginId: plugin.manifest.id,
               scriptElement: script,
               styleElements,
-              loaded: true
+              loaded: false,
             });
-            
+
           } catch (err) {
-            console.error(`[PluginRuntime] Error injecting script for ${plugin.manifest.id}`, err);
+            pluginScriptTracker.setStatus(plugin.manifest.id, 'error');
           }
         }
       }
@@ -130,8 +130,7 @@ export function PluginRuntime() {
       
       for (const [id, state] of loadedScripts.current.entries()) {
         if (!activeIds.has(id)) {
-          console.log(`[PluginRuntime] Unloading UI for ${id}`);
-          
+
           // Remove script
           if (state.scriptElement && state.scriptElement.parentNode) {
             state.scriptElement.parentNode.removeChild(state.scriptElement);
@@ -145,7 +144,14 @@ export function PluginRuntime() {
               }
             }
           }
-          
+
+          // Clean up script tracker and UI registrations
+          pluginScriptTracker.clear(id);
+          pluginUIRegistry.unregisterPage(id);
+          pluginUIRegistry.unregisterWidget(id);
+          pluginUIRegistry.unregisterResourceAction(id);
+          pluginUIRegistry.unregisterModal(id);
+
           loadedScripts.current.delete(id);
         }
       }

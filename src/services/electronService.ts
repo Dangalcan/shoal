@@ -1,4 +1,5 @@
-import { Result } from '../types/result';
+import type { Result } from '../types/result';
+import type { Manifest, PluginScaffoldOptions } from '../types.d';
 
 export class ElectronService {
   private static instance: ElectronService;
@@ -127,7 +128,9 @@ export class ElectronService {
     return window.electron.deactivatePluginLicense(pluginId);
   }
 
-  async generatePlugin(options: any): Promise<Result<boolean>> {
+  async generatePlugin(
+    options: PluginScaffoldOptions
+  ): Promise<Result<boolean>> {
     return window.electron.generatePlugin(options);
   }
 
@@ -136,7 +139,7 @@ export class ElectronService {
   }
 
   // Manifests
-  async saveManifest(manifest: any): Promise<Result<number>> {
+  async saveManifest(manifest: Partial<Manifest>): Promise<Result<number>> {
     return window.electron.saveManifest(manifest);
   }
 }

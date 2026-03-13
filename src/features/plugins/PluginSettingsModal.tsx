@@ -46,8 +46,8 @@ export function PluginSettingsModal({
         }
 
         setSettings({ ...defaults, ...loaded });
-      } catch (err: any) {
-        setError(err.message || 'Failed to load settings');
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Failed to load settings');
       } finally {
         setLoading(false);
       }
@@ -63,13 +63,29 @@ export function PluginSettingsModal({
     try {
       await saveSettings(plugin.manifest.id, values);
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Failed to save settings');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to save settings');
       throw err; // Re-throw to let form component handle it
     }
   };
 
-  if (!schema) return null;
+  if (!schema) {
+    return (
+      <div className="modal-overlay">
+        <div className="license-modal" style={{ maxWidth: '600px' }}>
+          <button className="license-modal__close" onClick={onClose}>
+            <X size={20} />
+          </button>
+          <div className="license-modal__header" style={{ textAlign: 'left', marginBottom: '1rem' }}>
+            <h2 className="license-modal__title">Settings: {plugin.manifest.name}</h2>
+          </div>
+          <div className="license-modal__body" style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>
+            This plugin has no configurable settings.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="modal-overlay">

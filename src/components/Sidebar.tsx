@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { cn } from '../lib/utils'
 import { useTheme } from '../hooks'
 import { usePlugins, usePluginExtensions } from '../features/plugins/PluginProvider'
+import type { SidebarExtension } from '../../electron/types/plugin-types'
 import { ContextSwitcher } from './common/ContextSwitcher'
 import { ExternalLink } from 'lucide-react'
 import '../../styles/components/Sidebar.css'
@@ -15,7 +16,7 @@ export function Sidebar() {
     const allExtensions = usePluginExtensions('sidebar');
 
     // Only show sidebar entries for plugins that have a renderer (UI page)
-    const pluginExtensions = allExtensions.filter((ext: any) => {
+    const pluginExtensions = (allExtensions as SidebarExtension[]).filter((ext) => {
         const pluginId = ext.route?.split('/plugin/')?.[1];
         const plugin = plugins.find(p => p.manifest.id === pluginId);
         return plugin?.manifest.renderer != null;
@@ -72,7 +73,7 @@ export function Sidebar() {
                 {pluginExtensions.length > 0 && (
                   <>
                     <div className="sidebar-divider">Plugins</div>
-                    {pluginExtensions.map((ext: any) => (
+                    {pluginExtensions.map((ext) => (
                       <NavLink
                           key={ext.id}
                           to={ext.route}

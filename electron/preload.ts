@@ -1,4 +1,10 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import type { IpcRendererEvent } from 'electron';
+import type {
+  PluginNotificationData,
+  PluginModalData,
+  PluginScaffoldOptions,
+} from './types/plugin-types';
 
 contextBridge.exposeInMainWorld('electron', {
   runCommand: (command: string) => ipcRenderer.invoke('run-command', command),
@@ -53,17 +59,20 @@ contextBridge.exposeInMainWorld('electron', {
   setKubeconfigPath: (path: string) =>
     ipcRenderer.invoke('set-kubeconfig-path', path),
   onSetKubeconfigPath: (callback: (value: boolean) => void) => {
-    const handler = (_event: any, value: boolean) => callback(value);
+    const handler = (_event: IpcRendererEvent, value: boolean) =>
+      callback(value);
     ipcRenderer.on('set-kubeconfig-path', handler);
     return () => ipcRenderer.off('set-kubeconfig-path', handler);
   },
-  onPluginNotification: (callback: (data: any) => void) => {
-    const handler = (_event: any, value: any) => callback(value);
+  onPluginNotification: (callback: (data: PluginNotificationData) => void) => {
+    const handler = (_event: IpcRendererEvent, value: PluginNotificationData) =>
+      callback(value);
     ipcRenderer.on('plugin-notification', handler);
     return () => ipcRenderer.off('plugin-notification', handler);
   },
-  onPluginModal: (callback: (data: any) => void) => {
-    const handler = (_event: any, value: any) => callback(value);
+  onPluginModal: (callback: (data: PluginModalData) => void) => {
+    const handler = (_event: IpcRendererEvent, value: PluginModalData) =>
+      callback(value);
     ipcRenderer.on('plugin-modal', handler);
     return () => ipcRenderer.off('plugin-modal', handler);
   },
@@ -77,11 +86,11 @@ contextBridge.exposeInMainWorld('electron', {
   checkForPluginUpdates: () => ipcRenderer.invoke('check-for-plugin-updates'),
   getPluginExtensions: (extensionPoint?: string) =>
     ipcRenderer.invoke('get-plugin-extensions', extensionPoint),
-  executePluginAction: (pluginId: string, actionId: string, args?: any) =>
+  executePluginAction: (pluginId: string, actionId: string, args?: unknown) =>
     ipcRenderer.invoke('execute-plugin-action', { pluginId, actionId, args }),
   getPluginSettings: (pluginId: string) =>
     ipcRenderer.invoke('get-plugin-settings', pluginId),
-  setPluginSettings: (pluginId: string, settings: Record<string, any>) =>
+  setPluginSettings: (pluginId: string, settings: Record<string, unknown>) =>
     ipcRenderer.invoke('set-plugin-settings', { pluginId, settings }),
   uninstallPlugin: (pluginId: string) =>
     ipcRenderer.invoke('uninstall-plugin', pluginId),
@@ -94,7 +103,7 @@ contextBridge.exposeInMainWorld('electron', {
   getMarketplacePlugins: () => ipcRenderer.invoke('get-marketplace-plugins'),
   installPlugin: (pluginId: string) =>
     ipcRenderer.invoke('install-plugin', pluginId),
-  generatePlugin: (options: any) =>
+  generatePlugin: (options: PluginScaffoldOptions) =>
     ipcRenderer.invoke('generate-plugin', options),
   reloadPlugin: (pluginId: string) =>
     ipcRenderer.invoke('reload-plugin', pluginId),
@@ -103,7 +112,7 @@ contextBridge.exposeInMainWorld('electron', {
   // Manifests
   getManifests: (clusterContext?: string) =>
     ipcRenderer.invoke('get-manifests', clusterContext),
-  saveManifest: (manifest: any) =>
+  saveManifest: (manifest: Record<string, unknown>) =>
     ipcRenderer.invoke('save-manifest', manifest),
   deleteManifest: (id: number) => ipcRenderer.invoke('delete-manifest', id),
   applyManifest: (id: number) => ipcRenderer.invoke('apply-manifest', id),

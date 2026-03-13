@@ -7,6 +7,7 @@ import {
   protocol,
   net,
 } from 'electron';
+import type { IpcMainInvokeEvent } from 'electron';
 import path from 'path';
 import { exec } from 'child_process';
 import util from 'util';
@@ -20,6 +21,9 @@ import { templateService } from './services/plugins/template-service';
 import { licenseManager } from './services/security/license-manager';
 import { marketplaceService } from './services/marketplace/marketplace-service';
 import { manifestDb } from './database';
+import type { Manifest } from './database';
+import type { PluginScaffoldOptions } from './types/plugin-types';
+import log from './logger';
 
 const execPromise = util.promisify(exec);
 
@@ -94,16 +98,14 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 // Helper to wrap IPC handlers with logging and error handling
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const wrapIpcHandler = <T>(
   name: string,
-  handler: (event: any, ...args: any[]) => Promise<T>
+  handler: (event: IpcMainInvokeEvent, ...args: any[]) => Promise<T>
 ) => {
-  return async (event: any, ...args: any[]) => {
+  return async (event: IpcMainInvokeEvent, ...args: any[]) => {
     const timestamp = new Date().toISOString();
-    console.log(
-      `[${timestamp}] [IPC] [${name}] REQUEST:`,
-      JSON.stringify(args)
-    );
+    log.debug(`[${timestamp}] [IPC] [${name}] REQUEST:`, JSON.stringify(args));
 
     try {
       const result = await handler(event, ...args);
@@ -113,11 +115,12 @@ const wrapIpcHandler = <T>(
           ? result
           : { success: true, data: result };
 
-      console.log(`[${timestamp}] [IPC] [${name}] SUCCESS`);
+      log.debug(`[${timestamp}] [IPC] [${name}] SUCCESS`);
       return formattedResult;
-    } catch (error: any) {
-      console.error(`[${timestamp}] [IPC] [${name}] ERROR:`, error.message);
-      return { success: false, error: error.message || 'Unknown error' };
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      log.error(`[${timestamp}] [IPC] [${name}] ERROR:`, msg);
+      return { success: false, error: msg };
     }
   };
 };
@@ -347,9 +350,8 @@ function registerIpcHandlers() {
         const versionPath = path.join(app.getAppPath(), '.version');
         const version = await fs.readFile(versionPath, 'utf-8');
         return version.trim();
-      } catch (error) {
-        console.error('Error reading .version file:', error);
-        return 'v0.1.0'; // Fallback
+      } catch {
+        return app.getVersion() || 'unknown';
       }
     })
   );
@@ -384,8 +386,8 @@ function registerIpcHandlers() {
   ipcMain.handle(
     'enable-plugin',
     wrapIpcHandler('enable-plugin', async (_event, pluginId: string) => {
-      await pluginManager.enablePlugin(pluginId);
-      return true;
+      const autoDeps = await pluginManager.enablePlugin(pluginId);
+      return autoDeps;
     })
   );
 
@@ -416,15 +418,18 @@ function registerIpcHandlers() {
 
   ipcMain.handle(
     'generate-plugin',
-    wrapIpcHandler('generate-plugin', async (_event, options: any) => {
-      const pluginDir = path.join(
-        app.getPath('userData'),
-        'plugins',
-        options.id
-      );
-      await templateService.scaffoldPlugin(pluginDir, options);
-      return true;
-    })
+    wrapIpcHandler(
+      'generate-plugin',
+      async (_event, options: PluginScaffoldOptions) => {
+        const pluginDir = path.join(
+          app.getPath('userData'),
+          'plugins',
+          options.id
+        );
+        await templateService.scaffoldPlugin(pluginDir, options);
+        return true;
+      }
+    )
   );
 
   ipcMain.handle(
@@ -549,9 +554,12 @@ function registerIpcHandlers() {
 
   ipcMain.handle(
     'save-manifest',
-    wrapIpcHandler('save-manifest', async (_event, manifest: any) => {
-      return manifestDb.saveManifest(manifest);
-    })
+    wrapIpcHandler(
+      'save-manifest',
+      async (_event, manifest: Partial<Manifest>) => {
+        return manifestDb.saveManifest(manifest);
+      }
+    )
   );
 
   ipcMain.handle(
@@ -613,27 +621,30 @@ app.on('activate', () => {
 app.whenReady().then(async () => {
   // 1. Initialize manifest database FIRST (it's synchronous and critical)
   try {
-    console.log('[Main] Initializing manifest database...');
+    log.info('[Main] Initializing manifest database...');
     manifestDb.initialize();
-    console.log('[Main] Manifest database initialized');
-  } catch (error: any) {
-    console.error(
+    log.info('[Main] Manifest database initialized');
+  } catch (error: unknown) {
+    log.error(
       '[Main] Failed to initialize manifest database:',
-      error.message
+      error instanceof Error ? error.message : String(error)
     );
   }
 
   // 2. Register IPC handlers ONCE
-  console.log('[Main] Registering IPC handlers...');
+  log.info('[Main] Registering IPC handlers...');
   registerIpcHandlers();
 
   // 3. Initialize plugin system (async)
   try {
-    console.log('[Main] Initializing plugin system...');
+    log.info('[Main] Initializing plugin system...');
     await pluginManager.initialize();
-    console.log('[Main] Plugin system initialized');
-  } catch (error: any) {
-    console.error('[Main] Failed to initialize plugin system:', error.message);
+    log.info('[Main] Plugin system initialized');
+  } catch (error: unknown) {
+    log.error(
+      '[Main] Failed to initialize plugin system:',
+      error instanceof Error ? error.message : String(error)
+    );
   }
 
   // 4. Hide menu in production
@@ -664,12 +675,10 @@ app.whenReady().then(() => {
       const fileUrl = pathToFileURL(normalizedPath).toString();
 
       return await net.fetch(fileUrl);
-    } catch (e: any) {
-      console.error(
-        '[Protocol] Failed to handle plugin-file request:',
-        e.message
-      );
-      return new Response('File not found: ' + e.message, { status: 404 });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      log.error('[Protocol] Failed to handle plugin-file request:', msg);
+      return new Response('File not found: ' + msg, { status: 404 });
     }
   });
 });

@@ -1,5 +1,11 @@
-import { ElectronAPI } from '../types.d';
-import { Result } from '../types/result';
+import type {
+  ElectronAPI,
+  Manifest,
+  PluginNotificationData,
+  PluginModalData,
+  PluginScaffoldOptions,
+} from '../types.d';
+import type { Result } from '../types/result';
 
 // Stateful mock for browser testing
 let mockClusters = ['minikube', 'kind-cluster-1', 'docker-desktop'];
@@ -43,7 +49,7 @@ export const mockApi: ElectronAPI = {
       mockCurrentContext = contextName;
       return { success: true, data: true };
     }
-    return { success: false, error: 'Context not found' } as any;
+    return { success: false, error: 'Context not found' };
   },
   getPods: async (contextName: string) => {
     console.log('[MockAPI] getPods:', contextName);
@@ -105,12 +111,15 @@ export const mockApi: ElectronAPI = {
     success: true,
     data: [],
   }),
-  executePluginAction: async (_pid: string, _aid: string, _args?: any) => ({
+  executePluginAction: async (_pid: string, _aid: string, _args?: unknown) => ({
     success: true,
     data: undefined,
   }),
   getPluginSettings: async (_id: string) => ({ success: true, data: {} }),
-  setPluginSettings: async (_id: string, _settings: any) => ({
+  setPluginSettings: async (
+    _id: string,
+    _settings: Record<string, unknown>
+  ) => ({
     success: true,
     data: true,
   }),
@@ -129,7 +138,10 @@ export const mockApi: ElectronAPI = {
   }),
   getMarketplacePlugins: async () => ({ success: true, data: [] }),
   installPlugin: async (_id: string) => ({ success: true, data: undefined }),
-  generatePlugin: async (_options: any) => ({ success: true, data: true }),
+  generatePlugin: async (_options: PluginScaffoldOptions) => ({
+    success: true,
+    data: true,
+  }),
   reloadPlugin: async (_id: string) => ({ success: true, data: undefined }),
   importLocalPlugin: async () => ({ success: true, data: 'mock-plugin-id' }),
 
@@ -138,7 +150,10 @@ export const mockApi: ElectronAPI = {
     success: true,
     data: [],
   }),
-  saveManifest: async (_manifest: any) => ({ success: true, data: Date.now() }),
+  saveManifest: async (_manifest: Partial<Manifest>) => ({
+    success: true,
+    data: Date.now(),
+  }),
   deleteManifest: async (_id: number) => ({ success: true, data: true }),
   applyManifest: async (_id: number) => ({
     success: true,
@@ -147,6 +162,7 @@ export const mockApi: ElectronAPI = {
 
   // Listeners
   onSetKubeconfigPath: (_callback: (value: boolean) => void) => {},
-  onPluginNotification: (_callback: (data: any) => void) => () => {},
-  onPluginModal: (_callback: (data: any) => void) => () => {},
+  onPluginNotification:
+    (_callback: (data: PluginNotificationData) => void) => () => {},
+  onPluginModal: (_callback: (data: PluginModalData) => void) => () => {},
 };

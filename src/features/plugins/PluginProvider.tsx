@@ -1,11 +1,11 @@
 /**
  * Plugin Provider Context
- * 
+ *
  * Provides plugin state and management functions to the React application.
  */
 
 import { createContext, useContext, ReactNode, useEffect, useState } from 'react';
-import type { Plugin } from '../../../electron/types/plugin-types';
+import type { Plugin, PluginScaffoldOptions } from '../../../electron/types/plugin-types';
 import { useApi } from '../../services/api-context';
 import { toast } from 'sonner';
 
@@ -16,16 +16,16 @@ interface PluginContextType {
   refreshPlugins: () => Promise<void>;
   enablePlugin: (pluginId: string) => Promise<void>;
   disablePlugin: (pluginId: string) => Promise<void>;
-  getPluginExtensions: (extensionPoint?: string) => Promise<any[]>;
-  executePluginAction: (pluginId: string, actionId: string, args?: any) => Promise<any>;
+  getPluginExtensions: (extensionPoint?: string) => Promise<unknown[]>;
+  executePluginAction: (pluginId: string, actionId: string, args?: unknown) => Promise<unknown>;
   activateLicense: (pluginId: string, key: string) => Promise<void>;
   startTrial: (pluginId: string) => Promise<void>;
   deactivateLicense: (pluginId: string) => Promise<void>;
   installPlugin: (pluginId: string) => Promise<void>;
-  getSettings: (pluginId: string) => Promise<Record<string, any>>;
-  saveSettings: (pluginId: string, settings: Record<string, any>) => Promise<void>;
+  getSettings: (pluginId: string) => Promise<Record<string, unknown>>;
+  saveSettings: (pluginId: string, settings: Record<string, unknown>) => Promise<void>;
   checkForUpdates: () => Promise<void>;
-  generatePlugin: (options: any) => Promise<void>;
+  generatePlugin: (options: PluginScaffoldOptions) => Promise<void>;
   reloadPlugin: (pluginId: string) => Promise<void>;
   uninstallPlugin: (pluginId: string) => Promise<void>;
   importLocalPlugin: () => Promise<void>;
@@ -48,21 +48,21 @@ export function PluginProvider({ children }: PluginProviderProps) {
       setLoading(true);
       setError(null);
       const result = await api.getPlugins();
-      
+
       if (result.success) {
         setPlugins(result.data);
       } else {
         setError(result.error || 'Failed to load plugins');
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to load plugins');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load plugins');
     } finally {
       setLoading(false);
     }
   };
 
   const handleActionResult = async (
-    action: () => Promise<{ success: boolean; data?: any; error?: string }>,
+    action: () => Promise<{ success: boolean; data?: unknown; error?: string }>,
     defaultError: string,
     refreshOnSuccess = true
   ) => {
@@ -75,12 +75,25 @@ export function PluginProvider({ children }: PluginProviderProps) {
         return result.data;
       }
       throw new Error(result.error || defaultError);
-    } catch (err: any) {
-      throw new Error(err.message || defaultError);
+    } catch (err: unknown) {
+      throw new Error(err instanceof Error ? err.message : defaultError);
     }
   };
 
-  const enablePlugin = (pluginId: string) => handleActionResult(() => api.enablePlugin(pluginId), 'Failed to enable plugin');
+  const enablePlugin = async (pluginId: string): Promise<void> => {
+    const result = await api.enablePlugin(pluginId);
+    if (!result.success) throw new Error(result.error || 'Failed to enable plugin');
+    const autoDeps: string[] = Array.isArray(result.data) ? result.data : [];
+    const depNames = autoDeps.map(
+      (id) => plugins.find((p) => p.manifest.id === id)?.manifest.name ?? id
+    );
+    await refreshPlugins();
+    if (depNames.length > 0) {
+      toast.info(`Also enabled: ${depNames.join(', ')}`, {
+        description: 'These plugins are required dependencies.',
+      });
+    }
+  };
 
   const disablePlugin = async (pluginId: string): Promise<void> => {
     const result = await api.disablePlugin(pluginId);
@@ -96,13 +109,13 @@ export function PluginProvider({ children }: PluginProviderProps) {
       });
     }
   };
-  const executePluginAction = (pluginId: string, actionId: string, args?: any) => handleActionResult(() => api.executePluginAction(pluginId, actionId, args), 'Failed to execute plugin action', false);
+  const executePluginAction = (pluginId: string, actionId: string, args?: unknown) => handleActionResult(() => api.executePluginAction(pluginId, actionId, args), 'Failed to execute plugin action', false);
   const activateLicense = (pluginId: string, key: string) => handleActionResult(() => api.activatePluginLicense(pluginId, key), 'Failed to activate license');
   const startTrial = (pluginId: string) => handleActionResult(() => api.startPluginTrial(pluginId), 'Failed to start trial');
   const deactivateLicense = (pluginId: string) => handleActionResult(() => api.deactivatePluginLicense(pluginId), 'Failed to deactivate license');
   const installPlugin = (pluginId: string) => handleActionResult(() => api.installPlugin(pluginId), 'Failed to install plugin');
-  const saveSettings = (pluginId: string, settings: Record<string, any>) => handleActionResult(() => api.setPluginSettings(pluginId, settings), 'Failed to save settings', false);
-  const generatePlugin = (options: any) => handleActionResult(() => api.generatePlugin(options), 'Failed to generate plugin');
+  const saveSettings = (pluginId: string, settings: Record<string, unknown>) => handleActionResult(() => api.setPluginSettings(pluginId, settings), 'Failed to save settings', false);
+  const generatePlugin = (options: PluginScaffoldOptions) => handleActionResult(() => api.generatePlugin(options), 'Failed to generate plugin');
   const reloadPlugin = (pluginId: string) => handleActionResult(() => api.reloadPlugin(pluginId), 'Failed to reload plugin');
   const uninstallPlugin = (pluginId: string) => handleActionResult(() => api.uninstallPlugin(pluginId), 'Failed to uninstall plugin');
 
@@ -113,8 +126,8 @@ export function PluginProvider({ children }: PluginProviderProps) {
         return result.data;
       }
       return [];
-    } catch (err) {
-      console.error('Failed to get plugin extensions:', err);
+    } catch (err: unknown) {
+      toast.error('Failed to load plugin extensions', { description: err instanceof Error ? err.message : undefined });
       return [];
     }
   };
@@ -126,8 +139,8 @@ export function PluginProvider({ children }: PluginProviderProps) {
         return result.data;
       }
       return {};
-    } catch (err) {
-      console.error('Failed to get plugin settings:', err);
+    } catch (err: unknown) {
+      toast.error('Failed to load plugin settings', { description: err instanceof Error ? err.message : undefined });
       return {};
     }
   };
@@ -136,8 +149,8 @@ export function PluginProvider({ children }: PluginProviderProps) {
     try {
       await api.checkForPluginUpdates();
       await refreshPlugins();
-    } catch (err) {
-      console.error('Failed to check for updates:', err);
+    } catch (err: unknown) {
+      toast.error('Failed to check for plugin updates', { description: err instanceof Error ? err.message : undefined });
     }
   };
 
@@ -150,8 +163,8 @@ export function PluginProvider({ children }: PluginProviderProps) {
       } else if (!result.success) {
         throw new Error(result.error || 'Failed to import plugin');
       }
-    } catch (err: any) {
-      throw new Error(err.message || 'Failed to import plugin');
+    } catch (err: unknown) {
+      throw new Error(err instanceof Error ? err.message : 'Failed to import plugin');
     }
   };
 
@@ -191,11 +204,11 @@ export function PluginProvider({ children }: PluginProviderProps) {
  */
 export function usePlugins(): PluginContextType {
   const context = useContext(PluginContext);
-  
+
   if (!context) {
     throw new Error('usePlugins must be used within a PluginProvider');
   }
-  
+
   return context;
 }
 
@@ -212,7 +225,7 @@ export function useEnabledPlugins(): Plugin[] {
  */
 export function usePluginExtensions(extensionPoint: string) {
   const { getPluginExtensions, plugins } = usePlugins();
-  const [extensions, setExtensions] = useState<any[]>([]);
+  const [extensions, setExtensions] = useState<unknown[]>([]);
 
   useEffect(() => {
     getPluginExtensions(extensionPoint).then(setExtensions);

@@ -1,6 +1,13 @@
 import type { K8sResource } from './types/k8s-types';
 import type { Result } from './types/result';
-import type { Plugin } from '../electron/types/plugin-types';
+import type {
+  Plugin,
+  PluginNotificationData,
+  PluginModalData,
+  PluginScaffoldOptions,
+} from '../electron/types/plugin-types';
+
+export type { PluginNotificationData, PluginModalData, PluginScaffoldOptions };
 
 export interface Manifest {
   id: number;
@@ -70,16 +77,18 @@ export interface ElectronAPI {
   enablePlugin: (pluginId: string) => Promise<Result<boolean>>;
   disablePlugin: (pluginId: string) => Promise<Result<string[]>>;
   checkForPluginUpdates: () => Promise<Result<void>>;
-  getPluginExtensions: (extensionPoint?: string) => Promise<Result<any[]>>;
+  getPluginExtensions: (extensionPoint?: string) => Promise<Result<unknown[]>>;
   executePluginAction: (
     pluginId: string,
     actionId: string,
-    args?: any
-  ) => Promise<Result<any>>;
-  getPluginSettings: (pluginId: string) => Promise<Result<Record<string, any>>>;
+    args?: unknown
+  ) => Promise<Result<unknown>>;
+  getPluginSettings: (
+    pluginId: string
+  ) => Promise<Result<Record<string, unknown>>>;
   setPluginSettings: (
     pluginId: string,
-    settings: Record<string, any>
+    settings: Record<string, unknown>
   ) => Promise<Result<boolean>>;
   uninstallPlugin: (pluginId: string) => Promise<Result<boolean>>;
   activatePluginLicense: (
@@ -90,7 +99,7 @@ export interface ElectronAPI {
   deactivatePluginLicense: (pluginId: string) => Promise<Result<void>>;
   getMarketplacePlugins: () => Promise<Result<MarketplaceEntry[]>>;
   installPlugin: (pluginId: string) => Promise<Result<void>>;
-  generatePlugin: (options: any) => Promise<Result<boolean>>;
+  generatePlugin: (options: PluginScaffoldOptions) => Promise<Result<boolean>>;
   reloadPlugin: (pluginId: string) => Promise<Result<void>>;
   importLocalPlugin: () => Promise<Result<string>>;
 
@@ -104,8 +113,10 @@ export interface ElectronAPI {
 
   // Listeners
   onSetKubeconfigPath: (callback: (value: boolean) => void) => void;
-  onPluginNotification: (callback: (data: any) => void) => () => void;
-  onPluginModal: (callback: (data: any) => void) => () => void;
+  onPluginNotification: (
+    callback: (data: PluginNotificationData) => void
+  ) => () => void;
+  onPluginModal: (callback: (data: PluginModalData) => void) => () => void;
 }
 
 export interface MarketplaceEntry {
@@ -133,5 +144,11 @@ export interface MarketplaceEntry {
 declare global {
   interface Window {
     electron: ElectronAPI;
+    /** React exposed for plugin renderer scripts */
+    React: typeof import('react');
+    /** K8s UI component library exposed for plugin renderer scripts */
+    K8sUI: Record<string, unknown>;
+    /** Lucide icon library exposed for plugin renderer scripts */
+    LucideIcons: Record<string, unknown>;
   }
 }

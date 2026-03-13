@@ -83,7 +83,7 @@ export function PodViewerModal({ isOpen, onClose, clusterName }: PodViewerModalP
                             {pods.map((pod, idx) => {
                                 const status = pod.status.phase
                                 const isRunning = status === 'Running'
-                                const readyCount = pod.status.containerStatuses?.filter((s: any) => s.ready).length || 0
+                                const readyCount = pod.status.containerStatuses?.filter((s) => s.ready).length || 0
                                 const totalCount = pod.spec.containers.length
                                 return (
                                     <tr key={idx} className="modal-table-row">

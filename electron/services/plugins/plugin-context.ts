@@ -15,6 +15,7 @@ import type {
   SidebarExtension,
   ResourceActionExtension,
   PageExtension,
+  PluginExtensions,
 } from '../../types/plugin-types';
 
 import { spawn } from 'child_process';
@@ -22,6 +23,7 @@ import { EventEmitter } from 'events';
 import { pluginEventBus } from './plugin-events';
 import { storageService } from './storage-service';
 import { kubernetesService } from '../kubernetes/kubernetes-service';
+import log from '../../logger';
 
 /**
  * Create a plugin context with controlled API access
@@ -37,24 +39,34 @@ export function createPluginContext(
         getResources: async (type: string, namespace: string) => {
           try {
             return await kubernetesService.getResources(type, namespace);
-          } catch (error: any) {
-            throw new Error(`Failed to get resources: ${error.message}`);
+          } catch (error: unknown) {
+            throw new Error(
+              `Failed to get resources: ${error instanceof Error ? error.message : String(error)}`
+            );
           }
         },
 
-        createResource: async (manifest: any) => {
+        createResource: async (manifest: unknown) => {
           try {
             return await kubernetesService.createResource(manifest);
-          } catch (error: any) {
-            throw new Error(`Failed to create resource: ${error.message}`);
+          } catch (error: unknown) {
+            throw new Error(
+              `Failed to create resource: ${error instanceof Error ? error.message : String(error)}`
+            );
           }
         },
 
-        updateResource: async (type: string, name: string, manifest: any) => {
+        updateResource: async (
+          type: string,
+          name: string,
+          manifest: unknown
+        ) => {
           try {
             return await kubernetesService.updateResource(type, name, manifest);
-          } catch (error: any) {
-            throw new Error(`Failed to update resource: ${error.message}`);
+          } catch (error: unknown) {
+            throw new Error(
+              `Failed to update resource: ${error instanceof Error ? error.message : String(error)}`
+            );
           }
         },
 
@@ -69,8 +81,10 @@ export function createPluginContext(
               name,
               namespace
             );
-          } catch (error: any) {
-            throw new Error(`Failed to delete resource: ${error.message}`);
+          } catch (error: unknown) {
+            throw new Error(
+              `Failed to delete resource: ${error instanceof Error ? error.message : String(error)}`
+            );
           }
         },
 
@@ -85,12 +99,14 @@ export function createPluginContext(
               namespace,
               command
             );
-          } catch (error: any) {
-            throw new Error(`Failed to execute command: ${error.message}`);
+          } catch (error: unknown) {
+            throw new Error(
+              `Failed to execute command: ${error instanceof Error ? error.message : String(error)}`
+            );
           }
         },
 
-        watchResources: (type: string, callback: (event: any) => void) => {
+        watchResources: (type: string, callback: (event: unknown) => void) => {
           if (!permissions.includes('kubernetes')) {
             throw new Error('Permission denied: kubernetes');
           }
@@ -100,7 +116,7 @@ export function createPluginContext(
             throw new Error(`Invalid resource type: "${type}"`);
           }
 
-          console.log(`[PluginContext] ${pluginId} started watching ${type}`);
+          log.info(`[PluginContext] ${pluginId} started watching ${type}`);
 
           const watchProcess = spawn('kubectl', [
             'get',
@@ -133,7 +149,7 @@ export function createPluginContext(
                     const event = JSON.parse(jsonStr);
                     callback(event);
                   } catch (e) {
-                    console.error(
+                    log.error(
                       `[PluginContext] Failed to parse watch event for ${pluginId}:`,
                       e
                     );
@@ -147,7 +163,7 @@ export function createPluginContext(
           });
 
           watchProcess.stderr.on('data', (data: Buffer) => {
-            console.error(
+            log.error(
               `[PluginContext] Watch error for ${pluginId} (${type}):`,
               data.toString()
             );
@@ -155,7 +171,7 @@ export function createPluginContext(
 
           // Return cleanup function
           return () => {
-            console.log(`[PluginContext] ${pluginId} stopped watching ${type}`);
+            log.info(`[PluginContext] ${pluginId} stopped watching ${type}`);
             watchProcess.kill();
           };
         },
@@ -183,13 +199,13 @@ export function createPluginContext(
           }
 
           savePluginExtensions(pluginId, extensions);
-          console.log(
+          log.info(
             `[PluginContext] Registered/Updated sidebar item for ${pluginId}:`,
             item.label
           );
         },
 
-        registerPage: (route: string, component: any) => {
+        registerPage: (route: string, component: unknown) => {
           const extensions = getPluginExtensions(pluginId);
           if (!extensions.pages) {
             extensions.pages = [];
@@ -225,7 +241,7 @@ export function createPluginContext(
           }
 
           savePluginExtensions(pluginId, extensions);
-          console.log(
+          log.info(
             `[PluginContext] Registered/Updated page for ${pluginId}:`,
             route
           );
@@ -257,7 +273,7 @@ export function createPluginContext(
           }
 
           savePluginExtensions(pluginId, extensions);
-          console.log(
+          log.info(
             `[PluginContext] Registered/Updated resource action for ${pluginId}:`,
             action.label
           );
@@ -275,14 +291,14 @@ export function createPluginContext(
               type,
             });
           }
-          console.log(
+          log.info(
             `[PluginContext] Notification sent from ${pluginId}:`,
             type,
             message
           );
         },
 
-        openModal: (component: string, props?: any) => {
+        openModal: (component: string, props?: Record<string, unknown>) => {
           if (typeof component !== 'string') {
             throw new Error(
               `[PluginContext] openModal: "component" must be a string (modal ID registered via pluginUIRegistry.registerModal), not ${typeof component}.`
@@ -296,7 +312,7 @@ export function createPluginContext(
               props,
             });
           }
-          console.log(`[PluginContext] Open modal from ${pluginId}`);
+          log.info(`[PluginContext] Open modal from ${pluginId}`);
         },
       }
     : (createDeniedAPI('ui') as UIAPI);
@@ -304,11 +320,11 @@ export function createPluginContext(
   // Create Storage API (if permission granted)
   const storage: StorageAPI = permissions.includes('storage')
     ? {
-        get: async <T = any>(key: string): Promise<T | null> => {
-          return storageService.get(pluginId, key);
+        get: async <T = unknown>(key: string): Promise<T | null> => {
+          return storageService.get(pluginId, key) as T | null;
         },
 
-        set: async <T = any>(key: string, value: T): Promise<void> => {
+        set: async <T = unknown>(key: string, value: T): Promise<void> => {
           try {
             storageService.set(pluginId, key, value);
           } catch (e) {
@@ -342,17 +358,17 @@ export function createPluginContext(
 
   // Create Logger API (always available)
   const logger: LoggerAPI = {
-    info: (message: string, ...args: any[]) => {
-      console.log(`[Plugin:${pluginId}] INFO:`, message, ...args);
+    info: (message: string, ...args: unknown[]) => {
+      log.info(`[Plugin:${pluginId}] INFO:`, message, ...args);
     },
-    warn: (message: string, ...args: any[]) => {
-      console.warn(`[Plugin:${pluginId}] WARN:`, message, ...args);
+    warn: (message: string, ...args: unknown[]) => {
+      log.warn(`[Plugin:${pluginId}] WARN:`, message, ...args);
     },
-    error: (message: string, ...args: any[]) => {
-      console.error(`[Plugin:${pluginId}] ERROR:`, message, ...args);
+    error: (message: string, ...args: unknown[]) => {
+      log.error(`[Plugin:${pluginId}] ERROR:`, message, ...args);
     },
-    debug: (message: string, ...args: any[]) => {
-      console.debug(`[Plugin:${pluginId}] DEBUG:`, message, ...args);
+    debug: (message: string, ...args: unknown[]) => {
+      log.debug(`[Plugin:${pluginId}] DEBUG:`, message, ...args);
     },
   };
 
@@ -360,74 +376,68 @@ export function createPluginContext(
   const emitter = new EventEmitter();
   const events: EventsAPI = {
     // Subscribe to events
-    on: (event: string, handler: (...args: any[]) => void) => {
+    on: (event: string, handler: (...args: unknown[]) => void) => {
       emitter.on(event, handler);
-      console.log(`[PluginContext] ${pluginId} subscribed to event: ${event}`);
+      log.info(`[PluginContext] ${pluginId} subscribed to event: ${event}`);
     },
-    once: (event: string, handler: (...args: any[]) => void) => {
+    once: (event: string, handler: (...args: unknown[]) => void) => {
       emitter.once(event, handler);
-      console.log(
+      log.info(
         `[PluginContext] ${pluginId} subscribed once to event: ${event}`
       );
     },
-    off: (event: string, handler: (...args: any[]) => void) => {
+    off: (event: string, handler: (...args: unknown[]) => void) => {
       emitter.off(event, handler);
-      console.log(
-        `[PluginContext] ${pluginId} unsubscribed from event: ${event}`
-      );
+      log.info(`[PluginContext] ${pluginId} unsubscribed from event: ${event}`);
     },
 
     // Emit events
-    emit: (event: string, ...args: any[]) => {
+    emit: (event: string, ...args: unknown[]) => {
       emitter.emit(event, ...args);
-      console.log(`[PluginContext] ${pluginId} emitted event: ${event}`);
+      log.info(`[PluginContext] ${pluginId} emitted event: ${event}`);
     },
 
     // Cross-plugin communication
-    broadcast: (event: string, ...args: any[]) => {
+    broadcast: (event: string, ...args: unknown[]) => {
       pluginEventBus.emit(`plugin-broadcast:${event}`, {
         sender: pluginId,
         payload: args,
       });
-      console.log(`[PluginContext] ${pluginId} broadcasted event: ${event}`);
+      log.info(`[PluginContext] ${pluginId} broadcasted event: ${event}`);
     },
-    onBroadcast: (event: string, handler: (...args: any[]) => void) => {
+    onBroadcast: (event: string, handler: (...args: unknown[]) => void) => {
       pluginEventBus.on(`plugin-broadcast:${event}`, handler);
-      console.log(
-        `[PluginContext] ${pluginId} listening to broadcast: ${event}`
-      );
+      log.info(`[PluginContext] ${pluginId} listening to broadcast: ${event}`);
     },
-    offBroadcast: (event: string, handler: (...args: any[]) => void) => {
+    offBroadcast: (event: string, handler: (...args: unknown[]) => void) => {
       pluginEventBus.off(`plugin-broadcast:${event}`, handler);
-      console.log(
+      log.info(
         `[PluginContext] ${pluginId} stopped listening to broadcast: ${event}`
       );
     },
 
     // App lifecycle hooks
-    onClusterConnected: (handler: (cluster: any) => void) => {
+    onClusterConnected: (handler: (cluster: unknown) => void) => {
       pluginEventBus.on('cluster:connected', handler);
-      console.log(
-        `[PluginContext] ${pluginId} subscribed to cluster:connected`
-      );
+      log.info(`[PluginContext] ${pluginId} subscribed to cluster:connected`);
     },
-    onClusterDisconnected: (handler: (cluster: any) => void) => {
+    onClusterDisconnected: (handler: (cluster: unknown) => void) => {
       pluginEventBus.on('cluster:disconnected', handler);
-      console.log(
+      log.info(
         `[PluginContext] ${pluginId} subscribed to cluster:disconnected`
       );
     },
-    onResourceCreated: (handler: (resource: any) => void) => {
+    onResourceCreated: (handler: (resource: unknown) => void) => {
       pluginEventBus.on('resource:created', handler);
-      console.log(`[PluginContext] ${pluginId} subscribed to resource:created`);
+      log.info(`[PluginContext] ${pluginId} subscribed to resource:created`);
     },
-    onResourceUpdated: (handler: (resource: any) => void) => {
+    onResourceUpdated: (handler: (resource: unknown) => void) => {
       pluginEventBus.on('resource:updated', handler);
-      console.log(`[PluginContext] ${pluginId} subscribed to resource:updated`);
+      log.info(`[PluginContext] ${pluginId} subscribed to resource:updated`);
     },
-    onResourceDeleted: (handler: (resource: any) => void) => {
+    onResourceDeleted: (handler: (resource: unknown) => void) => {
       pluginEventBus.on('resource:deleted', handler);
-      console.log(`[PluginContext] ${pluginId} subscribed to resource:deleted`);
+      log.info(`[PluginContext] ${pluginId} subscribed to resource:deleted`);
     },
   };
 
@@ -445,7 +455,7 @@ export function createPluginContext(
 /**
  * Create a denied API that throws errors when accessed
  */
-function createDeniedAPI(apiName: string): any {
+function createDeniedAPI(apiName: string): object {
   return new Proxy(
     {},
     {
@@ -466,11 +476,19 @@ function createDeniedAPI(apiName: string): any {
  */
 const EXTENSIONS_STORAGE_KEY = '__extensions__';
 
-function getPluginExtensions(pluginId: string): any {
-  return storageService.get(pluginId, EXTENSIONS_STORAGE_KEY) || {};
+function getPluginExtensions(pluginId: string): PluginExtensions {
+  return (
+    (storageService.get(
+      pluginId,
+      EXTENSIONS_STORAGE_KEY
+    ) as PluginExtensions) || {}
+  );
 }
 
-function savePluginExtensions(pluginId: string, extensions: any): void {
+function savePluginExtensions(
+  pluginId: string,
+  extensions: PluginExtensions
+): void {
   storageService.set(pluginId, EXTENSIONS_STORAGE_KEY, extensions);
 }
 
@@ -478,6 +496,9 @@ export function clearPluginExtensions(pluginId: string): void {
   storageService.delete(pluginId, EXTENSIONS_STORAGE_KEY);
 }
 
-export function getAllPluginExtensions(): Map<string, any> {
-  return storageService.getAllByKey(EXTENSIONS_STORAGE_KEY);
+export function getAllPluginExtensions(): Map<string, PluginExtensions> {
+  return storageService.getAllByKey(EXTENSIONS_STORAGE_KEY) as Map<
+    string,
+    PluginExtensions
+  >;
 }
