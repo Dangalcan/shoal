@@ -3,6 +3,16 @@ import { PluginManager } from '../services/plugins/plugin-manager';
 import { pluginLoader } from '../services/plugins/plugin-loader';
 import { pluginRegistry } from '../services/plugins/plugin-registry';
 import { licenseManager } from '../services/security/license-manager';
+
+vi.mock('../logger', () => ({
+  default: {
+    error: (...args: unknown[]) => console.error(...args),
+    warn: (...args: unknown[]) => console.warn(...args),
+    info: (...args: unknown[]) => console.log(...args),
+    debug: (...args: unknown[]) => console.debug(...args),
+    verbose: (...args: unknown[]) => console.log(...args),
+  },
+}));
 import { app } from 'electron';
 import { pathService } from '../services/plugins/path-service';
 import path from 'path';
@@ -292,13 +302,13 @@ describe('PluginManager', () => {
     it('should return extensions for enabled plugins', () => {
       const extensions = { sidebar: [{ id: 's1' }] };
       vi.mocked(getAllPluginExtensions).mockReturnValue(
-        new Map([['p1', extensions]])
+        new Map([['p1', extensions as any]])
       );
       vi.mocked(pluginRegistry.isPluginEnabled).mockReturnValue(true);
 
       const results = pluginManager.getPluginExtensions('sidebar');
       expect(results).toHaveLength(1);
-      expect(results[0].id).toBe('s1');
+      expect((results[0] as any).id).toBe('s1');
     });
 
     it('getPluginExtensions should handle missing extension point', () => {

@@ -1,4 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('../logger', () => ({
+  default: {
+    error: (...args: unknown[]) => console.error(...args),
+    warn: (...args: unknown[]) => console.warn(...args),
+    info: (...args: unknown[]) => console.log(...args),
+    debug: (...args: unknown[]) => console.debug(...args),
+    verbose: (...args: unknown[]) => console.log(...args),
+  },
+}));
+
 import {
   createPluginContext,
   getAllPluginExtensions,
@@ -349,23 +360,23 @@ describe('Plugin Context', () => {
       const item = { id: 's1', label: 'L1', route: '/r1' };
       context.ui.registerSidebarItem(item);
       let ext = getAllPluginExtensions().get(pluginId);
-      expect(ext.sidebar).toHaveLength(1);
+      expect(ext!.sidebar).toHaveLength(1);
 
       context.ui.registerSidebarItem({ ...item, label: 'L2' });
       ext = getAllPluginExtensions().get(pluginId);
-      expect(ext.sidebar[0].label).toBe('L2');
+      expect(ext!.sidebar![0].label).toBe('L2');
     });
 
     it('registerPage should add and update page extension', () => {
       // component must be a string (renderer module path or export name)
       context.ui.registerPage('/p1', './pages/PageC1');
       let ext = getAllPluginExtensions().get(pluginId);
-      expect(ext.pages).toHaveLength(1);
+      expect(ext!.pages).toHaveLength(1);
 
       context.ui.registerPage('/p1', './pages/PageC2'); // Update existing
       ext = getAllPluginExtensions().get(pluginId);
-      expect(ext.pages).toHaveLength(1);
-      expect(ext.pages[0].component).toBe('./pages/PageC2');
+      expect(ext!.pages).toHaveLength(1);
+      expect(ext!.pages![0].component).toBe('./pages/PageC2');
     });
 
     it('registerPage should throw when a non-string component is passed', () => {
@@ -378,7 +389,7 @@ describe('Plugin Context', () => {
       const action = { id: 'a1', label: 'L1', resourceTypes: ['Pod'] };
       context.ui.registerResourceAction('Pod', action);
       let ext = getAllPluginExtensions().get(pluginId);
-      expect(ext.resourceActions).toHaveLength(1);
+      expect(ext!.resourceActions).toHaveLength(1);
 
       context.ui.registerResourceAction('Pod', {
         id: 'a1',
@@ -386,8 +397,8 @@ describe('Plugin Context', () => {
         resourceTypes: ['Pod'],
       });
       ext = getAllPluginExtensions().get(pluginId);
-      expect(ext.resourceActions).toHaveLength(1);
-      expect(ext.resourceActions[0].label).toBe('L2');
+      expect(ext!.resourceActions).toHaveLength(1);
+      expect(ext!.resourceActions![0].label).toBe('L2');
     });
 
     it('showNotification should send IPC message when win is present', () => {
