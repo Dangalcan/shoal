@@ -29,13 +29,14 @@ import { isPod } from '../type-guards';
  */
 const getPhase = (r: AnyK8sResource): string => {
   if (r.status && typeof r.status === 'object') {
-    if ('phase' in r.status) return (r.status as any).phase || '';
+    if ('phase' in r.status)
+      return (r.status as Record<string, unknown>).phase || '';
     if (
       'conditions' in r.status &&
-      Array.isArray((r.status as any).conditions) &&
-      (r.status as any).conditions.length > 0
+      Array.isArray((r.status as Record<string, unknown>).conditions) &&
+      (r.status as Record<string, unknown>).conditions.length > 0
     ) {
-      return (r.status as any).conditions[0].type || '';
+      return (r.status as Record<string, unknown>).conditions[0].type || '';
     }
   }
   return '';
@@ -80,7 +81,7 @@ export const sortByRestarts = sortByNumber((r) => {
 });
 
 export const sortByIP = sortByString((r) => {
-  if ('status' in r && 'podIP' in (r.status as any))
+  if ('status' in r && 'podIP' in (r.status as Record<string, unknown>))
     return (r as Pod).status?.podIP || '';
   return '';
 });
@@ -103,26 +104,36 @@ export const sortByReadyReplicas = sortByNumber((r) => {
   if ('numberReady' in (res.status || {}))
     return (res as DaemonSet).status?.numberReady || 0;
   // Others have readyReplicas
-  return (res as any).status?.readyReplicas || 0;
+  return (
+    ((res.status as Record<string, unknown>)?.readyReplicas as number) || 0
+  );
 });
 
 export const sortByUpdatedReplicas = sortByNumber((r) => {
   const res = r as Deployment | StatefulSet | DaemonSet;
   if ('updatedNumberScheduled' in (res.status || {}))
     return (res as DaemonSet).status?.updatedNumberScheduled || 0;
-  return (res as any).status?.updatedReplicas || 0;
+  return (
+    ((res.status as Record<string, unknown>)?.updatedReplicas as number) || 0
+  );
 });
 
 export const sortByAvailableReplicas = sortByNumber((r) => {
   const res = r as Deployment | ReplicaSet | DaemonSet;
   if ('numberAvailable' in (res.status || {}))
     return (res as DaemonSet).status?.numberAvailable || 0;
-  return (res as any).status?.availableReplicas || 0;
+  return (
+    ((res.status as Record<string, unknown>)?.availableReplicas as number) || 0
+  );
 });
 
 // Data (ConfigMaps/Secrets)
 export const sortByDataCount = sortByNumber((r) => {
-  const data = (r as any).data || (r as any).binaryData || {};
+  const rr = r as Record<string, unknown>;
+  const data =
+    (rr.data as Record<string, unknown>) ||
+    (rr.binaryData as Record<string, unknown>) ||
+    {};
   return Object.keys(data).length;
 });
 
@@ -168,30 +179,46 @@ export const sortByExternalIP = sortByString((r) => {
 
 // Containers & Images
 export const sortByContainers = sortByString((r) => {
-  // Try to find containers in spec or template.spec
-  const anyR = r as any;
-  const spec = anyR.spec;
-  const containers = (spec?.template?.spec || spec)?.containers;
+  const spec = (r as Record<string, unknown>).spec as
+    | Record<string, unknown>
+    | undefined;
+  const podSpec =
+    ((spec?.template as Record<string, unknown> | undefined)?.spec as
+      | Record<string, unknown>
+      | undefined) || spec;
+  const containers = podSpec?.containers as
+    | Record<string, unknown>[]
+    | undefined;
   if (Array.isArray(containers)) {
-    return containers.map((c: any) => c.name).join(', ');
+    return containers.map((c) => c.name).join(', ');
   }
   return '';
 });
 
 export const sortByImages = sortByString((r) => {
-  const anyR = r as any;
-  const spec = anyR.spec;
-  const containers = (spec?.template?.spec || spec)?.containers;
+  const spec = (r as Record<string, unknown>).spec as
+    | Record<string, unknown>
+    | undefined;
+  const podSpec =
+    ((spec?.template as Record<string, unknown> | undefined)?.spec as
+      | Record<string, unknown>
+      | undefined) || spec;
+  const containers = podSpec?.containers as
+    | Record<string, unknown>[]
+    | undefined;
   if (Array.isArray(containers)) {
-    return containers.map((c: any) => c.image).join(', ');
+    return containers.map((c) => c.image as string).join(', ');
   }
   return '';
 });
 
 // Selector
 export const sortBySelector = sortByString((r) => {
-  const anyR = r as any;
-  const spec = anyR.spec;
-  const selector = spec?.selector?.matchLabels || spec?.selector || {};
+  const spec = (r as Record<string, unknown>).spec as
+    | Record<string, unknown>
+    | undefined;
+  const selectorObj = spec?.selector as Record<string, unknown> | undefined;
+  const selector =
+    (selectorObj?.matchLabels as Record<string, unknown>) || selectorObj || {};
   return Object.keys(selector).length > 0 ? JSON.stringify(selector) : '';
 });

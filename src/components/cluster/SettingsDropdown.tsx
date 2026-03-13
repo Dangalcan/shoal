@@ -39,7 +39,7 @@ export function SettingsDropdown({
   }, [searchQuery]);
 
   const resourcesByCategory = useMemo(() => {
-    const categories: Record<ResourceCategory, typeof ALL_TABS> = {} as any;
+    const categories = {} as Record<ResourceCategory, typeof ALL_TABS>;
     filteredResources.forEach(resource => {
       if (!categories[resource.category]) {
         categories[resource.category] = [];

@@ -1,6 +1,6 @@
 /**
  * Path Service
- * 
+ *
  * Centralized service for managing all plugin-related filesystem paths.
  * ensures consistency between bundled and user-installed plugins.
  */
@@ -28,10 +28,7 @@ export class PathService {
    * Get all plugin discovery directories
    */
   getDiscoveryDirectories(): string[] {
-    return [
-      this.getUserPluginsDir(),
-      this.getBundledPluginsDir()
-    ];
+    return [this.getUserPluginsDir(), this.getBundledPluginsDir()];
   }
 
   /**
@@ -45,7 +42,7 @@ export class PathService {
    * Get the path to the plugin-specific SQLite database
    */
   getPluginDatabasePath(pluginId: string): string {
-     return path.join(this.getPluginStorageDir(pluginId), 'storage.db');
+    return path.join(this.getPluginStorageDir(pluginId), 'storage.db');
   }
 
   /**
@@ -68,8 +65,11 @@ export class PathService {
   async ensureDir(dirPath: string): Promise<void> {
     try {
       await fs.mkdir(dirPath, { recursive: true });
-    } catch (error: any) {
-      if (error.code !== 'EEXIST') {
+    } catch (error: unknown) {
+      if (
+        !(error instanceof Error) ||
+        (error as NodeJS.ErrnoException).code !== 'EEXIST'
+      ) {
         throw error;
       }
     }

@@ -29,35 +29,35 @@ export class PluginEventBus extends EventEmitter {
   /**
    * Emit cluster connected event
    */
-  emitClusterConnected(cluster: any): void {
+  emitClusterConnected(cluster: unknown): void {
     this.emit('cluster:connected', cluster);
   }
 
   /**
    * Emit cluster disconnected event
    */
-  emitClusterDisconnected(cluster: any): void {
+  emitClusterDisconnected(cluster: unknown): void {
     this.emit('cluster:disconnected', cluster);
   }
 
   /**
    * Emit resource created event
    */
-  emitResourceCreated(resource: any): void {
+  emitResourceCreated(resource: unknown): void {
     this.emit('resource:created', resource);
   }
 
   /**
    * Emit resource updated event
    */
-  emitResourceUpdated(resource: any): void {
+  emitResourceUpdated(resource: unknown): void {
     this.emit('resource:updated', resource);
   }
 
   /**
    * Emit resource deleted event
    */
-  emitResourceDeleted(resource: any): void {
+  emitResourceDeleted(resource: unknown): void {
     this.emit('resource:deleted', resource);
   }
 

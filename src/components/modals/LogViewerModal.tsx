@@ -43,9 +43,9 @@ export function LogViewerModal({ isOpen, onClose, clusterName, podName, namespac
                 setError(errorMessage)
                 handleError(new Error(errorMessage), 'Log Fetch Failed')
             }
-        } catch (err: any) {
-            setError(err.message || 'An unexpected error occurred')
-            handleError(err, 'Log Streaming Error')
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'An unexpected error occurred')
+            handleError(err as Error, 'Log Streaming Error')
         } finally {
             if (!isAuto) setLoading(false)
         }

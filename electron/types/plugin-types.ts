@@ -70,7 +70,7 @@ export interface DependencyValidationResult {
 
 export interface PluginDataFile {
   path: string;
-  content: any; // Parsed JSON content
+  content: unknown; // Parsed JSON content
 }
 
 // ============================================================================
@@ -179,8 +179,8 @@ export interface PluginConfigProperty {
   type: 'string' | 'number' | 'boolean' | 'select' | 'array';
   label: string;
   description?: string;
-  default?: any;
-  enum?: any[]; // For select type
+  default?: unknown;
+  enum?: unknown[]; // For select type
   multiline?: boolean; // For string type
   secret?: boolean; // For passwords/keys
   min?: number; // For number type
@@ -231,9 +231,13 @@ export interface Plugin {
 // ============================================================================
 
 export interface KubernetesAPI {
-  getResources: (type: string, namespace: string) => Promise<any[]>;
-  createResource: (manifest: any) => Promise<void>;
-  updateResource: (type: string, name: string, manifest: any) => Promise<void>;
+  getResources: (type: string, namespace: string) => Promise<unknown[]>;
+  createResource: (manifest: unknown) => Promise<void>;
+  updateResource: (
+    type: string,
+    name: string,
+    manifest: unknown
+  ) => Promise<void>;
   deleteResource: (
     type: string,
     name: string,
@@ -244,12 +248,15 @@ export interface KubernetesAPI {
     namespace: string,
     command: string
   ) => Promise<string>;
-  watchResources: (type: string, callback: (event: any) => void) => () => void;
+  watchResources: (
+    type: string,
+    callback: (event: unknown) => void
+  ) => () => void;
 }
 
 export interface UIAPI {
   registerSidebarItem: (item: SidebarExtension) => void;
-  registerPage: (route: string, component: any) => void;
+  registerPage: (route: string, component: unknown) => void;
   registerResourceAction: (
     resourceType: string,
     action: ResourceActionExtension
@@ -258,43 +265,43 @@ export interface UIAPI {
     message: string,
     type: 'success' | 'error' | 'info' | 'warning'
   ) => void;
-  openModal: (component: any, props?: any) => void;
+  openModal: (component: string, props?: Record<string, unknown>) => void;
 }
 
 export interface StorageAPI {
-  get: <T = any>(key: string) => Promise<T | null>;
-  set: <T = any>(key: string, value: T) => Promise<void>;
+  get: <T = unknown>(key: string) => Promise<T | null>;
+  set: <T = unknown>(key: string, value: T) => Promise<void>;
   delete: (key: string) => Promise<void>;
   clear: () => Promise<void>;
 }
 
 export interface LoggerAPI {
-  info: (message: string, ...args: any[]) => void;
-  warn: (message: string, ...args: any[]) => void;
-  error: (message: string, ...args: any[]) => void;
-  debug: (message: string, ...args: any[]) => void;
+  info: (message: string, ...args: unknown[]) => void;
+  warn: (message: string, ...args: unknown[]) => void;
+  error: (message: string, ...args: unknown[]) => void;
+  debug: (message: string, ...args: unknown[]) => void;
 }
 
 export interface EventsAPI {
   // Subscribe to events
-  on: (event: string, handler: (...args: any[]) => void) => void;
-  once: (event: string, handler: (...args: any[]) => void) => void;
-  off: (event: string, handler: (...args: any[]) => void) => void;
+  on: (event: string, handler: (...args: unknown[]) => void) => void;
+  once: (event: string, handler: (...args: unknown[]) => void) => void;
+  off: (event: string, handler: (...args: unknown[]) => void) => void;
 
   // Emit events
-  emit: (event: string, ...args: any[]) => void;
+  emit: (event: string, ...args: unknown[]) => void;
 
   // Cross-plugin communication
-  broadcast: (event: string, ...args: any[]) => void;
-  onBroadcast: (event: string, handler: (...args: any[]) => void) => void;
-  offBroadcast: (event: string, handler: (...args: any[]) => void) => void;
+  broadcast: (event: string, ...args: unknown[]) => void;
+  onBroadcast: (event: string, handler: (...args: unknown[]) => void) => void;
+  offBroadcast: (event: string, handler: (...args: unknown[]) => void) => void;
 
   // App lifecycle hooks
-  onClusterConnected: (handler: (cluster: any) => void) => void;
-  onClusterDisconnected: (handler: (cluster: any) => void) => void;
-  onResourceCreated: (handler: (resource: any) => void) => void;
-  onResourceUpdated: (handler: (resource: any) => void) => void;
-  onResourceDeleted: (handler: (resource: any) => void) => void;
+  onClusterConnected: (handler: (cluster: unknown) => void) => void;
+  onClusterDisconnected: (handler: (cluster: unknown) => void) => void;
+  onResourceCreated: (handler: (resource: unknown) => void) => void;
+  onResourceUpdated: (handler: (resource: unknown) => void) => void;
+  onResourceDeleted: (handler: (resource: unknown) => void) => void;
 }
 
 export interface PluginContext {
@@ -313,7 +320,7 @@ export interface PluginContext {
 
 export interface PluginConfig {
   enabled: boolean;
-  settings?: Record<string, any>;
+  settings?: Record<string, unknown>;
   licenseInfo?: PluginLicenseInfo;
 }
 
@@ -394,4 +401,27 @@ export interface PluginInstallResult {
   success: boolean;
   pluginId?: string;
   error?: string;
+}
+
+// ============================================================================
+// IPC Event Types (shared between main process and renderer via preload)
+// ============================================================================
+
+export interface PluginNotificationData {
+  pluginId: string;
+  message: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+}
+
+export interface PluginModalData {
+  pluginId: string;
+  component: string;
+  props?: Record<string, unknown>;
+}
+
+export interface PluginScaffoldOptions {
+  id: string;
+  name: string;
+  author: string;
+  description: string;
 }

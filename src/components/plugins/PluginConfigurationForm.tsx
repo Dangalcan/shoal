@@ -14,8 +14,8 @@ import '../../../styles/components/plugins/PluginConfigurationForm.css';
 
 interface Props {
   schema: PluginConfigurationSchema;
-  initialValues: Record<string, any>;
-  onSave: (values: Record<string, any>) => Promise<void>;
+  initialValues: Record<string, unknown>;
+  onSave: (values: Record<string, unknown>) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -25,13 +25,13 @@ export function PluginConfigurationForm({
   onSave,
   onCancel,
 }: Props) {
-  const [values, setValues] = useState<Record<string, any>>(initialValues);
+  const [values, setValues] = useState<Record<string, unknown>>(initialValues);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
   const validateField = (
     key: string,
-    value: any,
+    value: unknown,
     property: PluginConfigProperty
   ): string | null => {
     // Required validation
@@ -55,15 +55,15 @@ export function PluginConfigurationForm({
         }
       }
 
-    // Pattern validation (moved inside array check if needed)
-    if (property.validation?.pattern && typeof value === 'string') {
-      const regex = new RegExp(property.validation.pattern);
-      if (!regex.test(value)) {
-        return (
-          property.validation.message || `${property.label} format is invalid`
-        );
+      // Pattern validation
+      if (property.validation?.pattern && typeof value === 'string') {
+        const regex = new RegExp(property.validation.pattern);
+        if (!regex.test(value)) {
+          return (
+            property.validation.message || `${property.label} format is invalid`
+          );
+        }
       }
-    }
 
       // Array validation
       if (property.type === 'array' && Array.isArray(value)) {
@@ -78,7 +78,7 @@ export function PluginConfigurationForm({
 
   const handleChange = (
     key: string,
-    value: any,
+    value: unknown,
     property: PluginConfigProperty
   ) => {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -110,9 +110,9 @@ export function PluginConfigurationForm({
     setSaving(true);
     try {
       await onSave(values);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to save settings:', error);
-      setErrors({ _form: error.message || 'Failed to save settings' });
+      setErrors({ _form: error instanceof Error ? error.message : 'Failed to save settings' });
     } finally {
       setSaving(false);
     }
@@ -127,7 +127,7 @@ export function PluginConfigurationForm({
         if (property.multiline) {
           return (
             <textarea
-              value={value || ''}
+              value={(value as string) || ''}
               onChange={(e) => handleChange(key, e.target.value, property)}
               placeholder={property.placeholder}
               className="config-textarea"
@@ -138,7 +138,7 @@ export function PluginConfigurationForm({
         return (
           <input
             type={property.secret ? 'password' : 'text'}
-            value={value || ''}
+            value={(value as string) || ''}
             onChange={(e) => handleChange(key, e.target.value, property)}
             placeholder={property.placeholder}
             className="config-input"
@@ -149,7 +149,7 @@ export function PluginConfigurationForm({
         return (
           <input
             type="number"
-            value={value ?? ''}
+            value={(value as number) ?? ''}
             onChange={(e) => handleChange(key, e.target.valueAsNumber, property)}
             min={property.min}
             max={property.max}
@@ -163,7 +163,7 @@ export function PluginConfigurationForm({
           <label className="config-checkbox">
             <input
               type="checkbox"
-              checked={value ?? false}
+              checked={(value as boolean) ?? false}
               onChange={(e) => handleChange(key, e.target.checked, property)}
             />
             <span>{property.label}</span>
@@ -173,7 +173,7 @@ export function PluginConfigurationForm({
       case 'select':
         return (
           <select
-            value={value || ''}
+            value={(value as string) || ''}
             onChange={(e) => handleChange(key, e.target.value, property)}
             className="config-select"
           >

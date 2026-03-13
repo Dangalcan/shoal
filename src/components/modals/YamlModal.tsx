@@ -45,9 +45,9 @@ export function YamlModal({ isOpen, onClose, clusterName, resourceName, resource
                 setError(errorMessage)
                 handleError(new Error(errorMessage), 'YAML Fetch Failed')
             }
-        } catch (err: any) {
-            setError(err.message || 'An error occurred')
-            handleError(err, 'YAML Fetch Error')
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'An error occurred')
+            handleError(err as Error, 'YAML Fetch Error')
         } finally {
             setLoading(false)
         }
@@ -73,8 +73,8 @@ export function YamlModal({ isOpen, onClose, clusterName, resourceName, resource
             } else {
                 toast.error(`Failed to save manifest: ${result.error}`)
             }
-        } catch (err: any) {
-            toast.error(`Error saving manifest: ${err.message}`)
+        } catch (err: unknown) {
+            toast.error(`Error saving manifest: ${err instanceof Error ? err.message : String(err)}`)
         } finally {
             setSaveLoading(false)
         }

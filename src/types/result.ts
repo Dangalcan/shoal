@@ -153,7 +153,7 @@ export function chainResult<T, U>(
  * @param val - The value to check
  * @returns true if the value is a Result object
  */
-export function isResult(val: any): val is Result<any> {
+export function isResult(val: unknown): val is Result<unknown> {
   return (
     val !== null &&
     typeof val === 'object' &&

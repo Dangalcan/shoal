@@ -28,8 +28,8 @@ import type {
 export function isPod(resource: K8sResource): resource is Pod {
   return (
     resource.spec !== undefined &&
-    'containers' in (resource.spec as any) &&
-    Array.isArray((resource.spec as any).containers)
+    'containers' in (resource.spec as Record<string, unknown>) &&
+    Array.isArray((resource.spec as Record<string, unknown>).containers)
   );
 }
 
@@ -39,8 +39,8 @@ export function isPod(resource: K8sResource): resource is Pod {
 export function isDeployment(resource: K8sResource): resource is Deployment {
   return (
     resource.spec !== undefined &&
-    'selector' in (resource.spec as any) &&
-    'template' in (resource.spec as any)
+    'selector' in (resource.spec as Record<string, unknown>) &&
+    'template' in (resource.spec as Record<string, unknown>)
   );
 }
 
@@ -50,8 +50,8 @@ export function isDeployment(resource: K8sResource): resource is Deployment {
 export function isService(resource: K8sResource): resource is Service {
   return (
     resource.spec !== undefined &&
-    'ports' in (resource.spec as any) &&
-    Array.isArray((resource.spec as any).ports)
+    'ports' in (resource.spec as Record<string, unknown>) &&
+    Array.isArray((resource.spec as Record<string, unknown>).ports)
   );
 }
 
@@ -61,8 +61,8 @@ export function isService(resource: K8sResource): resource is Service {
 export function isStatefulSet(resource: K8sResource): resource is StatefulSet {
   return (
     resource.spec !== undefined &&
-    'serviceName' in (resource.spec as any) &&
-    'selector' in (resource.spec as any)
+    'serviceName' in (resource.spec as Record<string, unknown>) &&
+    'selector' in (resource.spec as Record<string, unknown>)
   );
 }
 
@@ -72,9 +72,9 @@ export function isStatefulSet(resource: K8sResource): resource is StatefulSet {
 export function isDaemonSet(resource: K8sResource): resource is DaemonSet {
   return (
     resource.spec !== undefined &&
-    'selector' in (resource.spec as any) &&
+    'selector' in (resource.spec as Record<string, unknown>) &&
     resource.status !== undefined &&
-    'desiredNumberScheduled' in (resource.status as any)
+    'desiredNumberScheduled' in (resource.status as Record<string, unknown>)
   );
 }
 
@@ -84,9 +84,9 @@ export function isDaemonSet(resource: K8sResource): resource is DaemonSet {
 export function isReplicaSet(resource: K8sResource): resource is ReplicaSet {
   return (
     resource.spec !== undefined &&
-    'selector' in (resource.spec as any) &&
+    'selector' in (resource.spec as Record<string, unknown>) &&
     resource.status !== undefined &&
-    'fullyLabeledReplicas' in (resource.status as any)
+    'fullyLabeledReplicas' in (resource.status as Record<string, unknown>)
   );
 }
 
@@ -96,10 +96,10 @@ export function isReplicaSet(resource: K8sResource): resource is ReplicaSet {
 export function isJob(resource: K8sResource): resource is Job {
   return (
     resource.spec !== undefined &&
-    'template' in (resource.spec as any) &&
+    'template' in (resource.spec as Record<string, unknown>) &&
     resource.status !== undefined &&
-    ('succeeded' in (resource.status as any) ||
-      'failed' in (resource.status as any))
+    ('succeeded' in (resource.status as Record<string, unknown>) ||
+      'failed' in (resource.status as Record<string, unknown>))
   );
 }
 
@@ -109,8 +109,8 @@ export function isJob(resource: K8sResource): resource is Job {
 export function isCronJob(resource: K8sResource): resource is CronJob {
   return (
     resource.spec !== undefined &&
-    'schedule' in (resource.spec as any) &&
-    'jobTemplate' in (resource.spec as any)
+    'schedule' in (resource.spec as Record<string, unknown>) &&
+    'jobTemplate' in (resource.spec as Record<string, unknown>)
   );
 }
 
@@ -122,7 +122,7 @@ export function isPersistentVolume(
 ): resource is PersistentVolume {
   return (
     resource.spec !== undefined &&
-    'capacity' in (resource.spec as any) &&
+    'capacity' in (resource.spec as Record<string, unknown>) &&
     !resource.metadata.namespace // PVs are cluster-scoped
   );
 }
@@ -135,7 +135,7 @@ export function isPersistentVolumeClaim(
 ): resource is PersistentVolumeClaim {
   return (
     resource.spec !== undefined &&
-    'resources' in (resource.spec as any) &&
+    'resources' in (resource.spec as Record<string, unknown>) &&
     resource.metadata.namespace !== undefined // PVCs are namespaced
   );
 }
@@ -146,8 +146,8 @@ export function isPersistentVolumeClaim(
 export function isNode(resource: K8sResource): resource is Node {
   return (
     resource.status !== undefined &&
-    'nodeInfo' in (resource.status as any) &&
-    'addresses' in (resource.status as any)
+    'nodeInfo' in (resource.status as Record<string, unknown>) &&
+    'addresses' in (resource.status as Record<string, unknown>)
   );
 }
 
@@ -164,7 +164,7 @@ export function isConfigMap(resource: K8sResource): resource is ConfigMap {
 export function isSecret(resource: K8sResource): resource is Secret {
   return (
     'type' in resource &&
-    typeof (resource as any).type === 'string' &&
+    typeof (resource as Record<string, unknown>).type === 'string' &&
     ('data' in resource || 'stringData' in resource)
   );
 }
@@ -175,8 +175,8 @@ export function isSecret(resource: K8sResource): resource is Secret {
 export function isIngress(resource: K8sResource): resource is Ingress {
   return (
     resource.spec !== undefined &&
-    ('rules' in (resource.spec as any) ||
-      'defaultBackend' in (resource.spec as any))
+    ('rules' in (resource.spec as Record<string, unknown>) ||
+      'defaultBackend' in (resource.spec as Record<string, unknown>))
   );
 }
 
@@ -188,23 +188,28 @@ export function isHorizontalPodAutoscaler(
 ): resource is HorizontalPodAutoscaler {
   return (
     resource.spec !== undefined &&
-    'scaleTargetRef' in (resource.spec as any) &&
-    'maxReplicas' in (resource.spec as any)
+    'scaleTargetRef' in (resource.spec as Record<string, unknown>) &&
+    'maxReplicas' in (resource.spec as Record<string, unknown>)
   );
 }
 
 /**
  * Helper function to safely access nested properties
  */
-export function hasNestedProperty(obj: any, path: string): boolean {
+export function hasNestedProperty(obj: unknown, path: string): boolean {
   const keys = path.split('.');
-  let current = obj;
+  let current: unknown = obj;
 
   for (const key of keys) {
-    if (current === null || current === undefined || !(key in current)) {
+    if (
+      current === null ||
+      current === undefined ||
+      typeof current !== 'object' ||
+      !(key in (current as Record<string, unknown>))
+    ) {
       return false;
     }
-    current = current[key];
+    current = (current as Record<string, unknown>)[key];
   }
 
   return current !== undefined;

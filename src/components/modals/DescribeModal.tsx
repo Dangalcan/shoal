@@ -43,9 +43,9 @@ export function DescribeModal({ isOpen, onClose, clusterName, resourceName, reso
                 setError(errorMessage)
                 handleError(new Error(errorMessage), 'Describe Failed')
             }
-        } catch (err: any) {
-            setError(err.message || 'An error occurred')
-            handleError(err, 'Describe Operation Error')
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'An error occurred')
+            handleError(err as Error, 'Describe Operation Error')
         } finally {
             setLoading(false)
         }

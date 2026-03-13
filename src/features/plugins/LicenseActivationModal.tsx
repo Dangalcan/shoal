@@ -42,8 +42,8 @@ export function LicenseActivationModal({ plugin, onClose }: LicenseActivationMod
       await activateLicense(plugin.manifest.id, licenseKey.trim());
       setSuccess('License activated successfully!');
       setTimeout(onClose, 2000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to activate license');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to activate license');
     } finally {
       setLoading(false);
     }
@@ -58,8 +58,8 @@ export function LicenseActivationModal({ plugin, onClose }: LicenseActivationMod
       await startTrial(plugin.manifest.id);
       setSuccess(`Trial started! You have ${pricing?.trialDays} days.`);
       setTimeout(onClose, 2000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to start trial');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to start trial');
     } finally {
       setLoading(false);
     }

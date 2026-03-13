@@ -134,9 +134,9 @@ export function Manifests() {
           failCount++;
           errors.push(`${file.name}: ${result.error || 'Save failed'}`);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         failCount++;
-        errors.push(err.message);
+        errors.push(err instanceof Error ? err.message : String(err));
       }
     }
 

@@ -206,9 +206,9 @@ export const renderCell = ({ colId, resource, resourceType, style }: RenderCellO
 function renderGenericCell(
     { colId, resource, resourceType, style }: RenderCellOptions
 ): React.ReactNode {
-    const res = resource as any
-    const spec = res.spec || {}
-    const status = res.status || {}
+    const res = resource as unknown as Record<string, unknown>
+    const spec = (res.spec as Record<string, unknown>) || {}
+    const status = (res.status as Record<string, unknown>) || {}
 
     // Handle common properties dynamically if possible
     if (colId in res) {
@@ -222,5 +222,8 @@ function renderGenericCell(
     }
 
     // Return a placeholder for truly unknown columns
+    if (import.meta.env.DEV) {
+      console.warn(`[renderCell] No renderer for column "${colId}" — add a case to renderCell.tsx`);
+    }
     return <TextCell key={colId} content="-" style={style} />
 }

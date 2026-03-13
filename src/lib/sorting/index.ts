@@ -69,8 +69,8 @@ export const getSorterForColumn = (
       // Default fallback: Try to sort by properties on the object itself if they exist at root
       // This mirrors the default behavior of the previous implementation
       return (a, b) => {
-        const valA = (a as any)[columnId] || '';
-        const valB = (b as any)[columnId] || '';
+        const valA = (a as unknown as Record<string, unknown>)[columnId] || '';
+        const valB = (b as unknown as Record<string, unknown>)[columnId] || '';
         if (valA < valB) return -1;
         if (valA > valB) return 1;
         return 0;

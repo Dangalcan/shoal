@@ -15,7 +15,7 @@ export interface UseAsyncDataOptions<T> {
   /** Skip the initial fetch on mount */
   skipInitialFetch?: boolean;
   /** Dependencies that trigger a refetch when changed */
-  dependencies?: any[];
+  dependencies?: unknown[];
 }
 
 /**

@@ -60,8 +60,8 @@ export function MarketplaceList() {
       } else {
         setError(result.error ?? 'Failed to load plugins');
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch plugins');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch plugins');
     } finally {
       setLoading(false);
     }

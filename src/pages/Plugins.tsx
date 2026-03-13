@@ -44,8 +44,8 @@ export default function Plugins() {
     setActionError(null);
     try {
       await fn();
-    } catch (err: any) {
-      setActionError(err.message || fallbackMsg);
+    } catch (err: unknown) {
+      setActionError(err instanceof Error ? err.message : fallbackMsg);
     } finally {
       setActionLoading(null);
     }
@@ -82,8 +82,8 @@ export default function Plugins() {
     setActionError(null);
     try {
       await importLocalPlugin();
-    } catch (err: any) {
-      setActionError(err.message || 'Failed to import plugin');
+    } catch (err: unknown) {
+      setActionError(err instanceof Error ? err.message : 'Failed to import plugin');
     } finally {
       setImporting(false);
     }

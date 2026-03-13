@@ -19,8 +19,8 @@ export function useInstallPlugin(pluginId: string, pluginName: string) {
     try {
       await installPlugin(pluginId);
       toast.success(`${pluginName} installed successfully!`, { id: toastId });
-    } catch (err: any) {
-      const msg = err.message || 'Installation failed';
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Installation failed';
       setError(msg);
       toast.error(msg, { id: toastId });
     } finally {

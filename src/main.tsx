@@ -11,9 +11,9 @@ import * as UI from './components/ui';
 import * as LucideIcons from 'lucide-react';
 
 // Expose React and other common libs for plugins
-(window as any).React = React;
-(window as any).K8sUI = UI;
-(window as any).LucideIcons = LucideIcons;
+window.React = React;
+window.K8sUI = UI as Record<string, unknown>;
+window.LucideIcons = LucideIcons as Record<string, unknown>;
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
