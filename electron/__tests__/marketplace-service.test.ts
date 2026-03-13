@@ -155,7 +155,7 @@ describe('MarketplaceService', () => {
       ]);
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
-      expect(result.data![0].latestVersion).toBe('1.1.0');
+      expect((result.data as any[])[0].latestVersion).toBe('1.1.0');
     });
   });
 
