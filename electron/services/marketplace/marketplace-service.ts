@@ -14,6 +14,7 @@ import AdmZip from 'adm-zip';
 import semver from 'semver';
 import { Result, MarketplaceEntry } from '../../types/plugin-types';
 import { pluginManager } from '../plugins/plugin-manager';
+import log from '../../logger';
 
 export class MarketplaceService {
   private get BACKEND_URL(): string {
@@ -27,7 +28,7 @@ export class MarketplaceService {
   async getMarketplacePlugins(): Promise<Result<MarketplaceEntry[]>> {
     try {
       const url = `${this.BACKEND_URL}/plugins`;
-      console.log(`[MarketplaceService] Fetching plugins from ${url}`);
+      log.info(`[MarketplaceService] Fetching plugins from ${url}`);
 
       const response = await fetch(url, {
         signal: AbortSignal.timeout(10_000),
@@ -43,22 +44,22 @@ export class MarketplaceService {
         | MarketplaceEntry[];
       const data = Array.isArray(json) ? json : json.data;
       return { success: true, data };
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (app?.isPackaged) {
-        console.error(
+        log.error(
           '[MarketplaceService] Failed to load plugins from backend:',
           error
         );
         return {
           success: false,
-          error: `Could not reach marketplace backend: ${error.message}`,
+          error: `Could not reach marketplace backend: ${error instanceof Error ? error.message : String(error)}`,
         };
       }
 
       // Development-only fallback: use the local data file
-      console.warn(
+      log.warn(
         '[MarketplaceService] Backend unreachable, falling back to local marketplace.json (dev only):',
-        error.message
+        error instanceof Error ? error.message : String(error)
       );
       return this.loadLocalFallback();
     }
@@ -88,17 +89,20 @@ export class MarketplaceService {
 
       const data = (await response.json()) as MarketplaceEntry;
       return { success: true, data };
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (app?.isPackaged) {
-        console.error(
+        log.error(
           `[MarketplaceService] Failed to fetch plugin details for ${pluginId}:`,
           error
         );
-        return { success: false, error: error.message };
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
       }
 
       // Development fallback: look up in local data
-      console.warn(
+      log.warn(
         '[MarketplaceService] Backend unreachable, using local fallback for details.'
       );
       const fallback = await this.loadLocalFallback();
@@ -119,7 +123,7 @@ export class MarketplaceService {
    */
   async checkForUpdates(
     installedPlugins: { id: string; version: string }[]
-  ): Promise<Result<any[]>> {
+  ): Promise<Result<unknown[]>> {
     if (installedPlugins.length === 0) return { success: true, data: [] };
 
     try {
@@ -138,21 +142,24 @@ export class MarketplaceService {
 
       const updates = await response.json();
       return { success: true, data: updates };
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (app?.isPackaged) {
-        console.error('[MarketplaceService] Update check failed:', error);
-        return { success: false, error: error.message };
+        log.error('[MarketplaceService] Update check failed:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
       }
 
       // Development fallback: compare against local data
-      console.warn(
+      log.warn(
         '[MarketplaceService] Backend unreachable, falling back to local update check.'
       );
       const fallback = await this.loadLocalFallback();
       if (!fallback.success || !fallback.data)
         return { success: false, error: fallback.error };
 
-      const updates: any[] = [];
+      const updates: unknown[] = [];
       for (const installed of installedPlugins) {
         const latest = fallback.data.find((p) => p.id === installed.id);
         if (latest && this.isNewer(latest.version, installed.version)) {
@@ -181,7 +188,7 @@ export class MarketplaceService {
       }
 
       const plugin = detailsResult.data;
-      console.log(
+      log.info(
         `[MarketplaceService] Installing ${plugin.name} v${plugin.version}...`
       );
 
@@ -193,7 +200,7 @@ export class MarketplaceService {
       if (plugin.downloadUrl.startsWith('local://')) {
         // Bundled plugin shipped with the app
         const sourcePath = path.join(app.getAppPath(), 'plugins', pluginId);
-        console.log(
+        log.info(
           `[MarketplaceService] Installing "${pluginId}" from bundled source: ${sourcePath}`
         );
 
@@ -208,7 +215,7 @@ export class MarketplaceService {
 
         await fs.mkdir(pluginDir, { recursive: true });
         await fs.cp(sourcePath, pluginDir, { recursive: true });
-        console.log(
+        log.info(
           `[MarketplaceService] Copied bundled plugin "${pluginId}" to ${pluginDir}`
         );
       } else if (
@@ -216,7 +223,7 @@ export class MarketplaceService {
         plugin.downloadUrl.startsWith('https://')
       ) {
         // Full download from backend
-        console.log(
+        log.info(
           `[MarketplaceService] Downloading ${plugin.name} from ${plugin.downloadUrl}`
         );
         const response = await fetch(plugin.downloadUrl, {
@@ -240,13 +247,13 @@ export class MarketplaceService {
         zip.extractAllTo(pluginDir, true);
         await fs
           .unlink(zipPath)
-          .catch((e: any) =>
-            console.warn(
+          .catch((e: unknown) =>
+            log.warn(
               `[MarketplaceService] Failed to delete temp zip "${zipPath}":`,
-              e.message
+              e instanceof Error ? e.message : String(e)
             )
           );
-        console.log(`[MarketplaceService] Extracted plugin to ${pluginDir}`);
+        log.info(`[MarketplaceService] Extracted plugin to ${pluginDir}`);
       } else {
         throw new Error(
           `Unsupported download URL scheme for plugin "${pluginId}". Expected local:// or http(s)://`
@@ -256,9 +263,12 @@ export class MarketplaceService {
       // 3. Refresh discovery to register the new plugin
       await pluginManager.refreshDiscovery(pluginId);
       return { success: true };
-    } catch (error: any) {
-      console.error('[MarketplaceService] Installation failed:', error);
-      return { success: false, error: error.message || 'Installation failed' };
+    } catch (error: unknown) {
+      log.error('[MarketplaceService] Installation failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Installation failed',
+      };
     }
   }
 
@@ -274,10 +284,10 @@ export class MarketplaceService {
       );
       const raw = await fs.readFile(dataPath, 'utf-8');
       return { success: true, data: JSON.parse(raw) };
-    } catch (err: any) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: `Failed to load local fallback: ${err.message}`,
+        error: `Failed to load local fallback: ${err instanceof Error ? err.message : String(err)}`,
       };
     }
   }

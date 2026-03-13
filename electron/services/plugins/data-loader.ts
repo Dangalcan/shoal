@@ -14,6 +14,7 @@ import type {
 } from '../../types/plugin-types';
 
 import yaml from 'js-yaml';
+import log from '../../logger';
 
 export class DataLoader {
   /**
@@ -35,15 +36,13 @@ export class DataLoader {
         const content = await fs.readFile(fullPath, 'utf-8');
         const extension = path.extname(dataPath).toLowerCase();
 
-        let parsed: any;
+        let parsed: unknown;
         if (extension === '.json') {
           parsed = JSON.parse(content);
         } else if (extension === '.yaml' || extension === '.yml') {
           parsed = yaml.load(content);
         } else {
-          console.warn(
-            `[DataLoader] Unsupported data file format: ${extension}`
-          );
+          log.warn(`[DataLoader] Unsupported data file format: ${extension}`);
           continue;
         }
 
@@ -52,15 +51,11 @@ export class DataLoader {
           content: parsed,
         });
 
-        console.log(`[DataLoader] Loaded data file: ${dataPath}`);
-      } catch (error: any) {
-        console.error(
-          `[DataLoader] Failed to load data file ${dataPath}:`,
-          error.message
-        );
-        throw new Error(
-          `Failed to load data file ${dataPath}: ${error.message}`
-        );
+        log.info(`[DataLoader] Loaded data file: ${dataPath}`);
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        log.error(`[DataLoader] Failed to load data file ${dataPath}:`, msg);
+        throw new Error(`Failed to load data file ${dataPath}: ${msg}`);
       }
     }
 
@@ -83,7 +78,7 @@ export class DataLoader {
       const key = `data/${pathWithoutExt}`;
       await storageAPI.set(key, dataFile.content);
 
-      console.log(
+      log.info(
         `[DataLoader] Applied data from ${dataFile.path} to storage for ${pluginId}`
       );
     }

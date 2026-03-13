@@ -11,9 +11,11 @@ import { app } from 'electron';
 import type {
   Plugin,
   PluginConfig,
+  PluginContext,
   PluginRegistryEntry,
 } from '../../types/plugin-types';
 import { encrypt, decrypt } from '../security/encryption-utils';
+import log from '../../logger';
 
 export class PluginRegistry {
   private registry: Map<string, PluginRegistryEntry> = new Map();
@@ -31,13 +33,16 @@ export class PluginRegistry {
   async initialize(): Promise<void> {
     try {
       await this.loadConfiguration();
-      console.log(
+      log.info(
         '[PluginRegistry] Initialized with',
         this.registry.size,
         'plugins'
       );
-    } catch (error: any) {
-      console.error('[PluginRegistry] Failed to initialize:', error.message);
+    } catch (error: unknown) {
+      log.error(
+        '[PluginRegistry] Failed to initialize:',
+        error instanceof Error ? error.message : String(error)
+      );
     }
   }
 
@@ -60,16 +65,16 @@ export class PluginRegistry {
       }
 
       this.configCache = loadedConfig;
-      console.log(
+      log.info(
         '[PluginRegistry] Loaded configuration for',
         Object.keys(this.configCache).length,
         'plugins'
       );
-    } catch (error: any) {
-      if (error.code !== 'ENOENT') {
-        console.error(
+    } catch (error: unknown) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        log.error(
           '[PluginRegistry] Error loading configuration:',
-          error.message
+          error instanceof Error ? error.message : String(error)
         );
       }
     }
@@ -104,15 +109,15 @@ export class PluginRegistry {
         'utf-8'
       );
 
-      console.log(
+      log.info(
         '[PluginRegistry] Saved configuration for',
         Object.keys(configToSave).length,
         'plugins'
       );
-    } catch (error: any) {
-      console.error(
+    } catch (error: unknown) {
+      log.error(
         '[PluginRegistry] Failed to save configuration:',
-        error.message
+        error instanceof Error ? error.message : String(error)
       );
       throw error;
     }
@@ -146,7 +151,7 @@ export class PluginRegistry {
     this.registry.set(pluginId, entry);
     await this.saveConfiguration();
 
-    console.log(
+    log.info(
       `[PluginRegistry] Registered plugin: ${plugin.manifest.name} (${pluginId})`
     );
   }
@@ -158,7 +163,7 @@ export class PluginRegistry {
     this.registry.delete(pluginId);
     await this.saveConfiguration();
 
-    console.log(`[PluginRegistry] Unregistered plugin: ${pluginId}`);
+    log.info(`[PluginRegistry] Unregistered plugin: ${pluginId}`);
   }
 
   /**
@@ -214,7 +219,7 @@ export class PluginRegistry {
     }
 
     await this.saveConfiguration();
-    console.log(`[PluginRegistry] Updated config for ${pluginId}`);
+    log.info(`[PluginRegistry] Updated config for ${pluginId}`);
   }
 
   /**
@@ -257,13 +262,13 @@ export class PluginRegistry {
     };
 
     await this.saveConfiguration();
-    console.log(`[PluginRegistry] Updated settings for ${pluginId}`);
+    log.info(`[PluginRegistry] Updated settings for ${pluginId}`);
   }
 
   /**
    * Get plugin settings
    */
-  getPluginSettings(pluginId: string): Record<string, any> {
+  getPluginSettings(pluginId: string): Record<string, unknown> {
     const entry = this.registry.get(pluginId);
     return entry?.config.settings || {};
   }
@@ -271,17 +276,17 @@ export class PluginRegistry {
   /**
    * Set plugin context (after activation)
    */
-  setPluginContext(pluginId: string, context: any): void {
+  setPluginContext(pluginId: string, context: unknown): void {
     const entry = this.registry.get(pluginId);
     if (entry) {
-      entry.context = context;
+      entry.context = context as PluginContext;
     }
   }
 
   /**
    * Get plugin context
    */
-  getPluginContext(pluginId: string): any {
+  getPluginContext(pluginId: string): unknown {
     const entry = this.registry.get(pluginId);
     return entry?.context;
   }

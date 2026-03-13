@@ -86,7 +86,6 @@ export function MarketplaceCard({ entry, featured = false, onOpenDetail }: Marke
           <button
             className="btn btn--outline btn--full btn--success"
             disabled
-            onClick={(e) => e.stopPropagation()}
           >
             <Check size={16} /> Installed
           </button>

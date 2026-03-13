@@ -10,6 +10,7 @@ import { app } from 'electron';
 import { machineIdSync } from 'node-machine-id';
 import { pluginRegistry } from '../plugins/plugin-registry';
 import type { PluginLicenseInfo } from '../../types/plugin-types';
+import log from '../../logger';
 
 export interface LicenseValidationResult {
   valid: boolean;
@@ -91,7 +92,7 @@ export class LicenseManager {
           error: 'License verification required (offline for too long)',
         };
       }
-      console.log(
+      log.info(
         `[LicenseManager] Plugin ${pluginId} in grace period (${daysSinceVerification.toFixed(1)} days since last verification)`
       );
     }
@@ -144,7 +145,7 @@ export class LicenseManager {
         const result = await response.json();
         activationToken = result.licenseKey;
         isTrialActive = result.type === 'trial';
-        console.log(
+        log.info(
           `[LicenseManager] Backend activation succeeded for ${pluginId}`
         );
       } else {
@@ -155,7 +156,7 @@ export class LicenseManager {
               'Contact your system administrator or set MARKETPLACE_BACKEND_URL in the environment.'
           );
         }
-        console.warn(
+        log.warn(
           `[LicenseManager] MARKETPLACE_BACKEND_URL is not set. ` +
             `Issuing an offline activation token for "${pluginId}". ` +
             `This is only suitable for development or self-hosted deployments.`
@@ -183,11 +184,14 @@ export class LicenseManager {
         licenseInfo,
       });
 
-      console.log(`[LicenseManager] License activated for ${pluginId}`);
+      log.info(`[LicenseManager] License activated for ${pluginId}`);
       return { success: true };
-    } catch (error: any) {
-      console.error('[LicenseManager] Activation failed:', error);
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      log.error('[LicenseManager] Activation failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
     }
   }
 
@@ -224,8 +228,11 @@ export class LicenseManager {
       });
 
       return { success: true };
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
     }
   }
 

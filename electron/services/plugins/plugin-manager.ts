@@ -6,6 +6,7 @@
  */
 
 import type { Plugin, PluginExtensions } from '../../types/plugin-types';
+import log from '../../logger';
 import { pluginLoader } from './plugin-loader';
 import { pluginRegistry } from './plugin-registry';
 import {
@@ -34,19 +35,19 @@ export class PluginManager {
    */
   async initialize(): Promise<void> {
     if (this.initialized) {
-      console.warn('[PluginManager] Already initialized');
+      log.warn('[PluginManager] Already initialized');
       return;
     }
 
     try {
-      console.log('[PluginManager] Initializing plugin system...');
+      log.info('[PluginManager] Initializing plugin system...');
 
       // Initialize registry
       await pluginRegistry.initialize();
 
       // Discover plugins
       const discoveredPlugins = await pluginLoader.discoverPlugins();
-      console.log(
+      log.info(
         `[PluginManager] Discovered ${discoveredPlugins.length} plugins`
       );
 
@@ -58,25 +59,28 @@ export class PluginManager {
 
       // Auto-enable plugins that were previously enabled
       const enabledPlugins = pluginRegistry.getEnabledPlugins();
-      console.log(
+      log.info(
         `[PluginManager] Auto-enabling ${enabledPlugins.length} plugins`
       );
 
       for (const plugin of enabledPlugins) {
         try {
           await this.activatePlugin(plugin.manifest.id);
-        } catch (error: any) {
-          console.error(
+        } catch (error: unknown) {
+          log.error(
             `[PluginManager] Failed to auto-enable ${plugin.manifest.id}:`,
-            error.message
+            error instanceof Error ? error.message : String(error)
           );
         }
       }
 
       this.initialized = true;
-      console.log('[PluginManager] Plugin system initialized successfully');
-    } catch (error: any) {
-      console.error('[PluginManager] Failed to initialize:', error.message);
+      log.info('[PluginManager] Plugin system initialized successfully');
+    } catch (error: unknown) {
+      log.error(
+        '[PluginManager] Failed to initialize:',
+        error instanceof Error ? error.message : String(error)
+      );
       throw error;
     }
   }
@@ -109,7 +113,7 @@ export class PluginManager {
     const result = await marketplaceService.checkForUpdates(pluginList);
 
     if (result.success && result.data) {
-      for (const update of result.data) {
+      for (const update of result.data as any[]) {
         const plugin = this.getPlugin(update.pluginId);
         if (plugin && update.hasUpdate) {
           plugin.hasUpdate = true;
@@ -120,23 +124,40 @@ export class PluginManager {
   }
 
   /**
-   * Enable a plugin
+   * Enable a plugin.
+   * Returns the IDs of any dependency plugins that were auto-enabled as a side effect.
    */
-  async enablePlugin(pluginId: string): Promise<void> {
-    console.log(`[PluginManager] Enabling plugin: ${pluginId}`);
+  async enablePlugin(pluginId: string): Promise<string[]> {
+    log.info(`[PluginManager] Enabling plugin: ${pluginId}`);
 
     // Check if plugin exists
     if (!pluginRegistry.hasPlugin(pluginId)) {
       throw new Error(`Plugin ${pluginId} not found`);
     }
 
+    // Snapshot which deps are currently disabled so we can report what was auto-enabled
+    const pluginEntry = pluginRegistry.getPlugin(pluginId);
+    const plugin = pluginEntry?.plugin;
+    const depIds = plugin?.manifest?.dependencies
+      ? Object.keys(plugin.manifest.dependencies)
+      : [];
+    const prevDisabledDeps = depIds.filter(
+      (depId) => !pluginRegistry.getPlugin(depId)?.config.enabled
+    );
+
     // Enable in registry
     await pluginRegistry.enablePlugin(pluginId);
 
-    // Activate the plugin
+    // Activate the plugin (this may auto-enable disabled dependencies)
     await this.activatePlugin(pluginId);
 
-    console.log(`[PluginManager] Plugin ${pluginId} enabled successfully`);
+    // Return the deps that are now enabled but were disabled before
+    const autoDeps = prevDisabledDeps.filter(
+      (depId) => pluginRegistry.getPlugin(depId)?.config.enabled
+    );
+
+    log.info(`[PluginManager] Plugin ${pluginId} enabled successfully`);
+    return autoDeps;
   }
 
   /**
@@ -144,7 +165,7 @@ export class PluginManager {
    * Returns the IDs of any plugins that were cascade-disabled as a side effect.
    */
   async disablePlugin(pluginId: string): Promise<string[]> {
-    console.log(`[PluginManager] Disabling plugin: ${pluginId}`);
+    log.info(`[PluginManager] Disabling plugin: ${pluginId}`);
 
     // Check if plugin exists
     if (!pluginRegistry.hasPlugin(pluginId)) {
@@ -160,11 +181,11 @@ export class PluginManager {
     );
 
     if (dependents.length > 0) {
-      console.log(
+      log.info(
         `[PluginManager] Plugin ${pluginId} has ${dependents.length} dependent(s). Disabling them first.`
       );
       for (const dependent of dependents) {
-        console.log(
+        log.info(
           `[PluginManager] Cascading disable for dependent: ${dependent.manifest.id}`
         );
         const subCascaded = await this.disablePlugin(dependent.manifest.id);
@@ -182,7 +203,7 @@ export class PluginManager {
     // Disable in registry
     await pluginRegistry.disablePlugin(pluginId);
 
-    console.log(`[PluginManager] Plugin ${pluginId} disabled successfully`);
+    log.info(`[PluginManager] Plugin ${pluginId} disabled successfully`);
     return cascaded;
   }
 
@@ -190,7 +211,7 @@ export class PluginManager {
    * Reload a plugin (deactivate, clear cache, reactivate)
    */
   async reloadPlugin(pluginId: string): Promise<void> {
-    console.log(`[PluginManager] Reloading plugin: ${pluginId}`);
+    log.info(`[PluginManager] Reloading plugin: ${pluginId}`);
 
     const plugin = this.getPlugin(pluginId);
     if (!plugin) throw new Error(`Plugin ${pluginId} not found`);
@@ -207,7 +228,7 @@ export class PluginManager {
     // 3. Reactivate
     await this.activatePlugin(pluginId);
 
-    console.log(`[PluginManager] Plugin ${pluginId} reloaded successfully`);
+    log.info(`[PluginManager] Plugin ${pluginId} reloaded successfully`);
   }
 
   /**
@@ -219,7 +240,7 @@ export class PluginManager {
     const pluginPath = await pluginLoader.getPluginPath(pluginId);
     if (!pluginPath) return;
 
-    console.log(
+    log.info(
       `[PluginManager] Starting watcher for ${pluginId} at ${pluginPath}`
     );
 
@@ -230,7 +251,7 @@ export class PluginManager {
         pluginPath,
         { recursive: true },
         (event, filename) => {
-          console.log(
+          log.info(
             `[PluginManager] Change detected in ${pluginId}: ${event} ${filename}`
           );
 
@@ -240,10 +261,10 @@ export class PluginManager {
 
           const timer = setTimeout(() => {
             this.reloadTimers.delete(pluginId);
-            this.reloadPlugin(pluginId).catch((err) => {
-              console.error(
+            this.reloadPlugin(pluginId).catch((err: unknown) => {
+              log.error(
                 `[PluginManager] Auto-reload failed for ${pluginId}:`,
-                err.message
+                err instanceof Error ? err.message : String(err)
               );
             });
           }, DEBOUNCE_MS);
@@ -253,10 +274,10 @@ export class PluginManager {
       );
 
       this.watchers.set(pluginId, watcher);
-    } catch (error: any) {
-      console.error(
+    } catch (error: unknown) {
+      log.error(
         `[PluginManager] Failed to start watcher for ${pluginId}:`,
-        error.message
+        error instanceof Error ? error.message : String(error)
       );
     }
   }
@@ -275,7 +296,7 @@ export class PluginManager {
     if (watcher) {
       watcher.close();
       this.watchers.delete(pluginId);
-      console.log(`[PluginManager] Stopped watcher for ${pluginId}`);
+      log.info(`[PluginManager] Stopped watcher for ${pluginId}`);
     }
   }
 
@@ -331,7 +352,7 @@ export class PluginManager {
         for (const depId of Object.keys(plugin.manifest.dependencies)) {
           const depEntry = pluginRegistry.getPlugin(depId);
           if (depEntry && !depEntry.config.enabled) {
-            console.log(`[PluginManager] Auto-enabling dependency: ${depId}`);
+            log.info(`[PluginManager] Auto-enabling dependency: ${depId}`);
             await this.enablePlugin(depId);
           }
         }
@@ -369,7 +390,7 @@ export class PluginManager {
           plugin.manifest
         );
         if (dataFiles.length > 0) {
-          console.log(
+          log.info(
             `[PluginManager] Loaded ${dataFiles.length} data files for ${pluginId}`
           );
 
@@ -380,10 +401,10 @@ export class PluginManager {
             context.storage
           );
         }
-      } catch (error: any) {
-        console.error(
+      } catch (error: unknown) {
+        log.error(
           `[PluginManager] Failed to load data for ${pluginId}:`,
-          error.message
+          error instanceof Error ? error.message : String(error)
         );
         throw error;
       }
@@ -399,7 +420,7 @@ export class PluginManager {
         pluginModule.beforeActivate &&
         typeof pluginModule.beforeActivate === 'function'
       ) {
-        console.log(`[PluginManager] Executing beforeActivate for ${pluginId}`);
+        log.info(`[PluginManager] Executing beforeActivate for ${pluginId}`);
         await pluginModule.beforeActivate(context);
       }
 
@@ -408,7 +429,7 @@ export class PluginManager {
         pluginModule.activate &&
         typeof pluginModule.activate === 'function'
       ) {
-        console.log(`[PluginManager] Activating ${pluginId}`);
+        log.info(`[PluginManager] Activating ${pluginId}`);
         await pluginModule.activate(context);
       }
 
@@ -417,7 +438,7 @@ export class PluginManager {
         pluginModule.afterActivate &&
         typeof pluginModule.afterActivate === 'function'
       ) {
-        console.log(`[PluginManager] Executing afterActivate for ${pluginId}`);
+        log.info(`[PluginManager] Executing afterActivate for ${pluginId}`);
         await pluginModule.afterActivate(context);
       }
 
@@ -430,13 +451,17 @@ export class PluginManager {
       // Emit plugin activated event
       pluginEventBus.emitPluginActivated(pluginId);
 
-      console.log(`[PluginManager] Plugin ${pluginId} activated successfully`);
-    } catch (error: any) {
-      console.error(
+      log.info(`[PluginManager] Plugin ${pluginId} activated successfully`);
+    } catch (error: unknown) {
+      log.error(
         `[PluginManager] Failed to activate plugin ${pluginId}:`,
-        error.message
+        error instanceof Error ? error.message : String(error)
       );
-      pluginLoader.updatePluginState(pluginId, 'error', error.message);
+      pluginLoader.updatePluginState(
+        pluginId,
+        'error',
+        error instanceof Error ? error.message : String(error)
+      );
       throw error;
     }
   }
@@ -472,7 +497,7 @@ export class PluginManager {
           pluginModule.beforeDeactivate &&
           typeof pluginModule.beforeDeactivate === 'function'
         ) {
-          console.log(
+          log.info(
             `[PluginManager] Executing beforeDeactivate for ${pluginId}`
           );
           await pluginModule.beforeDeactivate(context);
@@ -483,7 +508,7 @@ export class PluginManager {
           pluginModule.deactivate &&
           typeof pluginModule.deactivate === 'function'
         ) {
-          console.log(`[PluginManager] Deactivating ${pluginId}`);
+          log.info(`[PluginManager] Deactivating ${pluginId}`);
           await pluginModule.deactivate();
         }
 
@@ -492,14 +517,12 @@ export class PluginManager {
           pluginModule.afterDeactivate &&
           typeof pluginModule.afterDeactivate === 'function'
         ) {
-          console.log(
-            `[PluginManager] Executing afterDeactivate for ${pluginId}`
-          );
+          log.info(`[PluginManager] Executing afterDeactivate for ${pluginId}`);
           await pluginModule.afterDeactivate();
         }
       } catch (error) {
         // Plugin might not be loaded, that's okay
-        console.warn(
+        log.warn(
           `[PluginManager] Could not execute deactivation hooks for ${pluginId}:`,
           error
         );
@@ -520,13 +543,11 @@ export class PluginManager {
       // Emit plugin deactivated event
       pluginEventBus.emitPluginDeactivated(pluginId);
 
-      console.log(
-        `[PluginManager] Plugin ${pluginId} deactivated successfully`
-      );
-    } catch (error: any) {
-      console.error(
+      log.info(`[PluginManager] Plugin ${pluginId} deactivated successfully`);
+    } catch (error: unknown) {
+      log.error(
         `[PluginManager] Failed to deactivate plugin ${pluginId}:`,
-        error.message
+        error instanceof Error ? error.message : String(error)
       );
       throw error;
     }
@@ -535,9 +556,9 @@ export class PluginManager {
   /**
    * Get plugin extensions for a specific extension point
    */
-  getPluginExtensions(extensionPoint?: string): any[] {
+  getPluginExtensions(extensionPoint?: string): unknown[] {
     const allExtensions = getAllPluginExtensions();
-    const results: any[] = [];
+    const results: unknown[] = [];
 
     for (const [pluginId, extensions] of allExtensions.entries()) {
       // Check if plugin is enabled
@@ -547,8 +568,9 @@ export class PluginManager {
 
       if (extensionPoint) {
         // Get specific extension point
-        if (extensions[extensionPoint]) {
-          results.push(...extensions[extensionPoint]);
+        const extList = (extensions as any)[extensionPoint];
+        if (extList) {
+          results.push(...extList);
         }
       } else {
         // Get all extensions
@@ -565,8 +587,8 @@ export class PluginManager {
   async executePluginAction(
     pluginId: string,
     actionId: string,
-    args?: any
-  ): Promise<any> {
+    args?: unknown
+  ): Promise<unknown> {
     const entry = pluginRegistry.getPlugin(pluginId);
     if (!entry) {
       throw new Error(`Plugin ${pluginId} not found`);
@@ -620,7 +642,7 @@ export class PluginManager {
    * Uninstall a plugin
    */
   async uninstallPlugin(pluginId: string): Promise<void> {
-    console.log(`[PluginManager] Uninstalling plugin: ${pluginId}`);
+    log.info(`[PluginManager] Uninstalling plugin: ${pluginId}`);
 
     // --- Cascading Uninstall Logic ---
     const installedPlugins = pluginRegistry.getAllPlugins();
@@ -630,11 +652,11 @@ export class PluginManager {
     );
 
     if (dependents.length > 0) {
-      console.log(
+      log.info(
         `[PluginManager] Plugin ${pluginId} has ${dependents.length} dependent(s). Uninstalling them first.`
       );
       for (const dependent of dependents) {
-        console.log(
+        log.info(
           `[PluginManager] Cascading uninstall for dependent: ${dependent.manifest.id}`
         );
         await this.uninstallPlugin(dependent.manifest.id);
@@ -655,9 +677,7 @@ export class PluginManager {
     try {
       const pluginPath = await pluginLoader.getPluginPath(pluginId);
       if (!pluginPath)
-        console.error(
-          `[ERROR] getPluginPath returned undefined for ${pluginId}`
-        );
+        log.error(`[ERROR] getPluginPath returned undefined for ${pluginId}`);
       if (pluginPath) {
         const userDataPath = app.getPath('userData');
         const pluginsDir = path.resolve(pathService.getUserPluginsDir());
@@ -668,28 +688,28 @@ export class PluginManager {
 
         if (isUserPlugin) {
           await fs.promises.rm(pluginPath, { recursive: true, force: true });
-          console.log(`[PluginManager] Deleted files for plugin ${pluginId}`);
+          log.info(`[PluginManager] Deleted files for plugin ${pluginId}`);
         } else {
-          console.log(
+          log.info(
             `[PluginManager] Plugin ${pluginId} is a bundled plugin, skipping file deletion`
           );
         }
       }
-    } catch (error: any) {
-      console.error(
+    } catch (error: unknown) {
+      log.error(
         `[PluginManager] Failed to delete files for ${pluginId}:`,
-        error.message
+        error instanceof Error ? error.message : String(error)
       );
     }
 
-    console.log(`[PluginManager] Plugin ${pluginId} uninstalled successfully`);
+    log.info(`[PluginManager] Plugin ${pluginId} uninstalled successfully`);
   }
 
   /**
    * Import a plugin from a local directory
    */
   async importPlugin(sourcePath: string): Promise<string> {
-    console.log(`[PluginManager] Importing plugin from: ${sourcePath}`);
+    log.info(`[PluginManager] Importing plugin from: ${sourcePath}`);
 
     try {
       // 1. Validate source directory
@@ -717,23 +737,24 @@ export class PluginManager {
       try {
         await fs.promises.access(targetPath);
         throw new Error(`Plugin ${manifest.id} already exists`);
-      } catch (err: any) {
-        if (err.message.includes('already exists')) throw err;
+      } catch (err: unknown) {
+        if (err instanceof Error && err.message.includes('already exists'))
+          throw err;
         // Continue if doesn't exist
       }
 
       // 5. Copy files
       // Node.js fs.cp is available in recent versions (added in v16.7.0)
-      console.log(`[PluginManager] Copying to ${targetPath}`);
+      log.info(`[PluginManager] Copying to ${targetPath}`);
       await fs.promises.cp(sourcePath, targetPath, { recursive: true });
 
       // 6. Refresh discovery
       await this.refreshDiscovery(manifest.id);
 
-      console.log(`[PluginManager] Imported ${manifest.id} successfully`);
+      log.info(`[PluginManager] Imported ${manifest.id} successfully`);
       return manifest.id;
-    } catch (error: any) {
-      console.error('[PluginManager] Import failed:', error);
+    } catch (error: unknown) {
+      log.error('[PluginManager] Import failed:', error);
       throw error;
     }
   }
@@ -742,13 +763,11 @@ export class PluginManager {
    * Rediscover a plugin and register it
    */
   async refreshDiscovery(pluginId: string): Promise<void> {
-    console.log(`[PluginManager] Refreshing discovery for: ${pluginId}`);
+    log.info(`[PluginManager] Refreshing discovery for: ${pluginId}`);
 
     const pluginPath = await pluginLoader.getPluginPath(pluginId);
     if (!pluginPath) {
-      console.warn(
-        `[PluginManager] Could not find path for plugin ${pluginId}`
-      );
+      log.warn(`[PluginManager] Could not find path for plugin ${pluginId}`);
       return;
     }
 
@@ -756,11 +775,11 @@ export class PluginManager {
     if (plugin) {
       pluginLoader.registerPlugin(plugin);
       await pluginRegistry.registerPlugin(plugin);
-      console.log(
+      log.info(
         `[PluginManager] Successfully discovered and registered ${pluginId}`
       );
     } else {
-      console.warn(
+      log.warn(
         `[PluginManager] Could not load plugin ${pluginId} from ${pluginPath}`
       );
     }

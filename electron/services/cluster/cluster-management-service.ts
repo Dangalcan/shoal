@@ -1,6 +1,7 @@
 import * as child_process from 'child_process';
 import util from 'util';
 import { pluginEventBus } from '../plugins/plugin-events';
+import log from '../../logger';
 
 const execPromise = util.promisify(child_process.exec);
 
@@ -23,31 +24,31 @@ export class ClusterManagementService {
         tool = 'k3d';
       }
 
-      console.log(
+      log.info(
         `[ClusterManager] Detected tool: ${tool}, Cluster Name: ${clusterName}, Context: ${contextName}`
       );
 
       if (tool === 'kind') {
-        console.log(
+        log.info(
           `[ClusterManager] Executing: kind delete cluster --name ${clusterName}`
         );
         await execPromise(`kind delete cluster --name ${clusterName}`);
-        console.log(
+        log.info(
           `[ClusterManager] Kind deletion command completed for ${clusterName}`
         );
       } else if (tool === 'k3d') {
-        console.log(
+        log.info(
           `[ClusterManager] Executing: k3d cluster delete ${clusterName}`
         );
         await execPromise(`k3d cluster delete ${clusterName}`);
-        console.log(
+        log.info(
           `[ClusterManager] K3d deletion command completed for ${clusterName}`
         );
       }
 
       // Always check if the context still exists and remove it if it does
       try {
-        console.log(
+        log.info(
           `[ClusterManager] Checking if context ${contextName} still exists in kubeconfig`
         );
         const { stdout: contexts } = await execPromise(
@@ -59,26 +60,26 @@ export class ClusterManagementService {
           .filter(Boolean);
 
         if (contextList.includes(contextName)) {
-          console.log(
+          log.info(
             `[ClusterManager] Context "${contextName}" still exists in kubeconfig, removing explicitly.`
           );
           await execPromise(`kubectl config delete-context ${contextName}`);
-          console.log(
+          log.info(
             `[ClusterManager] Explicit context removal completed for ${contextName}`
           );
         } else {
-          console.log(
+          log.info(
             `[ClusterManager] Context ${contextName} not found in kubeconfig.`
           );
         }
-      } catch (err: any) {
-        console.warn(
-          `[ClusterManager] Failed to check or delete context "${contextName}" from kubeconfig: ${err.message}`
+      } catch (err: unknown) {
+        log.warn(
+          `[ClusterManager] Failed to check or delete context "${contextName}" from kubeconfig: ${err instanceof Error ? err.message : String(err)}`
         );
       }
 
       // Final verification
-      console.log(`[ClusterManager] Final verification for ${contextName}`);
+      log.info(`[ClusterManager] Final verification for ${contextName}`);
       const { stdout: finalContextListRaw } = await execPromise(
         'kubectl config get-contexts -o name'
       );
@@ -88,7 +89,7 @@ export class ClusterManagementService {
         .includes(contextName);
 
       if (exists) {
-        console.error(
+        log.error(
           `[ClusterManager] Verification failed: ${contextName} still exists.`
         );
         return {
@@ -97,7 +98,7 @@ export class ClusterManagementService {
         };
       }
 
-      console.log(
+      log.info(
         `[ClusterManager] Successfully deleted cluster and removed context ${contextName}`
       );
 
@@ -105,11 +106,14 @@ export class ClusterManagementService {
       pluginEventBus.emitClusterDisconnected({ name: contextName });
 
       return { success: true };
-    } catch (error: any) {
-      console.error(
-        `[ClusterManager] Unexpected error during cluster deletion: ${error.message}`
+    } catch (error: unknown) {
+      log.error(
+        `[ClusterManager] Unexpected error during cluster deletion: ${error instanceof Error ? error.message : String(error)}`
       );
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
     }
   }
 
@@ -122,22 +126,25 @@ export class ClusterManagementService {
         ? `k3d cluster create ${name}`
         : `kind create cluster --name ${name}`;
 
-    console.log(
+    log.info(
       `[ClusterManager] Creating cluster ${name} with provider ${provider}`
     );
     try {
       await execPromise(command);
-      console.log(`[ClusterManager] Successfully created cluster ${name}`);
+      log.info(`[ClusterManager] Successfully created cluster ${name}`);
 
       // Emit event
       pluginEventBus.emitClusterConnected({ name, provider });
 
       return { success: true };
-    } catch (error: any) {
-      console.error(
-        `[ClusterManager] Failed to create cluster ${name}: ${error.message}`
+    } catch (error: unknown) {
+      log.error(
+        `[ClusterManager] Failed to create cluster ${name}: ${error instanceof Error ? error.message : String(error)}`
       );
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
     }
   }
 }

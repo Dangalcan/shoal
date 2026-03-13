@@ -10,6 +10,7 @@ import path from 'path';
 import { app } from 'electron';
 import fs from 'fs/promises';
 import { pathService } from './path-service';
+import log from '../../logger';
 
 export class StorageService {
   private db: Database.Database | null = null;
@@ -35,16 +36,13 @@ export class StorageService {
       )
     `);
 
-    console.log(
-      '[StorageService] Plugin storage database initialized at',
-      dbPath
-    );
+    log.info('[StorageService] Plugin storage database initialized at', dbPath);
   }
 
   /**
    * Get a value from storage
    */
-  get(pluginId: string, key: string): any {
+  get(pluginId: string, key: string): unknown {
     const row = this.db!.prepare(
       'SELECT value FROM plugin_kv WHERE plugin_id = ? AND key = ?'
     ).get(pluginId, key) as { value: string } | undefined;
@@ -54,7 +52,7 @@ export class StorageService {
     try {
       return JSON.parse(row.value);
     } catch (e) {
-      console.error(
+      log.error(
         `[StorageService] Failed to parse value for ${pluginId}:${key}`
       );
       return null;
@@ -64,7 +62,7 @@ export class StorageService {
   /**
    * Set a value in storage
    */
-  set(pluginId: string, key: string, value: any): void {
+  set(pluginId: string, key: string, value: unknown): void {
     const valueStr = JSON.stringify(value);
     this.db!.prepare(
       `
@@ -96,17 +94,17 @@ export class StorageService {
   /**
    * Get a specific key across all plugins (returns a Map of pluginId -> value)
    */
-  getAllByKey(key: string): Map<string, any> {
+  getAllByKey(key: string): Map<string, unknown> {
     const rows = this.db!.prepare(
       'SELECT plugin_id, value FROM plugin_kv WHERE key = ?'
     ).all(key) as { plugin_id: string; value: string }[];
 
-    const result = new Map<string, any>();
+    const result = new Map<string, unknown>();
     for (const row of rows) {
       try {
         result.set(row.plugin_id, JSON.parse(row.value));
       } catch (e) {
-        console.error(
+        log.error(
           `[StorageService] Failed to parse value for ${row.plugin_id}:${key}`
         );
       }
@@ -126,7 +124,7 @@ export class StorageService {
 
       if (jsonFiles.length === 0) return;
 
-      console.log(
+      log.info(
         `[StorageService] Migrating ${jsonFiles.length} keys for ${pluginId}...`
       );
 
@@ -141,21 +139,21 @@ export class StorageService {
 
           // Rename the file to .json.bak instead of deleting immediately for safety
           await fs.rename(filePath, `${filePath}.bak`);
-        } catch (e: any) {
-          console.error(
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e);
+          log.error(
             `[StorageService] Migration failed for ${pluginId}:${file}`,
-            e.message
+            msg
           );
         }
       }
 
-      console.log(`[StorageService] Migration completed for ${pluginId}`);
-    } catch (error: any) {
-      if (error.code !== 'ENOENT') {
-        console.error(
-          `[StorageService] Migration error for ${pluginId}:`,
-          error.message
-        );
+      log.info(`[StorageService] Migration completed for ${pluginId}`);
+    } catch (error: unknown) {
+      const nodeError = error as NodeJS.ErrnoException;
+      if (nodeError.code !== 'ENOENT') {
+        const msg = error instanceof Error ? error.message : String(error);
+        log.error(`[StorageService] Migration error for ${pluginId}:`, msg);
       }
     }
   }

@@ -19,6 +19,7 @@ import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
 import { app } from 'electron';
+import log from '../../logger';
 
 export class SignatureService {
   // RSA-2048 public key — generated 2026-03-10.
@@ -57,26 +58,26 @@ swIDAQAB
         // Signature file is missing.
         if (process.env.ALLOW_UNSIGNED_PLUGINS === 'true') {
           if (app?.isPackaged) {
-            console.error(
+            log.error(
               `[SignatureService] ALLOW_UNSIGNED_PLUGINS=true is ignored in packaged builds. ` +
                 `Plugin at "${pluginPath}" will not load.`
             );
             return false;
           }
-          console.warn(
+          log.warn(
             `[SignatureService] Plugin at "${pluginPath}" is unsigned. ` +
               'Loading anyway because ALLOW_UNSIGNED_PLUGINS=true (development only).'
           );
           return true;
         }
-        console.error(
+        log.error(
           `[SignatureService] Plugin at "${pluginPath}" has no signature file. ` +
             'Sign it with: node scripts/sign-plugin.js <plugin-directory>'
         );
         return false;
       }
     } catch (error) {
-      console.error('[SignatureService] Verification failed:', error);
+      log.error('[SignatureService] Verification failed:', error);
       return false;
     }
   }
@@ -93,7 +94,7 @@ swIDAQAB
         Buffer.from(signature.trim(), 'hex')
       );
     } catch (error) {
-      console.error('[SignatureService] Signature check failed:', error);
+      log.error('[SignatureService] Signature check failed:', error);
       return false;
     }
   }

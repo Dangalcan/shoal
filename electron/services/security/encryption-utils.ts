@@ -18,6 +18,7 @@ import fs from 'fs';
 import path from 'path';
 import { app } from 'electron';
 import { machineIdSync } from 'node-machine-id';
+import log from '../../logger';
 
 const IV_LENGTH = 16;
 
@@ -56,7 +57,7 @@ function getOrCreateSalt(): string {
   } catch (err) {
     // Non-fatal: encryption will still work this session, but the key will
     // differ on the next run (persisted data will be unreadable).
-    console.error('[Encryption] Could not persist encryption salt:', err);
+    log.error('[Encryption] Could not persist encryption salt:', err);
   }
 
   return newSalt;
@@ -86,7 +87,7 @@ export function decrypt(text: string): string {
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     return decrypted.toString();
   } catch (error) {
-    console.error('[Encryption] Decryption failed:', error);
+    log.error('[Encryption] Decryption failed:', error);
     return '';
   }
 }

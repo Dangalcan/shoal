@@ -17,6 +17,7 @@ import type {
   PluginState,
 } from '../../types/plugin-types';
 import { signatureService } from '../security/signature-service';
+import log from '../../logger';
 
 // Node.js built-ins that are safe to expose to plugin code (no I/O, no process spawning)
 const ALLOWED_BUILTINS = new Set([
@@ -45,7 +46,7 @@ export class PluginLoader {
    */
   private initializePluginDirectories(): void {
     this.pluginDirectories = pathService.getDiscoveryDirectories();
-    console.log('[PluginLoader] Plugin directories:', this.pluginDirectories);
+    log.info('[PluginLoader] Plugin directories:', this.pluginDirectories);
   }
 
   /**
@@ -72,9 +73,9 @@ export class PluginLoader {
             }
           }
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Directory doesn't exist or can't be read - this is okay
-        console.log(`[PluginLoader] Directory not accessible: ${directory}`);
+        log.info(`[PluginLoader] Directory not accessible: ${directory}`);
       }
     }
 
@@ -94,7 +95,7 @@ export class PluginLoader {
       // Validate manifest
       const validationError = this.validateManifest(manifest);
       if (validationError) {
-        console.error(
+        log.error(
           `[PluginLoader] Invalid manifest for ${pluginPath}:`,
           validationError
         );
@@ -104,7 +105,7 @@ export class PluginLoader {
       // Verify signature
       const isVerified = await signatureService.verifyPlugin(pluginPath);
       if (!isVerified) {
-        console.error(
+        log.error(
           `[PluginLoader] Signature verification failed for ${pluginPath}`
         );
         return this.createErrorPlugin(
@@ -128,7 +129,7 @@ export class PluginLoader {
           await fs.access(rendererPath);
           plugin.rendererEntry = rendererPath;
         } catch (err) {
-          console.warn(
+          log.warn(
             `[PluginLoader] Renderer entry not found for ${manifest.id}: ${rendererPath}`
           );
         }
@@ -143,21 +144,21 @@ export class PluginLoader {
             await fs.access(fullStylePath);
             plugin.rendererStyles.push(fullStylePath);
           } catch (err) {
-            console.warn(
+            log.warn(
               `[PluginLoader] Style entry not found for ${manifest.id}: ${fullStylePath}`
             );
           }
         }
       }
 
-      console.log(
+      log.info(
         `[PluginLoader] Discovered plugin: ${manifest.name} (${manifest.id})`
       );
       return plugin;
-    } catch (error: any) {
-      console.error(
+    } catch (error: unknown) {
+      log.error(
         `[PluginLoader] Failed to load plugin from ${pluginPath}:`,
-        error.message
+        error instanceof Error ? error.message : String(error)
       );
       return null;
     }
@@ -295,7 +296,7 @@ export class PluginLoader {
       await fs.access(mainFile);
 
       const code = await fs.readFile(mainFile, 'utf8');
-      const moduleCache = new Map<string, any>();
+      const moduleCache = new Map<string, unknown>();
       const pluginModule = this.executeInSandbox(
         code,
         mainFile,
@@ -304,14 +305,12 @@ export class PluginLoader {
       );
 
       this.sandboxCaches.set(pluginId, moduleCache);
-      console.log(
-        `[PluginLoader] Loaded plugin code for ${pluginId} (sandboxed)`
-      );
+      log.info(`[PluginLoader] Loaded plugin code for ${pluginId} (sandboxed)`);
       return pluginModule;
-    } catch (error: any) {
-      console.error(
+    } catch (error: unknown) {
+      log.error(
         `[PluginLoader] Failed to load plugin code for ${pluginId}:`,
-        error.message
+        error instanceof Error ? error.message : String(error)
       );
       throw error;
     }
@@ -323,11 +322,11 @@ export class PluginLoader {
   async unloadPluginCode(pluginId: string, _pluginPath: string): Promise<void> {
     try {
       this.sandboxCaches.delete(pluginId);
-      console.log(`[PluginLoader] Unloaded plugin code for ${pluginId}`);
-    } catch (error: any) {
-      console.error(
+      log.info(`[PluginLoader] Unloaded plugin code for ${pluginId}`);
+    } catch (error: unknown) {
+      log.error(
         `[PluginLoader] Failed to unload plugin code for ${pluginId}:`,
-        error.message
+        error instanceof Error ? error.message : String(error)
       );
     }
   }
@@ -344,11 +343,11 @@ export class PluginLoader {
     code: string,
     filename: string,
     pluginDir: string,
-    moduleCache: Map<string, any>
-  ): any {
-    const moduleObj = { exports: {} as any };
+    moduleCache: Map<string, unknown>
+  ): unknown {
+    const moduleObj = { exports: {} as Record<string, unknown> };
 
-    const sandboxedRequire = (specifier: string): any => {
+    const sandboxedRequire = (specifier: string): unknown => {
       // Allow safe Node.js built-ins
       if (ALLOWED_BUILTINS.has(specifier)) {
         return require(specifier);

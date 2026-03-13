@@ -11,6 +11,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { app } from 'electron';
 import { pluginEventBus } from '../plugins/plugin-events';
+import log from '../../logger';
 
 const execPromise = util.promisify(exec);
 
@@ -22,19 +23,18 @@ export class KubernetesService {
     type: string,
     namespace: string,
     contextName?: string
-  ): Promise<any[]> {
+  ): Promise<unknown[]> {
     try {
       const nsFlag = namespace === 'all' ? '-A' : `-n ${namespace}`;
       const contextFlag = contextName ? `--context ${contextName}` : '';
       const { stdout } = await execPromise(
         `kubectl get ${type} ${contextFlag} ${nsFlag} -o json`
       );
-      const data = JSON.parse(stdout);
-      return data.items || [];
-    } catch (error: any) {
-      console.error(
-        `[KubernetesService] Failed to get resources: ${error.message}`
-      );
+      const data = JSON.parse(stdout) as Record<string, unknown>;
+      return (data.items as unknown[]) || [];
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      log.error(`[KubernetesService] Failed to get resources: ${msg}`);
       throw error;
     }
   }
@@ -42,7 +42,7 @@ export class KubernetesService {
   /**
    * Create a resource from manifest
    */
-  async createResource(manifest: any, contextName?: string): Promise<void> {
+  async createResource(manifest: unknown, contextName?: string): Promise<void> {
     const tempFile = path.join(
       app.getPath('temp'),
       `k8s-desktop-create-${Date.now()}.json`
@@ -54,16 +54,15 @@ export class KubernetesService {
 
       // Emit event
       pluginEventBus.emitResourceCreated(manifest);
-    } catch (error: any) {
-      console.error(
-        `[KubernetesService] Failed to create resource: ${error.message}`
-      );
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      log.error(`[KubernetesService] Failed to create resource: ${msg}`);
       throw error;
     } finally {
       await fs
         .unlink(tempFile)
         .catch((e) =>
-          console.warn(
+          log.warn(
             `[KubernetesService] Failed to clean up temp file ${tempFile}:`,
             e
           )
@@ -77,7 +76,7 @@ export class KubernetesService {
   async updateResource(
     type: string,
     name: string,
-    manifest: any,
+    manifest: unknown,
     contextName?: string
   ): Promise<void> {
     const tempFile = path.join(
@@ -91,16 +90,15 @@ export class KubernetesService {
 
       // Emit event
       pluginEventBus.emitResourceUpdated(manifest);
-    } catch (error: any) {
-      console.error(
-        `[KubernetesService] Failed to update resource: ${error.message}`
-      );
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      log.error(`[KubernetesService] Failed to update resource: ${msg}`);
       throw error;
     } finally {
       await fs
         .unlink(tempFile)
         .catch((e) =>
-          console.warn(
+          log.warn(
             `[KubernetesService] Failed to clean up temp file ${tempFile}:`,
             e
           )
@@ -126,10 +124,9 @@ export class KubernetesService {
 
       // Emit event
       pluginEventBus.emitResourceDeleted({ type, name, namespace });
-    } catch (error: any) {
-      console.error(
-        `[KubernetesService] Failed to delete resource: ${error.message}`
-      );
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      log.error(`[KubernetesService] Failed to delete resource: ${msg}`);
       throw error;
     }
   }
@@ -149,10 +146,9 @@ export class KubernetesService {
         `kubectl exec ${pod} ${contextFlag} -n ${namespace} -- ${command}`
       );
       return stdout;
-    } catch (error: any) {
-      console.error(
-        `[KubernetesService] Failed to execute command: ${error.message}`
-      );
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      log.error(`[KubernetesService] Failed to execute command: ${msg}`);
       throw error;
     }
   }
