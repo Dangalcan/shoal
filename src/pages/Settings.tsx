@@ -3,7 +3,7 @@ import { Card, Button, Animate } from '../components/ui';
 import { useSettings } from '../features/settings';
 import { useNamespaces, useClusters } from '../hooks';
 import { useApi } from '../services/api-context';
-import { Globe, FolderOpen, Activity, RefreshCw } from 'lucide-react';
+import { Globe, FolderOpen, Activity, RefreshCw, Check } from 'lucide-react';
 import '../../styles/pages/Settings.css';
 
 export function Settings() {
@@ -13,6 +13,7 @@ export function Settings() {
     autoRefresh,
     refreshInterval,
     saving,
+    localSettingsSaved,
     setKubeconfigPath,
     setDefaultNamespace,
     setAutoRefresh,
@@ -151,8 +152,17 @@ export function Settings() {
 
       <div className="settings-footer">
         <div className="settings-footer__content">
-          <RefreshCw size={12} />
-          Settings are saved automatically to local storage.
+          {localSettingsSaved ? (
+            <>
+              <Check size={12} className="text-success" />
+              Settings saved.
+            </>
+          ) : (
+            <>
+              <RefreshCw size={12} />
+              Settings are saved automatically to local storage.
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { useApi } from '../../services/api-context';
 import { toast } from 'sonner';
@@ -24,6 +24,20 @@ export function useSettings(): UseSettingsResult {
   // Internal State
   const [kubeconfigPath, setKubeconfigPath] = useState('');
   const [saving, setSaving] = useState(false);
+  const [localSettingsSaved, setLocalSettingsSaved] = useState(false);
+  const isFirstRender = useRef(true);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Flash the "saved" indicator whenever a localStorage setting changes (skip initial render)
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    setLocalSettingsSaved(true);
+    savedTimer.current = setTimeout(() => setLocalSettingsSaved(false), 2000);
+  }, [defaultNamespace, autoRefresh, refreshInterval]);
 
   // Initial Fetch
   useEffect(() => {
@@ -57,6 +71,7 @@ export function useSettings(): UseSettingsResult {
     autoRefresh,
     refreshInterval,
     saving,
+    localSettingsSaved,
     setKubeconfigPath,
     setDefaultNamespace,
     setAutoRefresh,
