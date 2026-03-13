@@ -4,6 +4,7 @@ export interface SettingsState {
   autoRefresh: boolean;
   refreshInterval: number;
   saving: boolean;
+  localSettingsSaved: boolean;
 }
 
 export interface UseSettingsResult extends SettingsState {

@@ -3,12 +3,12 @@
  */
 
 import React from 'react'
-import type { Node } from '../../../types/k8s-types'
+import type { K8sResource } from '../../../types/k8s-types'
 import { isNode } from '../../../lib/type-guards'
 import { TextCell } from '../ResourceCells'
 
 interface CellProps {
-    resource: any
+    resource: K8sResource
     style: React.CSSProperties
 }
 
