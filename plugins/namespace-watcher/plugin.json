@@ -5,6 +5,8 @@
   "description": "Monitors Kubernetes namespaces and provides quick stats.",
   "author": "K8s Desktop Team",
   "main": "index.js",
+  "renderer": "renderer.js",
+  "styles": ["styles.css"],
   "permissions": ["kubernetes", "ui", "storage"],
   "category": "Monitoring",
   "license": {
