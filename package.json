@@ -47,6 +47,7 @@
     "adm-zip": "^0.5.16",
     "better-sqlite3": "^12.6.2",
     "clsx": "^2.1.1",
+    "electron-log": "^5.4.3",
     "husky": "^9.1.7",
     "js-yaml": "^4.1.1",
     "lucide-react": "^0.562.0",
