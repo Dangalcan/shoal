@@ -26,6 +26,7 @@ export default defineConfig({
         '**/*.config.*',
         '**/dist/**',
         '**/dist-electron/**',
+        '**/e2e/**',
       ],
     },
   },
