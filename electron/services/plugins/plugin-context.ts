@@ -22,6 +22,7 @@ import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
 import { pluginEventBus } from './plugin-events';
 import { storageService } from './storage-service';
+import { getErrorMessage } from '../../utils/error-utils';
 import { kubernetesService } from '../kubernetes/kubernetes-service';
 import log from '../../logger';
 
@@ -41,7 +42,7 @@ export function createPluginContext(
             return await kubernetesService.getResources(type, namespace);
           } catch (error: unknown) {
             throw new Error(
-              `Failed to get resources: ${error instanceof Error ? error.message : String(error)}`
+              `Failed to get resources: ${getErrorMessage(error)}`
             );
           }
         },
@@ -51,7 +52,7 @@ export function createPluginContext(
             return await kubernetesService.createResource(manifest);
           } catch (error: unknown) {
             throw new Error(
-              `Failed to create resource: ${error instanceof Error ? error.message : String(error)}`
+              `Failed to create resource: ${getErrorMessage(error)}`
             );
           }
         },
@@ -65,7 +66,7 @@ export function createPluginContext(
             return await kubernetesService.updateResource(type, name, manifest);
           } catch (error: unknown) {
             throw new Error(
-              `Failed to update resource: ${error instanceof Error ? error.message : String(error)}`
+              `Failed to update resource: ${getErrorMessage(error)}`
             );
           }
         },
@@ -83,7 +84,7 @@ export function createPluginContext(
             );
           } catch (error: unknown) {
             throw new Error(
-              `Failed to delete resource: ${error instanceof Error ? error.message : String(error)}`
+              `Failed to delete resource: ${getErrorMessage(error)}`
             );
           }
         },
@@ -101,7 +102,7 @@ export function createPluginContext(
             );
           } catch (error: unknown) {
             throw new Error(
-              `Failed to execute command: ${error instanceof Error ? error.message : String(error)}`
+              `Failed to execute command: ${getErrorMessage(error)}`
             );
           }
         },
@@ -328,9 +329,7 @@ export function createPluginContext(
           try {
             storageService.set(pluginId, key, value);
           } catch (e) {
-            throw new Error(
-              `Failed to save data: ${e instanceof Error ? e.message : String(e)}`
-            );
+            throw new Error(`Failed to save data: ${getErrorMessage(e)}`);
           }
         },
 
@@ -338,9 +337,7 @@ export function createPluginContext(
           try {
             storageService.delete(pluginId, key);
           } catch (e) {
-            throw new Error(
-              `Failed to delete data: ${e instanceof Error ? e.message : String(e)}`
-            );
+            throw new Error(`Failed to delete data: ${getErrorMessage(e)}`);
           }
         },
 
@@ -348,9 +345,7 @@ export function createPluginContext(
           try {
             storageService.clear(pluginId);
           } catch (e) {
-            throw new Error(
-              `Failed to clear storage: ${e instanceof Error ? e.message : String(e)}`
-            );
+            throw new Error(`Failed to clear storage: ${getErrorMessage(e)}`);
           }
         },
       }

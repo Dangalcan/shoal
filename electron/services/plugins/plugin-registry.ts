@@ -15,6 +15,7 @@ import type {
   PluginRegistryEntry,
 } from '../../types/plugin-types';
 import { encrypt, decrypt } from '../security/encryption-utils';
+import { getErrorMessage } from '../../utils/error-utils';
 import log from '../../logger';
 
 export class PluginRegistry {
@@ -41,7 +42,7 @@ export class PluginRegistry {
     } catch (error: unknown) {
       log.error(
         '[PluginRegistry] Failed to initialize:',
-        error instanceof Error ? error.message : String(error)
+        getErrorMessage(error)
       );
     }
   }
@@ -74,7 +75,7 @@ export class PluginRegistry {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
         log.error(
           '[PluginRegistry] Error loading configuration:',
-          error instanceof Error ? error.message : String(error)
+          getErrorMessage(error)
         );
       }
     }
@@ -117,7 +118,7 @@ export class PluginRegistry {
     } catch (error: unknown) {
       log.error(
         '[PluginRegistry] Failed to save configuration:',
-        error instanceof Error ? error.message : String(error)
+        getErrorMessage(error)
       );
       throw error;
     }

@@ -5,15 +5,14 @@
  * Emits events to the plugin event bus.
  */
 
-import { exec } from 'child_process';
-import util from 'util';
 import path from 'path';
 import fs from 'fs/promises';
 import { app } from 'electron';
+import { execPromise } from '../../utils/exec-utils';
+import { cleanupTempFile } from '../../utils/fs-utils';
+import { getErrorMessage } from '../../utils/error-utils';
 import { pluginEventBus } from '../plugins/plugin-events';
 import log from '../../logger';
-
-const execPromise = util.promisify(exec);
 
 export class KubernetesService {
   /**
@@ -33,7 +32,7 @@ export class KubernetesService {
       const data = JSON.parse(stdout) as Record<string, unknown>;
       return (data.items as unknown[]) || [];
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : String(error);
+      const msg = getErrorMessage(error);
       log.error(`[KubernetesService] Failed to get resources: ${msg}`);
       throw error;
     }
@@ -55,18 +54,11 @@ export class KubernetesService {
       // Emit event
       pluginEventBus.emitResourceCreated(manifest);
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : String(error);
+      const msg = getErrorMessage(error);
       log.error(`[KubernetesService] Failed to create resource: ${msg}`);
       throw error;
     } finally {
-      await fs
-        .unlink(tempFile)
-        .catch((e) =>
-          log.warn(
-            `[KubernetesService] Failed to clean up temp file ${tempFile}:`,
-            e
-          )
-        );
+      await cleanupTempFile(tempFile, '[KubernetesService] create resource');
     }
   }
 
@@ -91,18 +83,11 @@ export class KubernetesService {
       // Emit event
       pluginEventBus.emitResourceUpdated(manifest);
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : String(error);
+      const msg = getErrorMessage(error);
       log.error(`[KubernetesService] Failed to update resource: ${msg}`);
       throw error;
     } finally {
-      await fs
-        .unlink(tempFile)
-        .catch((e) =>
-          log.warn(
-            `[KubernetesService] Failed to clean up temp file ${tempFile}:`,
-            e
-          )
-        );
+      await cleanupTempFile(tempFile, '[KubernetesService] update resource');
     }
   }
 
@@ -125,7 +110,7 @@ export class KubernetesService {
       // Emit event
       pluginEventBus.emitResourceDeleted({ type, name, namespace });
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : String(error);
+      const msg = getErrorMessage(error);
       log.error(`[KubernetesService] Failed to delete resource: ${msg}`);
       throw error;
     }
@@ -147,7 +132,7 @@ export class KubernetesService {
       );
       return stdout;
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : String(error);
+      const msg = getErrorMessage(error);
       log.error(`[KubernetesService] Failed to execute command: ${msg}`);
       throw error;
     }

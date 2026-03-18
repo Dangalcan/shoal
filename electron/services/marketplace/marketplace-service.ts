@@ -13,6 +13,8 @@ import { app } from 'electron';
 import AdmZip from 'adm-zip';
 import semver from 'semver';
 import { Result, MarketplaceEntry } from '../../types/plugin-types';
+import { cleanupTempFile } from '../../utils/fs-utils';
+import { getErrorMessage } from '../../utils/error-utils';
 import { pluginManager } from '../plugins/plugin-manager';
 import log from '../../logger';
 
@@ -52,14 +54,14 @@ export class MarketplaceService {
         );
         return {
           success: false,
-          error: `Could not reach marketplace backend: ${error instanceof Error ? error.message : String(error)}`,
+          error: `Could not reach marketplace backend: ${getErrorMessage(error)}`,
         };
       }
 
       // Development-only fallback: use the local data file
       log.warn(
         '[MarketplaceService] Backend unreachable, falling back to local marketplace.json (dev only):',
-        error instanceof Error ? error.message : String(error)
+        getErrorMessage(error)
       );
       return this.loadLocalFallback();
     }
@@ -97,7 +99,7 @@ export class MarketplaceService {
         );
         return {
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         };
       }
 
@@ -147,7 +149,7 @@ export class MarketplaceService {
         log.error('[MarketplaceService] Update check failed:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         };
       }
 
@@ -245,14 +247,7 @@ export class MarketplaceService {
         await fs.mkdir(pluginDir, { recursive: true });
         const zip = new AdmZip(zipPath);
         zip.extractAllTo(pluginDir, true);
-        await fs
-          .unlink(zipPath)
-          .catch((e: unknown) =>
-            log.warn(
-              `[MarketplaceService] Failed to delete temp zip "${zipPath}":`,
-              e instanceof Error ? e.message : String(e)
-            )
-          );
+        await cleanupTempFile(zipPath, '[MarketplaceService] plugin zip');
         log.info(`[MarketplaceService] Extracted plugin to ${pluginDir}`);
       } else {
         throw new Error(
@@ -287,7 +282,7 @@ export class MarketplaceService {
     } catch (err: unknown) {
       return {
         success: false,
-        error: `Failed to load local fallback: ${err instanceof Error ? err.message : String(err)}`,
+        error: `Failed to load local fallback: ${getErrorMessage(err)}`,
       };
     }
   }

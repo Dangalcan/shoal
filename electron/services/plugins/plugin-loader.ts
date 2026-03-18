@@ -17,6 +17,7 @@ import type {
   PluginState,
 } from '../../types/plugin-types';
 import { signatureService } from '../security/signature-service';
+import { getErrorMessage } from '../../utils/error-utils';
 import log from '../../logger';
 
 // Node.js built-ins that are safe to expose to plugin code (no I/O, no process spawning)
@@ -158,7 +159,7 @@ export class PluginLoader {
     } catch (error: unknown) {
       log.error(
         `[PluginLoader] Failed to load plugin from ${pluginPath}:`,
-        error instanceof Error ? error.message : String(error)
+        getErrorMessage(error)
       );
       return null;
     }
@@ -310,7 +311,7 @@ export class PluginLoader {
     } catch (error: unknown) {
       log.error(
         `[PluginLoader] Failed to load plugin code for ${pluginId}:`,
-        error instanceof Error ? error.message : String(error)
+        getErrorMessage(error)
       );
       throw error;
     }
@@ -326,7 +327,7 @@ export class PluginLoader {
     } catch (error: unknown) {
       log.error(
         `[PluginLoader] Failed to unload plugin code for ${pluginId}:`,
-        error instanceof Error ? error.message : String(error)
+        getErrorMessage(error)
       );
     }
   }

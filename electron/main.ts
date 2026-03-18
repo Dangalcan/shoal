@@ -9,8 +9,6 @@ import {
 } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
 import path from 'path';
-import { exec } from 'child_process';
-import util from 'util';
 import fs from 'fs/promises';
 import { pathToFileURL } from 'url';
 import { clusterManagementService } from './services/cluster/cluster-management-service';
@@ -23,9 +21,9 @@ import { marketplaceService } from './services/marketplace/marketplace-service';
 import { manifestDb } from './database';
 import type { Manifest } from './database';
 import type { PluginScaffoldOptions } from './types/plugin-types';
+import { execPromise } from './utils/exec-utils';
+import { getErrorMessage } from './utils/error-utils';
 import log from './logger';
-
-const execPromise = util.promisify(exec);
 
 const DEFAULT_LOG_TAIL_LINES = 200;
 const DEFAULT_WINDOW_WIDTH = 1200;
@@ -118,7 +116,7 @@ const wrapIpcHandler = <T>(
       log.debug(`[${timestamp}] [IPC] [${name}] SUCCESS`);
       return formattedResult;
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : String(error);
+      const msg = getErrorMessage(error);
       log.error(`[${timestamp}] [IPC] [${name}] ERROR:`, msg);
       return { success: false, error: msg };
     }
@@ -627,7 +625,7 @@ app.whenReady().then(async () => {
   } catch (error: unknown) {
     log.error(
       '[Main] Failed to initialize manifest database:',
-      error instanceof Error ? error.message : String(error)
+      getErrorMessage(error)
     );
   }
 
@@ -643,7 +641,7 @@ app.whenReady().then(async () => {
   } catch (error: unknown) {
     log.error(
       '[Main] Failed to initialize plugin system:',
-      error instanceof Error ? error.message : String(error)
+      getErrorMessage(error)
     );
   }
 
@@ -676,7 +674,7 @@ app.whenReady().then(() => {
 
       return await net.fetch(fileUrl);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = getErrorMessage(e);
       log.error('[Protocol] Failed to handle plugin-file request:', msg);
       return new Response('File not found: ' + msg, { status: 404 });
     }

@@ -14,6 +14,7 @@ import type {
 } from '../../types/plugin-types';
 
 import yaml from 'js-yaml';
+import { getErrorMessage } from '../../utils/error-utils';
 import log from '../../logger';
 
 export class DataLoader {
@@ -53,7 +54,7 @@ export class DataLoader {
 
         log.info(`[DataLoader] Loaded data file: ${dataPath}`);
       } catch (error: unknown) {
-        const msg = error instanceof Error ? error.message : String(error);
+        const msg = getErrorMessage(error);
         log.error(`[DataLoader] Failed to load data file ${dataPath}:`, msg);
         throw new Error(`Failed to load data file ${dataPath}: ${msg}`);
       }

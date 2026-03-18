@@ -1,12 +1,10 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import { app } from 'electron';
-import { exec } from 'child_process';
-import util from 'util';
 import fs from 'fs/promises';
+import { execPromise } from './utils/exec-utils';
+import { cleanupTempFile } from './utils/fs-utils';
 import log from './logger';
-
-const execPromise = util.promisify(exec);
 
 export interface Manifest {
   id: number;
@@ -120,14 +118,7 @@ class ManifestDatabase {
       );
       return { stdout, stderr };
     } finally {
-      await fs
-        .unlink(tempFilePath)
-        .catch((e) =>
-          log.warn(
-            `[Database] Failed to clean up temp file ${tempFilePath}:`,
-            e
-          )
-        );
+      await cleanupTempFile(tempFilePath, '[Database] manifest apply');
     }
   }
 }

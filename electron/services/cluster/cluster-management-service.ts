@@ -1,9 +1,7 @@
-import * as child_process from 'child_process';
-import util from 'util';
+import { execPromise } from '../../utils/exec-utils';
+import { getErrorMessage } from '../../utils/error-utils';
 import { pluginEventBus } from '../plugins/plugin-events';
 import log from '../../logger';
-
-const execPromise = util.promisify(child_process.exec);
 
 export class ClusterManagementService {
   async deleteCluster(
@@ -74,7 +72,7 @@ export class ClusterManagementService {
         }
       } catch (err: unknown) {
         log.warn(
-          `[ClusterManager] Failed to check or delete context "${contextName}" from kubeconfig: ${err instanceof Error ? err.message : String(err)}`
+          `[ClusterManager] Failed to check or delete context "${contextName}" from kubeconfig: ${getErrorMessage(err)}`
         );
       }
 
@@ -108,11 +106,11 @@ export class ClusterManagementService {
       return { success: true };
     } catch (error: unknown) {
       log.error(
-        `[ClusterManager] Unexpected error during cluster deletion: ${error instanceof Error ? error.message : String(error)}`
+        `[ClusterManager] Unexpected error during cluster deletion: ${getErrorMessage(error)}`
       );
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       };
     }
   }
@@ -139,11 +137,11 @@ export class ClusterManagementService {
       return { success: true };
     } catch (error: unknown) {
       log.error(
-        `[ClusterManager] Failed to create cluster ${name}: ${error instanceof Error ? error.message : String(error)}`
+        `[ClusterManager] Failed to create cluster ${name}: ${getErrorMessage(error)}`
       );
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       };
     }
   }

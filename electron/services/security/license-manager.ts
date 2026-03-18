@@ -10,6 +10,7 @@ import { app } from 'electron';
 import { machineIdSync } from 'node-machine-id';
 import { pluginRegistry } from '../plugins/plugin-registry';
 import type { PluginLicenseInfo } from '../../types/plugin-types';
+import { getErrorMessage } from '../../utils/error-utils';
 import log from '../../logger';
 
 export interface LicenseValidationResult {
@@ -190,7 +191,7 @@ export class LicenseManager {
       log.error('[LicenseManager] Activation failed:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       };
     }
   }
@@ -231,7 +232,7 @@ export class LicenseManager {
     } catch (error: unknown) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       };
     }
   }

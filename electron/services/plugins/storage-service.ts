@@ -10,6 +10,7 @@ import path from 'path';
 import { app } from 'electron';
 import fs from 'fs/promises';
 import { pathService } from './path-service';
+import { getErrorMessage } from '../../utils/error-utils';
 import log from '../../logger';
 
 export class StorageService {
@@ -140,7 +141,7 @@ export class StorageService {
           // Rename the file to .json.bak instead of deleting immediately for safety
           await fs.rename(filePath, `${filePath}.bak`);
         } catch (e: unknown) {
-          const msg = e instanceof Error ? e.message : String(e);
+          const msg = getErrorMessage(e);
           log.error(
             `[StorageService] Migration failed for ${pluginId}:${file}`,
             msg
@@ -152,7 +153,7 @@ export class StorageService {
     } catch (error: unknown) {
       const nodeError = error as NodeJS.ErrnoException;
       if (nodeError.code !== 'ENOENT') {
-        const msg = error instanceof Error ? error.message : String(error);
+        const msg = getErrorMessage(error);
         log.error(`[StorageService] Migration error for ${pluginId}:`, msg);
       }
     }
