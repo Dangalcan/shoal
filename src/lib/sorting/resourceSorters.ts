@@ -28,15 +28,15 @@ import { isPod } from '../type-guards';
  * @returns The phase string or first condition type, or empty string.
  */
 const getPhase = (r: AnyK8sResource): string => {
-  if (r.status && typeof r.status === 'object') {
-    if ('phase' in r.status)
-      return (r.status as Record<string, unknown>).phase || '';
+  const status = r.status as any;
+  if (status && typeof status === 'object') {
+    if ('phase' in status) return status.phase || '';
     if (
-      'conditions' in r.status &&
-      Array.isArray((r.status as Record<string, unknown>).conditions) &&
-      (r.status as Record<string, unknown>).conditions.length > 0
+      'conditions' in status &&
+      Array.isArray(status.conditions) &&
+      status.conditions.length > 0
     ) {
-      return (r.status as Record<string, unknown>).conditions[0].type || '';
+      return status.conditions[0].type || '';
     }
   }
   return '';
@@ -81,7 +81,7 @@ export const sortByRestarts = sortByNumber((r) => {
 });
 
 export const sortByIP = sortByString((r) => {
-  if ('status' in r && 'podIP' in (r.status as Record<string, unknown>))
+  if (r.status && 'podIP' in (r.status as any))
     return (r as Pod).status?.podIP || '';
   return '';
 });
@@ -99,40 +99,33 @@ export const sortByReplicas = sortByNumber((r) => {
 });
 
 export const sortByReadyReplicas = sortByNumber((r) => {
-  const res = r as Deployment | StatefulSet | ReplicaSet | DaemonSet;
-  // Narrowing for DaemonSet which doesn't have readyReplicas
-  if ('numberReady' in (res.status || {}))
-    return (res as DaemonSet).status?.numberReady || 0;
-  // Others have readyReplicas
-  return (
-    ((res.status as Record<string, unknown>)?.readyReplicas as number) || 0
-  );
+  const res = r as any;
+  const status = res.status || {};
+  if ('numberReady' in status) return status.numberReady || 0;
+  return status.readyReplicas || 0;
 });
 
 export const sortByUpdatedReplicas = sortByNumber((r) => {
-  const res = r as Deployment | StatefulSet | DaemonSet;
-  if ('updatedNumberScheduled' in (res.status || {}))
-    return (res as DaemonSet).status?.updatedNumberScheduled || 0;
-  return (
-    ((res.status as Record<string, unknown>)?.updatedReplicas as number) || 0
-  );
+  const res = r as any;
+  const status = res.status || {};
+  if ('updatedNumberScheduled' in status)
+    return status.updatedNumberScheduled || 0;
+  return status.updatedReplicas || 0;
 });
 
 export const sortByAvailableReplicas = sortByNumber((r) => {
-  const res = r as Deployment | ReplicaSet | DaemonSet;
-  if ('numberAvailable' in (res.status || {}))
-    return (res as DaemonSet).status?.numberAvailable || 0;
-  return (
-    ((res.status as Record<string, unknown>)?.availableReplicas as number) || 0
-  );
+  const res = r as any;
+  const status = res.status || {};
+  if ('numberAvailable' in status) return status.numberAvailable || 0;
+  return status.availableReplicas || 0;
 });
 
 // Data (ConfigMaps/Secrets)
 export const sortByDataCount = sortByNumber((r) => {
-  const rr = r as Record<string, unknown>;
+  const rr = r as unknown as Record<string, unknown>;
   const data =
-    (rr.data as Record<string, unknown>) ||
-    (rr.binaryData as Record<string, unknown>) ||
+    (rr.data as unknown as Record<string, unknown>) ||
+    (rr.binaryData as unknown as Record<string, unknown>) ||
     {};
   return Object.keys(data).length;
 });
@@ -179,13 +172,12 @@ export const sortByExternalIP = sortByString((r) => {
 
 // Containers & Images
 export const sortByContainers = sortByString((r) => {
-  const spec = (r as Record<string, unknown>).spec as
+  const spec = (r as unknown as Record<string, unknown>).spec as
     | Record<string, unknown>
     | undefined;
   const podSpec =
-    ((spec?.template as Record<string, unknown> | undefined)?.spec as
-      | Record<string, unknown>
-      | undefined) || spec;
+    ((spec?.template as unknown as Record<string, unknown> | undefined)
+      ?.spec as Record<string, unknown> | undefined) || spec;
   const containers = podSpec?.containers as
     | Record<string, unknown>[]
     | undefined;
@@ -196,13 +188,12 @@ export const sortByContainers = sortByString((r) => {
 });
 
 export const sortByImages = sortByString((r) => {
-  const spec = (r as Record<string, unknown>).spec as
+  const spec = (r as unknown as Record<string, unknown>).spec as
     | Record<string, unknown>
     | undefined;
   const podSpec =
-    ((spec?.template as Record<string, unknown> | undefined)?.spec as
-      | Record<string, unknown>
-      | undefined) || spec;
+    ((spec?.template as unknown as Record<string, unknown> | undefined)
+      ?.spec as Record<string, unknown> | undefined) || spec;
   const containers = podSpec?.containers as
     | Record<string, unknown>[]
     | undefined;
@@ -214,11 +205,15 @@ export const sortByImages = sortByString((r) => {
 
 // Selector
 export const sortBySelector = sortByString((r) => {
-  const spec = (r as Record<string, unknown>).spec as
+  const spec = (r as unknown as Record<string, unknown>).spec as
     | Record<string, unknown>
     | undefined;
-  const selectorObj = spec?.selector as Record<string, unknown> | undefined;
+  const selectorObj = spec?.selector as unknown as
+    | Record<string, unknown>
+    | undefined;
   const selector =
-    (selectorObj?.matchLabels as Record<string, unknown>) || selectorObj || {};
+    (selectorObj?.matchLabels as unknown as Record<string, unknown>) ||
+    selectorObj ||
+    {};
   return Object.keys(selector).length > 0 ? JSON.stringify(selector) : '';
 });
