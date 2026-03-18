@@ -51,6 +51,7 @@ describe('Settings Page', () => {
         autoRefresh: true,
         refreshInterval: 10,
         saving: false,
+        localSettingsSaved: false,
         setKubeconfigPath: vi.fn(),
         setDefaultNamespace: vi.fn(),
         setAutoRefresh: vi.fn(),
@@ -101,7 +102,8 @@ describe('Settings Page', () => {
     it('should show loading state on set button', () => {
         vi.mocked(useSettings).mockReturnValue({
             ...mockSettingsValues,
-            saving: true
+            saving: true,
+            localSettingsSaved: false
         });
 
         render(<Settings />, { api: mockApi });
@@ -155,7 +157,8 @@ describe('Settings Page', () => {
     it('should hide refresh interval when auto-refresh is disabled', () => {
         vi.mocked(useSettings).mockReturnValue({
             ...mockSettingsValues,
-            autoRefresh: false
+            autoRefresh: false,
+            localSettingsSaved: false
         });
 
         const { container } = render(<Settings />, { api: mockApi });

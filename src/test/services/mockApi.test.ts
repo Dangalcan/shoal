@@ -169,7 +169,16 @@ describe('mockApi', () => {
     expect((await mockApi.deactivatePluginLicense('p')).success).toBe(true);
     expect((await mockApi.getMarketplacePlugins()).success).toBe(true);
     expect((await mockApi.installPlugin('test')).success).toBe(true);
-    expect((await mockApi.generatePlugin({})).success).toBe(true);
+    expect(
+      (
+        await mockApi.generatePlugin({
+          id: 'test',
+          name: 'test',
+          author: 'test',
+          description: 'test',
+        })
+      ).success
+    ).toBe(true);
     expect((await mockApi.reloadPlugin('test')).success).toBe(true);
     expect((await mockApi.importLocalPlugin()).success).toBe(true);
   });

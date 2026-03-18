@@ -30,21 +30,21 @@ describe('Button Component', () => {
 
   it('renders with different variants', () => {
     const { rerender } = render(<Button variant="primary">Primary</Button>);
-    expect(screen.getByRole('button')).toHaveClass('ui-btn-primary');
+    expect(screen.getByRole('button')).toHaveClass('btn--primary');
 
     rerender(<Button variant="destructive">Destructive</Button>);
-    expect(screen.getByRole('button')).toHaveClass('ui-btn-destructive');
+    expect(screen.getByRole('button')).toHaveClass('btn--danger');
 
     rerender(<Button variant="ghost">Ghost</Button>);
-    expect(screen.getByRole('button')).toHaveClass('ui-btn-ghost');
+    expect(screen.getByRole('button')).toHaveClass('btn--ghost');
   });
 
   it('renders with different sizes', () => {
     const { rerender } = render(<Button size="sm">Small</Button>);
-    expect(screen.getByRole('button')).toHaveClass('ui-btn-sm');
+    expect(screen.getByRole('button')).toHaveClass('btn--sm');
 
     rerender(<Button size="lg">Large</Button>);
-    expect(screen.getByRole('button')).toHaveClass('ui-btn-lg');
+    expect(screen.getByRole('button')).toHaveClass('btn--lg');
   });
 
   it('renders with icon', () => {
