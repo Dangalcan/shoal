@@ -7,6 +7,7 @@
 
 import type { Plugin, PluginExtensions } from '../../types/plugin-types';
 import log from '../../logger';
+import { getErrorMessage } from '../../utils/error-utils';
 import { pluginLoader } from './plugin-loader';
 import { pluginRegistry } from './plugin-registry';
 import {
@@ -24,6 +25,20 @@ import { pathService } from './path-service';
 import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
+
+/** Calls a lifecycle hook on a plugin module if it exists, logging before invocation. */
+async function callHookIfExists(
+  pluginModule: Record<string, unknown>,
+  hookName: string,
+  pluginId: string,
+  ...args: unknown[]
+): Promise<void> {
+  const hook = pluginModule[hookName];
+  if (hook && typeof hook === 'function') {
+    log.info(`[PluginManager] Executing ${hookName} for ${pluginId}`);
+    await (hook as (...a: unknown[]) => Promise<void>)(...args);
+  }
+}
 
 export class PluginManager {
   private initialized = false;
@@ -69,7 +84,7 @@ export class PluginManager {
         } catch (error: unknown) {
           log.error(
             `[PluginManager] Failed to auto-enable ${plugin.manifest.id}:`,
-            error instanceof Error ? error.message : String(error)
+            getErrorMessage(error)
           );
         }
       }
@@ -79,7 +94,7 @@ export class PluginManager {
     } catch (error: unknown) {
       log.error(
         '[PluginManager] Failed to initialize:',
-        error instanceof Error ? error.message : String(error)
+        getErrorMessage(error)
       );
       throw error;
     }
@@ -264,7 +279,7 @@ export class PluginManager {
             this.reloadPlugin(pluginId).catch((err: unknown) => {
               log.error(
                 `[PluginManager] Auto-reload failed for ${pluginId}:`,
-                err instanceof Error ? err.message : String(err)
+                getErrorMessage(err)
               );
             });
           }, DEBOUNCE_MS);
@@ -277,7 +292,7 @@ export class PluginManager {
     } catch (error: unknown) {
       log.error(
         `[PluginManager] Failed to start watcher for ${pluginId}:`,
-        error instanceof Error ? error.message : String(error)
+        getErrorMessage(error)
       );
     }
   }
@@ -404,7 +419,7 @@ export class PluginManager {
       } catch (error: unknown) {
         log.error(
           `[PluginManager] Failed to load data for ${pluginId}:`,
-          error instanceof Error ? error.message : String(error)
+          getErrorMessage(error)
         );
         throw error;
       }
@@ -415,32 +430,24 @@ export class PluginManager {
         pluginPath!
       );
 
-      // Execute beforeActivate hook
-      if (
-        pluginModule.beforeActivate &&
-        typeof pluginModule.beforeActivate === 'function'
-      ) {
-        log.info(`[PluginManager] Executing beforeActivate for ${pluginId}`);
-        await pluginModule.beforeActivate(context);
-      }
-
-      // Call activate method if it exists
-      if (
-        pluginModule.activate &&
-        typeof pluginModule.activate === 'function'
-      ) {
-        log.info(`[PluginManager] Activating ${pluginId}`);
-        await pluginModule.activate(context);
-      }
-
-      // Execute afterActivate hook
-      if (
-        pluginModule.afterActivate &&
-        typeof pluginModule.afterActivate === 'function'
-      ) {
-        log.info(`[PluginManager] Executing afterActivate for ${pluginId}`);
-        await pluginModule.afterActivate(context);
-      }
+      await callHookIfExists(
+        pluginModule as Record<string, unknown>,
+        'beforeActivate',
+        pluginId,
+        context
+      );
+      await callHookIfExists(
+        pluginModule as Record<string, unknown>,
+        'activate',
+        pluginId,
+        context
+      );
+      await callHookIfExists(
+        pluginModule as Record<string, unknown>,
+        'afterActivate',
+        pluginId,
+        context
+      );
 
       // Store context in registry
       pluginRegistry.setPluginContext(pluginId, context);
@@ -455,13 +462,9 @@ export class PluginManager {
     } catch (error: unknown) {
       log.error(
         `[PluginManager] Failed to activate plugin ${pluginId}:`,
-        error instanceof Error ? error.message : String(error)
+        getErrorMessage(error)
       );
-      pluginLoader.updatePluginState(
-        pluginId,
-        'error',
-        error instanceof Error ? error.message : String(error)
-      );
+      pluginLoader.updatePluginState(pluginId, 'error', getErrorMessage(error));
       throw error;
     }
   }
@@ -492,34 +495,22 @@ export class PluginManager {
           pluginPath!
         );
 
-        // Execute beforeDeactivate hook
-        if (
-          pluginModule.beforeDeactivate &&
-          typeof pluginModule.beforeDeactivate === 'function'
-        ) {
-          log.info(
-            `[PluginManager] Executing beforeDeactivate for ${pluginId}`
-          );
-          await pluginModule.beforeDeactivate(context);
-        }
-
-        // Call deactivate method if it exists
-        if (
-          pluginModule.deactivate &&
-          typeof pluginModule.deactivate === 'function'
-        ) {
-          log.info(`[PluginManager] Deactivating ${pluginId}`);
-          await pluginModule.deactivate();
-        }
-
-        // Execute afterDeactivate hook
-        if (
-          pluginModule.afterDeactivate &&
-          typeof pluginModule.afterDeactivate === 'function'
-        ) {
-          log.info(`[PluginManager] Executing afterDeactivate for ${pluginId}`);
-          await pluginModule.afterDeactivate();
-        }
+        await callHookIfExists(
+          pluginModule as Record<string, unknown>,
+          'beforeDeactivate',
+          pluginId,
+          context
+        );
+        await callHookIfExists(
+          pluginModule as Record<string, unknown>,
+          'deactivate',
+          pluginId
+        );
+        await callHookIfExists(
+          pluginModule as Record<string, unknown>,
+          'afterDeactivate',
+          pluginId
+        );
       } catch (error) {
         // Plugin might not be loaded, that's okay
         log.warn(
@@ -547,7 +538,7 @@ export class PluginManager {
     } catch (error: unknown) {
       log.error(
         `[PluginManager] Failed to deactivate plugin ${pluginId}:`,
-        error instanceof Error ? error.message : String(error)
+        getErrorMessage(error)
       );
       throw error;
     }
@@ -698,7 +689,7 @@ export class PluginManager {
     } catch (error: unknown) {
       log.error(
         `[PluginManager] Failed to delete files for ${pluginId}:`,
-        error instanceof Error ? error.message : String(error)
+        getErrorMessage(error)
       );
     }
 
