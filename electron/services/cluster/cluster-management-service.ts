@@ -1,12 +1,11 @@
 import { execPromise } from '../../utils/exec-utils';
 import { getErrorMessage } from '../../utils/error-utils';
+import type { Result } from '../../types/plugin-types';
 import { pluginEventBus } from '../plugins/plugin-events';
 import log from '../../logger';
 
 export class ClusterManagementService {
-  async deleteCluster(
-    contextName: string
-  ): Promise<{ success: boolean; error?: string }> {
+  async deleteCluster(contextName: string): Promise<Result<void>> {
     try {
       contextName = contextName.trim();
       let clusterName = contextName;
@@ -118,7 +117,7 @@ export class ClusterManagementService {
   async createCluster(
     name: string,
     provider: 'kind' | 'k3d'
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<Result<void>> {
     const command =
       provider === 'k3d'
         ? `k3d cluster create ${name}`
