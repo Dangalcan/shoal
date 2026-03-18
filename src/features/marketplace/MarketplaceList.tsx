@@ -11,7 +11,7 @@ import type { MarketplaceEntry } from '../../types';
 import { MarketplaceCard } from './MarketplaceCard';
 import { PluginDetailModal } from './PluginDetailModal';
 import { Search, RotateCw, ChevronDown } from 'lucide-react';
-import '../../../styles/components/marketplace/Marketplace.css';
+
 
 type SortOption = 'popular' | 'rating' | 'free-first' | 'newest';
 

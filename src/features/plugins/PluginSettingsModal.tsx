@@ -9,7 +9,7 @@ import { X, AlertTriangle } from 'lucide-react';
 import type { Plugin } from '../../../electron/types/plugin-types';
 import { usePlugins } from './PluginProvider';
 import { PluginConfigurationForm } from '../../components/plugins/PluginConfigurationForm';
-import '../../../styles/components/plugins/LicenseActivationModal.css';
+
 
 interface PluginSettingsModalProps {
   plugin: Plugin;

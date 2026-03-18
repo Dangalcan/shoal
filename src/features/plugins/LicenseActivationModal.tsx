@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { X, Key, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
 import type { Plugin } from '../../../electron/types/plugin-types';
 import { usePlugins } from './PluginProvider';
-import '../../../styles/components/plugins/LicenseActivationModal.css';
+
 
 interface LicenseActivationModalProps {
   plugin: Plugin;

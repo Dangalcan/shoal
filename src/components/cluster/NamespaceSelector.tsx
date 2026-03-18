@@ -1,5 +1,6 @@
 import { Search } from 'lucide-react';
-import '../../../styles/components/cluster/NamespaceSelector.css';
+
+
 
 interface NamespaceSelectorProps {
   namespaces: string[];

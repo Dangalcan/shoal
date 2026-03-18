@@ -1,5 +1,5 @@
-import { ResourceType } from '../../lib/resource-definitions';
-import '../../../styles/components/cluster/ResourceTabs.css';
+import { ResourceType, ALL_TABS } from '../../lib/resource-definitions';
+
 
 interface Tab {
   id: ResourceType;

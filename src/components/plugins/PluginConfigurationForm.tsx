@@ -10,7 +10,8 @@ import type {
   PluginConfigurationSchema,
   PluginConfigProperty,
 } from '../../../electron/types/plugin-types';
-import '../../../styles/components/plugins/PluginConfigurationForm.css';
+import { Badge, Spinner } from '../ui';
+
 
 interface Props {
   schema: PluginConfigurationSchema;
@@ -177,10 +178,9 @@ export function PluginConfigurationForm({
             onChange={(e) => handleChange(key, e.target.value, property)}
             className="config-select"
           >
-            <option value="">Select...</option>
             {property.enum?.map((option) => (
-              <option key={option} value={option}>
-                {option}
+              <option key={String(option)} value={String(option)}>
+                {String(option)}
               </option>
             ))}
           </select>

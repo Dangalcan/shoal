@@ -1,6 +1,6 @@
 import React from 'react'
-import { ChevronUp, ChevronDown } from 'lucide-react'
-import '../../../styles/components/resource-tables/ResourceTable.css'
+
+import { ChevronUp, ChevronDown, MoreVertical } from 'lucide-react'
 
 export interface ColumnDef {
     id: string

@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Check, Loader2 } from 'lucide-react';
-import { useClusters } from '../../hooks';
-import '../../../styles/components/ContextSwitcher.css';
+import { useClusterContext } from '../../features/clusters/ClusterContext';
+
 
 export function ContextSwitcher() {
-  const { clusters, currentContext, switching, switchContext } = useClusters();
+  const { clusters, currentContext, switching, switchContext } = useClusterContext();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 

@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Settings, X, Check, Search, ChevronDown, ChevronRight } from 'lucide-react';
 import { ResourceType, ALL_TABS, COLUMN_DEFINITIONS, ResourceCategory } from '../../lib/resource-definitions';
-import '../../../styles/components/cluster/SettingsDropdown.css';
+
+
 
 interface SettingsDropdownProps {
   isOpen: boolean;

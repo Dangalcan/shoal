@@ -1,6 +1,6 @@
 import React from 'react'
 import { Terminal, Eye, FileCode, RefreshCw, Trash2 } from 'lucide-react'
-import '../../../styles/components/resource-tables/ResourceCells.css'
+
 
 interface ActionProps {
     onDescribe?: () => void

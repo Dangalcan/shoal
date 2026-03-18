@@ -4,7 +4,8 @@ import App from './App.tsx'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 import { ApiProvider } from './services/api-context'
 import { ClusterProvider } from './features/clusters/ClusterContext'
-import '../styles/index.css'
+import '../styles/tailwind.css'
+import '../styles/index.scss'
 import { PluginProvider } from './features/plugins/PluginProvider';
 import { PluginRuntime } from './features/plugins/PluginRuntime';
 import * as UI from './components/ui';

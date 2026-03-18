@@ -6,7 +6,7 @@ import { Download, Check, DollarSign, User, Package } from 'lucide-react';
 import type { MarketplaceEntry } from '../../types';
 import { StarRating } from './StarRating';
 import { useInstallPlugin } from './useInstallPlugin';
-import '../../../styles/components/marketplace/Marketplace.css';
+
 
 interface MarketplaceCardProps {
   entry: MarketplaceEntry;

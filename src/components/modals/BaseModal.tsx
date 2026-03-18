@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
-import '../../../styles/components/modals/BaseModal.css';
+
 
 /**
  * Props for the BaseModal component.
@@ -102,7 +102,7 @@ export function BaseModal({
         <div className="base-modal-header">
           <div className="base-modal-header-content">
             {icon && <div className="base-modal-header-icon">{icon}</div>}
-            <div>
+            <div className="base-modal-title-group">
               <h3 className="base-modal-title">{title}</h3>
               {subtitle && <p className="base-modal-subtitle">{subtitle}</p>}
             </div>

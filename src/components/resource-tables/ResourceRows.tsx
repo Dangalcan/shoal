@@ -3,7 +3,7 @@ import { NameCell } from './ResourceCells'
 import { ResourceType, COLUMN_DEFINITIONS } from '../../lib/resource-definitions'
 import type { K8sResource } from '../../types/k8s-types'
 import { renderCell } from './cell-renderers/renderCell'
-import '../../../styles/components/resource-tables/ResourceRows.css'
+
 
 interface ResourceRowProps {
     item: K8sResource
