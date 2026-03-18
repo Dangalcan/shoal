@@ -1,5 +1,4 @@
-/* NAMESPACE WATCHER — Plugin Styles */
-
+/* _mixins.scss */
 .nw-container {
   height: 100%;
   display: flex;
@@ -20,7 +19,6 @@
     transform: translateY(0);
   }
 }
-
 /* Loading / Error states */
 .nw-loading-state,
 .nw-error-state {
@@ -28,16 +26,6 @@
   justify-content: center;
   gap: 1rem;
   flex: 1;
-}
-.nw-loading-text {
-  color: var(--color-secondary, #94a3b8);
-  font-size: 0.875rem;
-}
-.nw-error-msg {
-  color: #ef4444;
-  font-size: 0.85rem;
-  max-width: 400px;
-  text-align: center;
 }
 
 /* Top Bar */
@@ -53,7 +41,6 @@
   border-radius: 14px;
   flex-shrink: 0;
 }
-
 [data-theme='light'] .nw-topbar {
   background: rgba(255, 255, 255, 0.75);
   border-color: rgba(0, 0, 0, 0.07);
@@ -64,15 +51,18 @@
   align-items: center;
   gap: 0.5rem;
 }
+
 .nw-title-icon {
   color: #3b82f6;
   flex-shrink: 0;
 }
+
 .nw-title {
   font-size: 1rem;
   font-weight: 900;
   margin: 0;
 }
+
 .nw-context-badge {
   display: inline-flex;
   align-items: center;
@@ -85,22 +75,26 @@
   border: 1px solid rgba(59, 130, 246, 0.25);
   color: #3b82f6;
 }
+
 .nw-topbar-right {
   display: flex;
   align-items: center;
   gap: 0.4rem;
 }
+
 .nw-search-wrap {
   position: relative;
   display: flex;
   align-items: center;
 }
+
 .nw-search-icon {
   position: absolute;
   left: 0.5rem;
   color: var(--color-secondary, #94a3b8);
   pointer-events: none;
 }
+
 .nw-search {
   padding: 0.3rem 0.5rem 0.3rem 1.75rem;
   border-radius: 8px;
@@ -111,10 +105,12 @@
   width: 180px;
   transition: border-color 0.15s;
 }
+
 .nw-search:focus {
   outline: none;
   border-color: #3b82f6;
 }
+
 [data-theme='light'] .nw-search {
   background: rgba(255, 255, 255, 0.9);
   border-color: rgba(0, 0, 0, 0.1);
@@ -137,14 +133,17 @@
     color 0.12s;
   white-space: nowrap;
 }
+
 .nw-mini-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.09);
   color: inherit;
 }
+
 .nw-mini-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
 .nw-mini-btn--active {
   background: rgba(59, 130, 246, 0.12) !important;
   border-color: rgba(59, 130, 246, 0.3) !important;
@@ -170,6 +169,7 @@
   gap: 0.6rem;
   flex-shrink: 0;
 }
+
 .nw-stat-card {
   display: flex;
   align-items: center;
@@ -179,10 +179,12 @@
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 12px;
 }
+
 [data-theme='light'] .nw-stat-card {
   background: rgba(255, 255, 255, 0.8);
   border-color: rgba(0, 0, 0, 0.07);
 }
+
 .nw-stat-icon {
   width: 38px;
   height: 38px;
@@ -192,11 +194,13 @@
   justify-content: center;
   flex-shrink: 0;
 }
+
 .nw-stat-value {
   font-size: 1.4rem;
   font-weight: 900;
   line-height: 1;
 }
+
 .nw-stat-label {
   font-size: 0.7rem;
   color: var(--color-secondary, #94a3b8);
@@ -205,6 +209,7 @@
   letter-spacing: 0.05em;
   margin-top: 2px;
 }
+
 .nw-stat-sub {
   font-size: 0.65rem;
   color: var(--color-secondary, #94a3b8);
@@ -222,6 +227,7 @@
   overflow: hidden;
   min-height: 0;
 }
+
 [data-theme='light'] .nw-table-wrap {
   background: rgba(255, 255, 255, 0.75);
   border-color: rgba(0, 0, 0, 0.06);
@@ -237,18 +243,22 @@
   font-size: 0.7rem;
   color: var(--color-secondary, #94a3b8);
 }
+
 [data-theme='light'] .nw-table-header-bar {
   border-color: rgba(0, 0, 0, 0.06);
 }
+
 .nw-table-count {
   font-weight: 700;
 }
+
 .nw-last-sync {
   display: flex;
   align-items: center;
   gap: 0.25rem;
   margin-left: auto;
 }
+
 .nw-counts-loading {
   display: flex;
   align-items: center;
@@ -259,11 +269,13 @@
   flex: 1;
   overflow: auto;
 }
+
 .nw-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.8rem;
 }
+
 .nw-th {
   padding: 0.45rem 0.75rem;
   text-align: left;
@@ -279,10 +291,12 @@
   z-index: 2;
   white-space: nowrap;
 }
+
 [data-theme='light'] .nw-th {
   background: rgba(245, 247, 250, 0.95);
   border-color: rgba(0, 0, 0, 0.06);
 }
+
 .nw-th--num,
 .nw-th--age {
   text-align: right;
@@ -291,12 +305,15 @@
 .nw-row {
   transition: background 0.1s;
 }
+
 .nw-row:hover {
   background: rgba(255, 255, 255, 0.03);
 }
+
 .nw-row--expanded {
   background: rgba(59, 130, 246, 0.04) !important;
 }
+
 [data-theme='light'] .nw-row:hover {
   background: rgba(0, 0, 0, 0.02);
 }
@@ -306,20 +323,24 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   vertical-align: middle;
 }
+
 [data-theme='light'] .nw-cell {
   border-color: rgba(0, 0, 0, 0.04);
 }
+
 .nw-cell--num {
   text-align: right;
   font-family: monospace;
   font-size: 0.78rem;
 }
+
 .nw-cell--age {
   text-align: right;
   color: var(--color-secondary, #94a3b8);
   font-size: 0.75rem;
   white-space: nowrap;
 }
+
 .nw-cell--name {
   min-width: 180px;
 }
@@ -329,13 +350,16 @@
   align-items: center;
   gap: 0.4rem;
 }
+
 .nw-chevron {
   color: var(--color-secondary, #94a3b8);
   flex-shrink: 0;
 }
+
 .nw-ns-name {
   font-weight: 700;
 }
+
 .nw-badge-system {
   font-size: 0.6rem;
   font-weight: 800;
@@ -365,21 +389,25 @@
 .nw-detail-row {
   background: rgba(59, 130, 246, 0.03);
 }
+
 .nw-detail-cell {
   padding: 0.75rem 1rem 0.75rem 2.5rem !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
+
 .nw-detail-body {
   display: flex;
   gap: 2rem;
   flex-wrap: wrap;
 }
+
 .nw-detail-section {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
   min-width: 180px;
 }
+
 .nw-detail-title {
   display: flex;
   align-items: center;
@@ -390,6 +418,7 @@
   letter-spacing: 0.07em;
   color: var(--color-secondary, #94a3b8);
 }
+
 .nw-detail-empty {
   font-size: 0.75rem;
   color: var(--color-secondary, #94a3b8);
@@ -402,6 +431,7 @@
   flex-wrap: wrap;
   gap: 0.3rem;
 }
+
 .nw-label-chip {
   font-size: 0.62rem;
   font-family: monospace;
@@ -415,6 +445,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .nw-label-chip--more {
   background: rgba(100, 116, 139, 0.1);
   border-color: rgba(100, 116, 139, 0.2);
@@ -428,12 +459,14 @@
   gap: 0.25rem;
   max-width: 380px;
 }
+
 .nw-annotation-row {
   display: flex;
   gap: 0.5rem;
   align-items: baseline;
   font-size: 0.72rem;
 }
+
 .nw-annot-key {
   font-family: monospace;
   color: var(--color-secondary, #94a3b8);
@@ -443,6 +476,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .nw-annot-val {
   font-family: monospace;
   font-size: 0.7rem;

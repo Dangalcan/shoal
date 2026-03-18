@@ -626,6 +626,7 @@
   });
   pluginUIRegistry.registerWidget({
     id: 'pod-monitor-widget',
+    pluginId: 'resource-monitor',
     title: 'Live Pulse',
     size: 'small',
     component: PodCountWidget,
