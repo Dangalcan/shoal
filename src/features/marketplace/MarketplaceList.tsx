@@ -5,8 +5,10 @@
  *  Category sidebar | Toolbar (search + sort) | Featured row | All plugins grid
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useApi } from '../../services/api-context';
+import { useAsyncData } from '../../hooks/useAsyncData';
+import { useItemModal } from '../../hooks/useItemModal';
 import type { MarketplaceEntry } from '../../types';
 import { MarketplaceCard } from './MarketplaceCard';
 import { PluginDetailModal } from './PluginDetailModal';
@@ -42,34 +44,15 @@ function sortPlugins(plugins: MarketplaceEntry[], sort: SortOption): Marketplace
 
 export function MarketplaceList() {
   const api = useApi();
-  const [plugins, setPlugins] = useState<MarketplaceEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: pluginsData, loading, error, refetch: fetchPlugins } = useAsyncData<MarketplaceEntry[]>({
+    fetchFn: () => api.getMarketplacePlugins(),
+    errorTitle: 'Failed to load marketplace plugins',
+  });
+  const plugins = pluginsData ?? [];
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sort, setSort] = useState<SortOption>('popular');
-  const [detailPlugin, setDetailPlugin] = useState<MarketplaceEntry | null>(null);
-
-  const fetchPlugins = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await api.getMarketplacePlugins();
-      if (result.success) {
-        setPlugins(result.data ?? []);
-      } else {
-        setError(result.error ?? 'Failed to load plugins');
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch plugins');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchPlugins();
-  }, []);
+  const detailModal = useItemModal<MarketplaceEntry>();
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -202,7 +185,7 @@ export function MarketplaceList() {
                         key={entry.id}
                         entry={entry}
                         featured
-                        onOpenDetail={setDetailPlugin}
+                        onOpenDetail={detailModal.open}
                       />
                     ))}
                   </div>
@@ -226,7 +209,7 @@ export function MarketplaceList() {
                       <MarketplaceCard
                         key={entry.id}
                         entry={entry}
-                        onOpenDetail={setDetailPlugin}
+                        onOpenDetail={detailModal.open}
                       />
                     ))}
                   </div>
@@ -246,10 +229,10 @@ export function MarketplaceList() {
       </div>
 
       {/* Detail modal */}
-      {detailPlugin && (
+      {detailModal.item && (
         <PluginDetailModal
-          entry={detailPlugin}
-          onClose={() => setDetailPlugin(null)}
+          entry={detailModal.item}
+          onClose={detailModal.close}
         />
       )}
     </>

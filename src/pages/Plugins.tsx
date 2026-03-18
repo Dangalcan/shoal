@@ -6,6 +6,8 @@
 
 import { useState } from 'react';
 import { usePlugins } from '../features/plugins/PluginProvider';
+import { handleAsyncOperation } from '../lib/async-operation-handler';
+import { useItemModal } from '../hooks/useItemModal';
 import { LicenseActivationModal } from '../features/plugins/LicenseActivationModal';
 import { MarketplaceList } from '../features/marketplace/MarketplaceList';
 import { PluginSettingsModal } from '../features/plugins/PluginSettingsModal';
@@ -28,80 +30,96 @@ export default function Plugins() {
     importLocalPlugin
   } = usePlugins();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [activeModalPlugin, setActiveModalPlugin] = useState<Plugin | null>(null);
-  const [activeSettingsPlugin, setActiveSettingsPlugin] = useState<Plugin | null>(null);
   const [activeTab, setActiveTab] = useState<'installed' | 'marketplace'>('installed');
-  const [uninstallingPlugin, setUninstallingPlugin] = useState<Plugin | null>(null);
-  const [updatingPlugin, setUpdatingPlugin] = useState<Plugin | null>(null);
-  const [deactivatingLicensePlugin, setDeactivatingLicensePlugin] = useState<Plugin | null>(null);
   const [importing, setImporting] = useState(false);
+  const licenseModal = useItemModal<Plugin>();
+  const settingsModal = useItemModal<Plugin>();
+  const uninstallModal = useItemModal<Plugin>();
+  const updateModal = useItemModal<Plugin>();
+  const deactivateLicenseModal = useItemModal<Plugin>();
 
-  // Shared wrapper: sets loading/error state around an async plugin action
-  const withAction = async (pluginId: string, fn: () => Promise<void>, fallbackMsg = 'Action failed') => {
+  // Shared wrapper: manages per-plugin loading state around handleAsyncOperation
+  const withAction = async (
+    pluginId: string,
+    fn: () => Promise<void>,
+    loadingMessage: string,
+    successMessage: string,
+    errorTitle: string,
+  ) => {
     setActionLoading(pluginId);
-    setActionError(null);
     try {
-      await fn();
-    } catch (err: unknown) {
-      setActionError(err instanceof Error ? err.message : fallbackMsg);
+      await handleAsyncOperation(
+        async () => { await fn(); return { success: true as const, data: undefined }; },
+        { loadingMessage, successMessage, errorTitle }
+      );
     } finally {
       setActionLoading(null);
     }
   };
 
-  const handleTogglePlugin = (plugin: Plugin) =>
-    withAction(
+  const handleTogglePlugin = (plugin: Plugin) => {
+    const isEnabled = plugin.state === 'enabled';
+    return withAction(
       plugin.manifest.id,
-      () => plugin.state === 'enabled'
-        ? disablePlugin(plugin.manifest.id)
-        : enablePlugin(plugin.manifest.id),
-      'Failed to toggle plugin'
+      () => isEnabled ? disablePlugin(plugin.manifest.id) : enablePlugin(plugin.manifest.id),
+      isEnabled ? 'Disabling plugin...' : 'Enabling plugin...',
+      isEnabled ? 'Plugin disabled.' : 'Plugin enabled.',
+      isEnabled ? 'Failed to disable plugin' : 'Failed to enable plugin',
     );
+  };
 
   const handleReloadPlugin = (plugin: Plugin) =>
-    withAction(plugin.manifest.id, () => reloadPlugin(plugin.manifest.id), 'Failed to reload plugin');
+    withAction(
+      plugin.manifest.id,
+      () => reloadPlugin(plugin.manifest.id),
+      'Reloading plugin...',
+      'Plugin reloaded.',
+      'Failed to reload plugin',
+    );
 
-  const handleUpdatePlugin = (plugin: Plugin) => setUpdatingPlugin(plugin);
+  const handleUpdatePlugin = (plugin: Plugin) => updateModal.open(plugin);
 
   const confirmUpdate = () => {
-    if (!updatingPlugin) return;
+    const plugin = updateModal.item;
+    if (!plugin) return;
     withAction(
-      updatingPlugin.manifest.id,
+      plugin.manifest.id,
       async () => {
-        await installPlugin(updatingPlugin.manifest.id);
-        setUpdatingPlugin(null);
+        await installPlugin(plugin.manifest.id);
+        updateModal.close();
       },
-      'Failed to update plugin'
+      `Updating ${plugin.manifest.name}...`,
+      'Plugin updated successfully.',
+      'Failed to update plugin',
     );
   };
 
   const handleImportPlugin = async () => {
     setImporting(true);
-    setActionError(null);
-    try {
-      await importLocalPlugin();
-    } catch (err: unknown) {
-      setActionError(err instanceof Error ? err.message : 'Failed to import plugin');
-    } finally {
-      setImporting(false);
-    }
+    await handleAsyncOperation(
+      async () => { await importLocalPlugin(); return { success: true as const, data: undefined }; },
+      { loadingMessage: 'Importing plugin...', successMessage: 'Plugin imported.', errorTitle: 'Failed to import plugin' }
+    );
+    setImporting(false);
   };
 
-  const handleUninstallPlugin = (plugin: Plugin) => setUninstallingPlugin(plugin);
+  const handleUninstallPlugin = (plugin: Plugin) => uninstallModal.open(plugin);
 
   const confirmUninstall = () => {
-    if (!uninstallingPlugin) return;
+    const plugin = uninstallModal.item;
+    if (!plugin) return;
     withAction(
-      uninstallingPlugin.manifest.id,
+      plugin.manifest.id,
       async () => {
-        if (uninstallingPlugin.state === 'enabled') {
-          await disablePlugin(uninstallingPlugin.manifest.id);
+        if (plugin.state === 'enabled') {
+          await disablePlugin(plugin.manifest.id);
         }
-        await uninstallPlugin(uninstallingPlugin.manifest.id);
-        setUninstallingPlugin(null);
+        await uninstallPlugin(plugin.manifest.id);
+        uninstallModal.close();
       },
-      'Failed to uninstall plugin'
+      `Uninstalling ${plugin.manifest.name}...`,
+      'Plugin uninstalled.',
+      'Failed to uninstall plugin',
     );
   };
 
@@ -186,12 +204,6 @@ export default function Plugins() {
           </button>
         </div>
       </div>
-
-      {actionError && (
-        <div className="plugins__action-error">
-          <p className="error-message">{actionError}</p>
-        </div>
-      )}
 
       {activeTab === 'marketplace' ? (
         <MarketplaceList />
@@ -302,14 +314,14 @@ export default function Plugins() {
                         {!plugin.licenseInfo?.isActive ? (
                           <button
                             className="btn btn--sm btn--license"
-                            onClick={() => setActiveModalPlugin(plugin)}
+                            onClick={() => licenseModal.open(plugin)}
                           >
                             Activate License
                           </button>
                         ) : (
                           <button
                             className="btn btn--sm btn--secondary"
-                            onClick={() => setDeactivatingLicensePlugin(plugin)}
+                            onClick={() => deactivateLicenseModal.open(plugin)}
                           >
                             Deactivate License
                           </button>
@@ -342,7 +354,7 @@ export default function Plugins() {
                     {plugin.manifest.configuration && (
                       <button
                         className="btn btn--icon btn--secondary"
-                        onClick={() => setActiveSettingsPlugin(plugin)}
+                        onClick={() => settingsModal.open(plugin)}
                         title="Settings"
                       >
                         <Settings size={15} />
@@ -365,61 +377,64 @@ export default function Plugins() {
         </>
       )}
 
-      {activeModalPlugin && (
-        <LicenseActivationModal 
-          plugin={activeModalPlugin} 
-          onClose={() => setActiveModalPlugin(null)} 
+      {licenseModal.item && (
+        <LicenseActivationModal
+          plugin={licenseModal.item}
+          onClose={licenseModal.close}
         />
       )}
 
-      {activeSettingsPlugin && (
+      {settingsModal.item && (
         <PluginSettingsModal
-          plugin={activeSettingsPlugin}
-          onClose={() => setActiveSettingsPlugin(null)}
+          plugin={settingsModal.item}
+          onClose={settingsModal.close}
         />
       )}
 
       <ConfirmModal
-        isOpen={!!uninstallingPlugin}
-        onClose={() => setUninstallingPlugin(null)}
+        isOpen={uninstallModal.isOpen}
+        onClose={uninstallModal.close}
         onConfirm={confirmUninstall}
         title="Uninstall Plugin"
-        message={uninstallingPlugin ? `Are you sure you want to uninstall ${uninstallingPlugin.manifest.name}? This will permanently delete all plugin files.` : ''}
+        message={uninstallModal.item ? `Are you sure you want to uninstall ${uninstallModal.item.manifest.name}? This will permanently delete all plugin files.` : ''}
         confirmLabel="Uninstall"
         variant="danger"
-        loading={actionLoading === uninstallingPlugin?.manifest.id}
+        loading={actionLoading === uninstallModal.item?.manifest.id}
       />
 
       <ConfirmModal
-        isOpen={!!updatingPlugin}
-        onClose={() => setUpdatingPlugin(null)}
+        isOpen={updateModal.isOpen}
+        onClose={updateModal.close}
         onConfirm={confirmUpdate}
         title="Update Plugin"
-        message={updatingPlugin ? `Update ${updatingPlugin.manifest.name} to v${updatingPlugin.latestVersion}?` : ''}
+        message={updateModal.item ? `Update ${updateModal.item.manifest.name} to v${updateModal.item.latestVersion}?` : ''}
         confirmLabel="Update"
         variant="info"
-        loading={actionLoading === updatingPlugin?.manifest.id}
+        loading={actionLoading === updateModal.item?.manifest.id}
       />
 
       <ConfirmModal
-        isOpen={!!deactivatingLicensePlugin}
-        onClose={() => setDeactivatingLicensePlugin(null)}
+        isOpen={deactivateLicenseModal.isOpen}
+        onClose={deactivateLicenseModal.close}
         onConfirm={() => {
-          if (!deactivatingLicensePlugin) return;
+          const plugin = deactivateLicenseModal.item;
+          if (!plugin) return;
           withAction(
-            deactivatingLicensePlugin.manifest.id,
+            plugin.manifest.id,
             async () => {
-              await deactivateLicense(deactivatingLicensePlugin.manifest.id);
-              setDeactivatingLicensePlugin(null);
+              await deactivateLicense(plugin.manifest.id);
+              deactivateLicenseModal.close();
             },
-            'Failed to deactivate license'
+            'Deactivating license...',
+            'License deactivated.',
+            'Failed to deactivate license',
           );
         }}
         title="Deactivate License"
-        message={deactivatingLicensePlugin ? `Deactivate the license for ${deactivatingLicensePlugin.manifest.name}? You will need to re-enter your license key to use it again.` : ''}
+        message={deactivateLicenseModal.item ? `Deactivate the license for ${deactivateLicenseModal.item.manifest.name}? You will need to re-enter your license key to use it again.` : ''}
         confirmLabel="Deactivate"
         variant="warning"
-        loading={actionLoading === deactivatingLicensePlugin?.manifest.id}
+        loading={actionLoading === deactivateLicenseModal.item?.manifest.id}
       />
     </div>
   );

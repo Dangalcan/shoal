@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useAsyncData } from '../hooks/useAsyncData';
 import { FileCode, Plus, Trash2, Play, Save, Edit2, Upload, FileUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApi } from '../services/api-context';
@@ -8,11 +9,18 @@ import { ConfirmModal } from '../components/modals/ConfirmModal';
 
 export function Manifests() {
   const api = useApi();
-  const [manifests, setManifests] = useState<Manifest[]>([]);
+  const { data: manifestsData, loading, refetch: fetchManifests } = useAsyncData<Manifest[]>({
+    fetchFn: async () => {
+      const result = await api.getManifests();
+      if (!result.success) throw new Error('Failed to fetch manifests');
+      return result.data ?? [];
+    },
+    errorTitle: 'Failed to fetch manifests',
+  });
+  const manifests = manifestsData ?? [];
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({ name: '', content: '' });
-  const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState<number | null>(null);
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<number | null>(null);
   const [activeContext, setActiveContext] = useState<string>('');
@@ -21,7 +29,6 @@ export function Manifests() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetchManifests();
     fetchContext();
   }, []);
 
@@ -30,17 +37,6 @@ export function Manifests() {
     if (result.success && result.data) {
       setActiveContext(result.data);
     }
-  };
-
-  const fetchManifests = async () => {
-    setLoading(true);
-    const result = await api.getManifests();
-    if (result.success && result.data) {
-      setManifests(result.data);
-    } else {
-      toast.error('Failed to fetch manifests');
-    }
-    setLoading(false);
   };
 
   const handleSave = async () => {
@@ -104,7 +100,6 @@ export function Manifests() {
   };
 
   const processFiles = async (files: FileList | File[]) => {
-    setLoading(true);
     let successCount = 0;
     let failCount = 0;
     const errors: string[] = [];
@@ -141,7 +136,6 @@ export function Manifests() {
     if (failCount > 0) {
       toast.error(`Failed to import ${failCount} file${failCount > 1 ? 's' : ''}: ${errors.join(', ')}`);
     }
-    setLoading(false);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
