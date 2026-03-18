@@ -3,7 +3,6 @@ import { RefreshCw, Loader2, AlertCircle, Terminal, Search, X, Check } from 'luc
 import { BaseModal } from './BaseModal'
 import { Button } from '../ui/Button'
 import { cn } from '../../lib/utils'
-import { handleError } from '../../lib/error-handler'
 import { useApi } from '../../services/api-context'
 
 
@@ -42,11 +41,9 @@ export function LogViewerModal({ isOpen, onClose, clusterName, podName, namespac
             } else {
                 const errorMessage = result.error
                 setError(errorMessage)
-                handleError(new Error(errorMessage), 'Log Fetch Failed')
             }
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : 'An unexpected error occurred')
-            handleError(err as Error, 'Log Streaming Error')
         } finally {
             if (!isAuto) setLoading(false)
         }

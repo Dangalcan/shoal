@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Box, Loader2, AlertCircle } from 'lucide-react'
 import { BaseModal } from './BaseModal'
-import { handleError } from '../../lib/error-handler'
 import { useApi } from '../../services/api-context'
 import { StatusBadge } from '../ui'
 
@@ -28,12 +27,10 @@ export function PodViewerModal({ isOpen, onClose, clusterName }: PodViewerModalP
                     } else {
                         const errorMessage = result.error
                         setError(errorMessage)
-                        handleError(new Error(errorMessage), 'Fetch Pods Failed')
                     }
                 })
                 .catch(err => {
                     setError(err.message || 'An error occurred fetching pods')
-                    handleError(err, 'Pods Fetch Error')
                 })
                 .finally(() => setLoading(false))
         }

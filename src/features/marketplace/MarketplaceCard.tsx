@@ -15,7 +15,7 @@ interface MarketplaceCardProps {
 }
 
 export function MarketplaceCard({ entry, featured = false, onOpenDetail }: MarketplaceCardProps) {
-  const { isInstalled, hasUpdate, installing, error, handleInstall } = useInstallPlugin(
+  const { isInstalled, hasUpdate, installing, handleInstall } = useInstallPlugin(
     entry.id,
     entry.name
   );
@@ -78,7 +78,6 @@ export function MarketplaceCard({ entry, featured = false, onOpenDetail }: Marke
           </div>
         )}
 
-        {error && <div className="marketplace-card__error">{error}</div>}
       </div>
 
       <div className="marketplace-card__footer">
