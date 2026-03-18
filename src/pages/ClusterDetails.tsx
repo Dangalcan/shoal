@@ -58,7 +58,6 @@ const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaces(na
     const {
         sortConfig,
         handleSort,
-        handleResize,
         getColumnWidth,
         visibleColumns,
         handleColumnToggle,

@@ -101,7 +101,7 @@ describe('Result Utilities', () => {
 
     it('should return error if chained function returns failure', () => {
       const step1: Result<number> = { success: true, data: 10 };
-      const chained = chainResult(step1, (n) => ({
+      const chained = chainResult(step1, (_n) => ({
         success: false,
         error: 'chained error',
       }));

@@ -5,16 +5,12 @@
 import React from 'react'
 import { TextCell } from '../ResourceCells'
 import type { K8sResource } from '../../../types/k8s-types'
-import type { ResourceType } from '../../../lib/resource-definitions'
 
 interface CellProps {
     resource: K8sResource
     style: React.CSSProperties
 }
 
-interface CellPropsWithType extends CellProps {
-    resourceType: ResourceType
-}
 
 /**
  * HPA Reference Cell

@@ -22,7 +22,7 @@ export function LogViewerModal({ isOpen, onClose, clusterName, podName, namespac
     const [error, setError] = useState<string | null>(null)
     const [searchQuery, setSearchQuery] = useState('')
     const [autoRefresh, setAutoRefresh] = useState(false)
-    const [tailLines, setTailLines] = useState(200)
+    const [tailLines] = useState(200)
     const logEndRef = useRef<HTMLDivElement>(null)
     const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
 

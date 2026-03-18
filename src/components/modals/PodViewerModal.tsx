@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Box, Loader2, AlertCircle, MoreHorizontal } from 'lucide-react'
+import { Box, Loader2, AlertCircle } from 'lucide-react'
 import { BaseModal } from './BaseModal'
-import { useResourceActions } from '../../services/plugin-ui-registry'
 import { handleError } from '../../lib/error-handler'
 import { useApi } from '../../services/api-context'
 
@@ -16,7 +15,6 @@ export function PodViewerModal({ isOpen, onClose, clusterName }: PodViewerModalP
     const [pods, setPods] = useState<any[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const pluginActions = useResourceActions('pod')
 
     useEffect(() => {
         if (isOpen && clusterName) {

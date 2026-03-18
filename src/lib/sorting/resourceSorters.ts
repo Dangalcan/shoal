@@ -14,7 +14,6 @@ import type {
   Node,
   Deployment,
   StatefulSet,
-  DaemonSet,
   ReplicaSet,
 } from '../../types/k8s-types';
 import type { ResourceType } from '../resource-definitions';
@@ -60,7 +59,9 @@ export const sortByAge = sortByDate((r) => r.metadata.creationTimestamp);
  * @param resourceType - The type of resource to get the sorter for
  * @returns A SorterFunction
  */
-export const getStatusSorter = (resourceType: ResourceType): SorterFunction => {
+export const getStatusSorter = (
+  _resourceType: ResourceType
+): SorterFunction => {
   return sortByString((r) => {
     if (isPod(r)) return r.status?.phase || '';
     return getPhase(r as AnyK8sResource);

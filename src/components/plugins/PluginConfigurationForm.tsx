@@ -10,7 +10,6 @@ import type {
   PluginConfigurationSchema,
   PluginConfigProperty,
 } from '../../../electron/types/plugin-types';
-import { Badge, Spinner } from '../ui';
 
 
 interface Props {
@@ -31,7 +30,7 @@ export function PluginConfigurationForm({
   const [saving, setSaving] = useState(false);
 
   const validateField = (
-    key: string,
+    _key: string,
     value: unknown,
     property: PluginConfigProperty
   ): string | null => {
@@ -80,7 +79,7 @@ export function PluginConfigurationForm({
   const handleChange = (
     key: string,
     value: unknown,
-    property: PluginConfigProperty
+    _property: PluginConfigProperty
   ) => {
     setValues((prev) => ({ ...prev, [key]: value }));
 
@@ -121,7 +120,6 @@ export function PluginConfigurationForm({
 
   const renderField = (key: string, property: PluginConfigProperty) => {
     const value = values[key] ?? property.default;
-    const error = errors[key];
 
     switch (property.type) {
       case 'string':

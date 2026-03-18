@@ -3,7 +3,7 @@
  */
 
 import React from 'react'
-import type { K8sResource, Pod, PersistentVolumeClaim, Node, Job } from '../../../types/k8s-types'
+import type { K8sResource } from '../../../types/k8s-types'
 import { isPod, isPersistentVolumeClaim, isNode, isJob } from '../../../lib/type-guards'
 import { StatusBadge } from '../ResourceCells'
 import type { ResourceType } from '../../../lib/resource-definitions'
@@ -17,7 +17,7 @@ interface StatusCellProps {
 /**
  * Determines the status value and type for a resource
  */
-function getResourceStatus(resource: K8sResource, resourceType: ResourceType): {
+function getResourceStatus(resource: K8sResource, _resourceType: ResourceType): {
     status: string
     type: 'pods' | 'pvc' | 'nodes' | 'other'
 } {

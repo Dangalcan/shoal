@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { PodViewerModal } from '../components/modals/PodViewerModal';
 import { useClusterContext } from '../features/clusters/ClusterContext';
-import { Button, Badge, Spinner, Card, Animate } from '../components/ui';
+import { Button, Badge, Card, Animate } from '../components/ui';
 import { useApi } from '../services/api-context';
 import { isSuccess } from '../types/result';
 import { cn } from '../lib/utils';
