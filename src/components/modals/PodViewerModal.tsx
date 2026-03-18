@@ -3,7 +3,7 @@ import { Box, Loader2, AlertCircle, MoreHorizontal } from 'lucide-react'
 import { BaseModal } from './BaseModal'
 import { useResourceActions } from '../../services/plugin-ui-registry'
 import { handleError } from '../../lib/error-handler'
-import { electronService } from '../../services/electronService'
+import { useApi } from '../../services/api-context'
 
 interface PodViewerModalProps {
     isOpen: boolean
@@ -12,6 +12,7 @@ interface PodViewerModalProps {
 }
 
 export function PodViewerModal({ isOpen, onClose, clusterName }: PodViewerModalProps) {
+    const api = useApi()
     const [pods, setPods] = useState<any[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -21,7 +22,7 @@ export function PodViewerModal({ isOpen, onClose, clusterName }: PodViewerModalP
         if (isOpen && clusterName) {
             setLoading(true)
             setError(null)
-            electronService.getPods(clusterName)
+            api.getPods(clusterName)
                 .then(result => {
                     if (result.success) {
                         setPods(result.data || [])
@@ -40,7 +41,7 @@ export function PodViewerModal({ isOpen, onClose, clusterName }: PodViewerModalP
     }, [isOpen, clusterName])
 
     const footerContent = (
-        <button onClick={onClose} className="pod-footer-close-button">
+        <button onClick={onClose} className="close-footer-button">
             Close
         </button>
     )
@@ -54,6 +55,7 @@ export function PodViewerModal({ isOpen, onClose, clusterName }: PodViewerModalP
             icon={<Box size={20} />}
             footer={footerContent}
             className="pod-modal"
+            data-testid="pod-modal"
             width="90%"
             maxWidth="1200px"
         >
@@ -83,7 +85,7 @@ export function PodViewerModal({ isOpen, onClose, clusterName }: PodViewerModalP
                             {pods.map((pod, idx) => {
                                 const status = pod.status.phase
                                 const isRunning = status === 'Running'
-                                const readyCount = pod.status.containerStatuses?.filter((s) => s.ready).length || 0
+                                const readyCount = pod.status.containerStatuses?.filter((s: any) => s.ready).length || 0
                                 const totalCount = pod.spec.containers.length
                                 return (
                                     <tr key={idx} className="modal-table-row">

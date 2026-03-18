@@ -4,6 +4,7 @@ import { ClusterDetails } from '../../pages/ClusterDetails'
 import { createMockElectronAPI } from '../utils/mocks'
 // Imports from test-utils consolidated above
 import '../mocks/component-mocks'
+import '../mocks/modal-mocks'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { toast } from 'sonner'
 import { 
@@ -290,32 +291,24 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
         })
 
         it('should handle resource deletion with confirmation and success', async () => {
-            const confirmSpy = vi.spyOn(window, 'confirm')
-            
-            // Success path
-            confirmSpy.mockReturnValue(true)
             renderPage()
             await waitFor(() => expect(screen.getByText('pod-1')).toBeInTheDocument())
-            
+
             const row = screen.getByText('pod-1').closest('tr')!
+
+            // Success path — click delete, then confirm in the modal
             fireEvent.click(within(row).getByTitle('Delete Resource'))
-            
+            fireEvent.click(await screen.findByRole('button', { name: 'Delete pods' }))
+
             await waitFor(() => {
                 expect(mockApi.deleteResource).toHaveBeenCalled()
                 expect(mockToast.success).toHaveBeenCalledWith('Resource deleted successfully', expect.any(Object))
             })
 
-            // Cancellation path
-            confirmSpy.mockReturnValue(false)
-            // Need to re-query row or ensure it's still there (it wasn't deleted in logic because we awaited success?)
-            // Actually, in the test flow above, deleteResource WAS called. So strict mode might complain if we try to delete again?
-            // The previous click triggered delete.
-            // Let's use a fresh render or different item for cancellation to be clean, or just click again.
-            
+            // Cancellation path — open modal and close without confirming
             fireEvent.click(within(row).getByTitle('Delete Resource'))
-            expect(mockApi.deleteResource).toHaveBeenCalledTimes(1) // Still 1 from before (cancel prevents 2nd call)
-            
-            confirmSpy.mockRestore()
+            fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
+            expect(mockApi.deleteResource).toHaveBeenCalledTimes(1) // Still 1 from before
         })
 
         it('should handle API refresh explicitly', async () => {
@@ -682,16 +675,15 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
 
         it('should handle deleteResource promise rejection', async () => {
              mockApi.deleteResource = vi.fn().mockRejectedValue({ error: 'Delete failed hard' })
-             const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
-             
+
              renderPage()
              await waitFor(() => expect(screen.getByText('pod-1')).toBeInTheDocument())
              const row = screen.getByText('pod-1').closest('tr')!
-             
+
              fireEvent.click(within(row).getByTitle('Delete Resource'))
-             
+             fireEvent.click(await screen.findByRole('button', { name: 'Delete pods' }))
+
              await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith('Failed to delete resource', expect.any(Object)))
-             confirmSpy.mockRestore()
         })
 
         it('should handle sorting with missing optional fields (branch coverage)', async () => {
@@ -786,13 +778,13 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
              
              // 1. Delete on the Pod in Pods tab
              const podRow = screen.getByText('sparse-pod').closest('tr')!
-             vi.spyOn(window, 'confirm').mockReturnValue(true)
              fireEvent.click(within(podRow).getByTitle('Delete Resource'))
-             
-             expect(mockApi.deleteResource).toHaveBeenCalledWith(expect.objectContaining({
+             fireEvent.click(await screen.findByRole('button', { name: 'Delete pods' }))
+
+             await waitFor(() => expect(mockApi.deleteResource).toHaveBeenCalledWith(expect.objectContaining({
                  resourceName: 'sparse-pod',
                  namespace: ''
-             }))
+             })))
              
              // 2. Switch to Deployments tab to test Restart
              fireEvent.click(screen.getByText('Deployments'))

@@ -1,8 +1,7 @@
-import { useEffect, useState, useRef } from 'react'
 import { Copy, Check, Loader2, FileText } from 'lucide-react'
 import { BaseModal } from './BaseModal'
-import { handleError } from '../../lib/error-handler'
-import { electronService } from '../../services/electronService'
+import { useApi } from '../../services/api-context'
+import { useResourceModal } from '../../hooks/useResourceModal'
 
 interface DescribeModalProps {
     isOpen: boolean
@@ -14,48 +13,14 @@ interface DescribeModalProps {
 }
 
 export function DescribeModal({ isOpen, onClose, clusterName, resourceName, resourceType, namespace }: DescribeModalProps) {
-    const [output, setOutput] = useState('')
-    const [loading, setLoading] = useState(false)
-    const [copied, setCopied] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-    const contentRef = useRef<HTMLPreElement>(null)
-
-    useEffect(() => {
-        if (isOpen && resourceName && clusterName) {
-            fetchDescribe()
-        }
-    }, [isOpen, resourceName, clusterName, resourceType, namespace])
-
-    const fetchDescribe = async () => {
-        setLoading(true)
-        setError(null)
-        try {
-            const result = await electronService.describeResource({
-                contextName: clusterName,
-                resourceType,
-                resourceName,
-                namespace
-            })
-            if (result.success) {
-                setOutput(result.data || '')
-            } else {
-                const errorMessage = result.error
-                setError(errorMessage)
-                handleError(new Error(errorMessage), 'Describe Failed')
-            }
-        } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'An error occurred')
-            handleError(err as Error, 'Describe Operation Error')
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const copyToClipboard = () => {
-        navigator.clipboard.writeText(output)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-    }
+    const api = useApi()
+    const { content: output, loading, copied, error, contentRef, copyToClipboard } = useResourceModal({
+        isOpen,
+        clusterName,
+        resourceName,
+        fetchFn: () => api.describeResource({ contextName: clusterName, resourceType, resourceName, namespace }),
+        errorTitle: 'Describe Failed',
+    })
 
     const headerActions = (
         <button
@@ -74,10 +39,7 @@ export function DescribeModal({ isOpen, onClose, clusterName, resourceName, reso
             <p className="modal-footer-info modal-footer-info-accent">
                 Context: {clusterName}
             </p>
-            <button
-                onClick={onClose}
-                className="close-footer-button"
-            >
+            <button onClick={onClose} className="close-footer-button">
                 Close
             </button>
         </>

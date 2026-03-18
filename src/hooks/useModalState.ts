@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import type { K8sResource } from '../types/k8s-types';
 
+type ModalType = 'describe' | 'yaml' | 'logs' | 'delete';
+
 interface ModalStateResult {
   selectedItem: K8sResource | null;
-  showDescribe: boolean;
-  showYaml: boolean;
-  showLogs: boolean;
-  showDelete: boolean;
+  activeModal: ModalType | null;
   openDescribe: (item: K8sResource) => void;
   openYaml: (item: K8sResource) => void;
   openLogs: (item: K8sResource) => void;
@@ -16,49 +15,25 @@ interface ModalStateResult {
 
 export function useModalState(): ModalStateResult {
   const [selectedItem, setSelectedItem] = useState<K8sResource | null>(null);
-  const [showDescribe, setShowDescribe] = useState(false);
-  const [showYaml, setShowYaml] = useState(false);
-  const [showLogs, setShowLogs] = useState(false);
-  const [showDelete, setShowDelete] = useState(false);
+  const [activeModal, setActiveModal] = useState<ModalType | null>(null);
 
-  const openDescribe = (item: K8sResource) => {
+  const open = (type: ModalType) => (item: K8sResource) => {
     setSelectedItem(item);
-    setShowDescribe(true);
-  };
-
-  const openYaml = (item: K8sResource) => {
-    setSelectedItem(item);
-    setShowYaml(true);
-  };
-
-  const openLogs = (item: K8sResource) => {
-    setSelectedItem(item);
-    setShowLogs(true);
-  };
-
-  const openDelete = (item: K8sResource) => {
-    setSelectedItem(item);
-    setShowDelete(true);
+    setActiveModal(type);
   };
 
   const closeAll = () => {
     setSelectedItem(null);
-    setShowDescribe(false);
-    setShowYaml(false);
-    setShowLogs(false);
-    setShowDelete(false);
+    setActiveModal(null);
   };
 
   return {
     selectedItem,
-    showDescribe,
-    showYaml,
-    showLogs,
-    showDelete,
-    openDescribe,
-    openYaml,
-    openLogs,
-    openDelete,
+    activeModal,
+    openDescribe: open('describe'),
+    openYaml: open('yaml'),
+    openLogs: open('logs'),
+    openDelete: open('delete'),
     closeAll,
   };
 }

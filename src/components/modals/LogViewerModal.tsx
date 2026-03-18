@@ -4,8 +4,8 @@ import { BaseModal } from './BaseModal'
 import { Button } from '../ui/Button'
 import { cn } from '../../lib/utils'
 import { handleError } from '../../lib/error-handler'
-import { electronService } from '../../services/electronService'
-import '../../../styles/components/modals/LogViewerModal.css';
+import { useApi } from '../../services/api-context'
+
 
 interface LogViewerModalProps {
     isOpen: boolean
@@ -16,6 +16,7 @@ interface LogViewerModalProps {
 }
 
 export function LogViewerModal({ isOpen, onClose, clusterName, podName, namespace }: LogViewerModalProps) {
+    const api = useApi()
     const [logs, setLogs] = useState<string>('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -30,7 +31,7 @@ export function LogViewerModal({ isOpen, onClose, clusterName, podName, namespac
         if (!isAuto) setLoading(true)
         setError(null)
         try {
-            const result = await electronService.getLogs({
+            const result = await api.getLogs({
                 contextName: clusterName,
                 podName,
                 namespace,
@@ -49,7 +50,7 @@ export function LogViewerModal({ isOpen, onClose, clusterName, podName, namespac
         } finally {
             if (!isAuto) setLoading(false)
         }
-    }, [podName, namespace, clusterName, tailLines])
+    }, [api, podName, namespace, clusterName, tailLines])
 
     useEffect(() => {
         if (isOpen) {
@@ -124,7 +125,7 @@ export function LogViewerModal({ isOpen, onClose, clusterName, podName, namespac
                 End of stream (tail: {tailLines})
             </p>
             <button onClick={onClose} className="close-footer-button">
-                Close Viewer
+                Close
             </button>
         </>
     )

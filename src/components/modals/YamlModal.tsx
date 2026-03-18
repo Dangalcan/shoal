@@ -1,9 +1,9 @@
-import { useEffect, useState, useRef } from 'react'
 import { Copy, Check, Loader2, Code, Save } from 'lucide-react'
 import { BaseModal } from './BaseModal'
-import { handleError } from '../../lib/error-handler'
-import { electronService } from '../../services/electronService'
+import { useApi } from '../../services/api-context'
+import { useResourceModal } from '../../hooks/useResourceModal'
 import { toast } from 'sonner'
+import { useState } from 'react'
 
 interface YamlModalProps {
     isOpen: boolean
@@ -15,59 +15,21 @@ interface YamlModalProps {
 }
 
 export function YamlModal({ isOpen, onClose, clusterName, resourceName, resourceType, namespace }: YamlModalProps) {
-    const [yaml, setYaml] = useState('')
-    const [loading, setLoading] = useState(false)
+    const api = useApi()
+    const { content: yaml, loading, copied, error, contentRef, copyToClipboard } = useResourceModal({
+        isOpen,
+        clusterName,
+        resourceName,
+        fetchFn: () => api.getResourceYaml({ contextName: clusterName, resourceType, resourceName, namespace }),
+        errorTitle: 'YAML Fetch Failed',
+    })
     const [saveLoading, setSaveLoading] = useState(false)
-    const [copied, setCopied] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-    const contentRef = useRef<HTMLPreElement>(null)
-
-    useEffect(() => {
-        if (isOpen && resourceName && clusterName) {
-            fetchYaml()
-        }
-    }, [isOpen, resourceName, clusterName, resourceType, namespace])
-
-    const fetchYaml = async () => {
-        setLoading(true)
-        setError(null)
-        try {
-            const result = await electronService.getResourceYaml({
-                contextName: clusterName,
-                resourceType,
-                resourceName,
-                namespace
-            })
-            if (result.success) {
-                setYaml(result.data || '')
-            } else {
-                const errorMessage = result.error
-                setError(errorMessage)
-                handleError(new Error(errorMessage), 'YAML Fetch Failed')
-            }
-        } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'An error occurred')
-            handleError(err as Error, 'YAML Fetch Error')
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const copyToClipboard = () => {
-        navigator.clipboard.writeText(yaml)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-    }
 
     const handleSaveToDb = async () => {
         if (!yaml) return
         setSaveLoading(true)
         try {
-            const result = await electronService.saveManifest({
-                name: resourceName,
-                content: yaml,
-                cluster_context: clusterName
-            })
+            const result = await api.saveManifest({ name: resourceName, content: yaml, cluster_context: clusterName })
             if (result.success) {
                 toast.success(`Manifest "${resourceName}" saved to database`)
             } else {
@@ -108,10 +70,7 @@ export function YamlModal({ isOpen, onClose, clusterName, resourceName, resource
             <p className="modal-footer-info modal-footer-info-accent">
                 Context: {clusterName}
             </p>
-            <button
-                onClick={onClose}
-                className="close-footer-button"
-            >
+            <button onClick={onClose} className="close-footer-button">
                 Close
             </button>
         </>
@@ -127,7 +86,7 @@ export function YamlModal({ isOpen, onClose, clusterName, resourceName, resource
             headerActions={headerActions}
             footer={footerContent}
             className="yaml-modal"
-            width="900px" // YAML often needs more width
+            width="900px"
             data-testid="yaml-modal"
         >
             {loading ? (
