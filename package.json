@@ -21,8 +21,8 @@
     "test:e2e:report": "playwright show-report e2e-report",
     "lint": "npm run lint:eslint && npm run lint:prettier",
     "lint:eslint": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint . --ext .js,.jsx,.ts,.tsx",
-    "lint:prettier": "prettier --check '**/*.{cjs,js,ts,css,md}'",
-    "lint:fix": "npm run lint:eslint -- --fix && prettier --write '**/*.{cjs,js,ts,css,md}'",
+    "lint:prettier": "prettier --check '**/*.{cjs,js,ts,css,scss,md}'",
+    "lint:fix": "npm run lint:eslint -- --fix && prettier --write '**/*.{cjs,js,ts,css,scss,md}'",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
     "prepare": "husky"
   },
@@ -31,7 +31,7 @@
     "url": "git+https://github.com/Dangalcan/Kubernetes-Desktop.git"
   },
   "lint-staged": {
-    "*.{js,ts,json,css,md}": [
+    "*.{js,ts,json,css,scss,md}": [
       "prettier --write"
     ]
   },
@@ -89,6 +89,7 @@
     "happy-dom": "^20.1.0",
     "jsdom": "^27.4.0",
     "postcss": "^8.5.6",
+    "sass": "^1.98.0",
     "tailwindcss": "^4.1.18",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
