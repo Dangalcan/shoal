@@ -5,24 +5,30 @@
  * Coordinates between loader, registry, and context.
  */
 
-import type { Plugin, PluginExtensions } from '../../types/plugin-types';
+import type { Plugin } from '../../types/plugin-types';
+
+interface PluginUpdateInfo {
+  pluginId: string;
+  hasUpdate: boolean;
+  latestVersion: string;
+}
 import log from '../../logger';
 import { getErrorMessage } from '../../utils/error-utils';
 import { pluginLoader } from './plugin-loader';
 import { pluginRegistry } from './plugin-registry';
+import { createPluginContext } from './plugin-context';
 import {
-  createPluginContext,
   getAllPluginExtensions,
   clearPluginExtensions,
-} from './plugin-context';
+} from './plugin-extensions';
 import { storageService } from './storage-service';
 import { licenseManager } from '../security/license-manager';
 import { marketplaceService } from '../marketplace/marketplace-service';
 import { dependencyResolver } from './dependency-resolver';
 import { dataLoader } from './data-loader';
 import { pluginEventBus } from './plugin-events';
+import { pluginWatcher } from './plugin-watcher';
 import { pathService } from './path-service';
-import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
 
@@ -42,8 +48,6 @@ async function callHookIfExists(
 
 export class PluginManager {
   private initialized = false;
-  private watchers: Map<string, fs.FSWatcher> = new Map();
-  private reloadTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
   /**
    * Initialize the plugin system
@@ -128,7 +132,7 @@ export class PluginManager {
     const result = await marketplaceService.checkForUpdates(pluginList);
 
     if (result.success && result.data) {
-      for (const update of result.data as any[]) {
+      for (const update of result.data as PluginUpdateInfo[]) {
         const plugin = this.getPlugin(update.pluginId);
         if (plugin && update.hasUpdate) {
           plugin.hasUpdate = true;
@@ -250,69 +254,14 @@ export class PluginManager {
    * Start watching a plugin directory for changes
    */
   async watchPlugin(pluginId: string): Promise<void> {
-    if (this.watchers.has(pluginId)) return;
-
-    const pluginPath = await pluginLoader.getPluginPath(pluginId);
-    if (!pluginPath) return;
-
-    log.info(
-      `[PluginManager] Starting watcher for ${pluginId} at ${pluginPath}`
-    );
-
-    try {
-      const DEBOUNCE_MS = 500;
-
-      const watcher = fs.watch(
-        pluginPath,
-        { recursive: true },
-        (event, filename) => {
-          log.info(
-            `[PluginManager] Change detected in ${pluginId}: ${event} ${filename}`
-          );
-
-          // Debounce: cancel any pending reload before scheduling a new one.
-          const existing = this.reloadTimers.get(pluginId);
-          if (existing) clearTimeout(existing);
-
-          const timer = setTimeout(() => {
-            this.reloadTimers.delete(pluginId);
-            this.reloadPlugin(pluginId).catch((err: unknown) => {
-              log.error(
-                `[PluginManager] Auto-reload failed for ${pluginId}:`,
-                getErrorMessage(err)
-              );
-            });
-          }, DEBOUNCE_MS);
-
-          this.reloadTimers.set(pluginId, timer);
-        }
-      );
-
-      this.watchers.set(pluginId, watcher);
-    } catch (error: unknown) {
-      log.error(
-        `[PluginManager] Failed to start watcher for ${pluginId}:`,
-        getErrorMessage(error)
-      );
-    }
+    await pluginWatcher.watch(pluginId, (id) => this.reloadPlugin(id));
   }
 
   /**
    * Stop watching a plugin directory
    */
   private stopWatcher(pluginId: string): void {
-    const timer = this.reloadTimers.get(pluginId);
-    if (timer) {
-      clearTimeout(timer);
-      this.reloadTimers.delete(pluginId);
-    }
-
-    const watcher = this.watchers.get(pluginId);
-    if (watcher) {
-      watcher.close();
-      this.watchers.delete(pluginId);
-      log.info(`[PluginManager] Stopped watcher for ${pluginId}`);
-    }
+    pluginWatcher.stop(pluginId);
   }
 
   /**
@@ -615,7 +564,7 @@ export class PluginManager {
   /**
    * Get plugin settings
    */
-  getPluginSettings(pluginId: string): Record<string, any> {
+  getPluginSettings(pluginId: string): Record<string, unknown> {
     return pluginRegistry.getPluginSettings(pluginId);
   }
 
@@ -624,7 +573,7 @@ export class PluginManager {
    */
   async updatePluginSettings(
     pluginId: string,
-    settings: Record<string, any>
+    settings: Record<string, unknown>
   ): Promise<void> {
     await pluginRegistry.updatePluginSettings(pluginId, settings);
   }
@@ -670,7 +619,6 @@ export class PluginManager {
       if (!pluginPath)
         log.error(`[ERROR] getPluginPath returned undefined for ${pluginId}`);
       if (pluginPath) {
-        const userDataPath = app.getPath('userData');
         const pluginsDir = path.resolve(pathService.getUserPluginsDir());
         const absPluginPath = path.resolve(pluginPath);
         const relative = path.relative(pluginsDir, absPluginPath);

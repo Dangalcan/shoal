@@ -15,13 +15,13 @@ import type {
   SidebarExtension,
   ResourceActionExtension,
   PageExtension,
-  PluginExtensions,
 } from '../../types/plugin-types';
 
 import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
 import { pluginEventBus } from './plugin-events';
 import { storageService } from './storage-service';
+import { getPluginExtensions, savePluginExtensions } from './plugin-extensions';
 import { getErrorMessage } from '../../utils/error-utils';
 import { kubernetesService } from '../kubernetes/kubernetes-service';
 import log from '../../logger';
@@ -463,37 +463,4 @@ function createDeniedAPI(apiName: string): object {
       },
     }
   );
-}
-
-/**
- * Persistent registry for plugin extensions backed by SQLite via StorageService.
- * Uses a reserved storage key scoped to each plugin.
- */
-const EXTENSIONS_STORAGE_KEY = '__extensions__';
-
-function getPluginExtensions(pluginId: string): PluginExtensions {
-  return (
-    (storageService.get(
-      pluginId,
-      EXTENSIONS_STORAGE_KEY
-    ) as PluginExtensions) || {}
-  );
-}
-
-function savePluginExtensions(
-  pluginId: string,
-  extensions: PluginExtensions
-): void {
-  storageService.set(pluginId, EXTENSIONS_STORAGE_KEY, extensions);
-}
-
-export function clearPluginExtensions(pluginId: string): void {
-  storageService.delete(pluginId, EXTENSIONS_STORAGE_KEY);
-}
-
-export function getAllPluginExtensions(): Map<string, PluginExtensions> {
-  return storageService.getAllByKey(EXTENSIONS_STORAGE_KEY) as Map<
-    string,
-    PluginExtensions
-  >;
 }
