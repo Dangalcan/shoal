@@ -7,7 +7,7 @@
 import { useParams } from 'react-router-dom';
 import { usePluginPage, usePluginScriptStatus } from '../services/plugin-ui-registry';
 import { usePlugins } from '../features/plugins/PluginProvider';
-import { AlertTriangle, Home } from 'lucide-react';
+import { AlertTriangle, Home, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui';
 import { useNavigate } from 'react-router-dom';
 
@@ -21,7 +21,7 @@ export function PluginPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="spinner"></div>
+        <Loader2 className="spinner" size={40} />
       </div>
     );
   }
@@ -57,7 +57,7 @@ export function PluginPage() {
   if (!page && plugin.rendererEntry) {
     return (
       <div className="flex items-center justify-center h-full gap-3">
-        <div className="spinner" />
+        <Loader2 className="spinner" size={32} />
         <p>Loading {plugin.manifest.name}...</p>
       </div>
     );

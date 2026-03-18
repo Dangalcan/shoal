@@ -10,9 +10,8 @@ import { LicenseActivationModal } from '../features/plugins/LicenseActivationMod
 import { MarketplaceList } from '../features/marketplace/MarketplaceList';
 import { PluginSettingsModal } from '../features/plugins/PluginSettingsModal';
 import { ConfirmModal } from '../components/modals/ConfirmModal';
-import { Settings, RotateCcw, Package, Download, Trash2, Power, AlertCircle, User, Shield, Upload } from 'lucide-react';
+import { Settings, RotateCcw, Package, Download, Trash2, Power, AlertCircle, User, Shield, Upload, Loader2 } from 'lucide-react';
 import type { Plugin } from '../../electron/types/plugin-types';
-import '../../styles/pages/Plugins.css';
 
 export default function Plugins() {
   const { 
@@ -122,7 +121,7 @@ export default function Plugins() {
           <h1 className="plugins__title">Plugins</h1>
         </div>
         <div className="plugins__loading">
-          <div className="spinner"></div>
+          <Loader2 size={48} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
           <p>Loading plugins...</p>
         </div>
       </div>
@@ -160,7 +159,7 @@ export default function Plugins() {
              disabled={importing}
            >
              {importing ? (
-               <span className="spinner spinner--small"></span>
+               <Loader2 size={16} className="animate-spin" />
              ) : (
                <Upload size={16} />
              )}
@@ -273,16 +272,16 @@ export default function Plugins() {
                     <button
                       onClick={() => handleTogglePlugin(plugin)}
                       disabled={actionLoading === plugin.manifest.id || plugin.state === 'loading'}
-                      className={`btn ${plugin.state === 'enabled' ? 'btn--danger' : 'btn--primary'}`}
+                      className={`btn btn--sm ${plugin.state === 'enabled' ? 'btn--danger' : 'btn--primary'}`}
                     >
                       {actionLoading === plugin.manifest.id ? (
                         <>
-                          <span className="spinner spinner--small"></span>
+                          <Loader2 size={14} className="animate-spin" />
                           {plugin.state === 'enabled' ? 'Disabling...' : 'Enabling...'}
                         </>
                       ) : (
                         <>
-                          <Power size={16} />
+                          <Power size={14} />
                           {plugin.state === 'enabled' ? 'Disable' : 'Enable'}
                         </>
                       )}
@@ -292,7 +291,7 @@ export default function Plugins() {
                       <button
                         onClick={() => handleUpdatePlugin(plugin)}
                         disabled={actionLoading === plugin.manifest.id}
-                        className="btn btn--success"
+                        className="btn btn--sm btn--success"
                       >
                         {actionLoading === plugin.manifest.id ? 'Updating...' : 'Update'}
                       </button>
@@ -301,15 +300,15 @@ export default function Plugins() {
                     {plugin.manifest.license.type !== 'free' && (
                       <>
                         {!plugin.licenseInfo?.isActive ? (
-                          <button 
-                            className="btn btn--secondary"
+                          <button
+                            className="btn btn--sm btn--license"
                             onClick={() => setActiveModalPlugin(plugin)}
                           >
                             Activate License
                           </button>
                         ) : (
                           <button
-                            className="btn btn--secondary"
+                            className="btn btn--sm btn--secondary"
                             onClick={() => setDeactivatingLicensePlugin(plugin)}
                           >
                             Deactivate License
@@ -323,7 +322,7 @@ export default function Plugins() {
                         href={plugin.manifest.homepage}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="btn btn--secondary"
+                        className="btn btn--sm btn--secondary"
                       >
                         Homepage
                       </a>
@@ -331,32 +330,32 @@ export default function Plugins() {
 
                     {plugin.state === 'enabled' && (
                       <button
-                        className="btn btn--secondary btn--icon"
+                        className="btn btn--icon btn--secondary"
                         onClick={() => handleReloadPlugin(plugin)}
                         disabled={actionLoading === plugin.manifest.id}
                         title="Reload Plugin"
                       >
-                        <RotateCcw size={16} className={actionLoading === plugin.manifest.id ? 'spin' : ''} />
+                        <RotateCcw size={15} className={actionLoading === plugin.manifest.id ? 'animate-spin' : ''} />
                       </button>
                     )}
-                    
+
                     {plugin.manifest.configuration && (
                       <button
-                        className="btn btn--secondary btn--icon"
+                        className="btn btn--icon btn--secondary"
                         onClick={() => setActiveSettingsPlugin(plugin)}
                         title="Settings"
                       >
-                        <Settings size={16} />
+                        <Settings size={15} />
                       </button>
                     )}
 
                     <button
-                      className="btn btn--secondary btn--icon btn--danger-hover"
+                      className="btn btn--icon btn--secondary btn--danger-hover"
                       onClick={() => handleUninstallPlugin(plugin)}
                       disabled={actionLoading === plugin.manifest.id}
                       title="Uninstall Plugin"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={15} />
                     </button>
                   </div>
                 </div>
