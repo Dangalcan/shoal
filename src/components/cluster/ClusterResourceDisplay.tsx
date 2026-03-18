@@ -2,7 +2,7 @@ import React from 'react';
 import { Loader2, AlertCircle, Box } from 'lucide-react';
 import { ResourceTable } from '../resource-tables/ResourceTable';
 import { ResourceRow } from '../resource-tables/ResourceRows';
-import { COLUMN_DEFINITIONS, ResourceType } from '../../lib/resource-definitions';
+import { COLUMN_DEFINITIONS, ResourceType } from '../../lib/resources/resource-definitions';
 import { K8sResource } from '../../types/k8s-types';
 import { SortConfig } from '../../lib/sorting/types';
 

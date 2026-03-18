@@ -1,4 +1,4 @@
-import { ResourceType } from '../../lib/resource-definitions';
+import { ResourceType } from '../../lib/resources/resource-definitions';
 
 
 interface Tab {

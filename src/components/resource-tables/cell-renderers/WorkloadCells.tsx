@@ -3,7 +3,7 @@
  */
 
 import React from 'react'
-import type { ResourceType } from '../../../lib/resource-definitions'
+import type { ResourceType } from '../../../lib/resources/resource-definitions'
 import { TextCell } from '../ResourceCells'
 
 interface CellProps {

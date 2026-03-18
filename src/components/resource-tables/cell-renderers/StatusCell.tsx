@@ -6,7 +6,7 @@ import React from 'react'
 import type { K8sResource } from '../../../types/k8s-types'
 import { isPod, isPersistentVolumeClaim, isNode, isJob } from '../../../lib/type-guards'
 import { StatusBadge } from '../ResourceCells'
-import type { ResourceType } from '../../../lib/resource-definitions'
+import type { ResourceType } from '../../../lib/resources/resource-definitions'
 
 interface StatusCellProps {
     resource: K8sResource

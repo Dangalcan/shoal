@@ -5,7 +5,7 @@
 
 import React from 'react'
 import type { K8sResource } from '../../../types/k8s-types'
-import type { ResourceType } from '../../../lib/resource-definitions'
+import type { ResourceType } from '../../../lib/resources/resource-definitions'
 import { TextCell } from '../ResourceCells'
 import * as Cells from './index'
 

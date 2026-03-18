@@ -16,7 +16,7 @@ import type {
   StatefulSet,
   ReplicaSet,
 } from '../../types/k8s-types';
-import type { ResourceType } from '../resource-definitions';
+import type { ResourceType } from '../resources/resource-definitions';
 import type { SorterFunction } from './types';
 import { sortByString, sortByNumber, sortByDate } from './sortStrategies';
 import { isPod } from '../type-guards';

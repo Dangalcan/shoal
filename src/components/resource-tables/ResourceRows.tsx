@@ -1,6 +1,6 @@
 import React from 'react'
 import { NameCell } from './ResourceCells'
-import { ResourceType, COLUMN_DEFINITIONS } from '../../lib/resource-definitions'
+import { ResourceType, COLUMN_DEFINITIONS } from '../../lib/resources/resource-definitions'
 import type { K8sResource } from '../../types/k8s-types'
 import { renderCell } from './cell-renderers/renderCell'
 

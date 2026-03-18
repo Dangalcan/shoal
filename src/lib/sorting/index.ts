@@ -1,4 +1,4 @@
-import type { ResourceType } from '../resource-definitions';
+import type { ResourceType } from '../resources/resource-definitions';
 import type { SorterFunction } from './types';
 import * as Sorters from './resourceSorters';
 
