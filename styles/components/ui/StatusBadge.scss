@@ -1,0 +1,52 @@
+/* StatusBadge.scss - Unified status badge component */
+@use '../../mixins' as *;
+
+.status-badge {
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  display: inline-block;
+  text-transform: capitalize;
+}
+
+/* Success / Running / Bound / Ready */
+.status-badge-success,
+.status-badge-running,
+.status-badge-bound,
+.status-badge-ready {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid rgb(16 185 129 / 0.2);
+
+  @include dark() {
+    background-color: rgb(6 78 59 / 0.2);
+    color: rgb(52 211 153);
+  }
+}
+
+/* Warning / Other */
+.status-badge-warning,
+.status-badge-other {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid rgb(245 158 11 / 0.2);
+
+  @include dark() {
+    background-color: rgb(120 53 15 / 0.2);
+    color: rgb(251 191 36);
+  }
+}
+
+/* Error / Not Ready */
+.status-badge-error,
+.status-badge-not-ready {
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+  border: 1px solid rgb(239 68 68 / 0.2);
+
+  @include dark() {
+    background-color: rgb(127 29 29 / 0.2);
+    color: rgb(248 113 113);
+  }
+}

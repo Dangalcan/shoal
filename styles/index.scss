@@ -1,0 +1,70 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'animations' as *;
+
+/* UI Components */
+@use 'components/ui/Badge';
+@use 'components/ui/Button';
+@use 'components/ui/Card';
+@use 'components/ui/Spinner';
+@use 'components/ui/StatusBadge';
+
+/* Shared Components */
+@use 'components/Sidebar';
+@use 'components/ContextSwitcher';
+@use 'components/common/ErrorBoundary';
+@use 'components/cluster/DetailsHeader';
+@use 'components/cluster/NamespaceSelector';
+@use 'components/cluster/ResourceTabs';
+@use 'components/cluster/SettingsDropdown';
+@use 'components/modals/states';
+@use 'components/modals/BaseModal';
+@use 'components/modals/ConfirmModal';
+@use 'components/modals/LogViewerModal';
+@use 'components/modals/PodViewerModal';
+@use 'components/plugins/LicenseActivationModal';
+@use 'components/plugins/PluginConfigurationForm';
+@use 'components/plugins/PluginRuntime';
+@use 'components/resource-tables/ResourceCells';
+@use 'components/resource-tables/ResourceRows';
+@use 'components/resource-tables/ResourceTable';
+@use 'components/marketplace/Marketplace';
+
+/* Layouts */
+@use 'layouts/Layout';
+
+/* Pages */
+@use 'pages/ClusterDetails';
+@use 'pages/Clusters';
+@use 'pages/CreateCluster';
+@use 'pages/Dashboard';
+@use 'pages/Manifests';
+@use 'pages/Plugins';
+@use 'pages/Settings';
+
+/* Base Styles */
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  overflow: hidden; /* App-like feel */
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Global Scrollbar Styles */
+* {
+  @include scrollbar();
+}
+
+/* Prevent white flash on native <select> dropdowns in dark mode */
+[data-theme='dark'] select {
+  color-scheme: dark;
+
+  option {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+  }
+}

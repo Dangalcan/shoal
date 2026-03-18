@@ -1,0 +1,130 @@
+/* _mixins.scss */
+
+@mixin table-head-base($border-width: 2px, $letter-spacing: 0.05em) {
+  background-color: var(--bg-secondary);
+  border-bottom: $border-width solid var(--border-color);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: $letter-spacing;
+}
+
+@mixin glass(
+  $bg: var(--plugin-glass-bg),
+  $border: var(--plugin-glass-border),
+  $shadow: var(--plugin-glass-shadow)
+) {
+  background: $bg;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid $border;
+  box-shadow: $shadow;
+}
+
+@mixin flex-center($direction: row, $gap: 0) {
+  display: flex;
+  flex-direction: $direction;
+  align-items: center;
+  justify-content: center;
+  @if $gap != 0 {
+    gap: $gap;
+  }
+}
+
+@mixin flex-between($align: center, $gap: 0) {
+  display: flex;
+  align-items: $align;
+  justify-content: space-between;
+  @if $gap != 0 {
+    gap: $gap;
+  }
+}
+
+@mixin smooth-transition($props: all, $duration: 0.3s) {
+  transition: $props $duration cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@mixin scrollbar() {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 20px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+
+    &:hover {
+      background: var(--text-muted);
+    }
+  }
+
+  [data-theme='dark'] &::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    &:hover {
+      background: var(--text-muted);
+    }
+  }
+}
+
+@mixin btn-variant($bg, $color, $border: transparent) {
+  background: $bg;
+  color: $color;
+  border: 1px solid $border;
+
+  @if $border != transparent {
+    &:hover:not(:disabled) {
+      background: $color;
+      color: white;
+    }
+  }
+}
+
+/* Apply styles only in dark mode, relative to the current selector */
+@mixin dark() {
+  [data-theme='dark'] & {
+    @content;
+  }
+}
+
+/* Standard modal overlay backdrop */
+@mixin modal-overlay($z-index: 1000) {
+  position: fixed;
+  inset: 0;
+  z-index: $z-index;
+  @include flex-center();
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+}
+
+/* Base form input/textarea/select styles */
+@mixin form-input-base() {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm, 0.875rem);
+  font-family: inherit;
+  width: 100%;
+  @include smooth-transition(all, 0.2s);
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-info-bg);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

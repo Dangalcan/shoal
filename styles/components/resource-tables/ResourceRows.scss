@@ -1,0 +1,32 @@
+/* ResourceRows.scss - Row styling and hover effects */
+
+.table-body {
+  border-top: 1px solid var(--border-color);
+}
+
+.table-row {
+  transition: background-color 150ms;
+  border-bottom: 1px solid var(--border-color);
+
+  &:hover {
+    background-color: var(--bg-tertiary);
+
+    .row-actions {
+      opacity: 1;
+    }
+
+    [data-theme='dark'] & {
+      background-color: rgb(30 41 59 / 0.6);
+    }
+  }
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 150ms;
+  padding-right: 0.5rem;
+}

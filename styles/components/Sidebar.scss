@@ -1,0 +1,111 @@
+/* Sidebar.scss */
+@use '../mixins' as *;
+
+.sidebar {
+  width: 16rem;
+  background-color: rgb(15 23 42);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  border-right: 1px solid rgb(30 41 59);
+
+  &-header {
+    padding: var(--spacing-lg);
+  }
+
+  &-context {
+    margin-top: var(--spacing-md);
+  }
+
+  &-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--color-info);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  &-nav {
+    flex: 1;
+    padding: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  &-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: 0.5rem;
+    @include smooth-transition(all, 150ms);
+    font-size: 0.875rem;
+    font-weight: 500;
+
+    &-active {
+      background-color: var(--color-primary);
+      color: white;
+    }
+
+    &-inactive {
+      color: rgb(148 163 184);
+
+      &:hover {
+        background-color: rgb(30 41 59);
+        color: white;
+      }
+    }
+  }
+
+  &-footer {
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  &-version {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: var(--spacing-sm);
+    opacity: 0.6;
+  }
+
+  &-divider {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin: var(--spacing-md) var(--spacing-md) var(--spacing-xs);
+    opacity: 0.5;
+    font-weight: 600;
+  }
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  @include smooth-transition(all, 150ms);
+
+  &:hover {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: var(--color-info);
+  }
+}

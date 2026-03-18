@@ -1,0 +1,117 @@
+/* _variables.scss */
+
+:root {
+  --bg-primary: rgb(255 255 255);
+  --bg-secondary: rgb(248 250 252);
+  --bg-tertiary: rgb(241 245 249);
+  --text-primary: rgb(15 23 42);
+  --text-secondary: rgb(71 85 105);
+  --text-muted: rgb(148 163 184);
+  --border-color: rgb(226 232 240);
+
+  /* Semantic Colors */
+  --color-primary: rgb(37 99 235);
+  --color-primary-rgb: 37 99 235;
+  --color-primary-hover: rgb(29 78 216);
+  --color-success: rgb(22 163 74);
+  --color-success-bg: rgb(240 253 244);
+  --color-error: rgb(220 38 38);
+  --color-error-bg: rgb(254 242 242);
+  --color-warning: rgb(217 119 6);
+  --color-warning-bg: rgb(255 251 235);
+  --color-info: rgb(37 99 235);
+  --color-info-bg: rgb(239 246 255);
+
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+
+  /* Font Sizes */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+  --font-size-2xl: 1.875rem;
+
+  --card-bg: white;
+  --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+
+  /* Badge semantic tokens */
+  --badge-success-bg: rgb(236 253 245);
+  --badge-success-text: rgb(4 120 87);
+  --badge-success-border: rgb(209 250 229);
+  --badge-warning-text: rgb(180 83 9);
+  --badge-warning-border: rgb(254 243 199);
+  --badge-error-text: rgb(185 28 28);
+  --badge-error-border: rgb(254 226 226);
+  --badge-active-bg: rgb(219 234 254);
+  --badge-active-text: rgb(29 78 216);
+  --badge-active-border: transparent;
+
+  /* Sidebar (always-dark) surface tokens */
+  --sidebar-bg: rgb(30 41 59);
+  --sidebar-bg-darker: rgb(15 23 42);
+  --sidebar-border: rgb(51 65 85);
+  --sidebar-text: rgb(241 245 249);
+  --sidebar-text-muted: rgb(148 163 184);
+
+  /* Plugin Design Tokens */
+  --plugin-glass-bg: rgba(255, 255, 255, 0.7);
+  --plugin-glass-border: rgba(226, 232, 240, 0.8);
+  --plugin-glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+
+  --plugin-gradient-enabled: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  --plugin-gradient-disabled: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+  --plugin-gradient-error: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  --plugin-gradient-loading: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+[data-theme='dark'] {
+  --bg-primary: rgb(15 23 42);
+  --bg-secondary: rgb(30 41 59);
+  --bg-tertiary: rgb(15 23 42 / 0.5);
+  --text-primary: rgb(241 245 249);
+  --text-secondary: rgb(148 163 184);
+  --text-muted: rgb(100 116 139);
+  --border-color: rgb(51 65 85);
+
+  /* Semantic Colors Dark Mode Overrides */
+  --color-success: rgb(74 222 128);
+  --color-success-bg: rgb(20 83 45 / 0.2);
+  --color-error: rgb(248 113 113);
+  --color-error-bg: rgb(127 29 29 / 0.2);
+  --color-warning: rgb(251 191 36);
+  --color-warning-bg: rgb(120 53 15 / 0.2);
+  --color-info: rgb(96 165 250);
+  --color-info-bg: rgb(30 58 138 / 0.2);
+
+  --card-bg: rgb(30 41 59);
+  --card-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+
+  /* Badge semantic tokens dark overrides */
+  --badge-success-bg: rgb(6 78 59 / 0.2);
+  --badge-success-text: rgb(52 211 153);
+  --badge-success-border: rgb(6 78 59 / 0.5);
+  --badge-warning-text: rgb(251 191 36);
+  --badge-warning-border: rgb(120 53 15 / 0.5);
+  --badge-error-text: rgb(248 113 113);
+  --badge-error-border: rgb(127 29 29 / 0.5);
+  --badge-active-bg: rgb(30 64 175 / 0.2);
+  --badge-active-text: rgb(147 197 253);
+  --badge-active-border: rgb(30 64 175 / 0.5);
+
+  /* Plugin Design Tokens Dark Mode */
+  --plugin-glass-bg: rgba(30, 41, 59, 0.7);
+  --plugin-glass-border: rgba(51, 65, 85, 0.8);
+  --plugin-glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}

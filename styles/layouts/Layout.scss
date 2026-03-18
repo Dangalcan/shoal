@@ -1,0 +1,25 @@
+/* Layout.scss */
+@use '../mixins' as *;
+
+.layout-container {
+  display: flex;
+  height: 100vh;
+  background-color: var(--bg-secondary);
+  overflow: hidden;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+}
+
+.layout-main {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}

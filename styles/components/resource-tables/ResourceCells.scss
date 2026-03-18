@@ -1,0 +1,121 @@
+/* ResourceCells.scss - Cell styling, status badges, and action buttons */
+@use '../../mixins' as *;
+
+/* Table Cells */
+.table-cell {
+  padding: 1rem 1.5rem;
+  font-size: 0.875rem;
+
+  &-namespace {
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &-name {
+    font-weight: 700;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: -0.01em;
+
+    &-content {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+  }
+
+  &-text {
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &-mono {
+      font-family: ui-monospace, 'Cascadia Code', monospace;
+      color: var(--text-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 0.8125rem;
+    }
+
+    &-muted {
+      color: var(--text-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+}
+
+.pod-name-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  @include smooth-transition(all, 150ms);
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+
+  &:hover {
+    color: var(--color-primary);
+
+    .pod-terminal-icon {
+      opacity: 1;
+    }
+  }
+}
+
+.pod-name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pod-terminal-icon {
+  flex-shrink: 0;
+  opacity: 0;
+  color: var(--color-info);
+  @include smooth-transition(opacity, 150ms);
+}
+
+/* Action Buttons */
+.action-button {
+  padding: 0.3125rem;
+  border-radius: 0.375rem;
+  color: var(--text-muted);
+  @include smooth-transition(all, 150ms);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+
+  &-describe:hover {
+    color: var(--color-info);
+  }
+  &-yaml:hover {
+    color: rgb(147 51 234);
+  }
+  &-restart:hover {
+    color: var(--color-success);
+  }
+  &-logs:hover {
+    color: var(--color-info);
+  }
+  &-delete:hover {
+    color: var(--color-error);
+  }
+}
+
+/* Status badges are defined in components/ui/StatusBadge.scss */

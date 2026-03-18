@@ -1,0 +1,125 @@
+/* LogViewerModal.scss */
+@use '../../mixins' as *;
+
+.log-modal .base-modal-header {
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.log-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.log-search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 0 0.75rem;
+  @include smooth-transition(all, 150ms);
+  width: 200px;
+
+  &:focus-within {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-info-bg);
+  }
+}
+
+.log-search-icon {
+  color: var(--text-muted);
+  margin-right: 0.5rem;
+}
+
+.log-search-input {
+  background: transparent;
+  border: none;
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+  height: 2rem;
+  width: 100%;
+  outline: none;
+}
+
+.search-clear {
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  @include smooth-transition(color, 150ms);
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+.log-refresh-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.auto-refresh-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  @include smooth-transition(all, 150ms);
+  white-space: nowrap;
+
+  &:hover {
+    background-color: var(--bg-secondary);
+    border-color: var(--text-muted);
+  }
+
+  &.active {
+    background-color: var(--color-info-bg);
+    border-color: var(--color-info);
+    color: var(--color-info);
+  }
+}
+
+.log-viewer-body {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  height: 100%;
+  overflow: hidden;
+
+  /* Dark theme overrides for better contrast in logs */
+  [data-theme='dark'] & {
+    background-color: rgb(2 6 23);
+  }
+}
+
+.log-content-text {
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  height: 100%;
+  overflow-y: auto;
+  @include scrollbar();
+}
+
+.log-error-icon {
+  color: var(--color-error);
+}

@@ -1,0 +1,49 @@
+/* Shared loading / error / empty states */
+
+/* Base for page-level empty states — pages override height/padding */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 2px dashed var(--border-color);
+  border-radius: 1rem;
+}
+
+/* Shared loading / error states used inside modals */
+
+.state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  gap: 1rem;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  color: var(--color-info);
+}
+
+.error-title {
+  font-weight: 700;
+  color: var(--color-error);
+  font-size: 1.125rem;
+}
+
+.error-message {
+  font-size: 0.8125rem;
+  margin-top: 0.25rem;
+  text-align: center;
+  padding: 1.25rem 2rem;
+  color: var(--color-error);
+  font-family: ui-monospace, monospace;
+  background-color: var(--color-error-bg);
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-color);
+  max-width: 80%;
+}

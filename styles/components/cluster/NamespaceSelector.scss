@@ -1,0 +1,70 @@
+/* NamespaceSelector.scss */
+@use '../../mixins' as *;
+
+.namespace-selector-container {
+  position: relative;
+  flex: 1;
+
+  @media (min-width: 768px) {
+    width: 16rem;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid var(--text-muted);
+    pointer-events: none;
+    @include smooth-transition(transform, 200ms);
+  }
+
+  &:focus-within::after {
+    transform: translateY(-50%) rotate(180deg);
+    border-top-color: var(--color-primary);
+  }
+
+  &:focus-within .namespace-selector-icon {
+    color: var(--color-primary);
+  }
+}
+
+.namespace-selector-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+  @include smooth-transition(color, 200ms);
+}
+
+.namespace-selector {
+  width: 100%;
+  padding: 0.5rem 2rem 0.5rem 2.5rem;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.625rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  appearance: none;
+  outline: none;
+  @include smooth-transition(all, 200ms);
+  font-weight: 500;
+
+  &:hover {
+    border-color: var(--text-muted);
+    background-color: var(--bg-secondary);
+  }
+
+  &:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgb(var(--color-primary-rgb, 37 99 235) / 0.1);
+    background-color: var(--bg-secondary);
+  }
+}
