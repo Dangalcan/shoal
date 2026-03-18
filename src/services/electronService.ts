@@ -1,5 +1,7 @@
 import type { Result } from '../types/result';
 import type { Manifest, PluginScaffoldOptions } from '../types.d';
+import type { K8sResource } from '../types/k8s-types';
+import type { Plugin } from '../../electron/types/plugin-types';
 
 export class ElectronService {
   private static instance: ElectronService;
@@ -39,7 +41,7 @@ export class ElectronService {
     return window.electron.getCurrentContext();
   }
 
-  async getPods(contextName: string): Promise<Result<any[]>> {
+  async getPods(contextName: string): Promise<Result<K8sResource[]>> {
     return window.electron.getPods(contextName);
   }
 
@@ -51,7 +53,7 @@ export class ElectronService {
     contextName: string;
     resourceType: string;
     namespace: string;
-  }): Promise<Result<any[]>> {
+  }): Promise<Result<K8sResource[]>> {
     return window.electron.getResources(args);
   }
 
@@ -105,7 +107,7 @@ export class ElectronService {
   }
 
   // Plugin System methods
-  async getPlugins(): Promise<Result<any[]>> {
+  async getPlugins(): Promise<Result<Plugin[]>> {
     return window.electron.getPlugins();
   }
 

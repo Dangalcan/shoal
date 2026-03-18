@@ -20,8 +20,8 @@ interface CellPropsWithType extends CellProps {
  * HPA Reference Cell
  */
 export const HPAReferenceCell: React.FC<CellProps> = ({ resource, style }) => {
-    const spec = resource.spec as Record<string, unknown> | undefined
-    const ref = spec?.scaleTargetRef as Record<string, unknown> | undefined
+    const spec = resource.spec as unknown as Record<string, unknown> | undefined
+    const ref = spec?.scaleTargetRef as unknown as Record<string, unknown> | undefined
     return <TextCell content={ref ? `${ref.kind}/${ref.name}` : '-'} style={style} />
 }
 
@@ -29,14 +29,14 @@ export const HPAReferenceCell: React.FC<CellProps> = ({ resource, style }) => {
  * HPA Targets Cell
  */
 export const HPATargetsCell: React.FC<CellProps> = ({ resource, style }) => {
-    const spec = resource.spec as Record<string, unknown> | undefined
-    const status = resource.status as Record<string, unknown> | undefined
-    const metrics = status?.currentMetrics as Record<string, unknown>[] | undefined
-    const specMetrics = spec?.metrics as Record<string, unknown>[] | undefined
-    const firstSpecMetric = specMetrics?.[0] as Record<string, unknown> | undefined
-    const target = (((firstSpecMetric?.resource as Record<string, unknown>)?.target as Record<string, unknown>)?.averageUtilization) as number | undefined
-    const firstMetric = metrics?.[0] as Record<string, unknown> | undefined
-    const current = (((firstMetric?.resource as Record<string, unknown>)?.current as Record<string, unknown>)?.averageUtilization) as number | undefined
+    const spec = resource.spec as unknown as Record<string, unknown> | undefined
+    const status = resource.status as unknown as Record<string, unknown> | undefined
+    const metrics = status?.currentMetrics as unknown as Record<string, unknown>[] | undefined
+    const specMetrics = spec?.metrics as unknown as Record<string, unknown>[] | undefined
+    const firstSpecMetric = specMetrics?.[0] as unknown as Record<string, unknown> | undefined
+    const target = (((firstSpecMetric?.resource as unknown as Record<string, unknown>)?.target as unknown as Record<string, unknown>)?.averageUtilization) as number | undefined
+    const firstMetric = metrics?.[0] as unknown as Record<string, unknown> | undefined
+    const current = (((firstMetric?.resource as unknown as Record<string, unknown>)?.current as unknown as Record<string, unknown>)?.averageUtilization) as number | undefined
 
     if (current === undefined || target === undefined) return <TextCell content="<unknown>" style={style} />
     return <TextCell content={`${current}% / ${target}%`} style={style} />
@@ -46,7 +46,7 @@ export const HPATargetsCell: React.FC<CellProps> = ({ resource, style }) => {
  * Secret/ServiceAccount Type/Data cells
  */
 export const SecretTypeCell: React.FC<CellProps> = ({ resource, style }) => {
-    const r = resource as Record<string, unknown>
+    const r = resource as unknown as Record<string, unknown>
     return <TextCell content={(r.type as string) || '-'} style={style} />
 }
 
@@ -54,12 +54,12 @@ export const SecretTypeCell: React.FC<CellProps> = ({ resource, style }) => {
  * CronJob specific cells
  */
 export const CronJobScheduleCell: React.FC<CellProps> = ({ resource, style }) => {
-    const spec = resource.spec as Record<string, unknown> | undefined
+    const spec = resource.spec as unknown as Record<string, unknown> | undefined
     return <TextCell content={(spec?.schedule as string) || '-'} style={style} />
 }
 
 export const CronJobLastScheduleCell: React.FC<CellProps> = ({ resource, style }) => {
-    const status = resource.status as Record<string, unknown> | undefined
+    const status = resource.status as unknown as Record<string, unknown> | undefined
     return <TextCell content={(status?.lastScheduleTime as string) || 'Never'} style={style} />
 }
 
@@ -68,16 +68,16 @@ export const CronJobLastScheduleCell: React.FC<CellProps> = ({ resource, style }
  * but specific ones like MinPods/MaxPods for HPA:
  */
 export const MinPodsCell: React.FC<CellProps> = ({ resource, style }) => {
-    const spec = resource.spec as Record<string, unknown> | undefined
+    const spec = resource.spec as unknown as Record<string, unknown> | undefined
     return <TextCell content={String(spec?.minReplicas || '-')} style={style} />
 }
 
 export const MaxPodsCell: React.FC<CellProps> = ({ resource, style }) => {
-    const spec = resource.spec as Record<string, unknown> | undefined
+    const spec = resource.spec as unknown as Record<string, unknown> | undefined
     return <TextCell content={String(spec?.maxReplicas || '-')} style={style} />
 }
 
 export const ReplicasCell: React.FC<CellProps> = ({ resource, style }) => {
-    const status = resource.status as Record<string, unknown> | undefined
+    const status = resource.status as unknown as Record<string, unknown> | undefined
     return <TextCell content={String(status?.currentReplicas || '-')} style={style} />
 }

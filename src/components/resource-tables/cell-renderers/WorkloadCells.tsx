@@ -3,12 +3,11 @@
  */
 
 import React from 'react'
-import type { K8sResource } from '../../../types/k8s-types'
 import type { ResourceType } from '../../../lib/resource-definitions'
 import { TextCell } from '../ResourceCells'
 
 interface CellProps {
-    resource: K8sResource
+    resource: any
     resourceType: ResourceType
     style: React.CSSProperties
 }
@@ -17,7 +16,7 @@ interface CellProps {
  * Renders the ready replicas count
  */
 export const ReadyCell: React.FC<CellProps> = ({ resource, resourceType, style }) => {
-    const status = (resource as Record<string, unknown>).status || {}
+    const status = resource.status || {}
     let readyContent: string | number = 0
 
     if (resourceType === 'replicasets') {
@@ -35,8 +34,8 @@ export const ReadyCell: React.FC<CellProps> = ({ resource, resourceType, style }
  * Renders the desired replicas/pods count
  */
 export const DesiredCell: React.FC<CellProps> = ({ resource, resourceType, style }) => {
-    const spec = (resource as Record<string, unknown>).spec || {}
-    const status = (resource as Record<string, unknown>).status || {}
+    const spec = resource.spec || {}
+    const status = resource.status || {}
     const desired = resourceType === 'daemonsets'
         ? status.desiredNumberScheduled || 0
         : spec.replicas || 0
@@ -47,7 +46,7 @@ export const DesiredCell: React.FC<CellProps> = ({ resource, resourceType, style
  * Renders the current replicas/pods count
  */
 export const CurrentCell: React.FC<CellProps> = ({ resource, resourceType, style }) => {
-    const status = (resource as Record<string, unknown>).status || {}
+    const status = resource.status || {}
     const current = resourceType === 'daemonsets'
         ? status.currentNumberScheduled || 0
         : status.replicas || 0
@@ -58,7 +57,7 @@ export const CurrentCell: React.FC<CellProps> = ({ resource, resourceType, style
  * Renders the updated replicas count
  */
 export const UpdatedCell: React.FC<CellProps> = ({ resource, resourceType, style }) => {
-    const status = (resource as Record<string, unknown>).status || {}
+    const status = resource.status || {}
     const updated = resourceType === 'daemonsets'
         ? status.updatedNumberScheduled || 0
         : status.updatedReplicas || 0
@@ -69,7 +68,7 @@ export const UpdatedCell: React.FC<CellProps> = ({ resource, resourceType, style
  * Renders the available replicas count
  */
 export const AvailableCell: React.FC<CellProps> = ({ resource, resourceType, style }) => {
-    const status = (resource as Record<string, unknown>).status || {}
+    const status = resource.status || {}
     const available = resourceType === 'daemonsets'
         ? status.numberAvailable || 0
         : status.availableReplicas || 0
@@ -80,8 +79,8 @@ export const AvailableCell: React.FC<CellProps> = ({ resource, resourceType, sty
  * Renders job completions
  */
 export const CompletionsCell: React.FC<Omit<CellProps, 'resourceType'>> = ({ resource, style }) => {
-    const status = (resource as Record<string, unknown>).status || {}
-    const spec = (resource as Record<string, unknown>).spec || {}
+    const status = resource.status || {}
+    const spec = resource.spec || {}
     const content = `${status.succeeded || 0} / ${spec.completions || 1}`
     return <TextCell key="completions" content={content} style={style} />
 }
@@ -90,7 +89,7 @@ export const CompletionsCell: React.FC<Omit<CellProps, 'resourceType'>> = ({ res
  * Renders job duration
  */
 export const DurationCell: React.FC<Omit<CellProps, 'resourceType'>> = ({ resource, style }) => {
-    const status = (resource as Record<string, unknown>).status || {}
+    const status = resource.status || {}
     let duration = '-'
 
     if (status.startTime) {

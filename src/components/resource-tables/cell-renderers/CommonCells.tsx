@@ -34,8 +34,8 @@ export const AgeCell: React.FC<CellProps> = ({ resource, style }) => {
  * Renders a generic data count cell (for ConfigMaps, Secrets, etc.)
  */
 export const DataCountCell: React.FC<CellProps> = ({ resource, style }) => {
-    const r = resource as Record<string, unknown>
-    const data = (r.data as Record<string, unknown>) || (r.binaryData as Record<string, unknown>) || {}
+    const r = resource as unknown as Record<string, unknown>
+    const data = (r.data as unknown as Record<string, unknown>) || (r.binaryData as unknown as Record<string, unknown>) || {}
     const dataKeys = Object.keys(data).length
     return <TextCell key="data" content={String(dataKeys)} style={style} />
 }
@@ -44,9 +44,9 @@ export const DataCountCell: React.FC<CellProps> = ({ resource, style }) => {
  * Renders selector labels as key=value pairs
  */
 export const SelectorCell: React.FC<CellProps> = ({ resource, style }) => {
-    const spec = (resource as Record<string, unknown>).spec as Record<string, unknown> || {}
-    const labels = (spec.selector as Record<string, unknown> | undefined)?.matchLabels || spec.selector || {}
-    const selectorContent = Object.entries(labels as Record<string, unknown>)
+    const spec = (resource as unknown as Record<string, unknown>).spec as unknown as Record<string, unknown> || {}
+    const labels = (spec.selector as unknown as Record<string, unknown> | undefined)?.matchLabels || spec.selector || {}
+    const selectorContent = Object.entries(labels as unknown as Record<string, unknown>)
         .map(([k, v]) => `${k}=${v}`)
         .join(',') || '<none>'
     return <TextCell key="selector" content={selectorContent} style={style} />
@@ -56,9 +56,9 @@ export const SelectorCell: React.FC<CellProps> = ({ resource, style }) => {
  * Renders container names from pod spec
  */
 export const ContainersCell: React.FC<CellProps> = ({ resource, style }) => {
-    const spec = (resource as Record<string, unknown>).spec as Record<string, unknown> || {}
-    const podSpec = (spec.template as Record<string, unknown>)?.spec as Record<string, unknown> || spec
-    const containers = (podSpec?.containers as Record<string, unknown>[] | undefined)?.map((c) => c.name).join(', ') || '<none>'
+    const spec = (resource as unknown as Record<string, unknown>).spec as unknown as Record<string, unknown> || {}
+    const podSpec = (spec.template as unknown as Record<string, unknown>)?.spec as unknown as Record<string, unknown> || spec
+    const containers = (podSpec?.containers as unknown as Record<string, unknown>[] | undefined)?.map((c) => c.name).join(', ') || '<none>'
     return <TextCell key="containers" content={containers} style={style} />
 }
 
@@ -66,8 +66,8 @@ export const ContainersCell: React.FC<CellProps> = ({ resource, style }) => {
  * Renders container images from pod spec
  */
 export const ImagesCell: React.FC<CellProps> = ({ resource, style }) => {
-    const spec = (resource as Record<string, unknown>).spec as Record<string, unknown> || {}
-    const podSpec = (spec.template as Record<string, unknown>)?.spec as Record<string, unknown> || spec
-    const images = (podSpec?.containers as Record<string, unknown>[] | undefined)?.map((c) => c.image).join(', ') || '<none>'
+    const spec = (resource as unknown as Record<string, unknown>).spec as unknown as Record<string, unknown> || {}
+    const podSpec = (spec.template as unknown as Record<string, unknown>)?.spec as unknown as Record<string, unknown> || spec
+    const images = (podSpec?.containers as unknown as Record<string, unknown>[] | undefined)?.map((c) => c.image).join(', ') || '<none>'
     return <TextCell key="images" content={images} style={style} />
 }

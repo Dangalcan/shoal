@@ -27,34 +27,34 @@ export const renderCell = ({ colId, resource, resourceType, style }: RenderCellO
     // Common cells used across all resource types
     switch (colId) {
         case 'namespace':
-            return <Cells.NamespaceCell {...cellProps} />
+            return <Cells.NamespaceCell {...cellProps as any} />
         case 'age':
-            return <Cells.AgeCell {...cellProps} />
+            return <Cells.AgeCell {...cellProps as any} />
         case 'status':
-            return <Cells.StatusCell {...cellPropsWithType} />
+            return <Cells.StatusCell {...cellPropsWithType as any} />
         case 'selector':
-            return <Cells.SelectorCell {...cellProps} />
+            return <Cells.SelectorCell {...cellProps as any} />
         case 'containers':
-            return <Cells.ContainersCell {...cellProps} />
+            return <Cells.ContainersCell {...cellProps as any} />
         case 'images':
-            return <Cells.ImagesCell {...cellProps} />
+            return <Cells.ImagesCell {...cellProps as any} />
         case 'data':
-            return <Cells.DataCountCell {...cellProps} />
+            return <Cells.DataCountCell {...cellProps as any} />
     }
 
     // Pod-specific cells
     if (resourceType === 'pods') {
         switch (colId) {
             case 'restarts':
-                return <Cells.RestartsCell {...cellProps} />
+                return <Cells.RestartsCell {...cellProps as any} />
             case 'ip':
-                return <Cells.PodIPCell {...cellProps} />
+                return <Cells.PodIPCell {...cellProps as any} />
             case 'node':
-                return <Cells.NodeNameCell {...cellProps} />
+                return <Cells.NodeNameCell {...cellProps as any} />
             case 'nominated-node':
-                return <Cells.NominatedNodeCell {...cellProps} />
+                return <Cells.NominatedNodeCell {...cellProps as any} />
             case 'readiness-gates':
-                return <Cells.ReadinessGatesCell {...cellProps} />
+                return <Cells.ReadinessGatesCell {...cellProps as any} />
         }
     }
 
@@ -62,19 +62,19 @@ export const renderCell = ({ colId, resource, resourceType, style }: RenderCellO
     if (resourceType === 'nodes') {
         switch (colId) {
             case 'roles':
-                return <Cells.RolesCell {...cellProps} />
+                return <Cells.RolesCell {...cellProps as any} />
             case 'version':
-                return <Cells.VersionCell {...cellProps} />
+                return <Cells.VersionCell {...cellProps as any} />
             case 'internal-ip':
-                return <Cells.NodeInternalIPCell {...cellProps} />
+                return <Cells.NodeInternalIPCell {...cellProps as any} />
             case 'external-ip':
-                return <Cells.NodeExternalIPCell {...cellProps} />
+                return <Cells.NodeExternalIPCell {...cellProps as any} />
             case 'os-image':
-                return <Cells.OSImageCell {...cellProps} />
+                return <Cells.OSImageCell {...cellProps as any} />
             case 'kernel-version':
-                return <Cells.KernelVersionCell {...cellProps} />
+                return <Cells.KernelVersionCell {...cellProps as any} />
             case 'container-runtime':
-                return <Cells.ContainerRuntimeCell {...cellProps} />
+                return <Cells.ContainerRuntimeCell {...cellProps as any} />
         }
     }
 
@@ -82,15 +82,15 @@ export const renderCell = ({ colId, resource, resourceType, style }: RenderCellO
     if (resourceType === 'hpa') {
         switch (colId) {
             case 'reference':
-                return <Cells.HPAReferenceCell {...cellProps} />
+                return <Cells.HPAReferenceCell {...cellProps as any} />
             case 'targets':
-                return <Cells.HPATargetsCell {...cellProps} />
+                return <Cells.HPATargetsCell {...cellProps as any} />
             case 'minpods':
-                return <Cells.MinPodsCell {...cellProps} />
+                return <Cells.MinPodsCell {...cellProps as any} />
             case 'maxpods':
-                return <Cells.MaxPodsCell {...cellProps} />
+                return <Cells.MaxPodsCell {...cellProps as any} />
             case 'replicas':
-                return <Cells.ReplicasCell {...cellProps} />
+                return <Cells.ReplicasCell {...cellProps as any} />
         }
     }
 
@@ -98,9 +98,9 @@ export const renderCell = ({ colId, resource, resourceType, style }: RenderCellO
     if (resourceType === 'cronjobs') {
         switch (colId) {
             case 'schedule':
-                return <Cells.CronJobScheduleCell {...cellProps} />
+                return <Cells.CronJobScheduleCell {...cellProps as any} />
             case 'last-schedule':
-                return <Cells.CronJobLastScheduleCell {...cellProps} />
+                return <Cells.CronJobLastScheduleCell {...cellProps as any} />
         }
     }
 
@@ -108,7 +108,7 @@ export const renderCell = ({ colId, resource, resourceType, style }: RenderCellO
     if (resourceType === 'secrets') {
         switch (colId) {
             case 'type':
-                return <Cells.SecretTypeCell {...cellProps} />
+                return <Cells.SecretTypeCell {...cellProps as any} />
         }
     }
 
@@ -117,15 +117,15 @@ export const renderCell = ({ colId, resource, resourceType, style }: RenderCellO
     if (workloadTypes.includes(resourceType)) {
         switch (colId) {
             case 'ready':
-                return <Cells.ReadyCell {...cellPropsWithType} />
+                return <Cells.ReadyCell {...cellPropsWithType as any} />
             case 'desired':
-                return <Cells.DesiredCell {...cellPropsWithType} />
+                return <Cells.DesiredCell {...cellPropsWithType as any} />
             case 'current':
-                return <Cells.CurrentCell {...cellPropsWithType} />
+                return <Cells.CurrentCell {...cellPropsWithType as any} />
             case 'updated':
-                return <Cells.UpdatedCell {...cellPropsWithType} />
+                return <Cells.UpdatedCell {...cellPropsWithType as any} />
             case 'available':
-                return <Cells.AvailableCell {...cellPropsWithType} />
+                return <Cells.AvailableCell {...cellPropsWithType as any} />
         }
     }
 
@@ -133,9 +133,9 @@ export const renderCell = ({ colId, resource, resourceType, style }: RenderCellO
     if (resourceType === 'jobs') {
         switch (colId) {
             case 'completions':
-                return <Cells.CompletionsCell {...cellProps} />
+                return <Cells.CompletionsCell {...cellProps as any} />
             case 'duration':
-                return <Cells.DurationCell {...cellProps} />
+                return <Cells.DurationCell {...cellProps as any} />
         }
     }
 
@@ -143,11 +143,11 @@ export const renderCell = ({ colId, resource, resourceType, style }: RenderCellO
     if (resourceType === 'services' || resourceType === 'ingress') {
         switch (colId) {
             case 'type':
-                return <Cells.ServiceTypeCell {...cellProps} />
+                return <Cells.ServiceTypeCell {...cellProps as any} />
             case 'cluster-ip':
-                return <Cells.ClusterIPCell {...cellProps} />
+                return <Cells.ClusterIPCell {...cellProps as any} />
             case 'external-ip':
-                return <Cells.ExternalIPCell {...cellProps} />
+                return <Cells.ExternalIPCell {...cellProps as any} />
             case 'ports':
                 return <Cells.PortsCell resource={resource} resourceType={resourceType} style={style} />
         }
@@ -156,11 +156,11 @@ export const renderCell = ({ colId, resource, resourceType, style }: RenderCellO
     if (resourceType === 'ingress') {
         switch (colId) {
             case 'class':
-                return <Cells.IngressClassCell {...cellProps} />
+                return <Cells.IngressClassCell {...cellProps as any} />
             case 'hosts':
-                return <Cells.HostsCell {...cellProps} />
+                return <Cells.HostsCell {...cellProps as any} />
             case 'address':
-                return <Cells.AddressCell {...cellProps} />
+                return <Cells.AddressCell {...cellProps as any} />
         }
     }
 
@@ -169,29 +169,29 @@ export const renderCell = ({ colId, resource, resourceType, style }: RenderCellO
     if (storageTypes.includes(resourceType)) {
         switch (colId) {
             case 'capacity':
-                return <Cells.CapacityCell {...cellProps} />
+                return <Cells.CapacityCell {...cellProps as any} />
             case 'access-modes':
-                return <Cells.AccessModesCell {...cellProps} />
+                return <Cells.AccessModesCell {...cellProps as any} />
             case 'storageclass':
-                return <Cells.StorageClassCell {...cellProps} />
+                return <Cells.StorageClassCell {...cellProps as any} />
             case 'volumemode':
-                return <Cells.VolumeModeCell {...cellProps} />
+                return <Cells.VolumeModeCell {...cellProps as any} />
             case 'reclaim-policy':
-                return <Cells.ReclaimPolicyCell {...cellProps} />
+                return <Cells.ReclaimPolicyCell {...cellProps as any} />
             case 'claim':
-                return <Cells.ClaimCell {...cellProps} />
+                return <Cells.ClaimCell {...cellProps as any} />
             case 'volume':
-                return <Cells.VolumeCell {...cellProps} />
+                return <Cells.VolumeCell {...cellProps as any} />
             case 'provisioner':
-                return <Cells.ProvisionerCell {...cellProps} />
+                return <Cells.ProvisionerCell {...cellProps as any} />
             case 'binding-mode':
-                return <Cells.BindingModeCell {...cellProps} />
+                return <Cells.BindingModeCell {...cellProps as any} />
             case 'allow-expansion':
-                return <Cells.AllowExpansionCell {...cellProps} />
+                return <Cells.AllowExpansionCell {...cellProps as any} />
             case 'selected-node':
-                return <Cells.PVCSelectedNodeCell {...cellProps} />
+                return <Cells.PVCSelectedNodeCell {...cellProps as any} />
             case 'vac':
-                return <Cells.VACCell {...cellProps} />
+                return <Cells.VACCell {...cellProps as any} />
         }
     }
 
@@ -206,9 +206,9 @@ export const renderCell = ({ colId, resource, resourceType, style }: RenderCellO
 function renderGenericCell(
     { colId, resource, resourceType, style }: RenderCellOptions
 ): React.ReactNode {
-    const res = resource as unknown as Record<string, unknown>
-    const spec = (res.spec as Record<string, unknown>) || {}
-    const status = (res.status as Record<string, unknown>) || {}
+    const res = resource as any
+    const spec = res.spec || {}
+    const status = res.status || {}
 
     // Handle common properties dynamically if possible
     if (colId in res) {

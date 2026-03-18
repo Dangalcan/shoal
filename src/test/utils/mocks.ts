@@ -20,7 +20,7 @@ import type { ElectronAPI } from '../../types.d';
  */
 export function createMockElectronAPI(
   overrides?: Partial<ElectronAPI>
-): ElectronAPI {
+): vi.Mocked<ElectronAPI> {
   return {
     runCommand: vi
       .fn()
