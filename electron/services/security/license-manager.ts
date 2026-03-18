@@ -6,11 +6,11 @@
  */
 
 import { randomUUID } from 'crypto';
-import { app } from 'electron';
 import { machineIdSync } from 'node-machine-id';
 import { pluginRegistry } from '../plugins/plugin-registry';
-import type { PluginLicenseInfo } from '../../types/plugin-types';
+import type { Result, PluginLicenseInfo } from '../../types/plugin-types';
 import { getErrorMessage } from '../../utils/error-utils';
+import { isProduction } from '../../utils/env-utils';
 import log from '../../logger';
 
 export interface LicenseValidationResult {
@@ -118,7 +118,7 @@ export class LicenseManager {
   async activateLicense(
     pluginId: string,
     licenseKey: string
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<Result<void>> {
     try {
       const mId = machineIdSync();
 
@@ -151,7 +151,7 @@ export class LicenseManager {
         );
       } else {
         // Offline / no-backend fallback — see JSDoc above.
-        if (app?.isPackaged) {
+        if (isProduction()) {
           throw new Error(
             'License activation requires MARKETPLACE_BACKEND_URL to be configured in production builds. ' +
               'Contact your system administrator or set MARKETPLACE_BACKEND_URL in the environment.'
@@ -199,9 +199,7 @@ export class LicenseManager {
   /**
    * Start a trial for a plugin via backend.
    */
-  async startTrial(
-    pluginId: string
-  ): Promise<{ success: boolean; error?: string }> {
+  async startTrial(pluginId: string): Promise<Result<void>> {
     // We reuse the activation endpoint with a special trial request key
     return this.activateLicense(pluginId, 'TRIAL-REQUEST');
   }
@@ -209,9 +207,7 @@ export class LicenseManager {
   /**
    * Deactivate a license locally and optionally notify backend.
    */
-  async deactivateLicense(
-    pluginId: string
-  ): Promise<{ success: boolean; error?: string }> {
+  async deactivateLicense(pluginId: string): Promise<Result<void>> {
     try {
       const plugin = pluginRegistry.getPlugin(pluginId)?.plugin;
       if (!plugin || !plugin.licenseInfo) {

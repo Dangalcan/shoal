@@ -15,12 +15,29 @@ import semver from 'semver';
 import { Result, MarketplaceEntry } from '../../types/plugin-types';
 import { cleanupTempFile } from '../../utils/fs-utils';
 import { getErrorMessage } from '../../utils/error-utils';
+import { isProduction } from '../../utils/env-utils';
 import { pluginManager } from '../plugins/plugin-manager';
 import log from '../../logger';
 
 export class MarketplaceService {
   private get BACKEND_URL(): string {
     return process.env.MARKETPLACE_BACKEND_URL ?? 'http://localhost:3001';
+  }
+
+  /** Fetch a URL with a timeout, returning the raw Response. */
+  private fetchWithTimeout(url: string, timeoutMs = 10_000): Promise<Response> {
+    return fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+  }
+
+  /** Fetch a URL, assert response.ok, and parse the body as JSON. */
+  private async fetchJson<T>(url: string, timeoutMs = 10_000): Promise<T> {
+    const response = await this.fetchWithTimeout(url, timeoutMs);
+    if (!response.ok) {
+      throw new Error(
+        `Backend responded with ${response.status}: ${response.statusText}`
+      );
+    }
+    return response.json() as Promise<T>;
   }
 
   /**
@@ -32,22 +49,13 @@ export class MarketplaceService {
       const url = `${this.BACKEND_URL}/plugins`;
       log.info(`[MarketplaceService] Fetching plugins from ${url}`);
 
-      const response = await fetch(url, {
-        signal: AbortSignal.timeout(10_000),
-      });
-      if (!response.ok) {
-        throw new Error(
-          `Backend responded with ${response.status}: ${response.statusText}`
-        );
-      }
-
-      const json = (await response.json()) as
-        | { data: MarketplaceEntry[] }
-        | MarketplaceEntry[];
+      const json = await this.fetchJson<
+        { data: MarketplaceEntry[] } | MarketplaceEntry[]
+      >(url);
       const data = Array.isArray(json) ? json : json.data;
       return { success: true, data };
     } catch (error: unknown) {
-      if (app?.isPackaged) {
+      if (isProduction()) {
         log.error(
           '[MarketplaceService] Failed to load plugins from backend:',
           error
@@ -73,9 +81,7 @@ export class MarketplaceService {
   async getPluginDetails(pluginId: string): Promise<Result<MarketplaceEntry>> {
     try {
       const url = `${this.BACKEND_URL}/plugins/${encodeURIComponent(pluginId)}`;
-      const response = await fetch(url, {
-        signal: AbortSignal.timeout(10_000),
-      });
+      const response = await this.fetchWithTimeout(url);
 
       if (response.status === 404) {
         return {
@@ -92,7 +98,7 @@ export class MarketplaceService {
       const data = (await response.json()) as MarketplaceEntry;
       return { success: true, data };
     } catch (error: unknown) {
-      if (app?.isPackaged) {
+      if (isProduction()) {
         log.error(
           `[MarketplaceService] Failed to fetch plugin details for ${pluginId}:`,
           error
@@ -133,19 +139,10 @@ export class MarketplaceService {
       const versions = installedPlugins.map((p) => p.version).join(',');
       const url = `${this.BACKEND_URL}/plugins/check-updates?ids=${encodeURIComponent(ids)}&versions=${encodeURIComponent(versions)}`;
 
-      const response = await fetch(url, {
-        signal: AbortSignal.timeout(10_000),
-      });
-      if (!response.ok) {
-        throw new Error(
-          `Backend responded with ${response.status}: ${response.statusText}`
-        );
-      }
-
-      const updates = await response.json();
+      const updates = await this.fetchJson<unknown[]>(url);
       return { success: true, data: updates };
     } catch (error: unknown) {
-      if (app?.isPackaged) {
+      if (isProduction()) {
         log.error('[MarketplaceService] Update check failed:', error);
         return {
           success: false,
@@ -262,7 +259,7 @@ export class MarketplaceService {
       log.error('[MarketplaceService] Installation failed:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Installation failed',
+        error: getErrorMessage(error),
       };
     }
   }
