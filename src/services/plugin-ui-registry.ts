@@ -9,6 +9,7 @@ import type { K8sResource } from '../types/k8s-types';
 
 export interface DashboardWidget {
   id: string;
+  pluginId?: string;
   title: string;
   size: 'small' | 'medium' | 'large';
   component: React.ComponentType<any>;
@@ -34,6 +35,7 @@ export interface PluginModal {
 
 class PluginUIRegistry {
   private widgets: Map<string, DashboardWidget> = new Map();
+  private widgetPlugins: Map<string, string> = new Map(); // widgetId → pluginId
   private pages: Map<string, PluginPage> = new Map();
   private resourceActions: Map<string, ResourceActionExtension> = new Map();
   private modals: Map<string, PluginModal> = new Map();
@@ -41,12 +43,28 @@ class PluginUIRegistry {
 
   registerWidget(widget: DashboardWidget) {
     this.widgets.set(widget.id, widget);
+    if (widget.pluginId) {
+      this.widgetPlugins.set(widget.id, widget.pluginId);
+    }
     this.notify();
   }
 
   unregisterWidget(widgetId: string) {
     this.widgets.delete(widgetId);
+    this.widgetPlugins.delete(widgetId);
     this.notify();
+  }
+
+  unregisterWidgetsByPlugin(pluginId: string) {
+    let changed = false;
+    for (const [widgetId, pid] of this.widgetPlugins.entries()) {
+      if (pid === pluginId) {
+        this.widgets.delete(widgetId);
+        this.widgetPlugins.delete(widgetId);
+        changed = true;
+      }
+    }
+    if (changed) this.notify();
   }
 
   registerPage(page: PluginPage) {
@@ -159,9 +177,12 @@ export function usePluginScriptStatus(
 
   React.useEffect(() => {
     setStatus(pluginScriptTracker.getStatus(pluginId));
-    return pluginScriptTracker.subscribe(() => {
+    const unsubscribe = pluginScriptTracker.subscribe(() => {
       setStatus(pluginScriptTracker.getStatus(pluginId));
     });
+    return () => {
+      unsubscribe();
+    };
   }, [pluginId]);
 
   return status;

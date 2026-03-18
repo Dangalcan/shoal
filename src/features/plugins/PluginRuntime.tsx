@@ -148,7 +148,7 @@ export function PluginRuntime() {
           // Clean up script tracker and UI registrations
           pluginScriptTracker.clear(id);
           pluginUIRegistry.unregisterPage(id);
-          pluginUIRegistry.unregisterWidget(id);
+          pluginUIRegistry.unregisterWidgetsByPlugin(id);
           pluginUIRegistry.unregisterResourceAction(id);
           pluginUIRegistry.unregisterModal(id);
 
