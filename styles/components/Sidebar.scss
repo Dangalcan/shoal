@@ -19,7 +19,7 @@
   }
 
   &-title {
-    font-size: 1.25rem;
+    font-size: var(--font-size-lg);
     font-weight: 700;
     letter-spacing: -0.025em;
     color: var(--color-info);
@@ -43,7 +43,7 @@
     padding: 0.625rem 0.75rem;
     border-radius: 0.5rem;
     @include smooth-transition(all, 150ms);
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     font-weight: 500;
 
     &-active {
@@ -98,7 +98,7 @@
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   color: var(--text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   cursor: pointer;
   @include smooth-transition(all, 150ms);

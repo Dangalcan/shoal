@@ -4,6 +4,7 @@
 
 /* PluginsPage.scss */
 @use '../mixins' as *;
+@use '../variables' as *;
 
 .plugins {
   padding: var(--spacing-xl);
@@ -111,7 +112,7 @@
   height: 44px !important;
   border-radius: 12px !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  transition: all 0.3s $ease-bounce !important;
 
   &:hover:not(:disabled) {
     transform: translateY(-2px) scale(1.02);
@@ -145,7 +146,7 @@
     right: 0;
     height: 4px;
     background: transparent;
-    transition: background 0.3s ease;
+    @include smooth-transition(background, 0.3s);
   }
 
   &:hover {
@@ -168,7 +169,7 @@
   }
 
   &__name {
-    font-size: 1.25rem;
+    font-size: var(--font-size-lg);
     font-weight: 700;
     color: var(--text-primary);
     margin: 0;
@@ -237,7 +238,7 @@
 .plugin-state {
   padding: 6px 14px;
   border-radius: 10px;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;

@@ -43,7 +43,7 @@
 }
 
 .refresh-data-button {
-  padding: 0.5rem;
+  padding: var(--spacing-sm);
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
@@ -62,7 +62,7 @@
 }
 
 .delete-cluster-button-action {
-  padding: 0.5rem;
+  padding: var(--spacing-sm);
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
@@ -83,7 +83,7 @@
 }
 
 .refresh-icon-spinning {
-  animation: spin 1s linear infinite;
+  @include spin-animation();
   transform-box: fill-box;
   transform-origin: center;
 }
@@ -108,7 +108,7 @@
 }
 
 .loading-spinner {
-  animation: spin 1s linear infinite;
+  @include spin-animation();
   margin-bottom: var(--spacing-md);
   color: var(--color-primary);
 }
@@ -125,7 +125,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem;
+  padding: var(--spacing-2xl);
   background-color: var(--color-error-bg);
   color: var(--color-error);
   border-radius: 1rem;
@@ -145,9 +145,9 @@
 
 .error-state {
   .error-title {
-    font-size: 1.5rem;
+    font-size: var(--font-size-xl);
     font-weight: 700;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--spacing-sm);
   }
 
   .error-message {
@@ -155,12 +155,12 @@
     opacity: 0.9;
     margin-bottom: var(--spacing-xl);
     font-family: ui-monospace, 'Cascadia Code', monospace;
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
   }
 }
 
 .error-retry-button {
-  padding: 0.75rem 2rem;
+  padding: 0.75rem var(--spacing-xl);
   background-color: var(--color-error);
   color: white;
   border-radius: 0.625rem;
@@ -180,16 +180,16 @@
   height: 20rem;
   background-color: var(--card-bg);
   border-radius: 1.25rem;
-  margin-top: 1rem;
+  margin-top: var(--spacing-md);
 }
 
 .empty-icon {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--spacing-lg);
   color: var(--border-color);
 }
 
 .empty-title {
-  font-size: 1.25rem;
+  font-size: var(--font-size-lg);
   font-weight: 700;
   color: var(--text-primary);
 }

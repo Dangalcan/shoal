@@ -14,7 +14,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 1rem 1.5rem;
+  padding: var(--spacing-md) var(--spacing-lg);
   border-bottom: 1px solid var(--border-color);
 
   h3 {
@@ -25,18 +25,18 @@
   }
 
   p {
-    margin: 0.25rem 0 0 0;
-    font-size: 0.875rem;
+    margin: var(--spacing-xs) 0 0 0;
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
   }
 }
 
 .ui-card-content {
-  padding: 1.5rem;
+  padding: var(--spacing-lg);
 }
 
 .ui-card-footer {
-  padding: 1.5rem;
+  padding: var(--spacing-lg);
   border-top: 1px solid var(--border-color);
   background-color: var(--bg-secondary);
   @include flex-between();

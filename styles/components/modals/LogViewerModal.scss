@@ -3,13 +3,13 @@
 
 .log-modal .base-modal-header {
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: var(--spacing-md);
 }
 
 .log-header-actions {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--spacing-md);
   flex: 1;
   justify-content: flex-end;
 }
@@ -33,7 +33,7 @@
 
 .log-search-icon {
   color: var(--text-muted);
-  margin-right: 0.5rem;
+  margin-right: var(--spacing-sm);
 }
 
 .log-search-input {
@@ -64,18 +64,18 @@
 .log-refresh-controls {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--spacing-sm);
 }
 
 .auto-refresh-toggle {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--spacing-sm);
   padding: 0.375rem 0.75rem;
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
@@ -98,7 +98,7 @@
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 0.75rem;
-  padding: 1rem;
+  padding: var(--spacing-md);
   height: 100%;
   overflow: hidden;
 

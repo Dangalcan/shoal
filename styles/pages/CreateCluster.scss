@@ -1,5 +1,6 @@
 /* CreateCluster.scss */
 @use '../mixins' as *;
+@use '../variables' as *;
 
 .create-cluster-container {
   max-width: 48rem;
@@ -18,13 +19,13 @@
 .back-button {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--spacing-sm);
   color: var(--text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   @include smooth-transition(all, 150ms);
   width: fit-content;
-  padding: 0.5rem 0;
+  padding: var(--spacing-sm) 0;
 
   &:hover {
     color: var(--text-primary);
@@ -58,7 +59,7 @@
 
 .form-group-label {
   display: block;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 0.625rem;
@@ -68,13 +69,13 @@
 
 .form-input {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.75rem var(--spacing-md);
   border: 1px solid var(--border-color);
   border-radius: 0.625rem;
   outline: none;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  @include smooth-transition(all, 200ms);
 
   &:focus {
     border-color: var(--color-primary);
@@ -150,7 +151,7 @@
 }
 
 .submit-button {
-  padding: 0.75rem 2rem;
+  padding: 0.75rem var(--spacing-xl);
   background-color: var(--color-primary);
   color: white;
   border-radius: 0.625rem;

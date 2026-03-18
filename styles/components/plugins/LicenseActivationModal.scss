@@ -18,7 +18,7 @@
   padding: var(--spacing-xl);
   position: relative;
   box-shadow: var(--shadow-lg, 0 10px 15px -3px rgb(0 0 0 / 0.1));
-  animation: slide-in-top 0.3s ease-out;
+  animation: slideInTop 0.3s ease-out;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -153,7 +153,7 @@
 }
 
 .form-hint {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--text-tertiary, var(--text-muted));
   margin-top: var(--spacing-xs);
 
@@ -164,7 +164,7 @@
 
 .pricing {
   &-item {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
   }
 
   &-label {
@@ -184,7 +184,7 @@
   text-align: center;
   margin: var(--spacing-lg) 0;
   color: var(--text-tertiary, var(--text-muted));
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 1px;
 
@@ -202,7 +202,7 @@
 
 /* Settings Form Styles */
 .form-help-text {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--text-tertiary, var(--text-muted));
   margin-top: var(--spacing-xs);
 }
@@ -214,6 +214,6 @@
 }
 
 .checkbox-label {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--text-primary);
 }

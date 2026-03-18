@@ -1,4 +1,5 @@
 /* Shared loading / error / empty states */
+@use '../../mixins' as *;
 
 /* Base for page-level empty states — pages override height/padding */
 .empty-state {
@@ -21,11 +22,11 @@
   justify-content: center;
   height: 100%;
   color: var(--text-secondary);
-  gap: 1rem;
+  gap: var(--spacing-md);
 }
 
 .spinner {
-  animation: spin 1s linear infinite;
+  @include spin-animation();
   color: var(--color-info);
 }
 
@@ -37,7 +38,7 @@
 
 .error-message {
   font-size: 0.8125rem;
-  margin-top: 0.25rem;
+  margin-top: var(--spacing-xs);
   text-align: center;
   padding: 1.25rem 2rem;
   color: var(--color-error);

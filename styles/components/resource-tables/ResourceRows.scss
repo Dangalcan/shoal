@@ -1,11 +1,12 @@
 /* ResourceRows.scss - Row styling and hover effects */
+@use '../../mixins' as *;
 
 .table-body {
   border-top: 1px solid var(--border-color);
 }
 
 .table-row {
-  transition: background-color 150ms;
+  @include smooth-transition(background-color, 150ms);
   border-bottom: 1px solid var(--border-color);
 
   &:hover {
@@ -25,8 +26,8 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.25rem;
+  gap: var(--spacing-xs);
   opacity: 0;
-  transition: opacity 150ms;
-  padding-right: 0.5rem;
+  @include smooth-transition(opacity, 150ms);
+  padding-right: var(--spacing-sm);
 }

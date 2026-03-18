@@ -1,9 +1,10 @@
 /* _mixins.scss */
+@use 'variables' as *;
 
 @mixin table-head-base($border-width: 2px, $letter-spacing: 0.05em) {
   background-color: var(--bg-secondary);
   border-bottom: $border-width solid var(--border-color);
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -42,7 +43,11 @@
 }
 
 @mixin smooth-transition($props: all, $duration: 0.3s) {
-  transition: $props $duration cubic-bezier(0.4, 0, 0.2, 1);
+  transition: $props $duration $ease-standard;
+}
+
+@mixin spin-animation($duration: 1s) {
+  animation: spin $duration linear infinite;
 }
 
 @mixin scrollbar() {
@@ -101,7 +106,7 @@
   inset: 0;
   z-index: $z-index;
   @include flex-center();
-  padding: 1rem;
+  padding: var(--spacing-md);
   background-color: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(8px);
 }

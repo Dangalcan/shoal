@@ -8,7 +8,7 @@
 .confirm-modal-header {
   display: flex;
   align-items: flex-start;
-  gap: 1rem;
+  gap: var(--spacing-md);
 }
 
 .confirm-modal-icon-wrapper {
@@ -19,14 +19,14 @@
 
 .confirm-modal-content {
   flex: 1;
-  padding-top: 0.25rem;
+  padding-top: var(--spacing-xs);
 }
 
 .confirm-modal-title {
-  font-size: 1.25rem;
+  font-size: var(--font-size-lg);
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--spacing-sm);
   letter-spacing: -0.01em;
 }
 
@@ -41,8 +41,8 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 1rem;
-  padding-top: 1.5rem;
+  gap: var(--spacing-md);
+  padding-top: var(--spacing-lg);
   border-top: 1px solid var(--border-color);
 }
 

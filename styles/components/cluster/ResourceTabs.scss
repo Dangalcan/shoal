@@ -4,17 +4,17 @@
 .tabs-container {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--spacing-sm);
   overflow-x: auto;
-  padding: 0.25rem 0.5rem;
-  padding-bottom: 0.5rem; /* Add space for scrollbar */
+  padding: var(--spacing-xs) var(--spacing-sm);
+  padding-bottom: var(--spacing-sm); /* Add space for scrollbar */
 }
 
 .tab-button {
   @include flex-center(row, 0.5rem);
-  padding: 0.5rem 1rem;
+  padding: var(--spacing-sm) var(--spacing-md);
   border-radius: 0.625rem;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   @include smooth-transition(all, 200ms);
   white-space: nowrap;

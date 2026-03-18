@@ -46,11 +46,11 @@
 
 .namespace-selector {
   width: 100%;
-  padding: 0.5rem 2rem 0.5rem 2.5rem;
+  padding: var(--spacing-sm) var(--spacing-xl) var(--spacing-sm) 2.5rem;
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 0.625rem;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--text-primary);
   appearance: none;
   outline: none;

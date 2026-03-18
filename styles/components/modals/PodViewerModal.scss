@@ -1,10 +1,10 @@
 /* PodViewerModal.scss */
 
 .pod-error-icon {
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--spacing-sm);
 }
 
 .pod-empty-icon {
-  margin-bottom: 1rem;
+  margin-bottom: var(--spacing-md);
   color: var(--border-color);
 }

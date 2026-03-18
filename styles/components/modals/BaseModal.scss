@@ -1,5 +1,6 @@
 /* BaseModal.scss */
 @use '../../mixins' as *;
+@use '../../variables' as *;
 
 .base-modal-overlay {
   @include modal-overlay();
@@ -20,14 +21,14 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: zoomIn 250ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: zoomIn $duration-zoom-in $ease-spring;
   border: 1px solid var(--border-color);
 }
 
 /* Header */
 .base-modal-header {
   @include flex-between();
-  padding: 1.25rem 1.5rem;
+  padding: 1.25rem var(--spacing-lg);
   border-bottom: 1px solid var(--border-color);
   background-color: var(--bg-secondary);
 }
@@ -49,11 +50,11 @@
   display: flex;
   flex-direction: row;
   align-items: baseline;
-  gap: 0.5rem;
+  gap: var(--spacing-sm);
 }
 
 .base-modal-title {
-  font-size: 1rem;
+  font-size: var(--font-size-base);
   font-weight: 700;
   color: var(--text-primary);
   @include flex-center(row, 0.5rem);
@@ -63,7 +64,7 @@
 }
 
 .base-modal-subtitle {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--text-secondary);
   font-family: ui-monospace, 'Cascadia Code', monospace;
   margin: 0;
@@ -84,7 +85,7 @@
 }
 
 .base-modal-close-button {
-  padding: 0.5rem;
+  padding: var(--spacing-sm);
   color: var(--text-secondary);
   border-radius: 0.5rem;
   @include smooth-transition(all, 150ms);
@@ -104,9 +105,9 @@
   flex: 1;
   overflow: auto;
   background-color: var(--bg-primary);
-  padding: 1.5rem;
+  padding: var(--spacing-lg);
   font-family: ui-monospace, monospace;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   position: relative;
   color: var(--text-primary);
   @include scrollbar();
@@ -114,7 +115,7 @@
 
 /* Footer */
 .base-modal-footer {
-  padding: 1rem 1.5rem;
+  padding: var(--spacing-md) var(--spacing-lg);
   border-top: 1px solid var(--border-color);
   background-color: var(--bg-secondary);
   @include flex-between();
@@ -122,7 +123,7 @@
 
 /* Standardized action buttons */
 .modal-action-button {
-  padding: 0.5rem 0.75rem;
+  padding: var(--spacing-sm) 0.75rem;
   color: var(--text-secondary);
   border-radius: 0.5rem;
   @include smooth-transition(all, 150ms);
@@ -130,7 +131,7 @@
   border: 1px solid var(--border-color);
   cursor: pointer;
   @include flex-center(row, 0.5rem);
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 600;
 
   &:hover:not(:disabled) {
@@ -170,7 +171,7 @@
   white-space: pre-wrap;
   word-wrap: break-word;
   font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   line-height: 1.7;
   color: var(--text-primary);
 }
@@ -193,7 +194,7 @@
   @include table-head-base();
 
   th {
-    padding: 1rem;
+    padding: var(--spacing-md);
   }
 }
 
@@ -210,8 +211,8 @@
   }
 
   td {
-    padding: 1rem;
-    font-size: 0.875rem;
+    padding: var(--spacing-md);
+    font-size: var(--font-size-sm);
     color: var(--text-primary);
   }
 }
@@ -224,7 +225,7 @@
 
 /* Footer Buttons */
 .close-footer-button {
-  padding: 0.5rem 1.25rem;
+  padding: var(--spacing-sm) 1.25rem;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   font-size: 0.8125rem;

@@ -4,12 +4,12 @@
 .header-top {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
 }
 
 .back-button {
-  padding: 0.5rem;
+  padding: var(--spacing-sm);
   border-radius: 0.5rem;
   @include smooth-transition(all, 150ms);
   color: var(--text-secondary);
@@ -22,14 +22,14 @@
 
 .header-title-section {
   h2 {
-    font-size: 1.5rem;
+    font-size: var(--font-size-xl);
     font-weight: 700;
     color: var(--text-primary);
     letter-spacing: -0.01em;
   }
 
   p {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
   }
 }

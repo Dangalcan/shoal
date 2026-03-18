@@ -21,7 +21,7 @@
 
 .stat-label {
   width: 80px;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }
 
@@ -41,7 +41,7 @@
 .stat-value {
   width: 40px;
   text-align: right;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: bold;
   color: var(--text-primary);
 }

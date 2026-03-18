@@ -12,7 +12,7 @@
 }
 
 .dashboard-title {
-  font-size: 1.875rem;
+  font-size: var(--font-size-2xl);
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.025em;
@@ -32,7 +32,7 @@
 
 .stat-card {
   background-color: var(--card-bg);
-  padding: 1.5rem;
+  padding: var(--spacing-lg);
   border-radius: 1rem;
   box-shadow: var(--card-shadow);
   border: 1px solid var(--border-color);
@@ -63,10 +63,10 @@
   }
 
   &-label {
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
     font-weight: 700;
     color: var(--text-secondary);
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--spacing-sm);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     white-space: nowrap;
@@ -128,7 +128,7 @@
 
   &-badge {
     font-size: 0.8125rem;
-    padding: 0.25rem 0.625rem;
+    padding: var(--spacing-xs) 0.625rem;
     letter-spacing: 0.025em;
     box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   }
@@ -152,11 +152,11 @@
 
 .divider-text {
   text-align: center;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  margin: 0.5rem 0;
+  margin: var(--spacing-sm) 0;
   position: relative;
 
   &::before,

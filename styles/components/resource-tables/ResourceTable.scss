@@ -36,11 +36,11 @@
 }
 
 .table-head-cell {
-  padding: 1rem 1.5rem;
+  padding: var(--spacing-md) var(--spacing-lg);
   position: relative;
   user-select: none;
   cursor: pointer;
-  transition: all 150ms;
+  @include smooth-transition(all, 150ms);
 
   &:hover {
     background-color: var(--bg-tertiary);
@@ -51,7 +51,7 @@
 .table-head-cell-content {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--spacing-sm);
   padding-right: 0.75rem;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -71,7 +71,7 @@
   width: 12px;
   cursor: col-resize;
   z-index: 20;
-  transition: all 150ms;
+  @include smooth-transition(all, 150ms);
   background-color: transparent;
 
   &:hover {
@@ -98,6 +98,6 @@
   bottom: 25%;
   width: 2px;
   border-radius: 2px;
-  transition: all 150ms;
+  @include smooth-transition(all, 150ms);
   background-color: transparent;
 }
