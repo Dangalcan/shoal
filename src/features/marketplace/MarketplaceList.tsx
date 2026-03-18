@@ -12,17 +12,9 @@ import { useItemModal } from '../../hooks/useItemModal';
 import type { MarketplaceEntry } from '../../types';
 import { MarketplaceCard } from './MarketplaceCard';
 import { PluginDetailModal } from './PluginDetailModal';
-import { Search, RotateCw, ChevronDown } from 'lucide-react';
-
-
-type SortOption = 'popular' | 'rating' | 'free-first' | 'newest';
-
-const SORT_LABELS: Record<SortOption, string> = {
-  popular: 'Most Popular',
-  rating: 'Highest Rated',
-  'free-first': 'Free First',
-  newest: 'Newest',
-};
+import { CategorySidebar } from './CategorySidebar';
+import { MarketplaceToolbar } from './MarketplaceToolbar';
+import type { SortOption } from './MarketplaceToolbar';
 
 function featuredScore(p: MarketplaceEntry): number {
   return (p.rating ?? 0) * Math.log((p.reviews ?? 0) + 1);
@@ -81,7 +73,6 @@ export function MarketplaceList() {
     return sortPlugins(result, sort);
   }, [plugins, selectedCategory, search, sort]);
 
-  // Top 3 featured plugins shown when no filter/search is active
   const featuredPlugins = useMemo(
     () =>
       selectedCategory === 'All' && !search
@@ -98,68 +89,22 @@ export function MarketplaceList() {
   return (
     <>
       <div className="marketplace-layout">
-        {/* ── Category sidebar ── */}
-        <aside className="marketplace-sidebar">
-          <h3 className="marketplace-sidebar__title">Categories</h3>
-          <ul className="marketplace-sidebar__list">
-            {categories.map((cat) => (
-              <li key={cat}>
-                <button
-                  className={
-                    'marketplace-sidebar__item' +
-                    (selectedCategory === cat ? ' active' : '')
-                  }
-                  onClick={() => setSelectedCategory(cat)}
-                >
-                  <span className="marketplace-sidebar__item-name">{cat}</span>
-                  <span className="marketplace-sidebar__item-count">
-                    {cat === 'All' ? plugins.length : (categoryCounts[cat] ?? 0)}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </aside>
+        <CategorySidebar
+          categories={categories}
+          categoryCounts={categoryCounts}
+          selectedCategory={selectedCategory}
+          totalCount={plugins.length}
+          onSelect={setSelectedCategory}
+        />
 
-        {/* ── Main content ── */}
         <div className="marketplace-main">
-          {/* Toolbar */}
-          <div className="marketplace-toolbar">
-            <div className="search-bar">
-              <Search className="search-icon" size={18} />
-              <input
-                type="text"
-                placeholder="Search plugins, tags..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-
-            <div className="marketplace-toolbar__right">
-              <div className="marketplace-sort">
-                <ChevronDown size={14} className="marketplace-sort__icon" />
-                <select
-                  className="select-input"
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value as SortOption)}
-                >
-                  {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => (
-                    <option key={key} value={key}>
-                      {SORT_LABELS[key]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <button
-                className="btn btn--secondary btn--icon"
-                onClick={fetchPlugins}
-                title="Refresh"
-              >
-                <RotateCw size={16} />
-              </button>
-            </div>
-          </div>
+          <MarketplaceToolbar
+            search={search}
+            sort={sort}
+            onSearchChange={setSearch}
+            onSortChange={setSort}
+            onRefresh={fetchPlugins}
+          />
 
           {loading && plugins.length === 0 ? (
             <div className="loading-state">
@@ -175,7 +120,6 @@ export function MarketplaceList() {
             </div>
           ) : (
             <>
-              {/* Featured row */}
               {featuredPlugins.length > 0 && (
                 <section className="marketplace-section">
                   <h2 className="marketplace-section__title">Featured</h2>
@@ -192,7 +136,6 @@ export function MarketplaceList() {
                 </section>
               )}
 
-              {/* Regular grid */}
               <section className="marketplace-section">
                 {featuredPlugins.length > 0 && (
                   <h2 className="marketplace-section__title">
@@ -228,7 +171,6 @@ export function MarketplaceList() {
         </div>
       </div>
 
-      {/* Detail modal */}
       {detailModal.item && (
         <PluginDetailModal
           entry={detailModal.item}

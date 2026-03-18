@@ -1,14 +1,15 @@
 /**
  * Plugin Settings Modal
- * 
+ *
  * Generates a settings form based on the plugin's configuration schema.
  */
 
 import { useState, useEffect } from 'react';
-import { X, AlertTriangle } from 'lucide-react';
+import { Settings, AlertTriangle } from 'lucide-react';
 import type { Plugin } from '../../../electron/types/plugin-types';
 import { usePlugins } from './PluginProvider';
 import { PluginConfigurationForm } from '../../components/plugins/PluginConfigurationForm';
+import { BaseModal } from '../../components/modals/BaseModal';
 
 
 interface PluginSettingsModalProps {
@@ -21,7 +22,7 @@ export function PluginSettingsModal({
   onClose,
 }: PluginSettingsModalProps) {
   const { getSettings, saveSettings } = usePlugins();
-  const [settings, setSettings] = useState<Record<string, any>>({});
+  const [settings, setSettings] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,10 +35,10 @@ export function PluginSettingsModal({
         const loaded = await getSettings(plugin.manifest.id);
 
         // Merge with defaults
-        const defaults: Record<string, any> = {};
+        const defaults: Record<string, unknown> = {};
         if (schema?.properties) {
           Object.entries(schema.properties).forEach(
-            ([key, prop]: [string, any]) => {
+            ([key, prop]) => {
               if (prop.default !== undefined) {
                 defaults[key] = prop.default;
               }
@@ -58,7 +59,7 @@ export function PluginSettingsModal({
     }
   }, [plugin.manifest.id, schema]);
 
-  const handleSave = async (values: Record<string, any>) => {
+  const handleSave = async (values: Record<string, unknown>) => {
     setError(null);
     try {
       await saveSettings(plugin.manifest.id, values);
@@ -69,51 +70,28 @@ export function PluginSettingsModal({
     }
   };
 
-  if (!schema) {
-    return (
-      <div className="modal-overlay">
-        <div className="license-modal" style={{ maxWidth: '600px' }}>
-          <button className="license-modal__close" onClick={onClose}>
-            <X size={20} />
-          </button>
-          <div className="license-modal__header" style={{ textAlign: 'left', marginBottom: '1rem' }}>
-            <h2 className="license-modal__title">Settings: {plugin.manifest.name}</h2>
-          </div>
-          <div className="license-modal__body" style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>
-            This plugin has no configurable settings.
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="modal-overlay">
-      <div className="license-modal" style={{ maxWidth: '600px' }}>
-        <button className="license-modal__close" onClick={onClose}>
-          <X size={20} />
-        </button>
-
-        <div
-          className="license-modal__header"
-          style={{ textAlign: 'left', marginBottom: '1rem' }}
-        >
-          <h2 className="license-modal__title">
-            Settings: {plugin.manifest.name}
-          </h2>
-          {schema.title && (
-            <p className="license-modal__subtitle">{schema.title}</p>
+    <BaseModal
+      isOpen={true}
+      onClose={onClose}
+      title={`Settings: ${plugin.manifest.name}`}
+      subtitle={schema?.title}
+      icon={<Settings size={20} />}
+      maxWidth="600px"
+    >
+      {!schema ? (
+        <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>
+          This plugin has no configurable settings.
+        </p>
+      ) : (
+        <>
+          {error && (
+            <div className="license-modal__alert license-modal__alert--error">
+              <AlertTriangle size={16} />
+              <span>{error}</span>
+            </div>
           )}
-        </div>
 
-        {error && (
-          <div className="license-modal__alert license-modal__alert--error">
-            <AlertTriangle size={16} />
-            <span>{error}</span>
-          </div>
-        )}
-
-        <div className="license-modal__body">
           {loading ? (
             <div className="plugins__loading">
               <div className="spinner"></div>
@@ -126,9 +104,8 @@ export function PluginSettingsModal({
               onCancel={onClose}
             />
           )}
-        </div>
-      </div>
-    </div>
+        </>
+      )}
+    </BaseModal>
   );
 }
-

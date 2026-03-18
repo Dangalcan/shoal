@@ -1,6 +1,6 @@
 /**
  * Plugins Management Page
- * 
+ *
  * Allows users to view, enable, disable, and manage installed plugins.
  */
 
@@ -8,21 +8,22 @@ import { useState } from 'react';
 import { usePlugins } from '../features/plugins/PluginProvider';
 import { handleAsyncOperation } from '../lib/async-operation-handler';
 import { useItemModal } from '../hooks/useItemModal';
+import { PluginCard } from '../features/plugins/PluginCard';
 import { LicenseActivationModal } from '../features/plugins/LicenseActivationModal';
 import { MarketplaceList } from '../features/marketplace/MarketplaceList';
 import { PluginSettingsModal } from '../features/plugins/PluginSettingsModal';
 import { ConfirmModal } from '../components/modals/ConfirmModal';
-import { Settings, RotateCcw, Package, Download, Trash2, Power, AlertCircle, User, Shield, Upload, Loader2 } from 'lucide-react';
+import { Package, Download, Upload, Loader2 } from 'lucide-react';
 import type { Plugin } from '../../electron/types/plugin-types';
 
 export default function Plugins() {
-  const { 
-    plugins, 
-    loading, 
-    error, 
-    enablePlugin, 
-    disablePlugin, 
-    refreshPlugins, 
+  const {
+    plugins,
+    loading,
+    error,
+    enablePlugin,
+    disablePlugin,
+    refreshPlugins,
     deactivateLicense,
     installPlugin,
     reloadPlugin,
@@ -123,15 +124,6 @@ export default function Plugins() {
     );
   };
 
-  const PLUGIN_STATE_MAP: Record<string, { label: string; className: string }> = {
-    enabled:  { label: 'Enabled',    className: 'plugin-state--enabled' },
-    disabled: { label: 'Disabled',   className: 'plugin-state--disabled' },
-    error:    { label: 'Error',      className: 'plugin-state--error' },
-    loading:  { label: 'Loading...', className: 'plugin-state--loading' },
-  };
-  const getPluginStateClass = (state: string) => PLUGIN_STATE_MAP[state]?.className ?? '';
-  const getPluginStateLabel = (state: string) => PLUGIN_STATE_MAP[state]?.label ?? state;
-
   if (loading) {
     return (
       <div className="plugins">
@@ -188,14 +180,14 @@ export default function Plugins() {
 
       <div className="plugins-tabs-row">
         <div className="plugins-tabs">
-          <button 
+          <button
             className={`tab-btn ${activeTab === 'installed' ? 'active' : ''}`}
             onClick={() => setActiveTab('installed')}
           >
             <Package size={18} />
             Installed
           </button>
-          <button 
+          <button
             className={`tab-btn ${activeTab === 'marketplace' ? 'active' : ''}`}
             onClick={() => setActiveTab('marketplace')}
           >
@@ -219,158 +211,18 @@ export default function Plugins() {
           ) : (
             <div className="plugins__list">
               {plugins.map((plugin) => (
-                <div key={plugin.manifest.id} className="plugin-card">
-                  <div className="plugin-card__header">
-                    <div className="plugin-card__info">
-                      <div className="plugin-card__title-row">
-                        <h3 className="plugin-card__name">{plugin.manifest.name}</h3>
-                        {plugin.hasUpdate && (
-                          <span className="plugin-update-badge" title={`Update available: v${plugin.latestVersion}`}>
-                            Update Available
-                          </span>
-                        )}
-                      </div>
-                      <p className="plugin-card__version">
-                        v{plugin.manifest.version}
-                        {plugin.hasUpdate && <span className="latest-version"> (Latest: v{plugin.latestVersion})</span>}
-                      </p>
-                    </div>
-                    <div className={`plugin-state ${getPluginStateClass(plugin.state)}`}>
-                      {getPluginStateLabel(plugin.state)}
-                    </div>
-                  </div>
-
-                  <p className="plugin-card__description">{plugin.manifest.description}</p>
-
-                  <div className="plugin-card__meta">
-                    <div className="plugin-card__meta-item">
-                      <span className="plugin-card__meta-label">
-                        <User size={14} style={{ display: 'inline', marginRight: '4px' }} />
-                        Author:
-                      </span>
-                      <span className="plugin-card__meta-value">{plugin.manifest.author}</span>
-                    </div>
-                    <div className="plugin-card__meta-item">
-                      <span className="plugin-card__meta-label">
-                        <Shield size={14} style={{ display: 'inline', marginRight: '4px' }} />
-                        License:
-                      </span>
-                      <span className="plugin-card__meta-value">
-                        {plugin.manifest.license.type === 'free' 
-                          ? plugin.manifest.license.spdx 
-                          : `${plugin.manifest.license.type} (${plugin.manifest.license.spdx})`}
-                      </span>
-                    </div>
-                    {plugin.manifest.permissions && plugin.manifest.permissions.length > 0 && (
-                      <div className="plugin-card__meta-item">
-                        <span className="plugin-card__meta-label">
-                          <AlertCircle size={14} style={{ display: 'inline', marginRight: '4px' }} />
-                          Permissions:
-                        </span>
-                        <span className="plugin-card__meta-value">
-                          {plugin.manifest.permissions.join(', ')}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {plugin.error && (
-                    <div className="plugin-card__error">
-                      <strong>Error:</strong> {plugin.error}
-                    </div>
-                  )}
-
-                  <div className="plugin-card__actions">
-                    <button
-                      onClick={() => handleTogglePlugin(plugin)}
-                      disabled={actionLoading === plugin.manifest.id || plugin.state === 'loading'}
-                      className={`btn btn--sm ${plugin.state === 'enabled' ? 'btn--danger' : 'btn--primary'}`}
-                    >
-                      {actionLoading === plugin.manifest.id ? (
-                        <>
-                          <Loader2 size={14} className="animate-spin" />
-                          {plugin.state === 'enabled' ? 'Disabling...' : 'Enabling...'}
-                        </>
-                      ) : (
-                        <>
-                          <Power size={14} />
-                          {plugin.state === 'enabled' ? 'Disable' : 'Enable'}
-                        </>
-                      )}
-                    </button>
-
-                    {plugin.hasUpdate && (
-                      <button
-                        onClick={() => handleUpdatePlugin(plugin)}
-                        disabled={actionLoading === plugin.manifest.id}
-                        className="btn btn--sm btn--success"
-                      >
-                        {actionLoading === plugin.manifest.id ? 'Updating...' : 'Update'}
-                      </button>
-                    )}
-
-                    {plugin.manifest.license.type !== 'free' && (
-                      <>
-                        {!plugin.licenseInfo?.isActive ? (
-                          <button
-                            className="btn btn--sm btn--license"
-                            onClick={() => licenseModal.open(plugin)}
-                          >
-                            Activate License
-                          </button>
-                        ) : (
-                          <button
-                            className="btn btn--sm btn--secondary"
-                            onClick={() => deactivateLicenseModal.open(plugin)}
-                          >
-                            Deactivate License
-                          </button>
-                        )}
-                      </>
-                    )}
-
-                    {plugin.manifest.homepage && (
-                      <a
-                        href={plugin.manifest.homepage}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn--sm btn--secondary"
-                      >
-                        Homepage
-                      </a>
-                    )}
-
-                    {plugin.state === 'enabled' && (
-                      <button
-                        className="btn btn--icon btn--secondary"
-                        onClick={() => handleReloadPlugin(plugin)}
-                        disabled={actionLoading === plugin.manifest.id}
-                        title="Reload Plugin"
-                      >
-                        <RotateCcw size={15} className={actionLoading === plugin.manifest.id ? 'animate-spin' : ''} />
-                      </button>
-                    )}
-
-                    {plugin.manifest.configuration && (
-                      <button
-                        className="btn btn--icon btn--secondary"
-                        onClick={() => settingsModal.open(plugin)}
-                        title="Settings"
-                      >
-                        <Settings size={15} />
-                      </button>
-                    )}
-
-                    <button
-                      className="btn btn--icon btn--secondary btn--danger-hover"
-                      onClick={() => handleUninstallPlugin(plugin)}
-                      disabled={actionLoading === plugin.manifest.id}
-                      title="Uninstall Plugin"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                </div>
+                <PluginCard
+                  key={plugin.manifest.id}
+                  plugin={plugin}
+                  actionLoading={actionLoading}
+                  onToggle={handleTogglePlugin}
+                  onUpdate={handleUpdatePlugin}
+                  onOpenLicense={licenseModal.open}
+                  onDeactivateLicense={deactivateLicenseModal.open}
+                  onReload={handleReloadPlugin}
+                  onOpenSettings={settingsModal.open}
+                  onUninstall={handleUninstallPlugin}
+                />
               ))}
             </div>
           )}

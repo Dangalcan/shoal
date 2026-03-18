@@ -1,13 +1,14 @@
 /**
  * License Activation Modal
- * 
+ *
  * Allows users to activate a license or start a trial for a plugin.
  */
 
 import { useState } from 'react';
-import { X, Key, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Key, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
 import type { Plugin } from '../../../electron/types/plugin-types';
 import { usePlugins } from './PluginProvider';
+import { BaseModal } from '../../components/modals/BaseModal';
 
 
 interface LicenseActivationModalProps {
@@ -65,109 +66,102 @@ export function LicenseActivationModal({ plugin, onClose }: LicenseActivationMod
     }
   };
 
+  const footer = (
+    <p className="license-modal__footer-text">
+      Don't have a license?{' '}
+      <a href={plugin.manifest.homepage ?? 'https://k8s-desktop.app/plugins'} target="_blank" rel="noopener noreferrer">
+        Purchase one here
+      </a>
+    </p>
+  );
+
   return (
-    <div className="modal-overlay">
-      <div className="license-modal">
-        <button className="license-modal__close" onClick={onClose}>
-          <X size={20} />
-        </button>
+    <BaseModal
+      isOpen={true}
+      onClose={onClose}
+      title={`Activate ${plugin.manifest.name}`}
+      subtitle="Enter your license key to unlock this plugin."
+      icon={<Key size={20} />}
+      maxWidth="480px"
+      footer={footer}
+    >
+      {error && (
+        <div className="license-modal__alert license-modal__alert--error">
+          <AlertTriangle size={16} />
+          <span>{error}</span>
+        </div>
+      )}
 
-        <div className="license-modal__header">
-          <Key className="license-modal__icon" size={32} />
-          <h2 className="license-modal__title">Activate {plugin.manifest.name}</h2>
-          <p className="license-modal__subtitle">
-            Enter your license key to unlock this plugin.
-          </p>
+      {success && (
+        <div className="license-modal__alert license-modal__alert--success">
+          <CheckCircle size={16} />
+          <span>{success}</span>
+        </div>
+      )}
+
+      <form onSubmit={handleActivate} className="license-modal__form">
+        <div className="form-group">
+          <label htmlFor="licenseKey">License Key</label>
+          <input
+            type="text"
+            id="licenseKey"
+            value={licenseKey}
+            onChange={(e) => setLicenseKey(e.target.value.toUpperCase())}
+            onBlur={() => setKeyTouched(true)}
+            placeholder="PRO-XXXX-XXXX-XXXX"
+            className={`form-input${showKeyError ? ' form-input--error' : ''}`}
+            disabled={loading || !!success}
+            autoComplete="off"
+            spellCheck={false}
+          />
+          {showKeyError && (
+            <p className="form-hint form-hint--error">
+              Format: PREFIX-XXXX-XXXX (e.g. PRO-AB12-CD34-EF56)
+            </p>
+          )}
+          {!showKeyError && licenseKey.length === 0 && (
+            <p className="form-hint">Enter the key exactly as received (case-insensitive)</p>
+          )}
         </div>
 
-        {error && (
-          <div className="license-modal__alert license-modal__alert--error">
-            <AlertTriangle size={16} />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {success && (
-          <div className="license-modal__alert license-modal__alert--success">
-            <CheckCircle size={16} />
-            <span>{success}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleActivate} className="license-modal__form">
-          <div className="form-group">
-            <label htmlFor="licenseKey">License Key</label>
-            <input
-              type="text"
-              id="licenseKey"
-              value={licenseKey}
-              onChange={(e) => setLicenseKey(e.target.value.toUpperCase())}
-              onBlur={() => setKeyTouched(true)}
-              placeholder="PRO-XXXX-XXXX-XXXX"
-              className={`form-input${showKeyError ? ' form-input--error' : ''}`}
-              disabled={loading || !!success}
-              autoComplete="off"
-              spellCheck={false}
-            />
-            {showKeyError && (
-              <p className="form-hint form-hint--error">
-                Format: PREFIX-XXXX-XXXX (e.g. PRO-AB12-CD34-EF56)
-              </p>
-            )}
-            {!showKeyError && licenseKey.length === 0 && (
-              <p className="form-hint">Enter the key exactly as received (case-insensitive)</p>
-            )}
-          </div>
-
-          <div className="license-modal__actions">
-            <button
-              type="submit"
-              className="btn btn--primary btn--full"
-              disabled={loading || !keyValid || !!success}
-            >
-              {loading ? 'Activating...' : 'Activate License'}
-            </button>
-          </div>
-        </form>
-
-        {plugin.manifest.license.type === 'paid' && pricing && (
-          <div className="license-modal__pricing">
-             <div className="pricing-item">
-               <span className="pricing-label">Price:</span>
-               <span className="pricing-value">
-                  {pricing.currency} {pricing.price}
-                  {pricing.interval ? ` / ${pricing.interval}` : ' (One-time)'}
-               </span>
-             </div>
-          </div>
-        )}
-
-        {trialAvailable && !success && (
-          <div className="license-modal__trial">
-            <div className="divider">
-              <span>OR</span>
-            </div>
-            
-            <button
-              onClick={handleStartTrial}
-              disabled={loading}
-              className="btn btn--secondary btn--full btn--icon"
-            >
-              <Clock size={16} />
-              Start {pricing?.trialDays}-Day Free Trial
-            </button>
-          </div>
-        )}
-        
-        <div className="license-modal__footer">
-          <p>
-            Don't have a license?{' '}
-            <a href={plugin.manifest.homepage ?? 'https://k8s-desktop.app/plugins'} target="_blank" rel="noopener noreferrer">
-              Purchase one here
-            </a>
-          </p>
+        <div className="license-modal__actions">
+          <button
+            type="submit"
+            className="btn btn--primary btn--full"
+            disabled={loading || !keyValid || !!success}
+          >
+            {loading ? 'Activating...' : 'Activate License'}
+          </button>
         </div>
-      </div>
-    </div>
+      </form>
+
+      {plugin.manifest.license.type === 'paid' && pricing && (
+        <div className="license-modal__pricing">
+          <div className="pricing-item">
+            <span className="pricing-label">Price:</span>
+            <span className="pricing-value">
+              {pricing.currency} {pricing.price}
+              {pricing.interval ? ` / ${pricing.interval}` : ' (One-time)'}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {trialAvailable && !success && (
+        <div className="license-modal__trial">
+          <div className="divider">
+            <span>OR</span>
+          </div>
+          <button
+            onClick={handleStartTrial}
+            disabled={loading}
+            className="btn btn--secondary btn--full btn--icon"
+          >
+            <Clock size={16} />
+            Start {pricing?.trialDays}-Day Free Trial
+          </button>
+        </div>
+      )}
+    </BaseModal>
   );
 }
