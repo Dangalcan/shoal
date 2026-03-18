@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { FileCode, Plus, Trash2, Play, Save, X, Edit2, AlertCircle, CheckCircle2, Upload, FileUp } from 'lucide-react';
+import { FileCode, Plus, Trash2, Play, Save, Edit2, Upload, FileUp } from 'lucide-react';
+import { toast } from 'sonner';
 import { useApi } from '../services/api-context';
 import { Manifest } from '../types.d';
-import '../../styles/pages/Manifests.css';
+import { BaseModal } from '../components/modals/BaseModal';
+import { ConfirmModal } from '../components/modals/ConfirmModal';
 
 export function Manifests() {
   const api = useApi();
@@ -13,8 +15,6 @@ export function Manifests() {
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState<number | null>(null);
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [activeContext, setActiveContext] = useState<string>('');
   const [isDragging, setIsDragging] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -38,7 +38,7 @@ export function Manifests() {
     if (result.success && result.data) {
       setManifests(result.data);
     } else {
-      setError('Failed to fetch manifests');
+      toast.error('Failed to fetch manifests');
     }
     setLoading(false);
   };
@@ -54,15 +54,13 @@ export function Manifests() {
     });
 
     if (result.success) {
-      setSuccess(editingId ? 'Manifest updated successfully' : 'Manifest saved successfully');
+      toast.success(editingId ? 'Manifest updated successfully' : 'Manifest saved successfully');
       setFormData({ name: '', content: '' });
       setEditingId(null);
       setIsModalOpen(false);
       fetchManifests();
-      setTimeout(() => setSuccess(null), 3000);
     } else {
-      setError('Failed to save manifest');
-      setTimeout(() => setError(null), 5000);
+      toast.error('Failed to save manifest');
     }
   };
 
@@ -70,7 +68,6 @@ export function Manifests() {
     setFormData({ name: manifest.name, content: manifest.content });
     setEditingId(manifest.id);
     setIsModalOpen(true);
-    // Focus textarea after modal opens
     setTimeout(() => textareaRef.current?.focus(), 100);
   };
 
@@ -78,7 +75,6 @@ export function Manifests() {
     setFormData({ name: '', content: '' });
     setEditingId(null);
     setIsModalOpen(true);
-    // Focus name input after modal opens
     setTimeout(() => {
       const input = document.getElementById('manifest-name');
       input?.focus();
@@ -97,10 +93,7 @@ export function Manifests() {
         const target = e.target;
         if (target && typeof target.result === 'string') {
           const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
-          resolve({
-            name: nameWithoutExt,
-            content: target.result
-          });
+          resolve({ name: nameWithoutExt, content: target.result });
         } else {
           reject(new Error(`Failed to read file: ${file.name}`));
         }
@@ -141,14 +134,12 @@ export function Manifests() {
     }
 
     if (successCount > 0) {
-      setSuccess(`Successfully imported ${successCount} manifest${successCount > 1 ? 's' : ''}`);
+      toast.success(`Successfully imported ${successCount} manifest${successCount > 1 ? 's' : ''}`);
       await fetchManifests();
-      setTimeout(() => setSuccess(null), 3000);
     }
 
     if (failCount > 0) {
-      setError(`Failed to import ${failCount} file${failCount > 1 ? 's' : ''}: ${errors.join(', ')}`);
-      setTimeout(() => setError(null), 7000);
+      toast.error(`Failed to import ${failCount} file${failCount > 1 ? 's' : ''}: ${errors.join(', ')}`);
     }
     setLoading(false);
   };
@@ -157,7 +148,6 @@ export function Manifests() {
     const files = e.target.files;
     if (files && files.length > 0) {
       const filesArray = Array.from(files);
-      // Reset input value immediately after snapshoting so the same files can be uploaded again
       e.target.value = '';
       await processFiles(filesArray);
     }
@@ -178,8 +168,7 @@ export function Manifests() {
     setIsDragging(false);
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      const filesArray = Array.from(files);
-      processFiles(filesArray);
+      processFiles(Array.from(files));
     }
   };
 
@@ -189,18 +178,14 @@ export function Manifests() {
 
   const confirmDelete = async () => {
     if (!deleteConfirmationId) return;
-    
     const id = deleteConfirmationId;
     setDeleteConfirmationId(null);
-    
     const result = await api.deleteManifest(id);
     if (result.success) {
-      setSuccess('Manifest deleted successfully');
+      toast.success('Manifest deleted successfully');
       fetchManifests();
-      setTimeout(() => setSuccess(null), 3000);
     } else {
-      setError('Failed to delete manifest');
-      setTimeout(() => setError(null), 5000);
+      toast.error('Failed to delete manifest');
     }
   };
 
@@ -208,11 +193,9 @@ export function Manifests() {
     setApplying(id);
     const result = await api.applyManifest(id);
     if (result.success) {
-      setSuccess('Manifest applied successfully!');
-      setTimeout(() => setSuccess(null), 3000);
+      toast.success('Manifest applied successfully!');
     } else {
-      setError(`Error applying manifest: ${result.error}`);
-      setTimeout(() => setError(null), 5000);
+      toast.error(`Error applying manifest: ${result.error}`);
     }
     setApplying(null);
   };
@@ -228,134 +211,99 @@ export function Manifests() {
           </div>
         </div>
         <div className="header-actions">
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            style={{ display: 'none' }} 
-            accept=".yaml,.yml" 
+          <input
+            type="file"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            accept=".yaml,.yml"
             multiple
             onChange={handleFileUpload}
           />
-          <button className="btn btn-secondary upload-btn" onClick={() => fileInputRef.current?.click()}>
+          <button className="btn btn--secondary btn--md upload-btn" onClick={() => fileInputRef.current?.click()}>
             <Upload size={18} />
             <span>Upload YAML</span>
           </button>
-          <button className="btn btn-primary add-btn" onClick={handleAddNew}>
+          <button className="btn btn--primary btn--md add-btn" onClick={handleAddNew}>
             <Plus size={18} />
             <span>New Manifest</span>
           </button>
         </div>
       </div>
 
-      <div className="alerts-container">
-        {error && (
-          <div className="alert alert-error">
-            <AlertCircle size={18} />
-            <span>{error}</span>
+      {/* Create / Edit Manifest Modal */}
+      <BaseModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingId ? 'Edit Manifest' : 'Create New Manifest'}
+        icon={editingId ? <Edit2 size={20} /> : <Plus size={20} />}
+        maxWidth="800px"
+        footer={
+          <>
+            <button className="close-footer-button" onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </button>
+            <button
+              className="btn btn--primary btn--md add-btn"
+              onClick={handleSave}
+              disabled={!formData.name || !formData.content}
+            >
+              <Save size={18} />
+              <span>{editingId ? 'Update' : 'Save'} Manifest</span>
+            </button>
+          </>
+        }
+      >
+        <div className="manifest-form">
+          <div className="form-group">
+            <label htmlFor="manifest-name">Name</label>
+            <input
+              id="manifest-name"
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="e.g., Nginx Deployment"
+            />
           </div>
-        )}
-        {success && (
-          <div className="alert alert-success">
-            <CheckCircle2 size={18} />
-            <span>{success}</span>
-          </div>
-        )}
-      </div>
-
-      {isModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <div className="modal-header-title">
-                {editingId ? <Edit2 size={20} /> : <Plus size={20} />}
-                <h3>{editingId ? 'Edit Manifest' : 'Create New Manifest'}</h3>
-              </div>
-              <button className="btn-close" onClick={() => setIsModalOpen(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label htmlFor="manifest-name">Name</label>
-                <input 
-                  id="manifest-name"
-                  type="text" 
-                  value={formData.name} 
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  placeholder="e.g., Nginx Deployment"
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="manifest-content">YAML Configuration</label>
-                <div className="textarea-wrapper">
-                  <textarea 
-                    id="manifest-content"
-                    ref={textareaRef}
-                    value={formData.content} 
-                    onChange={(e) => setFormData({...formData, content: e.target.value})}
-                    placeholder="apiVersion: v1
-kind: Service
-metadata:
-  name: my-service"
-                    rows={12}
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-              <button 
-                className="btn btn-primary" 
-                onClick={handleSave}
-                disabled={!formData.name || !formData.content}
-              >
-                <Save size={18} />
-                <span>{editingId ? 'Update' : 'Save'} Manifest</span>
-              </button>
+          <div className="form-group">
+            <label htmlFor="manifest-content">YAML Configuration</label>
+            <div className="textarea-wrapper">
+              <textarea
+                id="manifest-content"
+                ref={textareaRef}
+                value={formData.content}
+                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                placeholder={`apiVersion: v1\nkind: Service\nmetadata:\n  name: my-service`}
+                rows={12}
+              />
             </div>
           </div>
         </div>
-      )}
+      </BaseModal>
 
-      <div 
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!deleteConfirmationId}
+        onClose={() => setDeleteConfirmationId(null)}
+        onConfirm={confirmDelete}
+        title="Delete Manifest"
+        message="Are you sure you want to delete this manifest? This action cannot be undone."
+        confirmLabel="Delete Manifest"
+        variant="danger"
+      />
+
+      <div
         className={`manifests-grid-container ${isDragging ? 'is-dragging' : ''}`}
         onDragOver={onDragOver}
         onDragEnter={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
       >
-        {deleteConfirmationId && (
-          <div className="modal-overlay" onClick={() => setDeleteConfirmationId(null)}>
-            <div className="modal-content confirm-modal" onClick={e => e.stopPropagation()}>
-              <div className="modal-header">
-                <div className="modal-header-title alert-title">
-                  <AlertCircle size={20} />
-                  <h3>Delete Manifest</h3>
-                </div>
-                <button className="btn-close" onClick={() => setDeleteConfirmationId(null)}>
-                  <X size={20} />
-                </button>
-              </div>
-              <div className="modal-body">
-                <p>Are you sure you want to delete this manifest? This action cannot be undone.</p>
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-secondary" onClick={() => setDeleteConfirmationId(null)}>Cancel</button>
-                <button className="btn btn-danger" onClick={confirmDelete}>
-                  <Trash2 size={18} />
-                  <span>Delete Manifest</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="manifests-grid">
           {loading && manifests.length === 0 ? (
             <p>Loading manifests...</p>
           ) : manifests.length === 0 ? (
-            <div 
-              className="empty-state drop-zone" 
+            <div
+              className="empty-state drop-zone"
               onClick={() => fileInputRef.current?.click()}
             >
               <FileUp size={48} className="empty-icon" />
@@ -368,23 +316,23 @@ metadata:
                 <div className="card-header">
                   <h3 title={m.name}>{m.name}</h3>
                   <div className="card-actions">
-                    <button 
-                      className="btn-icon btn-apply" 
+                    <button
+                      className="btn-icon btn-apply"
                       title="Apply to Cluster"
                       onClick={() => handleApply(m.id)}
                       disabled={applying === m.id}
                     >
                       {applying === m.id ? <div className="spinner-small" /> : <Play size={16} />}
                     </button>
-                    <button 
-                      className="btn-icon btn-edit" 
+                    <button
+                      className="btn-icon btn-edit"
                       title="Edit Manifest"
                       onClick={() => handleEdit(m)}
                     >
                       <Edit2 size={16} />
                     </button>
-                    <button 
-                      className="btn-icon btn-delete" 
+                    <button
+                      className="btn-icon btn-delete"
                       title="Delete"
                       onClick={() => handleDeleteClick(m.id)}
                     >
