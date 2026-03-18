@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Search, RefreshCw, Settings, X, Check, Trash2 } from 'lucide-react'
+import { RefreshCw, Trash2 } from 'lucide-react'
 import { Toaster } from 'sonner'
 import { LogViewerModal } from '../components/modals/LogViewerModal'
 import { DescribeModal } from '../components/modals/DescribeModal'
@@ -13,16 +13,15 @@ import { NamespaceSelector } from '../components/cluster/NamespaceSelector'
 import { SettingsDropdown } from '../components/cluster/SettingsDropdown'
 import { ClusterResourceDisplay } from '../components/cluster/ClusterResourceDisplay'
 import { getSorterForColumn } from '../lib/sorting'
-import { 
-    useClusterData, 
-    useNamespaces, 
-    useTableState, 
-    useModalState, 
+import {
+    useClusterData,
+    useNamespaces,
+    useTableState,
+    useModalState,
     useResourceActions,
     useLocalStorage,
-    useClusters
 } from '../hooks'
-import '../../styles/pages/ClusterDetails.css'
+import { useClusterContext } from '../features/clusters/ClusterContext'
 
 export function ClusterDetails() {
     const { name } = useParams<{ name: string }>()
@@ -34,7 +33,7 @@ export function ClusterDetails() {
         'pods'
     )
 const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaces(name)
-    const { deleteCluster, deleting } = useClusters()
+    const { deleteCluster, deleting } = useClusterContext()
     const [isDeletingCluster, setIsDeletingCluster] = useState(false)
 
     // 2. Data Fetching
@@ -165,21 +164,21 @@ const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaces(na
                     onYaml={modals.openYaml}
                     onRestart={(item) => handleRestart(item.metadata.name, item.metadata.namespace || '', activeTab)}
                     onLogs={modals.openLogs}
-                    onDelete={(item) => handleDelete(item.metadata.name, item.metadata.namespace || '', activeTab)}
+                    onDelete={modals.openDelete}
                     onRetry={fetchData}
                     selectedNamespace={selectedNamespace}
                 />
             </main>
 
             <LogViewerModal
-                isOpen={modals.showLogs}
+                isOpen={modals.activeModal === 'logs'}
                 onClose={modals.closeAll}
                 clusterName={name || ''}
                 podName={modals.selectedItem?.metadata.name || ''}
                 namespace={modals.selectedItem?.metadata.namespace || ''}
             />
             <DescribeModal
-                isOpen={modals.showDescribe}
+                isOpen={modals.activeModal === 'describe'}
                 onClose={modals.closeAll}
                 clusterName={name || ''}
                 resourceName={modals.selectedItem?.metadata.name || ''}
@@ -187,12 +186,31 @@ const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaces(na
                 namespace={modals.selectedItem?.metadata.namespace || ''}
             />
             <YamlModal
-                isOpen={modals.showYaml}
+                isOpen={modals.activeModal === 'yaml'}
                 onClose={modals.closeAll}
                 clusterName={name || ''}
                 resourceName={modals.selectedItem?.metadata.name || ''}
                 resourceType={activeTab}
                 namespace={modals.selectedItem?.metadata.namespace || ''}
+            />
+
+            <ConfirmModal
+                isOpen={modals.activeModal === 'delete'}
+                onClose={modals.closeAll}
+                onConfirm={() => {
+                    if (modals.selectedItem) {
+                        handleDelete(
+                            modals.selectedItem.metadata.name,
+                            modals.selectedItem.metadata.namespace || '',
+                            activeTab
+                        );
+                    }
+                    modals.closeAll();
+                }}
+                title={`Delete ${activeTab}`}
+                message={`Are you sure you want to delete ${activeTab}/${modals.selectedItem?.metadata.name}? This action cannot be undone.`}
+                confirmLabel={`Delete ${activeTab}`}
+                variant="danger"
             />
 
             <ConfirmModal

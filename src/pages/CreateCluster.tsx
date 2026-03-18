@@ -4,13 +4,12 @@ import { Server, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { handleError } from '../lib/error-handler'
 import { useApi } from '../services/api-context'
-import { useClusters } from '../hooks/useClusters'
-import '../../styles/pages/CreateCluster.css'
+import { useClusterContext } from '../features/clusters/ClusterContext'
 
 export function CreateCluster() {
     const navigate = useNavigate()
     const api = useApi()
-    const { fetchClusters } = useClusters()
+    const { fetchClusters } = useClusterContext()
     const [name, setName] = useState('')
     const [provider, setProvider] = useState('kind')
 

@@ -8,13 +8,12 @@ import {
   Eye,
 } from 'lucide-react';
 import { PodViewerModal } from '../components/modals/PodViewerModal';
-import { useClusters } from '../hooks';
+import { useClusterContext } from '../features/clusters/ClusterContext';
 import { Button, Badge, Spinner, Card, Animate } from '../components/ui';
 import { useApi } from '../services/api-context';
 import { isSuccess } from '../types/result';
 import { cn } from '../lib/utils';
 import { usePluginWidgets } from '../services/plugin-ui-registry';
-import '../../styles/pages/Dashboard.css';
 
 interface StatCardProps {
   label: string;
@@ -65,7 +64,7 @@ function StatCard({ label, value, icon: Icon, color, status }: StatCardProps) {
 export function Dashboard() {
   const navigate = useNavigate();
   const api = useApi();
-  const { clusters, currentContext, fetchClusters, loading: clustersLoading } = useClusters();
+  const { clusters, currentContext, fetchClusters, loading: clustersLoading } = useClusterContext();
   const [dockerStatus, setDockerStatus] = useState<boolean | null>(null);
   const [podmanStatus, setPodmanStatus] = useState<boolean | null>(null);
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
