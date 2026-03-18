@@ -1,4 +1,4 @@
-import { AlertTriangle, AlertCircle, X, Loader2 } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { BaseModal } from './BaseModal';
 

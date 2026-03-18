@@ -1,9 +1,7 @@
-import { useState, useEffect } from 'react';
 import { Card, Button, Animate } from '../components/ui';
 import { useSettings } from '../features/settings';
 import { useNamespaces } from '../hooks';
 import { useClusterContext } from '../features/clusters/ClusterContext';
-import { useApi } from '../services/api-context';
 import { Globe, FolderOpen, Activity, RefreshCw, Check } from 'lucide-react';
 
 export function Settings() {
@@ -21,7 +19,6 @@ export function Settings() {
     handleSaveKubeconfig,
   } = useSettings();
 
-  const api = useApi();
   const { currentContext } = useClusterContext();
 
   const { namespaces, loading: loadingNamespaces } =

@@ -1,6 +1,5 @@
 import type { ResourceType } from '../resource-definitions';
 import type { SorterFunction } from './types';
-import { reverseSorter } from './sortStrategies';
 import * as Sorters from './resourceSorters';
 
 export * from './types';

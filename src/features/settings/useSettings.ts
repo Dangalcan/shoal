@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { useApi } from '../../services/api-context';
 import { toast } from 'sonner';
-import { SettingsState, UseSettingsResult } from './types';
+import { UseSettingsResult } from './types';
 
 export function useSettings(): UseSettingsResult {
   const api = useApi();

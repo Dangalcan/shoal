@@ -204,7 +204,7 @@ export const renderCell = ({ colId, resource, resourceType, style }: RenderCellO
  * This is a fallback for less common columns
  */
 function renderGenericCell(
-    { colId, resource, resourceType, style }: RenderCellOptions
+    { colId, resource, style }: RenderCellOptions
 ): React.ReactNode {
     const res = resource as any
     const spec = res.spec || {}

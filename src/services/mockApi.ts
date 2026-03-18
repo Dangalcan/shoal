@@ -5,7 +5,6 @@ import type {
   PluginModalData,
   PluginScaffoldOptions,
 } from '../types.d';
-import type { Result } from '../types/result';
 
 // Stateful mock for browser testing
 let mockClusters = ['minikube', 'kind-cluster-1', 'docker-desktop'];

@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { ChevronUp, ChevronDown, MoreVertical } from 'lucide-react'
+import { ChevronUp, ChevronDown } from 'lucide-react'
 
 export interface ColumnDef {
     id: string
