@@ -2,9 +2,7 @@ import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi, beforeAll } from 'vitest';
 import { mockToast } from './mocks/toast-mock';
-
-// Import component mocks to register them globally
-import './mocks/component-mocks';
+import { createMockElectronAPI } from './utils/mocks';
 
 // Global mocks
 vi.mock('sonner', () => ({
@@ -16,6 +14,12 @@ vi.mock('sonner', () => ({
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+});
+
+// Global clipboard mock
+export const writeTextMock = vi.fn();
+Object.assign(navigator, {
+  clipboard: { writeText: writeTextMock },
 });
 
 // Mock scrollIntoView and matchMedia (not available in jsdom)
@@ -37,72 +41,8 @@ if (typeof window !== 'undefined') {
   });
 }
 
-// Mock window.electron API with default Promise returns
-const mockElectronAPI = {
-  runCommand: vi
-    .fn()
-    .mockResolvedValue({ success: true, data: { stdout: '', stderr: '' } }),
-  checkTool: vi.fn().mockResolvedValue({ success: true, data: true }),
-  createCluster: vi.fn().mockResolvedValue({ success: true, data: undefined }),
-  getClusters: vi.fn().mockResolvedValue({ success: true, data: [] }),
-  deleteCluster: vi.fn().mockResolvedValue({ success: true, data: undefined }),
-  getCurrentContext: vi.fn().mockResolvedValue({ success: true, data: 'None' }),
-  getPods: vi.fn().mockResolvedValue({ success: true, data: [] }),
-  getNamespaces: vi.fn().mockResolvedValue({ success: true, data: [] }),
-  getResources: vi.fn().mockResolvedValue({ success: true, data: [] }),
-  getLogs: vi.fn().mockResolvedValue({ success: true, data: '' }),
-  describeResource: vi.fn().mockResolvedValue({ success: true, data: '' }),
-  getResourceYaml: vi.fn().mockResolvedValue({ success: true, data: '' }),
-  rolloutRestart: vi.fn().mockResolvedValue({ success: true, data: undefined }),
-  deleteResource: vi.fn().mockResolvedValue({ success: true, data: undefined }),
-  getAppVersion: vi.fn().mockResolvedValue({ success: true, data: 'v0.1.0' }),
-  getKubeconfigPath: vi.fn().mockResolvedValue({ success: true, data: '' }),
-  setKubeconfigPath: vi.fn().mockResolvedValue({ success: true, data: true }),
-  switchContext: vi.fn().mockResolvedValue({ success: true, data: true }),
-
-  // Plugin System
-  getPlugins: vi.fn().mockResolvedValue({ success: true, data: [] }),
-  enablePlugin: vi.fn().mockResolvedValue({ success: true, data: true }),
-  disablePlugin: vi.fn().mockResolvedValue({ success: true, data: [] }),
-  checkForPluginUpdates: vi
-    .fn()
-    .mockResolvedValue({ success: true, data: undefined }),
-  getPluginExtensions: vi.fn().mockResolvedValue({ success: true, data: [] }),
-  executePluginAction: vi
-    .fn()
-    .mockResolvedValue({ success: true, data: undefined }),
-  getPluginSettings: vi.fn().mockResolvedValue({ success: true, data: {} }),
-  setPluginSettings: vi.fn().mockResolvedValue({ success: true, data: true }),
-  uninstallPlugin: vi.fn().mockResolvedValue({ success: true, data: true }),
-  activatePluginLicense: vi
-    .fn()
-    .mockResolvedValue({ success: true, data: undefined }),
-  startPluginTrial: vi
-    .fn()
-    .mockResolvedValue({ success: true, data: undefined }),
-  deactivatePluginLicense: vi
-    .fn()
-    .mockResolvedValue({ success: true, data: undefined }),
-  getMarketplacePlugins: vi.fn().mockResolvedValue({ success: true, data: [] }),
-  installPlugin: vi.fn().mockResolvedValue({ success: true, data: undefined }),
-  generatePlugin: vi.fn().mockResolvedValue({ success: true, data: true }),
-  reloadPlugin: vi.fn().mockResolvedValue({ success: true, data: undefined }),
-  importLocalPlugin: vi
-    .fn()
-    .mockResolvedValue({ success: true, data: 'mock-id' }),
-
-  // Manifests
-  getManifests: vi.fn().mockResolvedValue({ success: true, data: [] }),
-  saveManifest: vi.fn().mockResolvedValue({ success: true, data: Date.now() }),
-  deleteManifest: vi.fn().mockResolvedValue({ success: true, data: true }),
-  applyManifest: vi
-    .fn()
-    .mockResolvedValue({ success: true, data: { stdout: '', stderr: '' } }),
-
-  // Listeners
-  onSetKubeconfigPath: vi.fn(),
-  onPluginNotification: vi.fn(),
-};
+// Single source of truth for the mock Electron API
+export const mockElectronAPI = createMockElectronAPI();
 
 // Set up window.electron before all tests
 beforeAll(() => {
@@ -114,6 +54,3 @@ beforeAll(() => {
     });
   }
 });
-
-// Export for use in tests
-export { mockElectronAPI };

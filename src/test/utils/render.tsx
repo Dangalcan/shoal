@@ -4,7 +4,6 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ApiProvider } from '../../services/api-context';
 import { ClusterProvider } from '../../features/clusters/ClusterContext';
 import { PluginProvider } from '../../features/plugins/PluginProvider';
-import { createMockElectronAPI } from './mocks';
 
 /**
  * Custom render options with router support.
@@ -27,7 +26,7 @@ const AllTheProviders: React.FC<{
   children: React.ReactNode;
   initialEntries?: string[];
   api?: typeof window.electron;
-}> = ({ children, initialEntries = ['/'], api = createMockElectronAPI() }) => {
+}> = ({ children, initialEntries = ['/'], api }) => {
   return (
     <ApiProvider api={api}>
       <ClusterProvider>
@@ -70,7 +69,7 @@ export function render(
 
   if (path && route) {
     return rtlRender(
-      <ApiProvider api={api || createMockElectronAPI()}>
+      <ApiProvider api={api}>
         <ClusterProvider>
           <PluginProvider>
             <MemoryRouter initialEntries={[route]}>

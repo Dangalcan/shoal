@@ -11,13 +11,12 @@ import {
 import { Toaster } from 'sonner';
 import { PodViewerModal } from '../components/modals/PodViewerModal';
 import { ConfirmModal } from '../components/modals/ConfirmModal';
-import { useClusters } from '../hooks';
+import { useClusterContext } from '../features/clusters/ClusterContext';
 import { Button, Badge, Spinner, Animate } from '../components/ui';
-import '../../styles/pages/Clusters.css';
 
 export function Clusters() {
   const navigate = useNavigate();
-  const { clusters, loading, deleting, currentContext, switching, fetchClusters, deleteCluster, switchContext } = useClusters();
+  const { clusters, loading, deleting, currentContext, switching, fetchClusters, deleteCluster, switchContext } = useClusterContext();
 
   // useAsyncData handles initial fetch on mount
 
