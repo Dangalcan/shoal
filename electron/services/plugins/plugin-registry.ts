@@ -250,7 +250,7 @@ export class PluginRegistry {
    */
   async updatePluginSettings(
     pluginId: string,
-    settings: Record<string, any>
+    settings: Record<string, unknown>
   ): Promise<void> {
     const entry = this.registry.get(pluginId);
     if (!entry) {
