@@ -10,11 +10,11 @@ vi.mock('../logger', () => ({
   },
 }));
 
+import { createPluginContext } from '../services/plugins/plugin-context';
 import {
-  createPluginContext,
   getAllPluginExtensions,
   clearPluginExtensions,
-} from '../services/plugins/plugin-context';
+} from '../services/plugins/plugin-extensions';
 import fs from 'fs/promises';
 import { app } from 'electron';
 import child_process from 'child_process';

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PluginLoader } from '../services/plugins/plugin-loader';
+import { createErrorPlugin } from '../services/plugins/plugin-validator';
 import fs from 'fs/promises';
 
 // Helper to handle path separators consistently
@@ -264,7 +265,7 @@ describe('PluginLoader', () => {
       const result = await loader.loadPluginCode('p1', '/p');
       expect(result).toBeDefined();
       expect(typeof result.start).toBe('function');
-      expect(result.start()).toBe(42);
+      expect((result.start as () => unknown)()).toBe(42);
     });
 
     it('loadPluginCode should throw if plugin not registered', async () => {
@@ -318,8 +319,7 @@ describe('PluginLoader', () => {
 
   describe('Error handling', () => {
     it('createErrorPlugin should use defaults for missing manifest fields', () => {
-      // Accessing private method for branch coverage
-      const p = (loader as any).createErrorPlugin({}, 'Some error');
+      const p = createErrorPlugin({}, 'Some error');
       expect(p.manifest.id).toBe('unknown');
       expect(p.manifest.name).toBe('Unknown Plugin');
       expect(p.manifest.version).toBe('0.0.0');

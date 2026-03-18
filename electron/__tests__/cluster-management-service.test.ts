@@ -6,9 +6,15 @@ const mocks = vi.hoisted(() => ({
   exec: vi.fn(),
 }));
 
-vi.mock('child_process', () => ({
-  exec: mocks.exec,
-}));
+vi.mock('child_process', () => {
+  const m = {
+    exec: mocks.exec,
+  };
+  return {
+    ...m,
+    default: m,
+  };
+});
 
 // Mock util.promisify to return our mocked exec directly,
 // since we can't easily mock the result of util.promisify(child_process.exec)

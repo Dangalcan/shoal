@@ -3,6 +3,7 @@ import { PluginManager } from '../services/plugins/plugin-manager';
 import { pluginLoader } from '../services/plugins/plugin-loader';
 import { pluginRegistry } from '../services/plugins/plugin-registry';
 import { licenseManager } from '../services/security/license-manager';
+import { pluginWatcher } from '../services/plugins/plugin-watcher';
 
 vi.mock('../logger', () => ({
   default: {
@@ -77,8 +78,19 @@ vi.mock('../services/marketplace/marketplace-service', () => ({
 
 vi.mock('../services/plugins/plugin-context', () => ({
   createPluginContext: vi.fn(),
+}));
+
+vi.mock('../services/plugins/plugin-extensions', () => ({
   getAllPluginExtensions: vi.fn(),
   clearPluginExtensions: vi.fn(),
+}));
+
+vi.mock('../services/plugins/plugin-watcher', () => ({
+  pluginWatcher: {
+    watch: vi.fn(),
+    stop: vi.fn(),
+    stopAll: vi.fn(),
+  },
 }));
 
 vi.mock('../services/plugins/dependency-resolver', () => ({
@@ -143,10 +155,8 @@ vi.mock('fs', async (importOriginal) => {
 });
 
 import { marketplaceService } from '../services/marketplace/marketplace-service';
-import {
-  getAllPluginExtensions,
-  createPluginContext,
-} from '../services/plugins/plugin-context';
+import { createPluginContext } from '../services/plugins/plugin-context';
+import { getAllPluginExtensions } from '../services/plugins/plugin-extensions';
 import { dependencyResolver } from '../services/plugins/dependency-resolver';
 import { dataLoader } from '../services/plugins/data-loader';
 import fs from 'fs';
@@ -653,137 +663,19 @@ describe('PluginManager', () => {
   });
 
   describe('Watcher', () => {
-    it('watchPlugin should start watcher and handle changes', async () => {
-      vi.useFakeTimers();
-
+    it('watchPlugin should call pluginWatcher.watch', async () => {
       const pluginId = 'p1';
-      const pluginPath = '/path/to/plugin';
-      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue(pluginPath);
-
-      let watchCallback: any;
-      const mockWatcher = { close: vi.fn() };
-      (vi.mocked(fs.watch) as any).mockImplementation(
-        (path: any, options: any, cb: any) => {
-          watchCallback = cb;
-          return mockWatcher;
-        }
-      );
-
-      const reloadSpy = vi
-        .spyOn(pluginManager, 'reloadPlugin')
-        .mockResolvedValue(undefined);
-
       await pluginManager.watchPlugin(pluginId);
-
-      expect(fs.watch).toHaveBeenCalledWith(
-        pluginPath,
-        { recursive: true },
+      expect(pluginWatcher.watch).toHaveBeenCalledWith(
+        pluginId,
         expect.any(Function)
       );
-
-      // Simulate file-system change
-      if (watchCallback) {
-        watchCallback('change', 'file.js');
-      }
-
-      // Advance past the 500 ms debounce window
-      vi.advanceTimersByTime(500);
-      // Allow the async reload to execute
-      await Promise.resolve();
-
-      expect(reloadSpy).toHaveBeenCalledWith(pluginId);
-      reloadSpy.mockRestore();
-      vi.useRealTimers();
     });
 
-    it('watchPlugin should not start watcher if already watching', async () => {
+    it('stopWatcher should call pluginWatcher.stop', () => {
       const pluginId = 'p1';
-      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
-      vi.mocked(fs.watch).mockReturnValue({ close: vi.fn() } as any);
-
-      await pluginManager.watchPlugin(pluginId);
-      await pluginManager.watchPlugin(pluginId); // Call again
-
-      expect(fs.watch).toHaveBeenCalledTimes(1);
-    });
-
-    it('watchPlugin should handle missing plugin path', async () => {
-      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue(null);
-      await pluginManager.watchPlugin('p1');
-      expect(fs.watch).not.toHaveBeenCalled();
-    });
-
-    it('watchPlugin should handle errors when starting watcher', async () => {
-      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
-      vi.mocked(fs.watch).mockImplementation(() => {
-        throw new Error('Watch fail');
-      });
-      const consoleSpy = vi.spyOn(console, 'error');
-
-      await pluginManager.watchPlugin('p1');
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to start watcher'),
-        'Watch fail'
-      );
-      consoleSpy.mockRestore();
-    });
-
-    it('stopWatcher should close watcher if exists', async () => {
-      const pluginId = 'p1';
-      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
-      const closeMock = vi.fn();
-      vi.mocked(fs.watch).mockReturnValue({ close: closeMock } as any);
-
-      await pluginManager.watchPlugin(pluginId);
-
-      // Access private method via any
       (pluginManager as any).stopWatcher(pluginId);
-      expect(closeMock).toHaveBeenCalled();
-
-      // Call again should be safe
-      (pluginManager as any).stopWatcher(pluginId);
-      expect(closeMock).toHaveBeenCalledTimes(1);
-    });
-
-    it('watcher callback should handle reload errors', async () => {
-      vi.useFakeTimers();
-
-      const pluginId = 'p1';
-      vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
-
-      let watchCallback: any;
-      (vi.mocked(fs.watch) as any).mockImplementation(
-        (path: any, options: any, cb: any) => {
-          watchCallback = cb;
-          return { close: vi.fn() };
-        }
-      );
-
-      const reloadSpy = vi
-        .spyOn(pluginManager, 'reloadPlugin')
-        .mockRejectedValue(new Error('Reload fail'));
-      const consoleSpy = vi.spyOn(console, 'error');
-
-      await pluginManager.watchPlugin(pluginId);
-
-      // Simulate file-system change
-      if (watchCallback) {
-        watchCallback('change', 'file.js');
-      }
-
-      // Advance past the 500 ms debounce, then allow the rejection to propagate
-      vi.advanceTimersByTime(500);
-      await Promise.resolve();
-      await Promise.resolve(); // two ticks: one for setTimeout, one for rejected promise
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Auto-reload failed'),
-        'Reload fail'
-      );
-      consoleSpy.mockRestore();
-      vi.useRealTimers();
-      reloadSpy.mockRestore();
+      expect(pluginWatcher.stop).toHaveBeenCalledWith(pluginId);
     });
   });
 
