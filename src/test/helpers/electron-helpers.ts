@@ -169,19 +169,3 @@ export const mockFailedClusterCreation = (errorMessage: string) => {
     error: errorMessage,
   });
 };
-
-/**
- * Mock cluster deletion
- *
- * @param success - Whether deletion should succeed
- * @param errorMessage - Error message if deletion fails
- */
-export const mockClusterDeletion = (
-  success: boolean = true,
-  errorMessage?: string
-) => {
-  mockElectronAPI.deleteCluster.mockResolvedValue({
-    success,
-    error: errorMessage,
-  });
-};

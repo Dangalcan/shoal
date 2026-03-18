@@ -39,10 +39,6 @@ export function useResourceActions(
   const handleDelete = useCallback(
     async (resName: string, ns: string, type: string) => {
       if (!contextName) return;
-      if (
-        !window.confirm(`Are you sure you want to delete ${type}/${resName}?`)
-      )
-        return;
 
       await handleAsyncOperation(
         () =>
