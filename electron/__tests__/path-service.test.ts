@@ -51,7 +51,9 @@ describe('PathService', () => {
 
   it('should return plugin database path', () => {
     const dbPath = pathService.getPluginDatabasePath('test-p');
-    expect(dbPath).toBe(path.join('/mock/user/data', 'plugin-storage', 'test-p', 'storage.db'));
+    expect(dbPath).toBe(
+      path.join('/mock/user/data', 'plugin-storage', 'test-p', 'storage.db')
+    );
   });
 
   it('should return plugin log directory', () => {
@@ -61,7 +63,9 @@ describe('PathService', () => {
 
   it('should return plugin cache directory', () => {
     const dir = pathService.getPluginCacheDir('test-p');
-    expect(dir).toBe(path.join('/mock/user/data', 'cache', 'plugins', 'test-p'));
+    expect(dir).toBe(
+      path.join('/mock/user/data', 'cache', 'plugins', 'test-p')
+    );
   });
 
   describe('ensureDir', () => {
@@ -75,16 +79,20 @@ describe('PathService', () => {
       const error = new Error('EEXIST');
       (error as any).code = 'EEXIST';
       vi.mocked(fs.mkdir).mockRejectedValue(error);
-      
-      await expect(pathService.ensureDir('/some/path')).resolves.toBeUndefined();
+
+      await expect(
+        pathService.ensureDir('/some/path')
+      ).resolves.toBeUndefined();
     });
 
     it('should throw other errors', async () => {
       const error = new Error('ENOENT');
       (error as any).code = 'ENOENT';
       vi.mocked(fs.mkdir).mockRejectedValue(error);
-      
-      await expect(pathService.ensureDir('/some/path')).rejects.toThrow('ENOENT');
+
+      await expect(pathService.ensureDir('/some/path')).rejects.toThrow(
+        'ENOENT'
+      );
     });
   });
 

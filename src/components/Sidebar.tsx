@@ -3,13 +3,15 @@ import { LayoutDashboard, Server, Settings, Sun, Moon, Package, FileCode } from 
 import { useEffect, useState } from 'react'
 import { cn } from '../lib/utils'
 import { useTheme } from '../hooks'
+import { useApi } from '../services/api-context'
 import { usePlugins, usePluginExtensions } from '../features/plugins/PluginProvider'
 import type { SidebarExtension } from '../../electron/types/plugin-types'
 import { ContextSwitcher } from './common/ContextSwitcher'
 import { ExternalLink } from 'lucide-react'
-import '../../styles/components/Sidebar.css'
+
 
 export function Sidebar() {
+    const api = useApi();
     const { theme, toggleTheme } = useTheme();
     const [version, setVersion] = useState<string>('v0.1.0');
     const { plugins } = usePlugins();
@@ -24,7 +26,7 @@ export function Sidebar() {
 
     useEffect(() => {
         const fetchVersion = async () => {
-            const result = await window.electron.getAppVersion();
+            const result = await api.getAppVersion();
             if (result.success && result.data) {
                 setVersion(result.data);
             }
