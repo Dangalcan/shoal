@@ -653,7 +653,7 @@ const PluginProviderTestConsumer = ({ action, pluginId }: { action: string, plug
       if (action === 'deactivateLicense') await deactivateLicense(pluginId!);
       if (action === 'startTrial') await startTrial(pluginId!);
       if (action === 'saveSettings') await saveSettings(pluginId!, { active: true });
-      if (action === 'generatePlugin') await generatePlugin({ name: 'test' });
+      if (action === 'generatePlugin') await generatePlugin({ id: 'test-plugin', name: 'test', author: 'test-author', description: 'test-desc' });
       if (action === 'reloadPlugin') await reloadPlugin(pluginId!);
       if (action === 'uninstallPlugin') await uninstallPlugin(pluginId!);
       if (action === 'importLocalPlugin') await importLocalPlugin();

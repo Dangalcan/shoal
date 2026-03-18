@@ -6,7 +6,7 @@ import { mockClusterState, mockToolStatus } from '../helpers/electron-helpers';
 import { expectMultipleOccurrences, findByTextWithTimeout } from '../helpers/dom-helpers';
 import { TEST_TIMEOUTS } from '../constants';
 
-// Note: PodViewerModal is mocked globally in component-mocks.tsx
+import '../mocks/modal-mocks';
 
 let mockApi: ReturnType<typeof createMockElectronAPI>;
 
@@ -90,7 +90,7 @@ describe('Dashboard Page', () => {
         fireEvent.click(viewBtn);
 
         expect(await screen.findByTestId('pod-modal', {}, { timeout: TEST_TIMEOUTS.NETWORK_REQUEST })).toBeInTheDocument();
-        expect(screen.getByText(/PodViewer for view-cluster/)).toBeInTheDocument();
+        expect(screen.getByText(/Pods in view-cluster/)).toBeInTheDocument();
 
         fireEvent.click(screen.getByText('Close'));
         await waitFor(() => expect(screen.queryByTestId('pod-modal')).not.toBeInTheDocument());

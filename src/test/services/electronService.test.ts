@@ -151,7 +151,12 @@ describe('ElectronService', () => {
   });
 
   it('generatePlugin calls window.electron.generatePlugin', async () => {
-    const options = { name: 'New Plugin' };
+    const options: any = {
+      id: 'test-plugin',
+      name: 'New Plugin',
+      author: 'test-author',
+      description: 'test-desc',
+    };
     await electronService.generatePlugin(options);
     expect(getMockApi().generatePlugin).toHaveBeenCalledWith(options);
   });
