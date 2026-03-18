@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { RefreshCw, Trash2 } from 'lucide-react'
 import { Toaster } from 'sonner'
@@ -22,6 +22,7 @@ import {
     useLocalStorage,
 } from '../hooks'
 import { useClusterContext } from '../features/clusters/ClusterContext'
+import { DisplaySettingsContext } from '../features/clusters/DisplaySettingsContext'
 
 export function ClusterDetails() {
     const { name } = useParams<{ name: string }>()
@@ -67,6 +68,8 @@ const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaces(na
 
     // Settings UI State
     const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+    const toggleSettings = useCallback(() => setIsSettingsOpen(v => !v), [])
+    const closeSettings = useCallback(() => setIsSettingsOpen(false), [])
 
     // Handle inactive visible tab
     useEffect(() => {
@@ -86,11 +89,22 @@ const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaces(na
 
     const tabs = useMemo(() => ALL_TABS.filter(tab => visibleResources.includes(tab.id)), [visibleResources])
 
-    const toggleResource = (id: ResourceType) => {
+    const toggleResource = useCallback((id: ResourceType) => {
         setVisibleResources(prev =>
             prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]
         )
-    }
+    }, [setVisibleResources])
+
+    const displaySettings = useMemo(() => ({
+        isSettingsOpen,
+        toggleSettings,
+        closeSettings,
+        visibleResources,
+        toggleResource,
+        activeTab,
+        visibleColumns,
+        toggleColumn: handleColumnToggle,
+    }), [isSettingsOpen, toggleSettings, closeSettings, visibleResources, toggleResource, activeTab, visibleColumns, handleColumnToggle])
 
     const handleDeleteCluster = async () => {
         if (!name) return
@@ -102,6 +116,7 @@ const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaces(na
     }
 
     return (
+        <DisplaySettingsContext.Provider value={displaySettings}>
         <div className={`cluster-details-container ${resizingId ? 'cluster-details-container-no-select' : ''}`}>
             <header className="cluster-details-header">
                 <DetailsHeader name={name || ''} />
@@ -132,16 +147,7 @@ const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaces(na
                             <Trash2 size={18} />
                         </button>
                         
-                        <SettingsDropdown 
-                            isOpen={isSettingsOpen}
-                            onToggle={() => setIsSettingsOpen(!isSettingsOpen)}
-                            onClose={() => setIsSettingsOpen(false)}
-                            visibleResources={visibleResources}
-                            onToggleResource={toggleResource}
-                            activeTab={activeTab}
-                            visibleColumns={visibleColumns}
-                            onToggleColumn={handleColumnToggle}
-                        />
+                        <SettingsDropdown />
                     </div>
                 </div>
             </header>
@@ -224,5 +230,6 @@ const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaces(na
             />
             <Toaster position="bottom-right" richColors />
         </div>
+        </DisplaySettingsContext.Provider>
     )
 }

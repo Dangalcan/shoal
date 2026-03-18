@@ -1,30 +1,21 @@
 import { useState, useMemo } from 'react';
 import { Settings, X, Search, ChevronDown, ChevronRight } from 'lucide-react';
-import { ResourceType, ALL_TABS, COLUMN_DEFINITIONS, ResourceCategory } from '../../lib/resources/resource-definitions';
+import { ALL_TABS, COLUMN_DEFINITIONS, ResourceCategory } from '../../lib/resources/resource-definitions';
+import { useDisplaySettings } from '../../features/clusters/DisplaySettingsContext';
 
 
+export function SettingsDropdown() {
+  const {
+    isSettingsOpen,
+    toggleSettings,
+    closeSettings,
+    visibleResources,
+    toggleResource,
+    activeTab,
+    visibleColumns,
+    toggleColumn,
+  } = useDisplaySettings();
 
-interface SettingsDropdownProps {
-  isOpen: boolean;
-  onToggle: () => void;
-  onClose: () => void;
-  visibleResources: ResourceType[];
-  onToggleResource: (id: ResourceType) => void;
-  activeTab: ResourceType;
-  visibleColumns: string[];
-  onToggleColumn: (id: string) => void;
-}
-
-export function SettingsDropdown({
-  isOpen,
-  onToggle,
-  onClose,
-  visibleResources,
-  onToggleResource,
-  activeTab,
-  visibleColumns,
-  onToggleColumn,
-}: SettingsDropdownProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
     'Workloads': true,
@@ -33,7 +24,7 @@ export function SettingsDropdown({
   });
 
   const filteredResources = useMemo(() => {
-    return ALL_TABS.filter(tab => 
+    return ALL_TABS.filter(tab =>
       tab.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tab.id.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -60,22 +51,22 @@ export function SettingsDropdown({
   return (
     <div className="relative">
       <button
-        onClick={onToggle}
-        className={`settings-button ${isOpen ? 'settings-button-active' : 'settings-button-inactive'}`}
+        onClick={toggleSettings}
+        className={`settings-button ${isSettingsOpen ? 'settings-button-active' : 'settings-button-inactive'}`}
         title="Display Settings"
       >
         <Settings size={18} />
       </button>
 
-      {isOpen && (
+      {isSettingsOpen && (
         <div className="settings-dropdown">
           <div className="settings-dropdown-header">
             <span className="settings-dropdown-title">Display Settings</span>
-            <button onClick={onClose} className="settings-close-button" title="Close Settings">
+            <button onClick={closeSettings} className="settings-close-button" title="Close Settings">
               <X size={14} />
             </button>
           </div>
-          
+
           <div className="settings-search-container">
             <Search size={14} className="settings-search-icon" />
             <input
@@ -93,7 +84,7 @@ export function SettingsDropdown({
             <div className="settings-section">
               {(Object.keys(resourcesByCategory) as ResourceCategory[]).sort().map((category) => (
                 <div key={category} className="settings-category-group">
-                  <button 
+                  <button
                     className="settings-category-header"
                     onClick={() => toggleCategory(category)}
                   >
@@ -105,16 +96,16 @@ export function SettingsDropdown({
                       {resourcesByCategory[category].filter(r => visibleResources.includes(r.id)).length} / {resourcesByCategory[category].length}
                     </span>
                   </button>
-                  
+
                   {expandedCategories[category] && (
                     <div className="settings-category-items">
                       {resourcesByCategory[category].map((tab) => (
-                        <button key={tab.id} onClick={() => onToggleResource(tab.id as ResourceType)} className="settings-item-button">
+                        <button key={tab.id} onClick={() => toggleResource(tab.id)} className="settings-item-button">
                           <div className="settings-item-content">
                             <tab.icon size={14} className="settings-item-icon" />
                             <span
                               className={
-                                visibleResources.includes(tab.id as ResourceType)
+                                visibleResources.includes(tab.id)
                                   ? 'settings-item-label-active'
                                   : 'settings-item-label-inactive'
                               }
@@ -122,7 +113,7 @@ export function SettingsDropdown({
                               {tab.label}
                             </span>
                           </div>
-                          <div className={`settings-toggle ${visibleResources.includes(tab.id as ResourceType) ? 'settings-toggle-on' : 'settings-toggle-off'}`}>
+                          <div className={`settings-toggle ${visibleResources.includes(tab.id) ? 'settings-toggle-on' : 'settings-toggle-off'}`}>
                             <div className="settings-toggle-thumb" />
                           </div>
                         </button>
@@ -136,7 +127,7 @@ export function SettingsDropdown({
             <div className="settings-section-title settings-divider">Columns for {activeTab}</div>
             <div className="settings-section">
               {COLUMN_DEFINITIONS[activeTab].map((col) => (
-                <button key={col.id} onClick={() => onToggleColumn(col.id)} className="settings-item-button">
+                <button key={col.id} onClick={() => toggleColumn(col.id)} className="settings-item-button">
                   <span
                     className={
                       visibleColumns.includes(col.id) ? 'settings-item-label-active' : 'settings-item-label-inactive'

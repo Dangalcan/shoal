@@ -1,102 +1,102 @@
 import { describe, it, expect, vi } from 'vitest';
-import { screen, fireEvent, within, render } from '../../utils';
+import { screen, fireEvent, render } from '../../utils';
 import { SettingsDropdown } from '../../../components/cluster/SettingsDropdown';
-import { Layout } from 'lucide-react';
+import { DisplaySettingsContext, type DisplaySettingsContextType } from '../../../features/clusters/DisplaySettingsContext';
 
 const mockVisibleResources = ['pods', 'deployments'];
 const mockVisibleColumns = ['name', 'status'];
 
-describe('SettingsDropdown', () => {
-  const defaultProps = {
-    isOpen: false,
-    onToggle: vi.fn(),
-    onClose: vi.fn(),
+function renderWithContext(overrides: Partial<DisplaySettingsContextType> = {}) {
+  const defaultCtx: DisplaySettingsContextType = {
+    isSettingsOpen: false,
+    toggleSettings: vi.fn(),
+    closeSettings: vi.fn(),
     visibleResources: mockVisibleResources as any,
-    onToggleResource: vi.fn(),
+    toggleResource: vi.fn(),
     activeTab: 'pods' as any,
     visibleColumns: mockVisibleColumns,
-    onToggleColumn: vi.fn(),
+    toggleColumn: vi.fn(),
+    ...overrides,
   };
 
+  return {
+    ...render(
+      <DisplaySettingsContext.Provider value={defaultCtx}>
+        <SettingsDropdown />
+      </DisplaySettingsContext.Provider>
+    ),
+    ctx: defaultCtx,
+  };
+}
+
+describe('SettingsDropdown', () => {
   it('renders the settings button', () => {
-    render(<SettingsDropdown {...defaultProps} />);
+    renderWithContext();
     expect(screen.getByTitle('Display Settings')).toBeInTheDocument();
   });
 
-  it('does not show the dropdown when isOpen is false', () => {
-    render(<SettingsDropdown {...defaultProps} isOpen={false} />);
+  it('does not show the dropdown when isSettingsOpen is false', () => {
+    renderWithContext({ isSettingsOpen: false });
     expect(screen.queryByText('Display Settings')).not.toBeInTheDocument();
   });
 
-  it('shows the dropdown when isOpen is true', () => {
-    render(<SettingsDropdown {...defaultProps} isOpen={true} />);
+  it('shows the dropdown when isSettingsOpen is true', () => {
+    renderWithContext({ isSettingsOpen: true });
     expect(screen.getAllByText('Display Settings')[0]).toBeInTheDocument();
     expect(screen.getByText('Resources')).toBeInTheDocument();
   });
 
-  it('calls onToggle when settings button is clicked', () => {
-    const onToggle = vi.fn();
-    render(<SettingsDropdown {...defaultProps} onToggle={onToggle} />);
+  it('calls toggleSettings when settings button is clicked', () => {
+    const toggleSettings = vi.fn();
+    renderWithContext({ toggleSettings });
     fireEvent.click(screen.getByTitle('Display Settings'));
-    expect(onToggle).toHaveBeenCalled();
+    expect(toggleSettings).toHaveBeenCalled();
   });
 
-  it('calls onClose when close button is clicked', () => {
-    const onClose = vi.fn();
-    render(<SettingsDropdown {...defaultProps} isOpen={true} onClose={onClose} />);
+  it('calls closeSettings when close button is clicked', () => {
+    const closeSettings = vi.fn();
+    renderWithContext({ isSettingsOpen: true, closeSettings });
     fireEvent.click(screen.getByTitle('Close Settings'));
-    expect(onClose).toHaveBeenCalled();
+    expect(closeSettings).toHaveBeenCalled();
   });
 
-  it('calls onToggleResource when a resource button is clicked', () => {
-    const onToggleResource = vi.fn();
-    render(<SettingsDropdown {...defaultProps} isOpen={true} onToggleResource={onToggleResource} />);
-    // Testing the "Pods" item (it should be in the list)
+  it('calls toggleResource when a resource button is clicked', () => {
+    const toggleResource = vi.fn();
+    renderWithContext({ isSettingsOpen: true, toggleResource });
     const podsButton = screen.getByText('Pods').closest('button');
     fireEvent.click(podsButton!);
-    expect(onToggleResource).toHaveBeenCalledWith('pods');
+    expect(toggleResource).toHaveBeenCalledWith('pods');
   });
 
-  it('calls onToggleColumn when a column button is clicked', () => {
-    const onToggleColumn = vi.fn();
-    render(<SettingsDropdown {...defaultProps} isOpen={true} onToggleColumn={onToggleColumn} />);
-    // "Name" is a default column for pods
+  it('calls toggleColumn when a column button is clicked', () => {
+    const toggleColumn = vi.fn();
+    renderWithContext({ isSettingsOpen: true, toggleColumn });
     const nameButton = screen.getByText('Name').closest('button');
     fireEvent.click(nameButton!);
-    expect(onToggleColumn).toHaveBeenCalledWith('name');
+    expect(toggleColumn).toHaveBeenCalledWith('name');
   });
 
   it('filters resources based on search query', () => {
-    render(<SettingsDropdown {...defaultProps} isOpen={true} />);
+    renderWithContext({ isSettingsOpen: true });
     const searchInput = screen.getByPlaceholderText('Filter resources...');
-    
-    // Type search query
+
     fireEvent.change(searchInput, { target: { value: 'pods' } });
-    
     expect(screen.getByText('Pods')).toBeInTheDocument();
-    // 'Deployments' should still be there if they match or if category is open
-    // But let's check for something that shouldn't match
+
     fireEvent.change(searchInput, { target: { value: 'nonexistentresource' } });
     expect(screen.queryByText('Pods')).not.toBeInTheDocument();
   });
 
   it('toggles resource categories', () => {
-    render(<SettingsDropdown {...defaultProps} isOpen={true} />);
-    
-    // Find a category header (e.g., Workloads)
+    renderWithContext({ isSettingsOpen: true });
+
     const workloadsHeader = screen.getByText('Workloads').closest('button');
     expect(workloadsHeader).toBeInTheDocument();
-    
-    // Initially "Pods" should be visible because Workloads is expanded by default
     expect(screen.getByText('Pods')).toBeInTheDocument();
-    
-    // Click category header to collapse
+
     fireEvent.click(workloadsHeader!);
-    
-    // Now "Pods" should be hidden
     expect(screen.queryByText('Pods')).not.toBeInTheDocument();
-    
-    // Click again to expand
+
     fireEvent.click(workloadsHeader!);
     expect(screen.getByText('Pods')).toBeInTheDocument();
   });

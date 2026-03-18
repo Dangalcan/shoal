@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAsyncData } from '../hooks/useAsyncData';
-import { FileCode, Plus, Trash2, Play, Save, Edit2, Upload, FileUp } from 'lucide-react';
+import { FileCode, Plus, Save, Edit2, Upload, FileUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApi } from '../services/api-context';
 import { Manifest } from '../types.d';
 import { BaseModal } from '../components/modals/BaseModal';
 import { ConfirmModal } from '../components/modals/ConfirmModal';
+import { ManifestCard } from '../features/manifests/ManifestCard';
 
 export function Manifests() {
   const api = useApi();
@@ -306,45 +307,14 @@ export function Manifests() {
             </div>
           ) : (
             manifests.map((m) => (
-              <div key={m.id} className="manifest-card">
-                <div className="card-header">
-                  <h3 title={m.name}>{m.name}</h3>
-                  <div className="card-actions">
-                    <button
-                      className="btn-icon btn-apply"
-                      title="Apply to Cluster"
-                      onClick={() => handleApply(m.id)}
-                      disabled={applying === m.id}
-                    >
-                      {applying === m.id ? <div className="spinner-small" /> : <Play size={16} />}
-                    </button>
-                    <button
-                      className="btn-icon btn-edit"
-                      title="Edit Manifest"
-                      onClick={() => handleEdit(m)}
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                    <button
-                      className="btn-icon btn-delete"
-                      title="Delete"
-                      onClick={() => handleDeleteClick(m.id)}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-                <div className="card-body">
-                  <div className="manifest-info">
-                    <span>Context: {m.cluster_context}</span>
-                    <span>Updated: {new Date(m.updated_at).toLocaleDateString()}</span>
-                  </div>
-                  <pre className="yaml-preview">
-                    {m.content.substring(0, 150)}
-                    {m.content.length > 150 ? '...' : ''}
-                  </pre>
-                </div>
-              </div>
+              <ManifestCard
+                key={m.id}
+                manifest={m}
+                applying={applying}
+                onApply={handleApply}
+                onEdit={handleEdit}
+                onDelete={handleDeleteClick}
+              />
             ))
           )}
         </div>
