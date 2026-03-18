@@ -3,6 +3,7 @@ import { Box, Loader2, AlertCircle } from 'lucide-react'
 import { BaseModal } from './BaseModal'
 import { handleError } from '../../lib/error-handler'
 import { useApi } from '../../services/api-context'
+import { StatusBadge } from '../ui'
 
 interface PodViewerModalProps {
     isOpen: boolean
@@ -90,9 +91,7 @@ export function PodViewerModal({ isOpen, onClose, clusterName }: PodViewerModalP
                                         <td className="modal-mono-cell">{pod.metadata.namespace}</td>
                                         <td title={pod.metadata.name} style={{ fontWeight: 500 }}>{pod.metadata.name}</td>
                                         <td>
-                                            <span className={`status-badge ${isRunning ? 'status-badge-success' : 'status-badge-warning'}`}>
-                                                {status}
-                                            </span>
+                                            <StatusBadge label={status} variant={isRunning ? 'success' : 'warning'} />
                                         </td>
                                         <td className="modal-mono-cell">
                                             {readyCount}/{totalCount}

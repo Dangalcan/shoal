@@ -579,7 +579,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
              await waitFor(() => expect(screen.getByText('node-A')).toBeInTheDocument())
              
              const nodeBadge = screen.getByText('NotReady')
-             expect(nodeBadge).toHaveClass('status-badge-not-ready')
+             expect(nodeBadge).toHaveClass('status-badge-error')
         })
     })
 
