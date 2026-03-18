@@ -3,7 +3,7 @@ import { Download, Check, X, Package, ChevronLeft, ChevronRight } from 'lucide-r
 import type { MarketplaceEntry } from '../../types';
 import { StarRating } from './StarRating';
 import { useInstallPlugin } from './useInstallPlugin';
-import '../../../styles/components/modals/BaseModal.css';
+
 
 interface PluginDetailModalProps {
   entry: MarketplaceEntry;
@@ -74,85 +74,61 @@ export function PluginDetailModal({ entry, onClose }: PluginDetailModalProps) {
 
         {/* Body */}
         <div className="modal-body plugin-detail-modal__body">
-          {/* Left column */}
-          <div className="plugin-detail-modal__left">
-            {/* Screenshots gallery */}
-            {screenshots.length > 0 && (
-              <div className="plugin-detail-modal__gallery">
-                <div className="plugin-detail-modal__gallery-main">
-                  <img
-                    src={screenshots[activeScreenshot]}
-                    alt={`${entry.name} screenshot ${activeScreenshot + 1}`}
-                    className="plugin-detail-modal__screenshot"
-                  />
-                  {screenshots.length > 1 && (
-                    <>
-                      <button
-                        className="plugin-detail-modal__gallery-nav prev"
-                        onClick={prevScreenshot}
-                        aria-label="Previous screenshot"
-                      >
-                        <ChevronLeft size={20} />
-                      </button>
-                      <button
-                        className="plugin-detail-modal__gallery-nav next"
-                        onClick={nextScreenshot}
-                        aria-label="Next screenshot"
-                      >
-                        <ChevronRight size={20} />
-                      </button>
-                    </>
-                  )}
-                </div>
+          {/* Gallery — full width at top */}
+          {screenshots.length > 0 && (
+            <div className="plugin-detail-modal__gallery">
+              <div className="plugin-detail-modal__gallery-main">
+                <img
+                  src={screenshots[activeScreenshot]}
+                  alt={`${entry.name} screenshot ${activeScreenshot + 1}`}
+                  className="plugin-detail-modal__screenshot"
+                />
                 {screenshots.length > 1 && (
-                  <div className="plugin-detail-modal__thumbnails">
-                    {screenshots.map((src, i) => (
-                      <img
-                        key={i}
-                        src={src}
-                        alt={`Screenshot ${i + 1}`}
-                        className={`plugin-detail-modal__thumb ${i === activeScreenshot ? 'active' : ''}`}
-                        onClick={() => setActiveScreenshot(i)}
-                      />
-                    ))}
-                  </div>
+                  <>
+                    <button
+                      className="plugin-detail-modal__gallery-nav prev"
+                      onClick={prevScreenshot}
+                      aria-label="Previous screenshot"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                    <button
+                      className="plugin-detail-modal__gallery-nav next"
+                      onClick={nextScreenshot}
+                      aria-label="Next screenshot"
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                  </>
                 )}
               </div>
-            )}
-
-            {/* Long description */}
-            <div className="plugin-detail-modal__description">
-              <h3>About</h3>
-              <p>{entry.longDescription || entry.description}</p>
+              {screenshots.length > 1 && (
+                <div className="plugin-detail-modal__thumbnails">
+                  {screenshots.map((src, i) => (
+                    <img
+                      key={i}
+                      src={src}
+                      alt={`Screenshot ${i + 1}`}
+                      className={`plugin-detail-modal__thumb ${i === activeScreenshot ? 'active' : ''}`}
+                      onClick={() => setActiveScreenshot(i)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
+          )}
 
-            {/* Changelog */}
-            {entry.changelog && (
-              <div className="plugin-detail-modal__changelog">
-                <h3>What's New</h3>
-                <pre>{entry.changelog}</pre>
-              </div>
-            )}
-          </div>
-
-          {/* Right column */}
-          <div className="plugin-detail-modal__right">
-            {/* Category badge */}
+          {/* Meta strip: category · rating · price — all on one row */}
+          <div className="plugin-detail-modal__meta-row">
             <div
               className="plugin-detail-modal__category-badge"
               style={{ background: `${categoryColor}22`, color: categoryColor, border: `1px solid ${categoryColor}44` }}
             >
               {entry.category}
             </div>
-
-            {/* Rating */}
             {entry.rating !== undefined && (
-              <div className="plugin-detail-modal__rating">
-                <StarRating rating={entry.rating} reviews={entry.reviews} size={16} />
-              </div>
+              <StarRating rating={entry.rating} reviews={entry.reviews} size={16} />
             )}
-
-            {/* Price */}
             <div className="plugin-detail-modal__price">
               {entry.price === 0 ? (
                 <span className="price-free">Free</span>
@@ -160,57 +136,70 @@ export function PluginDetailModal({ entry, onClose }: PluginDetailModalProps) {
                 <span className="price-paid">${entry.price}</span>
               )}
             </div>
+          </div>
 
-            {/* Install button */}
-            <div className="plugin-detail-modal__actions">
-              {isInstalled ? (
-                <button className="btn btn--outline btn--full btn--success" disabled>
-                  <Check size={16} /> Installed
-                </button>
-              ) : (
-                <button
-                  className="btn btn--primary btn--full"
-                  onClick={handleInstall}
-                  disabled={installing}
-                >
-                  {installing ? (
-                    <><span className="spinner spinner--small" /> Installing...</>
-                  ) : (
-                    <><Download size={16} /> {entry.price > 0 ? 'Buy & Install' : 'Install'}</>
-                  )}
-                </button>
-              )}
-            </div>
-
-
-            {/* Tags */}
-            {tags.length > 0 && (
-              <div className="plugin-detail-modal__tags">
-                <h4>Tags</h4>
-                <div className="plugin-detail-modal__tag-list">
-                  {tags.map((tag) => (
-                    <span key={tag} className="plugin-detail-modal__tag">{tag}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Permissions */}
-            {entry.manifest?.permissions && entry.manifest.permissions.length > 0 && (
-              <div className="plugin-detail-modal__permissions">
-                <h4>Permissions</h4>
-                {entry.manifest.permissions.map((perm) => {
-                  const info = PERMISSION_LABELS[perm] ?? { label: perm, description: '' };
-                  return (
-                    <div key={perm} className="plugin-detail-modal__permission-item">
-                      <span className="plugin-detail-modal__permission-label">{info.label}</span>
-                      <span className="plugin-detail-modal__permission-desc">{info.description}</span>
-                    </div>
-                  );
-                })}
-              </div>
+          {/* Install action — full width */}
+          <div className="plugin-detail-modal__actions">
+            {isInstalled ? (
+              <button className="btn btn--outline btn--full btn--success" disabled>
+                <Check size={16} /> Installed
+              </button>
+            ) : (
+              <button
+                className="btn btn--primary btn--full"
+                onClick={handleInstall}
+                disabled={installing}
+              >
+                {installing ? (
+                  <><span className="spinner spinner--small" /> Installing...</>
+                ) : (
+                  <><Download size={16} /> {entry.price > 0 ? 'Buy & Install' : 'Install'}</>
+                )}
+              </button>
             )}
           </div>
+
+          {/* Tags */}
+          {tags.length > 0 && (
+            <div className="plugin-detail-modal__tags">
+              <h4>Tags</h4>
+              <div className="plugin-detail-modal__tag-list">
+                {tags.map((tag) => (
+                  <span key={tag} className="plugin-detail-modal__tag">{tag}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Long description */}
+          <div className="plugin-detail-modal__description">
+            <h3>About</h3>
+            <p>{entry.longDescription || entry.description}</p>
+          </div>
+
+          {/* Changelog */}
+          {entry.changelog && (
+            <div className="plugin-detail-modal__changelog">
+              <h3>What's New</h3>
+              <pre>{entry.changelog}</pre>
+            </div>
+          )}
+
+          {/* Permissions */}
+          {entry.manifest?.permissions && entry.manifest.permissions.length > 0 && (
+            <div className="plugin-detail-modal__permissions">
+              <h4>Permissions</h4>
+              {entry.manifest.permissions.map((perm) => {
+                const info = PERMISSION_LABELS[perm] ?? { label: perm, description: '' };
+                return (
+                  <div key={perm} className="plugin-detail-modal__permission-item">
+                    <span className="plugin-detail-modal__permission-label">{info.label}</span>
+                    <span className="plugin-detail-modal__permission-desc">{info.description}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>
