@@ -327,6 +327,54 @@ describe('PluginProvider', () => {
     });
   });
 
+  describe('usePluginActions specific branches', () => {
+    it('should handle and toast dependencies with missing names in enablePlugin', async () => {
+      mockApi.enablePlugin.mockResolvedValue({ success: true, data: ['unknown-dep'] });
+      
+      render(
+        <PluginProvider>
+          <PluginProviderTestConsumer action="enable" pluginId="test-plugin" />
+        </PluginProvider>
+      );
+      
+      await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull());
+      fireEvent.click(screen.getByText('Action'));
+      
+      await waitFor(() => expect(mockApi.enablePlugin).toHaveBeenCalled());
+    });
+
+    it('should handle cascaded disabled plugins with missing names', async () => {
+      mockApi.disablePlugin.mockResolvedValue({ success: true, data: ['unknown-dep'] });
+      
+      render(
+        <PluginProvider>
+          <PluginProviderTestConsumer action="disable" pluginId="test-plugin" />
+        </PluginProvider>
+      );
+      
+      await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull());
+      fireEvent.click(screen.getByText('Action'));
+      
+      await waitFor(() => expect(mockApi.disablePlugin).toHaveBeenCalled());
+    });
+
+    it('should handle importLocalPlugin failure with default message', async () => {
+       mockApi.importLocalPlugin.mockResolvedValue({ success: false });
+       render(<PluginProvider><PluginProviderTestConsumer action="importLocalPlugin" /></PluginProvider>);
+       await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull());
+       fireEvent.click(screen.getByText('Action'));
+       await waitFor(() => expect(mockApi.importLocalPlugin).toHaveBeenCalled());
+    });
+
+    it('should handle importLocalPlugin throwing string error', async () => {
+       mockApi.importLocalPlugin.mockRejectedValue("fail");
+       render(<PluginProvider><PluginProviderTestConsumer action="importLocalPlugin" /></PluginProvider>);
+       await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull());
+       fireEvent.click(screen.getByText('Action'));
+       await waitFor(() => expect(mockApi.importLocalPlugin).toHaveBeenCalled());
+    });
+  });
+
   describe('Settings Management', () => {
     it('should get settings', async () => {
       const settings = { theme: 'dark' };
@@ -585,6 +633,24 @@ describe('PluginProvider', () => {
       fireEvent.click(screen.getByText('Action'));
       await waitFor(() => expect(mockApi.checkForPluginUpdates).toHaveBeenCalled());
       spy.mockRestore();
+    });
+
+    it('should handle result with missing error string in handleActionResult', async () => {
+      // Branch coverage for result.error || defaultError
+      mockApi.activatePluginLicense.mockResolvedValue({ success: false });
+      render(<PluginProvider><PluginProviderTestConsumer action="activateLicense" pluginId="test" /></PluginProvider>);
+      await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull());
+      fireEvent.click(screen.getByText('Action'));
+      await waitFor(() => expect(mockApi.activatePluginLicense).toHaveBeenCalled());
+    });
+
+    it('should handle non-Error exception in handleActionResult', async () => {
+      // Branch coverage for err instanceof Error ? err.message : defaultError
+      mockApi.startPluginTrial.mockRejectedValue("string error");
+      render(<PluginProvider><PluginProviderTestConsumer action="startTrial" pluginId="test" /></PluginProvider>);
+      await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull());
+      fireEvent.click(screen.getByText('Action'));
+      await waitFor(() => expect(mockApi.startPluginTrial).toHaveBeenCalled());
     });
   });
 

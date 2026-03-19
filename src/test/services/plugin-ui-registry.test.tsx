@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { pluginUIRegistry, usePluginWidgets, useResourceActions, DashboardWidget, PluginPage, ResourceActionExtension } from '../../services/plugin-ui-registry';
+import { pluginUIRegistry, usePluginWidgets, useResourceActions, usePluginPage, usePluginScriptStatus, pluginScriptTracker, DashboardWidget, PluginPage, ResourceActionExtension, PluginModal } from '../../services/plugin-ui-registry';
 
 describe('PluginUIRegistry', () => {
   // Clear registry before each test
@@ -46,6 +46,41 @@ describe('PluginUIRegistry', () => {
       pluginUIRegistry.registerWidget(widget);
       pluginUIRegistry.unregisterWidget(widget.id);
       expect(pluginUIRegistry.getWidgets()).not.toContain(widget);
+    });
+
+    it('should unregister widgets by plugin ID', () => {
+      const widget1: DashboardWidget = {
+        id: 'w1',
+        pluginId: 'p1',
+        title: 'W1',
+        size: 'small',
+        component: () => null
+      };
+      const widget2: DashboardWidget = {
+        id: 'w2',
+        pluginId: 'p2',
+        title: 'W2',
+        size: 'small',
+        component: () => null
+      };
+      const widget3: DashboardWidget = {
+        id: 'w3',
+        pluginId: 'p1',
+        title: 'W3',
+        size: 'small',
+        component: () => null
+      };
+
+      pluginUIRegistry.registerWidget(widget1);
+      pluginUIRegistry.registerWidget(widget2);
+      pluginUIRegistry.registerWidget(widget3);
+
+      pluginUIRegistry.unregisterWidgetsByPlugin('p1');
+
+      const widgets = pluginUIRegistry.getWidgets();
+      expect(widgets).not.toContain(widget1);
+      expect(widgets).toContain(widget2);
+      expect(widgets).not.toContain(widget3);
     });
   });
 
@@ -122,6 +157,53 @@ describe('PluginUIRegistry', () => {
     });
   });
 
+  describe('Modals Management', () => {
+    it('should register, retrieve and unregister modals', () => {
+      const modal: PluginModal = {
+        id: 'test-modal',
+        component: () => <div>Modal</div>
+      };
+
+      pluginUIRegistry.registerModal(modal);
+      expect(pluginUIRegistry.getModal(modal.id)).toBe(modal);
+
+      pluginUIRegistry.unregisterModal(modal.id);
+      expect(pluginUIRegistry.getModal(modal.id)).toBeUndefined();
+    });
+  });
+
+  describe('PluginScriptTracker', () => {
+    beforeEach(() => {
+      (pluginScriptTracker as any).statuses = new Map();
+      (pluginScriptTracker as any).listeners = new Set();
+    });
+
+    it('should set and get status', () => {
+      pluginScriptTracker.setStatus('p1', 'loading');
+      expect(pluginScriptTracker.getStatus('p1')).toBe('loading');
+      
+      pluginScriptTracker.setStatus('p1', 'loaded');
+      expect(pluginScriptTracker.getStatus('p1')).toBe('loaded');
+    });
+
+    it('should clear status', () => {
+      pluginScriptTracker.setStatus('p1', 'loading');
+      pluginScriptTracker.clear('p1');
+      expect(pluginScriptTracker.getStatus('p1')).toBeUndefined();
+    });
+
+    it('should notify listeners on status change', () => {
+      const listener = vi.fn();
+      pluginScriptTracker.subscribe(listener);
+      
+      pluginScriptTracker.setStatus('p1', 'loading');
+      expect(listener).toHaveBeenCalled();
+      
+      pluginScriptTracker.clear('p1');
+      expect(listener).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('Subscription System', () => {
     it('should notify listeners on changes', () => {
       const listener = vi.fn();
@@ -195,6 +277,45 @@ describe('PluginUIRegistry', () => {
       });
       
       expect(result.current).not.toContain(action);
+    });
+
+    it('usePluginPage should track page changes', () => {
+      const page: PluginPage = { id: 'p1', component: () => null };
+      const { result } = renderHook(() => usePluginPage('p1'));
+      
+      expect(result.current).toBeUndefined();
+
+      act(() => {
+        pluginUIRegistry.registerPage(page);
+      });
+      expect(result.current).toBe(page);
+
+      act(() => {
+        pluginUIRegistry.unregisterPage('p1');
+      });
+      expect(result.current).toBeUndefined();
+    });
+
+    it('usePluginScriptStatus should track script status', () => {
+      const { result } = renderHook(() => usePluginScriptStatus('p1'));
+      
+      expect(result.current).toBeUndefined();
+
+      act(() => {
+        pluginScriptTracker.setStatus('p1', 'loading');
+      });
+      expect(result.current).toBe('loading');
+
+      act(() => {
+        pluginScriptTracker.setStatus('p1', 'loaded');
+      });
+      expect(result.current).toBe('loaded');
+    });
+  });
+
+  describe('Global exposure', () => {
+    it('should be exposed on window', () => {
+      expect(window.pluginUIRegistry).toBe(pluginUIRegistry);
     });
   });
 });

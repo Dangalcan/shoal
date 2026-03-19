@@ -3,6 +3,11 @@ import { MarketplaceService } from '../services/marketplace/marketplace-service'
 import path from 'path';
 import fs from 'fs/promises';
 import { app } from 'electron';
+import { isProduction } from '../utils/env-utils';
+
+vi.mock('../utils/env-utils', () => ({
+  isProduction: vi.fn(),
+}));
 
 // Mock dependencies
 vi.mock('electron', () => ({
@@ -87,6 +92,8 @@ describe('MarketplaceService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(isProduction).mockReturnValue(false);
+    vi.mocked(global.fetch).mockReset();
     service = new MarketplaceService();
   });
 
@@ -115,6 +122,47 @@ describe('MarketplaceService', () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain('Read failed');
     });
+
+    it('should fetch from backend if successful', async () => {
+      const mockData = [{ id: 'p1', name: 'Plugin 1' }];
+      vi.mocked(global.fetch as any).mockResolvedValue({
+        ok: true,
+        json: async () => mockData,
+      });
+
+      const result = await service.getMarketplacePlugins();
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(mockData);
+    });
+
+    it('should handle backend error in production', async () => {
+      vi.mocked(isProduction).mockReturnValue(true);
+      vi.mocked(global.fetch as any).mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Error',
+      });
+
+      const result = await service.getMarketplacePlugins();
+      expect(
+        result.success,
+        'Result should be success=false in production'
+      ).toBe(false);
+      expect(result.error).toContain('Backend responded with 500');
+      vi.mocked(isProduction).mockReturnValue(false);
+    });
+
+    it('should handle JSON object format from backend', async () => {
+      const mockData = [{ id: 'p1', name: 'Plugin 1' }];
+      vi.mocked(global.fetch as any).mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: mockData }),
+      });
+
+      const result = await service.getMarketplacePlugins();
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(mockData);
+    });
   });
 
   describe('getPluginDetails', () => {
@@ -140,6 +188,46 @@ describe('MarketplaceService', () => {
       const result = await service.getPluginDetails('p1');
       expect(result.success).toBe(false);
       expect(result.error).toContain('not found');
+    });
+
+    it('should handle 404 from backend', async () => {
+      vi.mocked(global.fetch as any).mockResolvedValue({
+        ok: false,
+        status: 404,
+      });
+
+      const result = await service.getPluginDetails('p1');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('not found in marketplace');
+    });
+
+    it('should handle backend error in production for details', async () => {
+      vi.mocked(isProduction).mockReturnValue(true);
+      vi.mocked(global.fetch as any).mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Error',
+      });
+
+      const result = await service.getPluginDetails('p1');
+      expect(
+        result.success,
+        'Result should be success=false for details in production'
+      ).toBe(false);
+      expect(result.error).toContain('Backend responded with 500');
+      vi.mocked(isProduction).mockReturnValue(false);
+    });
+
+    it('should handle fetch exception in production for details', async () => {
+      vi.mocked(isProduction).mockReturnValue(true);
+      vi.mocked(global.fetch as any).mockRejectedValue(
+        new Error('Network error')
+      );
+
+      const result = await service.getPluginDetails('p1');
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Network error');
+      vi.mocked(isProduction).mockReturnValue(false);
     });
   });
 
@@ -385,6 +473,13 @@ describe('MarketplaceService', () => {
       // Should not call getAppPath for the data path when packaged
       // (uses process.resourcesPath instead)
       (app as any).isPackaged = false;
+    });
+  });
+
+  describe('isNewer - additional cases', () => {
+    it('should return false if coercion fails', () => {
+      expect(service.isNewer('invalid', '1.0.0')).toBe(false);
+      expect(service.isNewer('1.0.0', 'invalid')).toBe(false);
     });
   });
 });
