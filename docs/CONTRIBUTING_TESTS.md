@@ -1,6 +1,6 @@
 # Contributing: Writing Tests 🧪
 
-This guide explains how to write effective tests for the Kubernetes Desktop application.
+This guide explains how to write effective tests for the Kubernetes Desktop application. We use **Vitest** for unit/integration tests and **Playwright** for E2E testing.
 
 ---
 
@@ -8,10 +8,10 @@ This guide explains how to write effective tests for the Kubernetes Desktop appl
 
 We follow these principles:
 
-1. **Test behavior, not implementation** - Focus on what the code does, not how
-2. **Write tests that give confidence** - Cover critical paths and edge cases
-3. **Keep tests maintainable** - Clear, concise, and easy to understand
-4. **Fast feedback** - Tests should run quickly
+1. **Test behavior, not implementation** - Focus on what the code does, not how it's written.
+2. **Write tests that give confidence** - Cover critical paths, security logic, and edge cases.
+3. **Isolate tests** - Each test should be independent and reset any global state.
+4. **Fast feedback** - Unit tests should be near-instant; E2E tests should be focused.
 
 ---
 
@@ -19,383 +19,128 @@ We follow these principles:
 
 ```
 src/test/
-├── components/        # Component tests
-├── hooks/            # Hook tests
-├── pages/            # Page tests
-├── integration/      # Integration tests
-├── lib/              # Library/Utility Logic Tests
-├── fixtures/         # Test data
-│   └── builders/     # Resource builders (Factory pattern)
-├── helpers/          # Test utilities
-└── utils/            # Centralized test utilities
-    ├── index.ts      # Main export
+├── components/        # React component tests
+├── hooks/            # Custom hook tests
+├── pages/            # Page-level integration tests
+├── electron/         # Backend (Main Process) service and IPC tests
+├── lib/              # Utility logic tests
+├── integration/      # Multi-component flow tests
+├── fixtures/         # Test data and builders
+└── utils/            # Test infrastructure
     ├── render.tsx    # Custom render with providers
-    ├── mocks.ts      # Mock Electron API
-    └── assertions.ts # Custom assertions
+    └── mocks.ts      # createMockElectronAPI utility
 
-electron/__tests__/   # Backend (Main Process) Tests
-
+e2e/                  # Playwright End-to-End tests
 ```
 
 ---
 
-## Writing Component Tests
+## Writing Component & Hook Tests
 
-### Basic Component Test
+Use the custom `render` utility from `src/test/utils/render.tsx`. It automatically wraps your component in `ApiProvider`, `ClusterProvider`, and `MemoryRouter`.
+
+### 1. Basic Component Test
 
 ```typescript
-import { describe, it, expect } from 'vitest';
 import { render, screen } from '../utils';
-import { MyComponent } from '../../components/MyComponent';
+import { Button } from '../../components/ui/Button';
 
-describe('MyComponent', () => {
-  it('should render correctly', () => {
-    render(<MyComponent title="Test" />);
+it('should render children and handle clicks', async () => {
+  const handleClick = vi.fn();
+  render(<Button onClick={handleClick}>Click Me</Button>);
 
-    expect(screen.getByText('Test')).toBeInTheDocument();
-  });
+  const button = screen.getByRole('button', { name: /click me/i });
+  await fireEvent.click(button);
 
-  it('should handle click events', async () => {
-    const handleClick = vi.fn();
-    render(<Button onClick={handleClick}>Click Me</Button>);
-
-    await fireEvent.click(screen.getByRole('button', { name: /click me/i }));
-
-    expect(handleClick).toHaveBeenCalledTimes(1);
-  });
+  expect(handleClick).toHaveBeenCalled();
 });
 ```
 
-### Testing with API Mocks
+### 2. Testing with API Mocks
+
+Use `createMockElectronAPI` to mock Electron IPC calls.
 
 ```typescript
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, waitFor } from '../utils';
-import { createMockElectronAPI } from '../utils/mocks';
-import { ClusterList } from '../../components/ClusterList';
-
-describe('ClusterList', () => {
-  it('should display clusters from API', async () => {
-    const mockApi = createMockElectronAPI({
-      getClusters: vi.fn().mockResolvedValue({
-        success: true,
-        data: ['cluster-1', 'cluster-2'],
-      }),
-    });
-
-    render(<ClusterList />, { api: mockApi });
-
-    await waitFor(() => {
-      expect(screen.getByText('cluster-1')).toBeInTheDocument();
-      expect(screen.getByText('cluster-2')).toBeInTheDocument();
-    });
-  });
-
-  it('should handle API errors', async () => {
-    const mockApi = createMockElectronAPI({
-      getClusters: vi.fn().mockResolvedValue({
-        success: false,
-        error: 'Network error',
-      }),
-    });
-
-    render(<ClusterList />, { api: mockApi });
-
-    await waitFor(() => {
-      expect(screen.getByText(/network error/i)).toBeInTheDocument();
-    });
-  });
-});
-```
-
----
-
-## Writing Hook Tests
-
-### Basic Hook Test
-
-```typescript
-import { describe, it, expect } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
-import { ApiProvider } from '../../services/api-context';
-import { createMockElectronAPI } from '../utils/mocks';
-import { useClusters } from '../../hooks/useClusters';
-
-describe('useClusters', () => {
-  it('should fetch clusters on mount', async () => {
-    const mockApi = createMockElectronAPI({
-      getClusters: vi.fn().mockResolvedValue({
-        success: true,
-        data: ['cluster-1'],
-      }),
-    });
-
-    const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <ApiProvider api={mockApi}>{children}</ApiProvider>
-    );
-
-    const { result } = renderHook(() => useClusters(), { wrapper });
-
-    await waitFor(() => {
-      expect(result.current.clusters).toEqual(['cluster-1']);
-      expect(result.current.loading).toBe(false);
-    });
-  });
-
-  it('should handle delete cluster', async () => {
-    const mockApi = createMockElectronAPI({
-      getClusters: vi.fn().mockResolvedValue({
-        success: true,
-        data: ['cluster-1'],
-      }),
-      deleteCluster: vi.fn().mockResolvedValue({
-        success: true,
-      }),
-    });
-
-    const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <ApiProvider api={mockApi}>{children}</ApiProvider>
-    );
-
-    const { result } = renderHook(() => useClusters(), { wrapper });
-
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    await result.current.deleteCluster('cluster-1');
-
-    expect(mockApi.deleteCluster).toHaveBeenCalledWith('cluster-1');
-  });
-});
-```
-
----
-
-## Writing Page Tests
-
-### Testing Pages with Routing
-
-```typescript
-import { describe, it, expect } from 'vitest';
 import { render, screen, waitFor } from '../utils';
 import { createMockElectronAPI } from '../utils/mocks';
 import { ClusterDetails } from '../../pages/ClusterDetails';
 
-describe('ClusterDetails Page', () => {
-  it('should display cluster resources', async () => {
-    const mockApi = createMockElectronAPI({
-      getNamespaces: vi.fn().mockResolvedValue({
-        success: true,
-        data: ['default', 'kube-system'],
-      }),
-      getResources: vi.fn().mockResolvedValue({
-        success: true,
-        data: [
-          { metadata: { name: 'pod-1' }, status: { phase: 'Running' } },
-        ],
-      }),
-    });
+it('should display cluster data from API', async () => {
+  const mockApi = createMockElectronAPI({
+    getNamespaces: vi.fn().mockResolvedValue({ success: true, data: ['default'] }),
+  });
 
-    render(<ClusterDetails />, {
-      api: mockApi,
-      path: '/cluster/:name',
-      route: '/cluster/test-cluster',
-    });
+  render(<ClusterDetails />, { api: mockApi });
 
-    await waitFor(() => {
-      expect(screen.getByText('pod-1')).toBeInTheDocument();
-    });
+  await waitFor(() => {
+    expect(screen.getByText('default')).toBeInTheDocument();
   });
 });
 ```
 
 ---
 
-## Integration Tests
+## Testing Terminal Features
 
-### Testing User Flows
+When testing components that interact with the Terminal API, you must mock the session lifecycle.
 
 ```typescript
-import { describe, it, expect } from 'vitest';
-import { render, screen, waitFor } from '../utils';
-import { createMockElectronAPI } from '../utils/mocks';
-import { App } from '../../App';
+it('should initialize terminal session', async () => {
+  const mockApi = createMockElectronAPI({
+    terminalCreate: vi.fn().mockResolvedValue({ success: true, data: 'session-123' }),
+  });
 
-describe('Cluster Creation Flow', () => {
-  it('should create cluster and navigate to list', async () => {
-    const mockApi = createMockElectronAPI({
-      createCluster: vi.fn().mockResolvedValue({ success: true }),
-      getClusters: vi.fn().mockResolvedValue({
-        success: true,
-        data: ['new-cluster'],
-      }),
-    });
+  render(<PodTerminal podName="test-pod" />, { api: mockApi });
 
-    render(<App />, { api: mockApi });
-
-    // Navigate to create page
-    fireEvent.click(screen.getByText(/create new cluster/i));
-
-    // Fill form
-    const nameInput = screen.getByPlaceholderText('my-cluster');
-    fireEvent.change(nameInput, { target: { value: 'new-cluster' } });
-
-    // Submit
-    fireEvent.click(screen.getByRole('button', { name: /create cluster/i }));
-
-    // Verify navigation and cluster appears
-    await waitFor(() => {
-      expect(screen.getByText('new-cluster')).toBeInTheDocument();
-    });
+  await waitFor(() => {
+    expect(mockApi.terminalCreate).toHaveBeenCalledWith(expect.objectContaining({
+      podName: 'test-pod'
+    }));
   });
 });
 ```
 
 ---
 
-## Common Testing Patterns
+## E2E Testing (Playwright)
 
-### Pattern 1: Testing Loading States
+End-to-End tests run the **real production build** of the Electron app.
+
+### 1. Test Location
+
+E2E tests live in the `e2e/` directory and use the `.spec.ts` extension.
+
+### 2. Using the App Fixture
+
+Use the standard fixture from `e2e/fixtures/app.fixture.ts` to get access to the `window` (Page object).
 
 ```typescript
-it('should show loading spinner', () => {
-  const mockApi = createMockElectronAPI({
-    getClusters: vi.fn().mockImplementation(
-      () => new Promise(() => {}) // Never resolves
-    ),
-  });
+import { test, expect } from './fixtures/app.fixture';
 
-  render(<ClusterList />, { api: mockApi });
+test('create and delete a manifest', async ({ window }) => {
+  await window.click('text=Manifests');
+  await window.fill('placeholder=Manifest Name', 'test-manifest');
+  await window.click('button:has-text("Save")');
 
-  expect(screen.getByRole('status')).toBeInTheDocument();
-  expect(screen.getByText(/loading/i)).toBeInTheDocument();
+  await expect(window.locator('text=test-manifest')).toBeVisible();
 });
 ```
 
-### Pattern 2: Testing Error States
+### 3. Interactive Debugging
 
-```typescript
-it('should display error message', async () => {
-  const mockApi = createMockElectronAPI({
-    getClusters: vi.fn().mockRejectedValue(new Error('Failed to fetch')),
-  });
+Use the explore test to pick locators interactively:
 
-  render(<ClusterList />, { api: mockApi });
-
-  await waitFor(() => {
-    expect(screen.getByText(/failed to fetch/i)).toBeInTheDocument();
-  });
-});
+```bash
+npm run test:e2e:interactive
 ```
-
-### Pattern 3: Testing User Interactions
-
-```typescript
-it('should handle form submission', async () => {
-  const handleSubmit = vi.fn();
-  render(<MyForm onSubmit={handleSubmit} />);
-
-  fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'test-name' } });
-  fireEvent.click(screen.getByRole('button', { name: /submit/i }));
-
-  expect(handleSubmit).toHaveBeenCalledWith({ name: 'test-name' });
-});
-```
-
-### Pattern 4: Testing Async Operations
-
-```typescript
-it('should handle async data fetching', async () => {
-  const mockApi = createMockElectronAPI({
-    getData: vi.fn().mockResolvedValue({
-      success: true,
-      data: { value: 'test' },
-    }),
-  });
-
-  render(<MyComponent />, { api: mockApi });
-
-  // Wait for async operation
-  await waitFor(() => {
-    expect(screen.getByText('test')).toBeInTheDocument();
-  });
-
-  expect(mockApi.getData).toHaveBeenCalledTimes(1);
-});
-```
-
----
-
-## Best Practices
-
-### ✅ DO
-
-- **Use `screen` queries** for better error messages
-
-  ```typescript
-  // ✅ Good
-  expect(screen.getByText('Hello')).toBeInTheDocument();
-
-  // ❌ Bad
-  const { getByText } = render(<Component />);
-  expect(getByText('Hello')).toBeInTheDocument();
-  ```
-
-- **Use `waitFor` for async assertions**
-
-  ```typescript
-  await waitFor(() => {
-    expect(screen.getByText('Loaded')).toBeInTheDocument();
-  });
-  ```
-
-- **Use semantic queries**
-
-  ```typescript
-  screen.getByRole('button', { name: /submit/i });
-  screen.getByLabelText('Email');
-  screen.getByPlaceholderText('Enter name');
-  ```
-
-- **Test accessibility**
-  ```typescript
-  expect(screen.getByRole('button')).toHaveAttribute('aria-label', 'Close');
-  ```
-
-### ❌ DON'T
-
-- **Don't test implementation details**
-
-  ```typescript
-  // ❌ Bad
-  expect(component.state.count).toBe(1);
-
-  // ✅ Good
-  expect(screen.getByText('Count: 1')).toBeInTheDocument();
-  ```
-
-- **Don't use `container.querySelector`**
-
-  ```typescript
-  // ❌ Bad
-  const button = container.querySelector('.my-button');
-
-  // ✅ Good
-  const button = screen.getByRole('button');
-  ```
-
-- **Don't forget to clean up**
-  ```typescript
-  // ✅ Good - cleanup happens automatically with render()
-  ```
 
 ---
 
 ## Coverage Requirements
 
-Maintain these minimum coverage thresholds:
+We maintain high standards for core logic:
 
 - **Lines**: 85%
-- **Statements**: 85%
 - **Functions**: 80%
 - **Branches**: 70%
 
@@ -407,53 +152,27 @@ npm run test:coverage
 
 ---
 
-## Running Tests
+## Best Practices
 
-```bash
-# Run all tests
-npm run test
+### ✅ DO
 
-# Run tests in watch mode
-npm run test:watch
+- **Use `screen.getByRole`**: It's the most robust way to query elements.
+- **Mock the entire `Result<T>` pattern**: Ensure your mocks return `{ success: true, data: ... }`.
+- **Reset mocks**: Use `beforeEach(() => vi.clearAllMocks())` or `resetAllMocks()` from `utils/mocks.ts`.
 
-# Run tests with coverage
-npm run test:coverage
+### ❌ DON'T
 
-# Run specific test file
-npm run test src/test/components/MyComponent.test.tsx
-```
+- **Don't ignore the Electron bridge**: Always use `useApi()` in your components so they can be mocked in Vitest.
+- **Don't use `wait(1000)`**: Use `waitFor()` from React Testing Library or `window.waitForSelector()` in Playwright.
 
 ---
 
-## Debugging Tests
+## Commands Summary
 
-### Using `screen.debug()`
-
-```typescript
-it('should render', () => {
-  render(<MyComponent />);
-  screen.debug(); // Prints DOM to console
-});
-```
-
-### Using `logRoles()`
-
-```typescript
-import { logRoles } from '@testing-library/react';
-
-it('should have accessible roles', () => {
-  const { container } = render(<MyComponent />);
-  logRoles(container); // Shows all accessible roles
-});
-```
-
----
-
-## Next Steps
-
-1. ✅ Read [Feature Development Guide](./CONTRIBUTING_FEATURES.md)
-2. ✅ Read [Styling Guide](./CONTRIBUTING_STYLES.md)
-3. 💡 **Pro-tip**: If a test file uses JSX in its setup (e.g., in a wrapper), ensure the extension is `.tsx`.
-4. 💡 **Pro-tip**: When mocking functions with `(mockApi.method as any).mock...`, prefix the line with a semicolon `;` if it follows a line ending in `]` or `}` to avoid expression grouping errors.
-5. ✅ Check existing tests for examples
-6. ✅ Run tests before committing: `npm run test`
+| Command                        | Description                    |
+| ------------------------------ | ------------------------------ |
+| `npm run test`                 | Run all Vitest tests           |
+| `npm run test:ui`              | Open Vitest UI (interactive)   |
+| `npm run test:coverage`        | Generate coverage report       |
+| `npm run test:e2e`             | Run Playwright E2E tests       |
+| `npm run test:e2e:interactive` | Explore locators interactively |

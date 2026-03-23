@@ -2,6 +2,8 @@
 
 This document describes all IPC methods available to the renderer process via the `window.electron` API, as defined in `electron/preload.ts`.
 
+All `invoke` methods return a `Promise<Result<T>>`. See the [Types](#types) section for the definition of `Result<T>`.
+
 ## Diagnostics
 
 ### `runCommand(command)`
@@ -9,14 +11,14 @@ This document describes all IPC methods available to the renderer process via th
 Runs an arbitrary shell command (restricted to safe Kubernetes tooling).
 
 - **Parameters**: `command`: `string`
-- **Returns**: `Promise<Result<string>>`
+- **Returns**: `Promise<Result<{ stdout: string, stderr: string }>>`
 
 ### `checkTool(tool)`
 
 Checks whether a required CLI tool (e.g., `kubectl`, `kind`, `minikube`) is available on the system.
 
 - **Parameters**: `tool`: `string`
-- **Returns**: `Promise<boolean>`
+- **Returns**: `Promise<Result<boolean>>`
 
 ---
 
@@ -55,7 +57,7 @@ Returns the name of the current kubeconfig context.
 Switches the active kubeconfig context.
 
 - **Parameters**: `contextName`: `string`
-- **Returns**: `Promise<Result<void>>`
+- **Returns**: `Promise<Result<boolean>>`
 
 ---
 
@@ -82,7 +84,7 @@ Fetches resources of a specific type from a namespace.
 - **Arguments**:
   - `contextName`: `string`
   - `resourceType`: `string` (e.g., 'pods', 'deployments', 'services', 'configmaps')
-  - `namespace`: `string`
+  - `namespace`: `string` (use 'all' for all namespaces)
 - **Returns**: `Promise<Result<any[]>>`
 
 ### `getLogs(args)`
@@ -93,7 +95,7 @@ Retrieves logs for a specific pod.
   - `contextName`: `string`
   - `podName`: `string`
   - `namespace`: `string`
-  - `tailLines`: `number` (optional)
+  - `tailLines`: `number` (optional, default: 200)
 - **Returns**: `Promise<Result<string>>`
 
 ### `describeResource(args)`
@@ -130,18 +132,18 @@ Deletes a specific resource.
 
 ### `getAppVersion()`
 
-- **Returns**: `Promise<string>`
+- **Returns**: `Promise<Result<string>>`
 
 ### `getKubeconfigPath()`
 
-- **Returns**: `Promise<string>`
+- **Returns**: `Promise<Result<string>>`
 
 ### `setKubeconfigPath(path)`
 
 Updates the kubeconfig file path.
 
 - **Parameters**: `path`: `string`
-- **Returns**: `Promise<Result<void>>`
+- **Returns**: `Promise<Result<boolean>>`
 
 ---
 
@@ -160,15 +162,15 @@ Returns all saved manifests, optionally filtered by cluster context.
 
 Creates or updates a manifest entry. Pass `id` to update an existing manifest.
 
-- **Parameters**: `manifest`: `{ id?: number, name: string, content: string }`
-- **Returns**: `Promise<Result<void>>`
+- **Parameters**: `manifest`: `Partial<Manifest>`
+- **Returns**: `Promise<Result<number>>` (Returns the ID of the saved manifest)
 
 ### `deleteManifest(id)`
 
 Deletes a saved manifest by ID.
 
 - **Parameters**: `id`: `number`
-- **Returns**: `Promise<Result<void>>`
+- **Returns**: `Promise<Result<boolean>>`
 
 ### `applyManifest(id)`
 
@@ -185,7 +187,7 @@ Applies a saved manifest to the currently active cluster context using `kubectl 
 
 Lists all installed plugins and their status.
 
-- **Returns**: `Promise<Plugin[]>`
+- **Returns**: `Promise<Result<Plugin[]>>`
 
 ### `enablePlugin(pluginId)` / `disablePlugin(pluginId)`
 
@@ -197,21 +199,21 @@ Lists all installed plugins and their status.
 Reloads a plugin without restarting the application. Useful during plugin development.
 
 - **Parameters**: `pluginId`: `string`
-- **Returns**: `Promise<Result<void>>`
+- **Returns**: `Promise<Result<boolean>>`
 
 ### `uninstallPlugin(pluginId)`
 
 Removes a plugin from the plugins directory.
 
 - **Parameters**: `pluginId`: `string`
-- **Returns**: `Promise<Result<void>>`
+- **Returns**: `Promise<Result<boolean>>`
 
 ### `getPluginExtensions(extensionPoint?)`
 
 Returns UI extensions contributed by plugins.
 
 - **Parameters**: `extensionPoint`: `string` (optional, e.g., 'sidebar')
-- **Returns**: `Promise<Extension[]>`
+- **Returns**: `Promise<Result<Extension[]>>`
 
 ### `executePluginAction(pluginId, actionId, args?)`
 
@@ -221,14 +223,14 @@ Executes a backend action defined by a plugin.
   - `pluginId`: `string`
   - `actionId`: `string`
   - `args`: `any` (optional)
-- **Returns**: `Promise<any>`
+- **Returns**: `Promise<Result<any>>`
 
 ### `getPluginSettings(pluginId)`
 
 Returns the current settings for a plugin, as defined by its configuration schema.
 
 - **Parameters**: `pluginId`: `string`
-- **Returns**: `Promise<Record<string, any>>`
+- **Returns**: `Promise<Result<Record<string, any>>>`
 
 ### `setPluginSettings(pluginId, settings)`
 
@@ -237,14 +239,14 @@ Persists plugin settings.
 - **Parameters**:
   - `pluginId`: `string`
   - `settings`: `Record<string, any>`
-- **Returns**: `Promise<Result<void>>`
+- **Returns**: `Promise<Result<boolean>>`
 
 ### `generatePlugin(options)`
 
 Scaffolds a new plugin from a template in the plugins directory.
 
-- **Parameters**: `options`: `any` (template options)
-- **Returns**: `Promise<Result<void>>`
+- **Parameters**: `options`: `PluginScaffoldOptions`
+- **Returns**: `Promise<Result<boolean>>`
 
 ### `importLocalPlugin()`
 
@@ -256,14 +258,7 @@ Opens a directory picker dialog to load an unpacked plugin from any local path.
 
 Checks the marketplace for available updates for installed plugins.
 
-- **Returns**: `Promise<Result<PluginUpdate[]>>`
-
-### `installPlugin(pluginId)`
-
-Downloads and installs a plugin from the marketplace.
-
-- **Parameters**: `pluginId`: `string`
-- **Returns**: `Promise<Result<void>>`
+- **Returns**: `Promise<Result<boolean>>`
 
 ---
 
@@ -276,7 +271,7 @@ Downloads and installs a plugin from the marketplace.
 
 ### `deactivatePluginLicense(pluginId)`
 
-Deactivates the license for a plugin on this machine (e.g., before transferring to another device).
+Deactivates the license for a plugin on this machine.
 
 - **Parameters**: `pluginId`: `string`
 - **Returns**: `Promise<Result<void>>`
@@ -296,28 +291,128 @@ Starts a trial period for a paid plugin.
 
 Fetches the list of plugins available in the marketplace.
 
-- **Returns**: `Promise<MarketplacePlugin[]>`
+- **Returns**: `Promise<Result<MarketplacePlugin[]>>`
+
+### `installPlugin(pluginId)`
+
+Downloads and installs a plugin from the marketplace.
+
+- **Parameters**: `pluginId`: `string`
+- **Returns**: `Promise<Result<void>>`
+
+---
+
+## Terminal API
+
+The Terminal API allows creating and interacting with shell sessions (local or pod-exec).
+
+### `terminalCreate(args)`
+
+Creates a new terminal session.
+
+- **Arguments**:
+  - `kind`: `'local' | 'pod-exec'`
+  - `podName`: `string` (required for `pod-exec`)
+  - `namespace`: `string` (required for `pod-exec`)
+  - `contextName`: `string` (required for `pod-exec`)
+  - `shell`: `string` (optional, default: `/bin/sh` or `powershell.exe`)
+  - `cols`: `number` (optional)
+  - `rows`: `number` (optional)
+- **Returns**: `Promise<Result<{ sessionId: string }>>`
+
+### `terminalInput(sessionId, data)`
+
+Sends input data to a terminal session.
+
+- **Parameters**:
+  - `sessionId`: `string`
+  - `data`: `string`
+- **Returns**: `Promise<Result<boolean>>`
+
+### `terminalResize(sessionId, cols, rows)`
+
+Resizes a terminal session (Note: currently no-op for piped processes).
+
+- **Parameters**: `sessionId`, `cols`, `rows`
+- **Returns**: `Promise<Result<boolean>>`
+
+### `terminalKill(sessionId)`
+
+Kills a terminal session.
+
+- **Parameters**: `sessionId`: `string`
+- **Returns**: `Promise<Result<boolean>>`
+
+### `terminalInterrupt(sessionId)`
+
+Sends an interrupt signal to the process (Ctrl+C).
+
+- **Parameters**: `sessionId`: `string`
+- **Returns**: `Promise<Result<boolean>>`
 
 ---
 
 ## Events (Listen)
 
-All event listeners return an **unsubscribe function** `() => void`. Call it to clean up when the component unmounts.
+All event listeners return an **unsubscribe function** `() => void`.
 
 ### `onSetKubeconfigPath(callback)`
-
-Fires when the kubeconfig path is changed.
 
 - **Callback**: `(success: boolean) => void`
 
 ### `onPluginNotification(callback)`
 
-Fires when a plugin sends a toast notification to the UI.
-
-- **Callback**: `(data: any) => void`
+- **Callback**: `(data: PluginNotificationData) => void`
 
 ### `onPluginModal(callback)`
 
-Fires when a plugin requests a modal to be opened in the renderer.
+- **Callback**: `(data: PluginModalData) => void`
 
-- **Callback**: `(data: any) => void`
+### `onTerminalOutput(callback)`
+
+Fires when a terminal session produces output.
+
+- **Callback**: `(sessionId: string, data: string) => void`
+
+### `onTerminalExited(callback)`
+
+Fires when a terminal session exits.
+
+- **Callback**: `(sessionId: string) => void`
+
+---
+
+## Types
+
+### `Result<T>`
+
+```typescript
+interface Result<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+```
+
+### `Plugin`
+
+```typescript
+interface Plugin {
+  manifest: PluginManifest;
+  state: 'disabled' | 'enabled' | 'loading' | 'error' | 'trial' | 'expired';
+  error?: string;
+  installedAt: string;
+  hasUpdate?: boolean;
+}
+```
+
+### `Manifest`
+
+```typescript
+interface Manifest {
+  id?: number;
+  name: string;
+  content: string;
+  clusterContext?: string;
+}
+```
