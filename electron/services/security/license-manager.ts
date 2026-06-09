@@ -12,6 +12,7 @@ import type { Result, PluginLicenseInfo } from '../../types/plugin-types';
 import { getErrorMessage } from '../../utils/error-utils';
 import { isProduction } from '../../utils/env-utils';
 import log from '../../logger';
+import { LICENSE } from '../../constants';
 
 export interface LicenseValidationResult {
   valid: boolean;
@@ -19,11 +20,11 @@ export interface LicenseValidationResult {
   licenseInfo?: PluginLicenseInfo;
 }
 
-const LICENSE_TOKEN_PREFIX = 'OFFLINE-ACTIVATED-';
+const LICENSE_TOKEN_PREFIX = LICENSE.OFFLINE_TOKEN_PREFIX;
 
-const TRIAL_DURATION_DAYS = 14;
-const GRACE_PERIOD_DAYS = 7;
-const REVERIFICATION_INTERVAL_HOURS = 24;
+const TRIAL_DURATION_DAYS = LICENSE.TRIAL_DURATION_DAYS;
+const GRACE_PERIOD_DAYS = LICENSE.GRACE_PERIOD_DAYS;
+const REVERIFICATION_INTERVAL_HOURS = LICENSE.REVERIFICATION_INTERVAL_HOURS;
 
 export class LicenseManager {
   /**
@@ -136,6 +137,7 @@ export class LicenseManager {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pluginId, machineId: mId, licenseKey }),
+          signal: AbortSignal.timeout(10_000),
         });
         if (!response.ok) {
           const err = await response
