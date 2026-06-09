@@ -45,6 +45,8 @@
   },
   "homepage": "https://github.com/Dangalcan/Kubernetes-Desktop#readme",
   "dependencies": {
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
     "adm-zip": "^0.5.16",
     "better-sqlite3": "^12.6.2",
     "clsx": "^2.1.1",
