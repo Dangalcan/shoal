@@ -26,6 +26,14 @@ import { getErrorMessage } from '../../utils/error-utils';
 import { kubernetesService } from '../kubernetes/kubernetes-service';
 import log from '../../logger';
 
+async function wrapK8sCall<T>(fn: () => Promise<T>, label: string): Promise<T> {
+  try {
+    return await fn();
+  } catch (error: unknown) {
+    throw new Error(`Failed to ${label}: ${getErrorMessage(error)}`);
+  }
+}
+
 /**
  * Create a plugin context with controlled API access
  */
@@ -37,81 +45,37 @@ export function createPluginContext(
   // Create Kubernetes API (if permission granted)
   const kubernetes: KubernetesAPI = permissions.includes('kubernetes')
     ? {
-        getResources: async (type: string, namespace: string) => {
-          try {
-            return await kubernetesService.getResources(type, namespace);
-          } catch (error: unknown) {
-            throw new Error(
-              `Failed to get resources: ${getErrorMessage(error)}`
-            );
-          }
-        },
+        getResources: (type: string, namespace: string) =>
+          wrapK8sCall(
+            () => kubernetesService.getResources(type, namespace),
+            'get resources'
+          ),
 
-        createResource: async (manifest: unknown) => {
-          try {
-            return await kubernetesService.createResource(manifest);
-          } catch (error: unknown) {
-            throw new Error(
-              `Failed to create resource: ${getErrorMessage(error)}`
-            );
-          }
-        },
+        createResource: (manifest: unknown) =>
+          wrapK8sCall(
+            () => kubernetesService.createResource(manifest),
+            'create resource'
+          ),
 
-        updateResource: async (
-          type: string,
-          name: string,
-          manifest: unknown
-        ) => {
-          try {
-            return await kubernetesService.updateResource(type, name, manifest);
-          } catch (error: unknown) {
-            throw new Error(
-              `Failed to update resource: ${getErrorMessage(error)}`
-            );
-          }
-        },
+        updateResource: (type: string, name: string, manifest: unknown) =>
+          wrapK8sCall(
+            () => kubernetesService.updateResource(type, name, manifest),
+            'update resource'
+          ),
 
-        deleteResource: async (
-          type: string,
-          name: string,
-          namespace: string
-        ) => {
-          try {
-            return await kubernetesService.deleteResource(
-              type,
-              name,
-              namespace
-            );
-          } catch (error: unknown) {
-            throw new Error(
-              `Failed to delete resource: ${getErrorMessage(error)}`
-            );
-          }
-        },
+        deleteResource: (type: string, name: string, namespace: string) =>
+          wrapK8sCall(
+            () => kubernetesService.deleteResource(type, name, namespace),
+            'delete resource'
+          ),
 
-        executeCommand: async (
-          pod: string,
-          namespace: string,
-          command: string
-        ) => {
-          try {
-            return await kubernetesService.executeCommand(
-              pod,
-              namespace,
-              command
-            );
-          } catch (error: unknown) {
-            throw new Error(
-              `Failed to execute command: ${getErrorMessage(error)}`
-            );
-          }
-        },
+        executeCommand: (pod: string, namespace: string, command: string) =>
+          wrapK8sCall(
+            () => kubernetesService.executeCommand(pod, namespace, command),
+            'execute command'
+          ),
 
         watchResources: (type: string, callback: (event: unknown) => void) => {
-          if (!permissions.includes('kubernetes')) {
-            throw new Error('Permission denied: kubernetes');
-          }
-
           // Validate resource type to prevent command injection
           if (!/^[a-zA-Z0-9.\-/]+$/.test(type)) {
             throw new Error(`Invalid resource type: "${type}"`);
