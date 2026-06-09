@@ -39,6 +39,21 @@ A modern, desktop-based management tool for Kubernetes clusters and container ru
 - 🔍 Filter by namespace
 - 📊 Real-time resource status updates
 - 📝 View resource YAML and logs
+- 🔄 Rollout restart for Deployments, DaemonSets, StatefulSets
+- 🗑️ Delete any resource directly from the UI
+
+### Manifest Management
+
+- 📄 Save and edit YAML manifests in a built-in editor
+- 📂 Drag-and-drop YAML/JSON file import
+- ▶️ Apply manifests to the active cluster with one click
+- 💾 Persisted locally in SQLite
+
+### Terminal
+
+- 💻 Local shell session (PowerShell on Windows, bash/sh on macOS/Linux)
+- 🐚 Pod exec (`kubectl exec`) sessions inside any running container
+- 📐 Resizable terminal with interrupt support
 
 ### Plugin System (Beta)
 
@@ -83,24 +98,42 @@ This is routed securely:
 ```bash
 Kubernetes-Desktop/
 ├── electron/               # ⚡ Main Process Source
-│   ├── main.ts            # Entry point, Window setup, IPC handlers
-│   ├── preload.ts         # ContextBridge (Security layer)
+│   ├── main.ts            # Entry point, window setup
+│   ├── preload.ts         # ContextBridge — secure IPC surface
+│   ├── database.ts        # SQLite setup (manifests)
+│   ├── ipc/               # IPC handler modules (cluster, resources, plugins, manifests, terminal)
+│   ├── services/          # Business logic
+│   │   ├── cluster/       # Kind/K3d cluster management
+│   │   ├── kubernetes/    # kubectl API wrapper
+│   │   ├── plugins/       # Plugin manager, loader, registry, context, events, sandbox
+│   │   ├── marketplace/   # Marketplace HTTP client
+│   │   └── security/      # License manager, signature verification, encryption
+│   ├── types/             # Shared TypeScript types (plugin-types.ts)
 │   └── tsconfig.json      # Main process TS config
 ├── src/                    # ⚛️ Renderer Source (React)
-│   ├── components/        # Reusable UI components (Sidebar, etc.)
-│   ├── layouts/           # Page layouts (Main Layout with Sidebar)
-│   ├── pages/             # View components (Dashboard, CreateCluster)
-│   ├── lib/               # Utilities (CSS helpers, formatting)
-│   ├── main.tsx           # React entry point
-│   ├── App.tsx            # Main Router setup
-│   └── index.css          # Global styles (Tailwind imports)
-├── dist-electron/          # 📦 Compiled Main Process (Output)
-├── dist/                   # 📦 Compiled Renderer (Output)
-├── .gitignore             # Git options
-├── package.json           # Dependencies and scripts configuration
-├── postcss.config.cjs     # PostCSS Config (Tailwind v4 adapter)
-├── tailwind.config.cjs    # Tailwind CSS Configuration
-└── vite.config.ts         # Vite build configuration
+│   ├── components/        # Reusable UI components (tables, modals, sidebar, terminal)
+│   ├── features/          # Feature modules (plugins, marketplace, manifests, terminal)
+│   ├── hooks/             # Custom React hooks
+│   ├── layouts/           # Page layouts
+│   ├── pages/             # Route-level components (Dashboard, Clusters, Manifests, Plugins, Terminal, Settings)
+│   ├── services/          # Frontend API service layer & plugin UI registry
+│   ├── types/             # Frontend TypeScript interfaces
+│   ├── lib/               # Utilities and resource definitions
+│   ├── App.tsx            # React Router setup
+│   └── main.tsx           # React entry point
+├── marketplace-backend/    # 🛒 Plugin marketplace Express.js service
+├── plugins/               # 🔌 Bundled example plugins (8 plugins)
+├── styles/                # 🎨 SCSS stylesheets (variables, animations, components)
+├── e2e/                   # 🎭 Playwright end-to-end tests
+├── scripts/               # 🔧 Build and utility scripts
+├── dist-electron/          # 📦 Compiled Main Process (output)
+├── dist/                   # 📦 Compiled Renderer (output)
+├── package.json           # Dependencies and npm scripts
+├── vite.config.ts         # Vite renderer build config
+├── vitest.config.ts       # Unit test configuration
+├── playwright.config.ts   # E2E test configuration
+├── tailwind.config.cjs    # Tailwind CSS v4 configuration
+└── postcss.config.cjs     # PostCSS config (Tailwind adapter)
 ```
 
 ## 🛠 Tech Stack
@@ -108,10 +141,15 @@ Kubernetes-Desktop/
 - **Runtime**: [Electron](https://www.electronjs.org/)
 - **Frontend**: [React 19](https://react.dev/)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **Build Tool**: [Vite](https://vitejs.dev/)
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **Build Tool**: [Vite](https://vitejs.dev/) + [electron-builder](https://www.electron.build/)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) + SCSS
 - **Icons**: [Lucide React](https://lucide.dev/)
-- **Routing**: [React Router](https://reactrouter.com/)
+- **Routing**: [React Router v7](https://reactrouter.com/)
+- **Database**: [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) (manifests & plugin registry)
+- **Terminal**: [node-pty](https://github.com/microsoft/node-pty) (PTY sessions)
+- **Notifications**: [Sonner](https://sonner.emilkowal.ski/) (toasts)
+- **Testing**: [Vitest 4](https://vitest.dev/) (unit) + [Playwright](https://playwright.dev/) (E2E)
+- **Marketplace Backend**: [Express.js](https://expressjs.com/) + JWT
 
 ## 🚀 Getting Started
 
@@ -223,7 +261,7 @@ The marketplace provides:
 - Payment processing (coming soon)
 - Reviews and ratings
 
-For more information, see [Plugin Architecture](docs/PLUGIN_ARCH_IDEA.md).
+For more information, see [Plugin Architecture](docs/PLUGIN_ARCHITECTURE.md).
 
 ## 🛒 Marketplace Backend
 
@@ -231,11 +269,11 @@ The marketplace backend is a separate Express.js service that powers the plugin 
 
 ### Features
 
-- RESTful API for plugin catalog
-- User authentication and authorization
-- License key generation and validation
-- Download tracking and analytics
-- Review and rating system
+- RESTful API for plugin catalog (search, filter, pagination)
+- License key validation and JWT-based license generation
+- Trial period activation and tracking
+- Admin endpoints for managing license keys and catalog entries
+- Rate limiting and Helmet security middleware
 
 ### Running the Marketplace Backend
 
@@ -245,7 +283,7 @@ npm install
 npm run dev
 ```
 
-The backend runs on `http://localhost:3000` by default.
+The backend runs on `http://localhost:3001` by default.
 
 ### Configuration
 
@@ -261,10 +299,10 @@ Kubernetes Desktop maintains high test coverage standards:
 
 | Metric     | Minimum Threshold |
 | ---------- | ----------------- |
-| Lines      | 85%               |
-| Statements | 85%               |
-| Functions  | 80%               |
-| Branches   | 70%               |
+| Lines      | 90%               |
+| Statements | 90%               |
+| Functions  | 90%               |
+| Branches   | 80%               |
 
 ### Running Tests
 

@@ -414,5 +414,40 @@ interface Manifest {
   name: string;
   content: string;
   clusterContext?: string;
+  created_at?: string; // ISO datetime, set by SQLite on insert
+}
+```
+
+### `MarketplaceEntry`
+
+Returned by `getMarketplacePlugins()`.
+
+```typescript
+interface MarketplaceEntry {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  longDescription?: string;
+  author: string;
+  category:
+    | 'Monitoring'
+    | 'Security'
+    | 'DevTools'
+    | 'Networking'
+    | 'Themes'
+    | 'Logging'
+    | 'Storage'
+    | 'CI/CD';
+  price: number; // 0 for free plugins
+  icon: string;
+  screenshots: string[];
+  rating: number;
+  reviews: number;
+  downloadUrl: string;
+  tags: string[];
+  featured?: boolean;
+  changelog?: string;
+  manifest?: PluginManifest;
 }
 ```

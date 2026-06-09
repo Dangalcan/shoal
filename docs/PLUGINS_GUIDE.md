@@ -55,6 +55,7 @@ The `plugin.json` file defines the identity and capabilities of your plugin.
   "description": "Adds awesome features to K8s Desktop",
   "author": "Your Name",
   "main": "index.js",
+  "renderer": "renderer.js",
   "permissions": ["kubernetes", "ui", "notifications"],
   "license": {
     "type": "free",
@@ -209,6 +210,52 @@ describe('My Plugin', () => {
 });
 ```
 
+## UI Renderer (Frontend Extensions)
+
+Plugins can extend the Kubernetes Desktop UI by providing a **renderer script** — a JavaScript module loaded in the renderer process via the `plugin-file://` custom protocol.
+
+### Setup
+
+Add `"renderer": "renderer.js"` to your `plugin.json`. This file is loaded automatically when the plugin is enabled.
+
+### Available Globals
+
+The following globals are injected into the renderer context:
+
+| Global                    | Description                                                                  |
+| ------------------------- | ---------------------------------------------------------------------------- |
+| `window.React`            | React 19                                                                     |
+| `window.LucideIcons`      | All Lucide icon components                                                   |
+| `window.K8sUI`            | Core UI components (`Button`, `Badge`, `Card`, `Spinner`)                    |
+| `window.pluginUIRegistry` | Registry for registering pages, widgets, sidebar items, and resource actions |
+
+### Registering a Page
+
+```javascript
+// renderer.js
+const { pluginUIRegistry, React } = window;
+
+function MyPage() {
+  return React.createElement('div', null, 'Hello from my plugin!');
+}
+
+pluginUIRegistry.registerPage('my-cool-plugin', MyPage);
+```
+
+The page is accessible at `/plugin/my-cool-plugin` (matching the route in your sidebar extension).
+
+### Registering a Dashboard Widget
+
+```javascript
+function MyWidget() {
+  return React.createElement('div', { className: 'p-4' }, 'My Widget');
+}
+
+pluginUIRegistry.registerWidget('my-cool-plugin', MyWidget);
+```
+
+---
+
 ## Complete API Reference
 
 ### Context Object
@@ -228,13 +275,14 @@ Passed to `activate(context)`.
 
 #### context.ui
 
-| Method                              | Description            |
-| ----------------------------------- | ---------------------- |
-| `registerSidebarItem(item)`         | Add to sidebar         |
-| `registerPage(route, comp)`         | Add new page           |
-| `registerResourceAction(type, act)` | Add button to resource |
-| `showNotification(msg, type)`       | Show toast             |
-| `openModal(comp, props)`            | Open dialog            |
+| Method                              | Description                                                     |
+| ----------------------------------- | --------------------------------------------------------------- |
+| `registerSidebarItem(item)`         | Add entry to left navigation                                    |
+| `registerPage(route, comp)`         | Register custom React page at a `/plugin/*` route               |
+| `registerResourceAction(type, act)` | Add button to resource rows in Cluster Details                  |
+| `registerDashboardWidget(widget)`   | Add widget tile to the Dashboard page                           |
+| `showNotification(msg, type)`       | Show Sonner toast (type: `success`, `error`, `info`, `warning`) |
+| `openModal(comp, props)`            | Open dialog (IPC bridge exists; renderer handler is a TODO)     |
 
 #### context.events
 
@@ -269,16 +317,19 @@ The `EventsAPI` provides a global event bus for the application.
 
 ### Preparing for Release
 
-1.  **Validate manifest**: Ensure all fields in `plugin.json` are correct.
-2.  **Permissions**: Request only what you need.
-3.  **Signatures**: Marketplace plugins must be signed using our RSA key.
-
-### Publishing to Marketplace
-
-1.  Pack your plugin: `kd-plugin build ./my-plugin`
-2.  Sign: `kd-plugin sign ./my-plugin`
-3.  Submit via Developer Portal at `marketplace.kubernetes-desktop.com`.
+1. **Validate manifest**: Ensure all required fields in `plugin.json` are present and correct.
+2. **Permissions**: Request only the permissions your plugin actually uses.
+3. **Test locally**: Use **"Load Unpacked Plugin"** in Developer Mode to verify behavior before packaging.
 
 ### Self-Distribution
 
-Distribute as a `.zip`. Users can install via **"Install from File"** in the Plugins page (shows security warning).
+Package your plugin as a `.zip` archive containing `plugin.json`, `index.js`, and any other files. Users install it via **"Load Unpacked Plugin"** (directory picker) or by placing the unzipped folder in the plugins directory:
+
+- **Windows**: `%USERPROFILE%\.kubernetes-desktop\plugins\`
+- **macOS/Linux**: `~/.kubernetes-desktop/plugins/`
+
+A security warning is shown for plugins without a valid RSA signature.
+
+### Marketplace Submission
+
+The marketplace backend (`marketplace-backend/`) is currently a local development mock. Production marketplace publishing (CDN, developer portal, payment processing) is planned for a future release. See [PLUGIN_ARCHITECTURE.md](./PLUGIN_ARCHITECTURE.md) for the implementation roadmap.
