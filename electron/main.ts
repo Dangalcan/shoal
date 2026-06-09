@@ -10,6 +10,7 @@ import { registerResourcesIpcHandlers } from './ipc/resources-ipc';
 import { registerPluginsIpcHandlers } from './ipc/plugins-ipc';
 import { registerMarketplaceIpcHandlers } from './ipc/marketplace-ipc';
 import { registerManifestsIpcHandlers } from './ipc/manifests-ipc';
+import { registerTerminalIpcHandlers } from './ipc/terminal-ipc';
 import log from './logger';
 
 const DEFAULT_WINDOW_WIDTH = 1200;
@@ -43,6 +44,7 @@ function registerIpcHandlers(): void {
   registerPluginsIpcHandlers();
   registerMarketplaceIpcHandlers();
   registerManifestsIpcHandlers();
+  registerTerminalIpcHandlers();
 }
 
 function createWindow(): void {
@@ -59,6 +61,9 @@ function createWindow(): void {
     icon: path.join(publicDir, 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
     },
   });
 

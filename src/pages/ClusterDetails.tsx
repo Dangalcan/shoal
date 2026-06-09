@@ -6,6 +6,7 @@ import { LogViewerModal } from '../components/modals/LogViewerModal'
 import { DescribeModal } from '../components/modals/DescribeModal'
 import { YamlModal } from '../components/modals/YamlModal'
 import { ConfirmModal } from '../components/modals/ConfirmModal'
+import { PodTerminalModal } from '../components/modals/PodTerminalModal'
 import { ResourceType, ALL_TABS, RESOURCE_CONFIGS } from '../lib/resources/resource-definitions'
 import { DetailsHeader } from '../components/cluster/DetailsHeader'
 import { ResourceTabs } from '../components/cluster/ResourceTabs'
@@ -169,6 +170,7 @@ const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaces(na
                     onYaml={modals.openYaml}
                     onRestart={(item) => handleRestart(item.metadata.name, item.metadata.namespace || '', activeTab)}
                     onLogs={modals.openLogs}
+                    onExec={modals.openExec}
                     onDelete={modals.openDelete}
                     onRetry={fetchData}
                     selectedNamespace={selectedNamespace}
@@ -227,6 +229,13 @@ const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaces(na
                 confirmLabel="Delete Cluster"
                 variant="danger"
                 loading={!!deleting}
+            />
+            <PodTerminalModal
+                isOpen={modals.activeModal === 'exec'}
+                onClose={modals.closeAll}
+                podName={modals.selectedItem?.metadata.name ?? ''}
+                namespace={modals.selectedItem?.metadata.namespace ?? ''}
+                contextName={name ?? ''}
             />
             <Toaster position="bottom-right" richColors />
         </div>

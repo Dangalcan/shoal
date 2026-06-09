@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { K8sResource } from '../types/k8s-types';
 
-type ModalType = 'describe' | 'yaml' | 'logs' | 'delete';
+type ModalType = 'describe' | 'yaml' | 'logs' | 'delete' | 'exec';
 
 interface ModalStateResult {
   selectedItem: K8sResource | null;
@@ -10,6 +10,7 @@ interface ModalStateResult {
   openYaml: (item: K8sResource) => void;
   openLogs: (item: K8sResource) => void;
   openDelete: (item: K8sResource) => void;
+  openExec: (item: K8sResource) => void;
   closeAll: () => void;
 }
 
@@ -34,6 +35,7 @@ export function useModalState(): ModalStateResult {
     openYaml: open('yaml'),
     openLogs: open('logs'),
     openDelete: open('delete'),
+    openExec: open('exec'),
     closeAll,
   };
 }

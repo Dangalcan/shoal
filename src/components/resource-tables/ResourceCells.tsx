@@ -1,5 +1,5 @@
 import React from 'react'
-import { Terminal, Eye, FileCode, RefreshCw, Trash2 } from 'lucide-react'
+import { Terminal, Eye, FileCode, RefreshCw, Trash2, SquareTerminal } from 'lucide-react'
 
 
 interface ActionProps {
@@ -8,8 +8,10 @@ interface ActionProps {
     onRestart?: () => void
     onLogs?: () => void
     onDelete?: () => void
+    onExec?: () => void
     showRestart?: boolean
     showLogs?: boolean
+    showExec?: boolean
 }
 
 export const NameCell: React.FC<{
@@ -48,6 +50,11 @@ export const NameCell: React.FC<{
                     {actions.showLogs && actions.onLogs && (
                         <button onClick={actions.onLogs} className="action-button action-button-logs" title="View Logs">
                             <Terminal size={14} />
+                        </button>
+                    )}
+                    {actions.showExec && actions.onExec && (
+                        <button onClick={actions.onExec} className="action-button action-button-exec" title="Open Shell">
+                            <SquareTerminal size={14} />
                         </button>
                     )}
                     {actions.onDelete && (

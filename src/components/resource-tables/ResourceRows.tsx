@@ -14,6 +14,7 @@ interface ResourceRowProps {
     onYaml: (item: K8sResource) => void
     onRestart?: (item: K8sResource) => void
     onLogs?: (item: K8sResource) => void
+    onExec?: (item: K8sResource) => void
     onDelete: (item: K8sResource) => void
 }
 
@@ -26,6 +27,7 @@ export const ResourceRow: React.FC<ResourceRowProps> = ({
     onYaml,
     onRestart,
     onLogs,
+    onExec,
     onDelete
 }) => {
     const actions = {
@@ -33,9 +35,11 @@ export const ResourceRow: React.FC<ResourceRowProps> = ({
         onYaml: () => onYaml(item),
         onRestart: onRestart ? () => onRestart(item) : undefined,
         onLogs: onLogs ? () => onLogs(item) : undefined,
+        onExec: onExec ? () => onExec(item) : undefined,
         onDelete: () => onDelete(item),
         showRestart: activeTab === 'deployments' || activeTab === 'statefulsets' || activeTab === 'daemonsets',
-        showLogs: activeTab === 'pods'
+        showLogs: activeTab === 'pods',
+        showExec: activeTab === 'pods',
     }
 
     const columns = COLUMN_DEFINITIONS[activeTab] || []
