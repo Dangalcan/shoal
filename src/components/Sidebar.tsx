@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Server, Settings, Sun, Moon, Package, FileCode } from 'lucide-react'
+import { LayoutDashboard, Server, Settings, Sun, Moon, Package, FileCode, Terminal } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { cn } from '../lib/utils'
 import { useTheme } from '../hooks'
@@ -38,6 +38,7 @@ export function Sidebar() {
         { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
         { to: '/clusters', icon: Server, label: 'Clusters' },
         { to: '/manifests', icon: FileCode, label: 'Manifests' },
+        { to: '/terminal', icon: Terminal, label: 'Terminal' },
         { to: '/plugins', icon: Package, label: 'Plugins' },
         { to: '/settings', icon: Settings, label: 'Settings' },
     ]

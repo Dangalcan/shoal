@@ -164,4 +164,28 @@ export const mockApi: ElectronAPI = {
   onPluginNotification:
     (_callback: (data: PluginNotificationData) => void) => () => {},
   onPluginModal: (_callback: (data: PluginModalData) => void) => () => {},
+
+  // Terminal (mock stubs — not functional in browser)
+  terminalCreate: async () => ({
+    success: false,
+    error: 'Not available in browser',
+  }),
+  terminalInput: async () => ({
+    success: false,
+    error: 'Not available in browser',
+  }),
+  terminalResize: async () => ({
+    success: false,
+    error: 'Not available in browser',
+  }),
+  terminalKill: async () => ({
+    success: false,
+    error: 'Not available in browser',
+  }),
+  terminalInterrupt: async () => ({
+    success: false,
+    error: 'Not available in browser',
+  }),
+  onTerminalOutput: () => () => {},
+  onTerminalExited: () => () => {},
 };

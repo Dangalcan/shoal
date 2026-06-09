@@ -1,0 +1,120 @@
+import { useEffect, useRef, useCallback } from 'react';
+import { Terminal as XTerm } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
+import '@xterm/xterm/css/xterm.css';
+
+interface TerminalProps {
+  sessionId: string;
+  kind: 'local' | 'pod-exec';
+  className?: string;
+}
+
+export function Terminal({ sessionId, kind, className = '' }: TerminalProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const xtermRef = useRef<XTerm | null>(null);
+  const fitAddonRef = useRef<FitAddon | null>(null);
+
+  const fit = useCallback(() => {
+    if (!fitAddonRef.current || !xtermRef.current) return;
+    try {
+      fitAddonRef.current.fit();
+      const { cols, rows } = xtermRef.current;
+      window.electron.terminalResize(sessionId, cols, rows);
+    } catch {
+      // ignore fit errors during mount/unmount race
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const isLocal = kind === 'local';
+
+    const terminal = new XTerm({
+      cursorBlink: true,
+      fontSize: 13,
+      fontFamily: 'Consolas, "Courier New", monospace',
+      theme: {
+        background: '#1e1e1e',
+        foreground: '#d4d4d4',
+        cursor: '#d4d4d4',
+        selectionBackground: '#264f78',
+      },
+    });
+
+    const fitAddon = new FitAddon();
+    terminal.loadAddon(fitAddon);
+    terminal.open(containerRef.current);
+    fitAddon.fit();
+
+    xtermRef.current = terminal;
+    fitAddonRef.current = fitAddon;
+
+    // Both local and pod-exec: buffer input locally and echo to screen.
+    // - cmd.exe (local): never echoes piped input, so we must echo.
+    // - pod shell (pod-exec): no real PTY, so the shell won't echo char-by-char.
+    //   The shell may echo the full line back on Enter, causing a slight
+    //   double-display of the command — unavoidable without a real PTY.
+    let inputBuffer = '';
+    terminal.onData((data: string) => {
+      for (const ch of data) {
+        const code = ch.charCodeAt(0);
+        if (ch === '\r') {
+          terminal.write('\r\n');
+          if (isLocal) {
+            const cmd = inputBuffer.trim().toLowerCase();
+            if (cmd === 'clear' || cmd === 'cls') terminal.clear();
+          }
+          // cmd.exe (Windows) needs \r\n; Linux shells need just \n
+          const eol = isLocal ? '\r\n' : '\n';
+          window.electron.terminalInput(sessionId, inputBuffer + eol);
+          inputBuffer = '';
+        } else if (code === 0x03) {
+          inputBuffer = '';
+          terminal.write('^C\r\n');
+          window.electron.terminalInterrupt(sessionId);
+        } else if (code === 0x7f || code === 0x08) {
+          if (inputBuffer.length > 0) {
+            inputBuffer = inputBuffer.slice(0, -1);
+            terminal.write('\b \b');
+          }
+        } else if (code >= 0x20 && code < 0x7f) {
+          inputBuffer += ch;
+          terminal.write(ch);
+        }
+      }
+    });
+
+    const cleanupOutput = window.electron.onTerminalOutput(
+      (sid: string, data: string) => {
+        if (sid !== sessionId) return;
+        // Linux shells output bare \n; xterm needs \r\n to return to column 0.
+        const output = isLocal ? data : data.replace(/\r?\n/g, '\r\n');
+        terminal.write(output);
+      }
+    );
+
+    const cleanupExit = window.electron.onTerminalExited((sid: string) => {
+      if (sid === sessionId) {
+        terminal.write('\r\n\x1b[31m[Process exited]\x1b[0m\r\n');
+      }
+    });
+
+    const observer = new ResizeObserver(() => fit());
+    observer.observe(containerRef.current!);
+
+    return () => {
+      cleanupOutput();
+      cleanupExit();
+      observer.disconnect();
+      terminal.dispose();
+    };
+  }, [sessionId, kind, fit]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={className}
+      style={{ width: '100%', height: '100%', overflow: 'hidden' }}
+    />
+  );
+}

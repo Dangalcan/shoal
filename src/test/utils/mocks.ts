@@ -104,6 +104,23 @@ export function createMockElectronAPI(
     onSetKubeconfigPath: vi.fn(),
     onPluginNotification: vi.fn().mockReturnValue(() => {}),
     onPluginModal: vi.fn().mockReturnValue(() => {}),
+
+    // Terminal API
+    terminalCreate: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: 'test-session-id' }),
+    terminalInput: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: undefined }),
+    terminalResize: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: undefined }),
+    terminalKill: vi.fn().mockResolvedValue({ success: true, data: undefined }),
+    terminalInterrupt: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: undefined }),
+    onTerminalOutput: vi.fn().mockReturnValue(() => {}),
+    onTerminalExited: vi.fn().mockReturnValue(() => {}),
     ...overrides,
   };
 }

@@ -22,6 +22,7 @@ interface ClusterResourceDisplayProps {
   onYaml: (item: K8sResource) => void;
   onRestart: (item: K8sResource) => void;
   onLogs: (item: K8sResource) => void;
+  onExec: (item: K8sResource) => void;
   onDelete: (item: K8sResource) => void;
   onRetry: () => void;
   selectedNamespace: string;
@@ -43,6 +44,7 @@ export const ClusterResourceDisplay: React.FC<ClusterResourceDisplayProps> = ({
   onYaml,
   onRestart,
   onLogs,
+  onExec,
   onDelete,
   onRetry,
   selectedNamespace,
@@ -91,6 +93,7 @@ export const ClusterResourceDisplay: React.FC<ClusterResourceDisplayProps> = ({
             onYaml={onYaml}
             onRestart={onRestart}
             onLogs={onLogs}
+            onExec={onExec}
             onDelete={onDelete}
           />
         ))}

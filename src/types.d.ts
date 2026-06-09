@@ -111,6 +111,29 @@ export interface ElectronAPI {
     id: number
   ) => Promise<Result<{ stdout: string; stderr: string }>>;
 
+  // Terminal
+  terminalCreate: (args: {
+    kind: 'local' | 'pod-exec';
+    podName?: string;
+    namespace?: string;
+    contextName?: string;
+    shell?: string;
+    cols?: number;
+    rows?: number;
+  }) => Promise<Result<{ sessionId: string }>>;
+  terminalInput: (sessionId: string, data: string) => Promise<Result<boolean>>;
+  terminalResize: (
+    sessionId: string,
+    cols: number,
+    rows: number
+  ) => Promise<Result<boolean>>;
+  terminalKill: (sessionId: string) => Promise<Result<boolean>>;
+  terminalInterrupt: (sessionId: string) => Promise<Result<boolean>>;
+  onTerminalOutput: (
+    callback: (sessionId: string, data: string) => void
+  ) => () => void;
+  onTerminalExited: (callback: (sessionId: string) => void) => () => void;
+
   // Listeners
   onSetKubeconfigPath: (callback: (value: boolean) => void) => void;
   onPluginNotification: (

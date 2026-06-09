@@ -8,6 +8,7 @@ import { Settings } from './pages/Settings'
 import Plugins from './pages/Plugins'
 import { PluginPage } from './pages/PluginPage'
 import { Manifests } from './pages/Manifests'
+import { TerminalPage } from './pages/TerminalPage'
 
 function App() {
     return (
@@ -22,6 +23,7 @@ function App() {
                     <Route path="plugins" element={<Plugins />} />
                     <Route path="plugin/:pluginId" element={<PluginPage />} />
                     <Route path="manifests" element={<Manifests />} />
+                    <Route path="terminal" element={<TerminalPage />} />
                 </Route>
             </Routes>
         </HashRouter>
