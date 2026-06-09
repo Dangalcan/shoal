@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '../../../utils'
 import { NamespaceCell, AgeCell, DataCountCell, SelectorCell, ContainersCell, ImagesCell } from '../../../../components/resource-tables/cell-renderers/CommonCells'
-import { mockPods } from '../../../fixtures/k8s-resources'
+import { mockPods } from '../../../fixtures/resources'
 
 describe('CommonCells', () => {
     const style = { width: '100px' }
