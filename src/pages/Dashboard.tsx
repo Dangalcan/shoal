@@ -6,6 +6,9 @@ import {
   Plus,
   RefreshCw,
   Eye,
+  Container,
+  Layers,
+  GitBranch,
 } from 'lucide-react';
 import { PodViewerModal } from '../components/modals/PodViewerModal';
 import { useClusterContext } from '../features/clusters/ClusterContext';
@@ -109,19 +112,19 @@ export function Dashboard() {
         <Animate type="slide-up" delay={0}>
           <StatCard
             label="Docker Status"
-            value={dockerStatus === null ? 'Checking...' : dockerStatus ? 'Running' : 'Not Found'}
-            icon={Box}
-            color={dockerStatus ? 'blue' : 'red'}
-            status={dockerStatus ? 'running' : 'stopped'}
+            value={dockerStatus === null ? 'Checking...' : dockerStatus ? 'Running' : 'Unavailable'}
+            icon={Container}
+            color={dockerStatus === null ? 'blue' : dockerStatus ? 'blue' : 'red'}
+            status={dockerStatus === null ? undefined : dockerStatus ? 'running' : 'stopped'}
           />
         </Animate>
         <Animate type="slide-up" delay={100}>
           <StatCard
             label="Podman Status"
-            value={podmanStatus === null ? 'Checking...' : podmanStatus ? 'Running' : 'Not Found'}
-            icon={Box}
-            color={podmanStatus ? 'purple' : 'orange'}
-            status={podmanStatus ? 'running' : 'stopped'}
+            value={podmanStatus === null ? 'Checking...' : podmanStatus ? 'Running' : 'Unavailable'}
+            icon={Layers}
+            color={podmanStatus === null ? 'purple' : podmanStatus ? 'purple' : 'orange'}
+            status={podmanStatus === null ? undefined : podmanStatus ? 'running' : 'stopped'}
           />
         </Animate>
         <Animate type="slide-up" delay={200}>
@@ -134,9 +137,9 @@ export function Dashboard() {
         </Animate>
         <Animate type="slide-up" delay={300}>
           <StatCard
-            label="Total Contexts"
+            label="Total Clusters"
             value={clusters.length}
-            icon={Box}
+            icon={GitBranch}
             color="green"
           />
         </Animate>
@@ -167,8 +170,8 @@ export function Dashboard() {
         </Animate>
 
         <Animate type="slide-up" delay={500}>
-          <Card 
-            title="Recent Activity"
+          <Card
+            title="Your Clusters"
             headerAction={
               <Button variant="ghost" size="icon" onClick={refreshData} loading={dashboardLoading} title="Refresh Data">
                 <RefreshCw size={16} />
@@ -229,8 +232,16 @@ export function Dashboard() {
               </ul>
             ) : (
               <div className="dashboard-empty-state">
-                <Box size={32} className="text-slate-400 mb-2" />
-                <p>No active clusters found</p>
+                <Box size={32} />
+                <p>No clusters found</p>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={<Plus size={14} />}
+                  onClick={() => navigate('/create-cluster')}
+                >
+                  Add a Cluster
+                </Button>
               </div>
             )}
           </Card>

@@ -43,7 +43,7 @@ describe('Cluster Lifecycle Integration', () => {
 
     // 1. Dashboard: Should be empty initially
     expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
-    expect(screen.getByText('No active clusters found')).toBeInTheDocument();
+    expect(screen.getByText('No clusters found')).toBeInTheDocument();
     
     // 2. Click "Create New Cluster"
     const createBtn = screen.getByRole('button', { name: /create new cluster/i });

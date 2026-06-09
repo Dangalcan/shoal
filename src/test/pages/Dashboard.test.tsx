@@ -47,7 +47,7 @@ describe('Dashboard Page', () => {
 
         await findByTextWithTimeout('Active Context');
         await expectMultipleOccurrences('c1', 1);
-        await findByTextWithTimeout('Total Contexts');
+        await findByTextWithTimeout('Total Clusters');
         await findByTextWithTimeout('2');
     });
 
@@ -112,7 +112,7 @@ describe('Dashboard Page', () => {
         render(<Dashboard />, { api: mockApi });
         
         await waitFor(() => {
-            expect(screen.getByText('No active clusters found')).toBeInTheDocument();
+            expect(screen.getByText('No clusters found')).toBeInTheDocument();
         });
     });
 
