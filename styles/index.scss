@@ -22,6 +22,7 @@
 @use 'components/modals/ConfirmModal';
 @use 'components/modals/LogViewerModal';
 @use 'components/modals/PodViewerModal';
+@use 'components/modals/PodTerminalModal';
 @use 'components/plugins/LicenseActivationModal';
 @use 'components/plugins/PluginConfigurationForm';
 @use 'components/plugins/PluginRuntime';
@@ -41,6 +42,7 @@
 @use 'pages/Manifests';
 @use 'pages/Plugins';
 @use 'pages/Settings';
+@use 'pages/TerminalPage';
 
 /* Base Styles */
 html,

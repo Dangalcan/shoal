@@ -112,8 +112,8 @@
   }
 
   &-icon-purple {
-    color: var(--color-info);
-    background-color: var(--color-info-bg);
+    color: var(--color-purple);
+    background-color: var(--color-purple-bg);
   }
 
   &-icon-orange {
@@ -164,7 +164,7 @@
     content: '';
     position: absolute;
     top: 50%;
-    width: 30%;
+    width: calc(50% - 1.5rem);
     height: 1px;
     background-color: var(--border-color);
   }
@@ -193,7 +193,7 @@
   @include smooth-transition(all, 150ms);
 
   &:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--bg-secondary);
   }
 
   &-active {
@@ -287,7 +287,13 @@
   }
 }
 
-.empty-state {
+.dashboard-empty-state {
   height: 12rem;
   border-radius: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  color: var(--text-muted);
 }
