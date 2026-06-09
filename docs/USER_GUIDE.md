@@ -8,6 +8,7 @@ Welcome to **Kubernetes Desktop**, your modern cockpit for Kubernetes management
 - [Cluster Management](#cluster-management)
 - [Managing Resources](#managing-resources)
 - [Manifests](#manifests)
+- [Terminal](#terminal)
 - [Using Plugins](#using-plugins)
 - [Settings & Configuration](#settings--configuration)
 
@@ -89,6 +90,31 @@ Click the **play** icon (▶) next to a manifest to run `kubectl apply` against 
 ### Deleting a Manifest
 
 Click the **trash** icon and confirm the deletion.
+
+---
+
+## Terminal
+
+The **Terminal** page provides direct shell access — either a local shell on your machine or an interactive session inside a running pod.
+
+### Opening a Local Shell
+
+1. Click **"Terminal"** in the left sidebar.
+2. A local shell session opens automatically (PowerShell on Windows, `bash` or `sh` on macOS/Linux).
+3. Type commands as normal. Press **Ctrl+C** to interrupt a running process.
+4. Close the session with the **Kill** button or by typing `exit`.
+
+### Opening a Pod Exec Session
+
+1. Navigate to a cluster's **Cluster Details** view.
+2. Click on a **Pod** row to open its action menu.
+3. Select **"Open Terminal"**. A new session starts inside the pod's default container using `/bin/sh`.
+4. The session is bound to the pod's lifecycle — if the pod restarts, the session ends.
+
+### Notes
+
+- Terminal resize is supported on macOS and Linux (PTY). On Windows, resize is a no-op for piped processes.
+- Each session is independent; multiple sessions are not currently supported from a single Terminal page visit.
 
 ---
 
