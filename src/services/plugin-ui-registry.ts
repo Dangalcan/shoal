@@ -42,6 +42,12 @@ class PluginUIRegistry {
   private listeners: Set<() => void> = new Set();
 
   registerWidget(widget: DashboardWidget) {
+    if (this.widgets.has(widget.id)) {
+      console.warn(
+        `[PluginUIRegistry] Widget "${widget.id}" already registered — rejected`
+      );
+      return;
+    }
     this.widgets.set(widget.id, widget);
     if (widget.pluginId) {
       this.widgetPlugins.set(widget.id, widget.pluginId);
@@ -68,6 +74,12 @@ class PluginUIRegistry {
   }
 
   registerPage(page: PluginPage) {
+    if (this.pages.has(page.id)) {
+      console.warn(
+        `[PluginUIRegistry] Page "${page.id}" already registered — rejected`
+      );
+      return;
+    }
     this.pages.set(page.id, page);
     this.notify();
   }
@@ -78,6 +90,12 @@ class PluginUIRegistry {
   }
 
   registerResourceAction(action: ResourceActionExtension) {
+    if (this.resourceActions.has(action.id)) {
+      console.warn(
+        `[PluginUIRegistry] ResourceAction "${action.id}" already registered — rejected`
+      );
+      return;
+    }
     this.resourceActions.set(action.id, action);
     this.notify();
   }
@@ -88,6 +106,12 @@ class PluginUIRegistry {
   }
 
   registerModal(modal: PluginModal) {
+    if (this.modals.has(modal.id)) {
+      console.warn(
+        `[PluginUIRegistry] Modal "${modal.id}" already registered — rejected`
+      );
+      return;
+    }
     this.modals.set(modal.id, modal);
   }
 
