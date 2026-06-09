@@ -116,4 +116,38 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.invoke('save-manifest', manifest),
   deleteManifest: (id: number) => ipcRenderer.invoke('delete-manifest', id),
   applyManifest: (id: number) => ipcRenderer.invoke('apply-manifest', id),
+
+  // Terminal
+  terminalCreate: (args: {
+    kind: 'local' | 'pod-exec';
+    podName?: string;
+    namespace?: string;
+    contextName?: string;
+    cols?: number;
+    rows?: number;
+  }) => ipcRenderer.invoke('terminal:create', args),
+  terminalInput: (sessionId: string, data: string) =>
+    ipcRenderer.invoke('terminal:input', { sessionId, data }),
+  terminalResize: (sessionId: string, cols: number, rows: number) =>
+    ipcRenderer.invoke('terminal:resize', { sessionId, cols, rows }),
+  terminalKill: (sessionId: string) =>
+    ipcRenderer.invoke('terminal:kill', { sessionId }),
+  terminalInterrupt: (sessionId: string) =>
+    ipcRenderer.invoke('terminal:interrupt', { sessionId }),
+  onTerminalOutput: (callback: (sessionId: string, data: string) => void) => {
+    const handler = (
+      _event: IpcRendererEvent,
+      { sessionId, data }: { sessionId: string; data: string }
+    ) => callback(sessionId, data);
+    ipcRenderer.on('terminal:output', handler);
+    return () => ipcRenderer.off('terminal:output', handler);
+  },
+  onTerminalExited: (callback: (sessionId: string) => void) => {
+    const handler = (
+      _event: IpcRendererEvent,
+      { sessionId }: { sessionId: string }
+    ) => callback(sessionId);
+    ipcRenderer.on('terminal:exited', handler);
+    return () => ipcRenderer.off('terminal:exited', handler);
+  },
 });
