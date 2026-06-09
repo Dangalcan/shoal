@@ -33,16 +33,17 @@ import { encrypt, decrypt } from '../services/security/encryption-utils';
 
 describe('encryption-utils', () => {
   describe('encrypt', () => {
-    it('should return a colon-separated hex string (IV:ciphertext)', () => {
+    it('should return a colon-separated hex string (IV:authTag:ciphertext)', () => {
       const result = encrypt('hello world');
       expect(typeof result).toBe('string');
-      expect(result).toContain(':');
       const parts = result.split(':');
-      expect(parts).toHaveLength(2);
-      // IV is 16 bytes = 32 hex chars
-      expect(parts[0]).toMatch(/^[0-9a-f]{32}$/i);
+      expect(parts).toHaveLength(3);
+      // GCM IV is 12 bytes = 24 hex chars
+      expect(parts[0]).toMatch(/^[0-9a-f]{24}$/i);
+      // Auth tag is 16 bytes = 32 hex chars
+      expect(parts[1]).toMatch(/^[0-9a-f]{32}$/i);
       // Ciphertext is non-empty hex
-      expect(parts[1]).toMatch(/^[0-9a-f]+$/i);
+      expect(parts[2]).toMatch(/^[0-9a-f]+$/i);
     });
 
     it('should produce a different ciphertext on each call due to random IV', () => {
@@ -65,18 +66,18 @@ describe('encryption-utils', () => {
       expect(decrypted).toBe(original);
     });
 
-    it('should handle multi-colon encrypted values correctly', () => {
-      // The decrypt implementation joins remaining parts with ':' after shifting the IV.
-      // Verify this path works (the ciphertext itself won't contain a colon,
-      // but the implementation is defensive via textParts.join(':'))
+    it('should handle GCM three-part format correctly', () => {
       const original = 'test-value';
       const encrypted = encrypt(original);
+      expect(encrypted.split(':')).toHaveLength(3);
       expect(decrypt(encrypted)).toBe(original);
     });
 
-    it('should return empty string for invalid ciphertext hex', () => {
-      // 32 hex chars for IV + invalid ciphertext → decipher.final() will throw
-      const result = decrypt('0'.repeat(32) + ':invalidhex!!');
+    it('should return empty string for invalid ciphertext (bad auth tag)', () => {
+      // 24 hex chars for IV + 32 hex chars for authTag + invalid ciphertext → throws
+      const result = decrypt(
+        '0'.repeat(24) + ':' + '0'.repeat(32) + ':invalidhex!!'
+      );
       expect(result).toBe('');
     });
 
@@ -90,8 +91,12 @@ describe('encryption-utils', () => {
       expect(result).toBe('');
     });
 
-    it('should return empty string when IV part is invalid hex', () => {
-      const result = decrypt('GGGG:abcd1234');
+    it('should return empty string when auth tag verification fails', () => {
+      const encrypted = encrypt('secret');
+      const parts = encrypted.split(':');
+      // Corrupt the auth tag
+      parts[1] = 'ff'.repeat(16);
+      const result = decrypt(parts.join(':'));
       expect(result).toBe('');
     });
   });

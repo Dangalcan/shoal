@@ -1,7 +1,7 @@
 /**
  * Encryption Utilities
  *
- * Provides AES-256-CBC encryption for sensitive plugin data (license keys, etc.)
+ * Provides AES-256-GCM encryption for sensitive plugin data (license keys, etc.)
  * bound to this specific machine.
  *
  * Key derivation:
@@ -9,8 +9,8 @@
  *  - Salt        : a 32-byte random value generated on first run and stored in
  *                  <userData>/.encryption-salt  (never committed to source control)
  *
- * This replaces the previous approach of falling back to a hardcoded salt string,
- * which made the encryption trivially reversible on any machine that had the source.
+ * Encrypted format (GCM): "<ivHex>:<authTagHex>:<ciphertextHex>"
+ * Legacy format   (CBC):  "<ivHex>:<ciphertextHex>"   (two-part — decrypted on read, re-encrypted as GCM on next write)
  */
 
 import crypto from 'crypto';
@@ -20,7 +20,8 @@ import { app } from 'electron';
 import { machineIdSync } from 'node-machine-id';
 import log from '../../logger';
 
-const IV_LENGTH = 16;
+const GCM_IV_LENGTH = 12;
+const CBC_IV_LENGTH = 16;
 
 // ---------------------------------------------------------------------------
 // Lazy key initialisation — deferred until first use so that `app` is ready.
@@ -69,25 +70,62 @@ function getOrCreateSalt(): string {
 
 export function encrypt(text: string): string {
   const key = getEncryptionKey();
-  const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+  const iv = crypto.randomBytes(GCM_IV_LENGTH);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
   let encrypted = cipher.update(text);
   encrypted = Buffer.concat([encrypted, cipher.final()]);
-  return iv.toString('hex') + ':' + encrypted.toString('hex');
+  const authTag = cipher.getAuthTag();
+  return (
+    iv.toString('hex') +
+    ':' +
+    authTag.toString('hex') +
+    ':' +
+    encrypted.toString('hex')
+  );
 }
 
 export function decrypt(text: string): string {
   try {
     const key = getEncryptionKey();
-    const textParts = text.split(':');
-    const iv = Buffer.from(textParts.shift()!, 'hex');
-    const encryptedText = Buffer.from(textParts.join(':'), 'hex');
-    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-    let decrypted = decipher.update(encryptedText);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-    return decrypted.toString();
+    const parts = text.split(':');
+
+    if (parts.length === 3) {
+      // GCM format: iv:authTag:ciphertext
+      const iv = Buffer.from(parts[0], 'hex');
+      const authTag = Buffer.from(parts[1], 'hex');
+      const ciphertext = Buffer.from(parts[2], 'hex');
+      const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+      decipher.setAuthTag(authTag);
+      let decrypted = decipher.update(ciphertext);
+      decrypted = Buffer.concat([decrypted, decipher.final()]);
+      return decrypted.toString();
+    }
+
+    if (parts.length === 2) {
+      // Legacy CBC format: iv:ciphertext — decrypt and allow caller to re-encrypt as GCM on next write
+      const iv = Buffer.from(parts[0], 'hex');
+      if (iv.length !== CBC_IV_LENGTH) throw new Error('Invalid CBC IV length');
+      const ciphertext = Buffer.from(parts[1], 'hex');
+      const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+      let decrypted = decipher.update(ciphertext);
+      decrypted = Buffer.concat([decrypted, decipher.final()]);
+      log.info(
+        '[Encryption] Decrypted legacy CBC value — will be re-encrypted as GCM on next save'
+      );
+      return decrypted.toString();
+    }
+
+    throw new Error('Unrecognised encrypted format');
   } catch (error) {
     log.error('[Encryption] Decryption failed:', error);
     return '';
   }
 }
+
+/** Returns true if the value is in the legacy CBC format and should be re-encrypted. */
+export function isLegacyCBC(text: string): boolean {
+  return text.split(':').length === 2;
+}
+
+// Keep old IV_LENGTH export for any tests that reference it directly
+export const IV_LENGTH = GCM_IV_LENGTH;

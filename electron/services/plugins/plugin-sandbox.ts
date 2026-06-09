@@ -16,7 +16,6 @@ export const ALLOWED_BUILTINS = new Set([
   'util',
   'os',
   'url',
-  'querystring',
   'events',
   'stream',
   'crypto',
