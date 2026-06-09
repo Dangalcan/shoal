@@ -5,7 +5,7 @@
  * Coordinates between loader, registry, and context.
  */
 
-import type { Plugin } from '../../types/plugin-types';
+import type { Plugin, PluginContext } from '../../types/plugin-types';
 
 interface PluginUpdateInfo {
   pluginId: string;
@@ -270,141 +270,30 @@ export class PluginManager {
   private async activatePlugin(pluginId: string): Promise<void> {
     try {
       const entry = pluginRegistry.getPlugin(pluginId);
-      if (!entry) {
-        throw new Error(`Plugin ${pluginId} not found`);
-      }
-
+      if (!entry) throw new Error(`Plugin ${pluginId} not found`);
       const plugin = entry.plugin;
 
-      // Validate dependencies
-      const allPlugins = new Map(
-        pluginRegistry.getAllPlugins().map((p) => [p.manifest.id, p])
-      );
+      await this.validateAndEnableDeps(plugin, pluginId);
 
-      const validation = dependencyResolver.validateDependencies(
-        plugin,
-        allPlugins
-      );
-
-      if (!validation.valid) {
-        let errorMsg = `Cannot activate plugin ${pluginId}:\n`;
-
-        if (validation.missing.length > 0) {
-          errorMsg += `Missing dependencies: ${validation.missing.join(', ')}\n`;
-        }
-
-        if (validation.incompatible.length > 0) {
-          errorMsg += 'Incompatible dependencies:\n';
-          validation.incompatible.forEach(
-            ({ pluginId, required, installed }) => {
-              errorMsg += `  - ${pluginId}: requires ${required}, but ${installed} is installed\n`;
-            }
-          );
-        }
-
-        if (validation.circular.length > 0) {
-          errorMsg += `Circular dependencies detected: ${validation.circular
-            .map((c) => c.join(' -> '))
-            .join(', ')}`;
-        }
-
-        throw new Error(errorMsg);
-      }
-
-      // Auto-enable dependencies if needed
-      if (plugin.manifest.dependencies) {
-        for (const depId of Object.keys(plugin.manifest.dependencies)) {
-          const depEntry = pluginRegistry.getPlugin(depId);
-          if (depEntry && !depEntry.config.enabled) {
-            log.info(`[PluginManager] Auto-enabling dependency: ${depId}`);
-            await this.enablePlugin(depId);
-          }
-        }
-      }
-
-      // Check license
       const licenseCheck = licenseManager.checkLicense(pluginId);
       if (!licenseCheck.valid) {
         throw new Error(`License validation failed: ${licenseCheck.error}`);
       }
 
-      // Update state to loading
       pluginLoader.updatePluginState(pluginId, 'loading');
 
-      // Get plugin path
       const pluginPath = await pluginLoader.getPluginPath(pluginId);
-      if (!pluginPath) {
-        throw new Error(`Plugin path not found for ${pluginId}`);
-      }
+      if (!pluginPath) throw new Error(`Plugin path not found for ${pluginId}`);
 
-      // Create plugin context
       const context = createPluginContext(
         pluginId,
         pluginPath,
         plugin.manifest.permissions || []
       );
+      await this.loadAndExecutePlugin(pluginId, pluginPath, plugin, context);
 
-      // Migrate legacy JSON storage to SQLite
-      await storageService.migrateFromJson(pluginId);
-
-      // Load data files
-      try {
-        const dataFiles = await dataLoader.loadPluginData(
-          pluginPath,
-          plugin.manifest
-        );
-        if (dataFiles.length > 0) {
-          log.info(
-            `[PluginManager] Loaded ${dataFiles.length} data files for ${pluginId}`
-          );
-
-          // Apply data to plugin storage
-          await dataLoader.applyDataToStorage(
-            pluginId,
-            dataFiles,
-            context.storage
-          );
-        }
-      } catch (error: unknown) {
-        log.error(
-          `[PluginManager] Failed to load data for ${pluginId}:`,
-          getErrorMessage(error)
-        );
-        throw error;
-      }
-
-      // Load plugin code
-      const pluginModule = await pluginLoader.loadPluginCode(
-        pluginId,
-        pluginPath!
-      );
-
-      await callHookIfExists(
-        pluginModule as Record<string, unknown>,
-        'beforeActivate',
-        pluginId,
-        context
-      );
-      await callHookIfExists(
-        pluginModule as Record<string, unknown>,
-        'activate',
-        pluginId,
-        context
-      );
-      await callHookIfExists(
-        pluginModule as Record<string, unknown>,
-        'afterActivate',
-        pluginId,
-        context
-      );
-
-      // Store context in registry
       pluginRegistry.setPluginContext(pluginId, context);
-
-      // Update state to enabled
       pluginLoader.updatePluginState(pluginId, 'enabled');
-
-      // Emit plugin activated event
       pluginEventBus.emitPluginActivated(pluginId);
 
       log.info(`[PluginManager] Plugin ${pluginId} activated successfully`);
@@ -414,6 +303,100 @@ export class PluginManager {
         getErrorMessage(error)
       );
       pluginLoader.updatePluginState(pluginId, 'error', getErrorMessage(error));
+      throw error;
+    }
+  }
+
+  /** Validate dependency graph and auto-enable any disabled deps. */
+  private async validateAndEnableDeps(
+    plugin: Plugin,
+    pluginId: string
+  ): Promise<void> {
+    const allPlugins = new Map(
+      pluginRegistry.getAllPlugins().map((p) => [p.manifest.id, p])
+    );
+    const validation = dependencyResolver.validateDependencies(
+      plugin,
+      allPlugins
+    );
+
+    if (!validation.valid) {
+      let errorMsg = `Cannot activate plugin ${pluginId}:\n`;
+      if (validation.missing.length > 0) {
+        errorMsg += `Missing dependencies: ${validation.missing.join(', ')}\n`;
+      }
+      if (validation.incompatible.length > 0) {
+        errorMsg += 'Incompatible dependencies:\n';
+        validation.incompatible.forEach(({ pluginId, required, installed }) => {
+          errorMsg += `  - ${pluginId}: requires ${required}, but ${installed} is installed\n`;
+        });
+      }
+      if (validation.circular.length > 0) {
+        errorMsg += `Circular dependencies detected: ${validation.circular
+          .map((c) => c.join(' -> '))
+          .join(', ')}`;
+      }
+      throw new Error(errorMsg);
+    }
+
+    if (plugin.manifest.dependencies) {
+      for (const depId of Object.keys(plugin.manifest.dependencies)) {
+        const depEntry = pluginRegistry.getPlugin(depId);
+        if (depEntry && !depEntry.config.enabled) {
+          log.info(`[PluginManager] Auto-enabling dependency: ${depId}`);
+          await this.enablePlugin(depId);
+        }
+      }
+    }
+  }
+
+  /** Migrate storage, load data files, execute plugin module lifecycle hooks. */
+  private async loadAndExecutePlugin(
+    pluginId: string,
+    pluginPath: string,
+    plugin: Plugin,
+    context: PluginContext
+  ): Promise<void> {
+    await storageService.migrateFromJson(pluginId);
+
+    try {
+      const dataFiles = await dataLoader.loadPluginData(
+        pluginPath,
+        plugin.manifest
+      );
+      if (dataFiles.length > 0) {
+        log.info(
+          `[PluginManager] Loaded ${dataFiles.length} data files for ${pluginId}`
+        );
+        await dataLoader.applyDataToStorage(
+          pluginId,
+          dataFiles,
+          context.storage
+        );
+      }
+    } catch (error: unknown) {
+      log.error(
+        `[PluginManager] Failed to load data for ${pluginId}:`,
+        getErrorMessage(error)
+      );
+      throw error;
+    }
+
+    const pluginModule = await pluginLoader.loadPluginCode(
+      pluginId,
+      pluginPath
+    );
+    const mod = pluginModule as Record<string, unknown>;
+    try {
+      await callHookIfExists(mod, 'beforeActivate', pluginId, context);
+      await callHookIfExists(mod, 'activate', pluginId, context);
+      await callHookIfExists(mod, 'afterActivate', pluginId, context);
+    } catch (error: unknown) {
+      // Rollback: clean up any extensions registered during partial activation
+      try {
+        await callHookIfExists(mod, 'deactivate', pluginId);
+      } catch (_) {}
+      clearPluginExtensions(pluginId);
       throw error;
     }
   }
