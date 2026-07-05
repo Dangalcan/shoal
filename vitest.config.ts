@@ -5,7 +5,14 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   test: {
-    exclude: [...configDefaults.exclude, '**/dist-electron/**', 'e2e/**'],
+    // marketplace-backend has its own vitest suite and is being extracted to
+    // a separate repo; the app's test run (and CI) covers the app only.
+    exclude: [
+      ...configDefaults.exclude,
+      '**/dist-electron/**',
+      'e2e/**',
+      'marketplace-backend/**',
+    ],
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
@@ -27,6 +34,7 @@ export default defineConfig({
         '**/dist/**',
         '**/dist-electron/**',
         '**/e2e/**',
+        'marketplace-backend/**',
       ],
     },
   },
