@@ -1,4 +1,5 @@
-import { execPromise } from '../../utils/exec-utils';
+import { safeExec } from '../../utils/safe-exec';
+import { assertClusterName, assertContext } from '../../utils/k8s-validate';
 import { getErrorMessage } from '../../utils/error-utils';
 import type { Result } from '../../types/plugin-types';
 import { pluginEventBus } from '../plugins/plugin-events';
@@ -8,6 +9,7 @@ export class ClusterManagementService {
   async deleteCluster(contextName: string): Promise<Result<void>> {
     try {
       contextName = contextName.trim();
+      assertContext(contextName);
       let clusterName = contextName;
       let tool: 'kind' | 'k3d' | 'other' = 'other';
 
@@ -26,18 +28,20 @@ export class ClusterManagementService {
       );
 
       if (tool === 'kind') {
+        assertClusterName(clusterName);
         log.info(
           `[ClusterManager] Executing: kind delete cluster --name ${clusterName}`
         );
-        await execPromise(`kind delete cluster --name ${clusterName}`);
+        await safeExec('kind', ['delete', 'cluster', '--name', clusterName]);
         log.info(
           `[ClusterManager] Kind deletion command completed for ${clusterName}`
         );
       } else if (tool === 'k3d') {
+        assertClusterName(clusterName);
         log.info(
           `[ClusterManager] Executing: k3d cluster delete ${clusterName}`
         );
-        await execPromise(`k3d cluster delete ${clusterName}`);
+        await safeExec('k3d', ['cluster', 'delete', clusterName]);
         log.info(
           `[ClusterManager] K3d deletion command completed for ${clusterName}`
         );
@@ -48,9 +52,12 @@ export class ClusterManagementService {
         log.info(
           `[ClusterManager] Checking if context ${contextName} still exists in kubeconfig`
         );
-        const { stdout: contexts } = await execPromise(
-          'kubectl config get-contexts -o name'
-        );
+        const { stdout: contexts } = await safeExec('kubectl', [
+          'config',
+          'get-contexts',
+          '-o',
+          'name',
+        ]);
         const contextList = contexts
           .split(/\r?\n/)
           .map((c) => c.trim())
@@ -60,7 +67,7 @@ export class ClusterManagementService {
           log.info(
             `[ClusterManager] Context "${contextName}" still exists in kubeconfig, removing explicitly.`
           );
-          await execPromise(`kubectl config delete-context ${contextName}`);
+          await safeExec('kubectl', ['config', 'delete-context', contextName]);
           log.info(
             `[ClusterManager] Explicit context removal completed for ${contextName}`
           );
@@ -77,9 +84,12 @@ export class ClusterManagementService {
 
       // Final verification
       log.info(`[ClusterManager] Final verification for ${contextName}`);
-      const { stdout: finalContextListRaw } = await execPromise(
-        'kubectl config get-contexts -o name'
-      );
+      const { stdout: finalContextListRaw } = await safeExec('kubectl', [
+        'config',
+        'get-contexts',
+        '-o',
+        'name',
+      ]);
       const exists = finalContextListRaw
         .split(/\r?\n/)
         .map((c) => c.trim())
@@ -118,16 +128,20 @@ export class ClusterManagementService {
     name: string,
     provider: 'kind' | 'k3d'
   ): Promise<Result<void>> {
-    const command =
-      provider === 'k3d'
-        ? `k3d cluster create ${name}`
-        : `kind create cluster --name ${name}`;
-
     log.info(
       `[ClusterManager] Creating cluster ${name} with provider ${provider}`
     );
     try {
-      await execPromise(command);
+      assertClusterName(name);
+      if (provider !== 'kind' && provider !== 'k3d') {
+        throw new Error(`Invalid provider: "${provider}"`);
+      }
+
+      if (provider === 'k3d') {
+        await safeExec('k3d', ['cluster', 'create', name]);
+      } else {
+        await safeExec('kind', ['create', 'cluster', '--name', name]);
+      }
       log.info(`[ClusterManager] Successfully created cluster ${name}`);
 
       // Emit event

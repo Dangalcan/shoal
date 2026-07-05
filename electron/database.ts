@@ -2,7 +2,8 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import { app } from 'electron';
 import fs from 'fs/promises';
-import { execPromise } from './utils/exec-utils';
+import { safeExec } from './utils/safe-exec';
+import { assertContext } from './utils/k8s-validate';
 import { cleanupTempFile } from './utils/fs-utils';
 import log from './logger';
 
@@ -101,21 +102,20 @@ class ManifestDatabase {
     ).get(id) as Manifest;
     if (!manifest) throw new Error('Manifest not found');
 
-    // Validate context name to prevent shell injection — only allow safe k8s context characters
-    if (!/^[a-zA-Z0-9._\-:@/]+$/.test(manifest.cluster_context)) {
-      throw new Error(
-        `Invalid cluster context name: "${manifest.cluster_context}"`
-      );
-    }
+    assertContext(manifest.cluster_context);
 
     // Write content to a temporary file
     const tempFilePath = path.join(app.getPath('temp'), `manifest-${id}.yaml`);
     await fs.writeFile(tempFilePath, manifest.content);
 
     try {
-      const { stdout, stderr } = await execPromise(
-        `kubectl apply -f "${tempFilePath}" --context "${manifest.cluster_context}"`
-      );
+      const { stdout, stderr } = await safeExec('kubectl', [
+        'apply',
+        '-f',
+        tempFilePath,
+        '--context',
+        manifest.cluster_context,
+      ]);
       return { stdout, stderr };
     } finally {
       await cleanupTempFile(tempFilePath, '[Database] manifest apply');

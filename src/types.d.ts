@@ -19,13 +19,8 @@ export interface Manifest {
 }
 
 export interface ElectronAPI {
-  runCommand: (command: string) => Promise<
-    Result<{
-      stdout: string;
-      stderr: string;
-    }>
-  >;
   checkTool: (tool: string) => Promise<Result<boolean>>;
+  openExternal: (url: string) => Promise<Result<boolean>>;
   createCluster: (name: string, provider: string) => Promise<Result<void>>;
   getClusters: () => Promise<Result<string[]>>;
   deleteCluster: (name: string) => Promise<Result<void>>;

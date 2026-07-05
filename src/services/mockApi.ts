@@ -11,12 +11,12 @@ let mockClusters = ['minikube', 'kind-cluster-1', 'docker-desktop'];
 let mockCurrentContext = 'minikube';
 
 export const mockApi: ElectronAPI = {
-  runCommand: async (command: string) => {
-    console.log('[MockAPI] runCommand:', command);
-    return { success: true, data: { stdout: 'Mock output', stderr: '' } };
-  },
   checkTool: async (tool: string) => {
     console.log('[MockAPI] checkTool:', tool);
+    return { success: true, data: true };
+  },
+  openExternal: async (url: string) => {
+    console.log('[MockAPI] openExternal:', url);
     return { success: true, data: true };
   },
   createCluster: async (name: string, provider: string) => {

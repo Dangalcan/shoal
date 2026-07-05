@@ -11,12 +11,6 @@ describe('ElectronService', () => {
     expect(instance1).toBe(electronService);
   });
 
-  it('runCommand calls window.electron.runCommand', async () => {
-    const cmd = 'ls -la';
-    await electronService.runCommand(cmd);
-    expect(getMockApi().runCommand).toHaveBeenCalledWith(cmd);
-  });
-
   it('checkTool calls window.electron.checkTool', async () => {
     const tool = 'kubectl';
     await electronService.checkTool(tool);

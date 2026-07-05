@@ -96,7 +96,6 @@ describe('mockApi', () => {
   });
 
   it('should handle miscellaneous operations', async () => {
-    expect((await mockApi.runCommand('echo')).success).toBe(true);
     expect((await mockApi.checkTool('kubectl')).success).toBe(true);
     expect((await mockApi.getAppVersion()).success).toBe(true);
     expect((await mockApi.getKubeconfigPath()).success).toBe(true);

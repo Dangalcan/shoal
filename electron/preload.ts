@@ -7,8 +7,8 @@ import type {
 } from './types/plugin-types';
 
 contextBridge.exposeInMainWorld('electron', {
-  runCommand: (command: string) => ipcRenderer.invoke('run-command', command),
   checkTool: (tool: string) => ipcRenderer.invoke('check-tool', tool),
+  openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
   createCluster: (name: string, provider: string) =>
     ipcRenderer.invoke('create-cluster', { name, provider }),
   getClusters: () => ipcRenderer.invoke('get-clusters'),

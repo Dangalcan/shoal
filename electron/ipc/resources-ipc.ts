@@ -3,10 +3,13 @@
  *
  * Covers: pods, namespaces, generic resources, logs, describe,
  * YAML export, rollout restart, and resource deletion.
+ *
+ * Handlers validate inputs (defense in depth — the service layer validates
+ * again) and execute via safeExec argument arrays; no shell is involved.
  */
 
 import { ipcMain } from 'electron';
-import { execPromise } from '../utils/exec-utils';
+import { safeExec } from '../utils/safe-exec';
 import { kubernetesService } from '../services/kubernetes/kubernetes-service';
 import {
   wrapIpcHandler,
@@ -17,14 +20,34 @@ import {
   DEFAULT_LOG_TAIL_LINES,
 } from './ipc-utils';
 
+/** Namespace args for list-style commands ('all' → -A). */
+function namespaceArgs(namespace: string): string[] {
+  if (namespace === 'all') return ['-A'];
+  assertNamespace(namespace);
+  return ['-n', namespace];
+}
+
+/** Namespace args for single-resource commands ('all'/empty → none). */
+function optionalNamespaceArgs(namespace?: string): string[] {
+  if (!namespace || namespace === 'all') return [];
+  assertNamespace(namespace);
+  return ['-n', namespace];
+}
+
 export function registerResourcesIpcHandlers(): void {
   ipcMain.handle(
     'get-pods',
     wrapIpcHandler('get-pods', async (_event, contextName) => {
       assertContext(contextName);
-      const { stdout } = await execPromise(
-        `kubectl get pods --context ${contextName} -A -o json`
-      );
+      const { stdout } = await safeExec('kubectl', [
+        'get',
+        'pods',
+        '--context',
+        contextName,
+        '-A',
+        '-o',
+        'json',
+      ]);
       const data = JSON.parse(stdout);
       return data.items || [];
     })
@@ -34,9 +57,14 @@ export function registerResourcesIpcHandlers(): void {
     'get-namespaces',
     wrapIpcHandler('get-namespaces', async (_event, contextName) => {
       assertContext(contextName);
-      const { stdout } = await execPromise(
-        `kubectl get namespaces --context ${contextName} -o name`
-      );
+      const { stdout } = await safeExec('kubectl', [
+        'get',
+        'namespaces',
+        '--context',
+        contextName,
+        '-o',
+        'name',
+      ]);
       return stdout
         .trim()
         .split('\n')
@@ -52,11 +80,15 @@ export function registerResourcesIpcHandlers(): void {
       async (_event, { contextName, resourceType, namespace }) => {
         assertContext(contextName);
         assertResourceType(resourceType);
-        if (namespace !== 'all') assertNamespace(namespace);
-        const nsFlag = namespace === 'all' ? '-A' : `-n ${namespace}`;
-        const { stdout } = await execPromise(
-          `kubectl get ${resourceType} --context ${contextName} ${nsFlag} -o json`
-        );
+        const { stdout } = await safeExec('kubectl', [
+          'get',
+          resourceType,
+          '--context',
+          contextName,
+          ...namespaceArgs(namespace),
+          '-o',
+          'json',
+        ]);
         const data = JSON.parse(stdout);
         return data.items || [];
       }
@@ -70,16 +102,18 @@ export function registerResourcesIpcHandlers(): void {
       async (_event, { contextName, podName, namespace, tailLines }) => {
         assertContext(contextName);
         assertResourceName(podName);
-        if (namespace && namespace !== 'all') assertNamespace(namespace);
-        const nsFlag =
-          !namespace || namespace === 'all' ? '' : `-n ${namespace}`;
         const tail =
           Number.isInteger(tailLines) && tailLines > 0
             ? tailLines
             : DEFAULT_LOG_TAIL_LINES;
-        const { stdout } = await execPromise(
-          `kubectl logs ${podName} --context ${contextName} ${nsFlag} --tail=${tail}`
-        );
+        const { stdout } = await safeExec('kubectl', [
+          'logs',
+          podName,
+          '--context',
+          contextName,
+          ...optionalNamespaceArgs(namespace),
+          `--tail=${tail}`,
+        ]);
         return stdout;
       }
     )
@@ -96,12 +130,14 @@ export function registerResourcesIpcHandlers(): void {
         assertContext(contextName);
         assertResourceType(resourceType);
         assertResourceName(resourceName);
-        if (namespace && namespace !== 'all') assertNamespace(namespace);
-        const nsFlag =
-          !namespace || namespace === 'all' ? '' : `-n ${namespace}`;
-        const { stdout } = await execPromise(
-          `kubectl describe ${resourceType} ${resourceName} --context ${contextName} ${nsFlag}`
-        );
+        const { stdout } = await safeExec('kubectl', [
+          'describe',
+          resourceType,
+          resourceName,
+          '--context',
+          contextName,
+          ...optionalNamespaceArgs(namespace),
+        ]);
         return stdout;
       }
     )
@@ -118,12 +154,16 @@ export function registerResourcesIpcHandlers(): void {
         assertContext(contextName);
         assertResourceType(resourceType);
         assertResourceName(resourceName);
-        if (namespace && namespace !== 'all') assertNamespace(namespace);
-        const nsFlag =
-          !namespace || namespace === 'all' ? '' : `-n ${namespace}`;
-        const { stdout } = await execPromise(
-          `kubectl get ${resourceType} ${resourceName} --context ${contextName} ${nsFlag} -o yaml`
-        );
+        const { stdout } = await safeExec('kubectl', [
+          'get',
+          resourceType,
+          resourceName,
+          '--context',
+          contextName,
+          ...optionalNamespaceArgs(namespace),
+          '-o',
+          'yaml',
+        ]);
         return stdout;
       }
     )
@@ -140,12 +180,14 @@ export function registerResourcesIpcHandlers(): void {
         assertContext(contextName);
         assertResourceType(resourceType);
         assertResourceName(resourceName);
-        if (namespace && namespace !== 'all') assertNamespace(namespace);
-        const nsFlag =
-          !namespace || namespace === 'all' ? '' : `-n ${namespace}`;
-        await execPromise(
-          `kubectl rollout restart ${resourceType}/${resourceName} --context ${contextName} ${nsFlag}`
-        );
+        await safeExec('kubectl', [
+          'rollout',
+          'restart',
+          `${resourceType}/${resourceName}`,
+          '--context',
+          contextName,
+          ...optionalNamespaceArgs(namespace),
+        ]);
       }
     )
   );
@@ -158,6 +200,10 @@ export function registerResourcesIpcHandlers(): void {
         _event,
         { contextName, resourceType, resourceName, namespace }
       ) => {
+        assertContext(contextName);
+        assertResourceType(resourceType);
+        assertResourceName(resourceName);
+        if (namespace && namespace !== 'all') assertNamespace(namespace);
         return await kubernetesService.deleteResource(
           resourceType,
           resourceName,

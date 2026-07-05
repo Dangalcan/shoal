@@ -22,9 +22,6 @@ export function createMockElectronAPI(
   overrides?: Partial<ElectronAPI>
 ): vi.Mocked<ElectronAPI> {
   return {
-    runCommand: vi
-      .fn()
-      .mockResolvedValue({ success: true, data: { stdout: '', stderr: '' } }),
     checkTool: vi.fn().mockResolvedValue(true),
     createCluster: vi
       .fn()

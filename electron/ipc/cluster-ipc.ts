@@ -1,29 +1,38 @@
 /**
  * Cluster & Tooling IPC Handlers
  *
- * Covers: run-command, check-tool, cluster CRUD, context switching,
+ * Covers: check-tool, cluster CRUD, context switching,
  * app version, and kubeconfig path management.
+ *
+ * The former generic `run-command` handler was removed on purpose: a
+ * marketplace app must not expose arbitrary command execution to the
+ * renderer. Add a dedicated, validated handler instead if a new tool
+ * invocation is needed.
  */
 
-import { ipcMain, app } from 'electron';
+import { ipcMain, app, shell } from 'electron';
 import fs from 'fs/promises';
 import path from 'path';
-import { execPromise } from '../utils/exec-utils';
+import { safeExec, ALLOWED_TOOLS } from '../utils/safe-exec';
 import { clusterManagementService } from '../services/cluster/cluster-management-service';
-import { wrapIpcHandler, ALLOWED_TOOLS, assertContext } from './ipc-utils';
+import { wrapIpcHandler, assertContext } from './ipc-utils';
 
 export function registerClusterIpcHandlers(): void {
   ipcMain.handle(
-    'run-command',
-    wrapIpcHandler('run-command', async (_event, command) => {
-      const firstWord = String(command).trimStart().split(/\s+/)[0];
-      if (!ALLOWED_TOOLS.has(firstWord)) {
-        throw new Error(
-          `Command not allowed: "${firstWord}". Only Kubernetes tooling is permitted.`
-        );
+    'open-external',
+    wrapIpcHandler('open-external', async (_event, url: string) => {
+      // Only http(s) — never file:, javascript:, or arbitrary schemes.
+      let parsed: URL;
+      try {
+        parsed = new URL(String(url));
+      } catch {
+        throw new Error(`Invalid URL: "${url}"`);
       }
-      const { stdout, stderr } = await execPromise(command as string);
-      return { stdout, stderr };
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        throw new Error(`Refusing to open non-http(s) URL: "${url}"`);
+      }
+      await shell.openExternal(parsed.toString());
+      return true;
     })
   );
 
@@ -33,7 +42,7 @@ export function registerClusterIpcHandlers(): void {
       if (!ALLOWED_TOOLS.has(String(tool))) {
         throw new Error(`Tool not allowed: "${tool}"`);
       }
-      await execPromise(`${tool} --version`);
+      await safeExec(String(tool), ['--version']);
       return true;
     })
   );
@@ -55,9 +64,12 @@ export function registerClusterIpcHandlers(): void {
   ipcMain.handle(
     'get-clusters',
     wrapIpcHandler('get-clusters', async () => {
-      const { stdout } = await execPromise(
-        'kubectl config get-contexts -o name'
-      );
+      const { stdout } = await safeExec('kubectl', [
+        'config',
+        'get-contexts',
+        '-o',
+        'name',
+      ]);
       return stdout.trim().split('\n').filter(Boolean);
     })
   );
@@ -65,7 +77,10 @@ export function registerClusterIpcHandlers(): void {
   ipcMain.handle(
     'get-current-context',
     wrapIpcHandler('get-current-context', async () => {
-      const { stdout } = await execPromise('kubectl config current-context');
+      const { stdout } = await safeExec('kubectl', [
+        'config',
+        'current-context',
+      ]);
       return stdout.trim();
     })
   );
@@ -74,7 +89,7 @@ export function registerClusterIpcHandlers(): void {
     'switch-context',
     wrapIpcHandler('switch-context', async (_event, contextName) => {
       assertContext(contextName);
-      await execPromise(`kubectl config use-context ${contextName}`);
+      await safeExec('kubectl', ['config', 'use-context', contextName]);
       return true;
     })
   );

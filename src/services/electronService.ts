@@ -15,12 +15,6 @@ export class ElectronService {
     return ElectronService.instance;
   }
 
-  async runCommand(
-    command: string
-  ): Promise<Result<{ stdout: string; stderr: string }>> {
-    return window.electron.runCommand(command);
-  }
-
   async checkTool(tool: string): Promise<Result<boolean>> {
     return window.electron.checkTool(tool);
   }
