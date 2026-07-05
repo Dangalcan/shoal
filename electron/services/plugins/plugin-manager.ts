@@ -29,6 +29,7 @@ import { dataLoader } from './data-loader';
 import { pluginEventBus } from './plugin-events';
 import { pluginWatcher } from './plugin-watcher';
 import { pathService } from './path-service';
+import { assertValidPluginId } from './plugin-validator';
 import fs from 'fs';
 import path from 'path';
 
@@ -648,6 +649,8 @@ export class PluginManager {
       if (!manifest.id) {
         throw new Error('Invalid manifest: missing plugin ID');
       }
+      // Guard against path traversal via a crafted id before building paths.
+      assertValidPluginId(manifest.id);
 
       // Determine install path (usually userData/plugins)
       const targetPath = path.join(

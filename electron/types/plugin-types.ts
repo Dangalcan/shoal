@@ -356,6 +356,8 @@ export interface MarketplaceEntry {
   rating: number;
   reviews: number;
   downloadUrl: string;
+  /** Hex SHA-256 of the download archive (optional "sha256:" prefix). */
+  checksum?: string;
   tags: string[];
   featured?: boolean;
   changelog?: string;

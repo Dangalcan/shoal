@@ -23,6 +23,24 @@ const VALID_LICENSE_TYPES = ['free', 'paid', 'trial', 'subscription'];
  * Validates a plugin manifest.
  * Returns null on success, or a human-readable error string on failure.
  */
+/** Plugin IDs: alphanumeric, hyphen, underscore only. */
+const PLUGIN_ID_RE = /^[a-z0-9-_]+$/i;
+
+/** True if `id` is a safe plugin identifier (also safe as a path segment). */
+export function isValidPluginId(id: unknown): id is string {
+  return typeof id === 'string' && id.length > 0 && PLUGIN_ID_RE.test(id);
+}
+
+/**
+ * Throws if `id` is not a safe plugin identifier. Use before building any
+ * filesystem path from an untrusted plugin id (prevents `../` traversal).
+ */
+export function assertValidPluginId(id: unknown): asserts id is string {
+  if (!isValidPluginId(id)) {
+    throw new Error(`Invalid plugin ID: "${String(id)}"`);
+  }
+}
+
 export function validateManifest(manifest: PluginManifest): string | null {
   if (!manifest.id) return 'Missing required field: id';
   if (!manifest.name) return 'Missing required field: name';

@@ -35,6 +35,8 @@ vi.mock('adm-zip', () => {
   // Use a regular function (not arrow) so it works as a constructor with `new`
   function MockAdmZip(_path: string) {}
   MockAdmZip.prototype.extractAllTo = vi.fn();
+  // extractZipSafe (fs-utils) iterates getEntries(); default to an empty archive.
+  MockAdmZip.prototype.getEntries = vi.fn(() => []);
   return { default: MockAdmZip };
 });
 
@@ -66,6 +68,14 @@ vi.mock('stream/promises', () => ({
   default: {
     pipeline: vi.fn().mockResolvedValue(undefined),
   },
+}));
+
+// Extraction and integrity checks are unit-tested in fs-utils.test.ts;
+// here we mock them to focus on install orchestration.
+vi.mock('../utils/fs-utils', () => ({
+  cleanupTempFile: vi.fn().mockResolvedValue(undefined),
+  extractZipSafe: vi.fn().mockResolvedValue(undefined),
+  verifyFileChecksum: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('fs/promises', () => {
@@ -388,6 +398,101 @@ describe('MarketplaceService', () => {
 
       const result = await service.installPlugin('p1');
       expect(result.success).toBe(true);
+    });
+
+    it('should verify checksum when the marketplace entry provides one', async () => {
+      const { verifyFileChecksum, extractZipSafe } =
+        await import('../utils/fs-utils');
+      const mockPlugin = {
+        id: 'p1',
+        name: 'Plugin 1',
+        version: '1.0.0',
+        downloadUrl: 'https://example.com/p1.zip',
+        checksum: 'sha256:abc123',
+        manifest: { id: 'p1', version: '1.0.0', main: 'index.js' },
+      };
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify([mockPlugin]));
+      vi.mocked(global.fetch as any).mockResolvedValue({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        body: { pipe: vi.fn() },
+      });
+
+      const result = await service.installPlugin('p1');
+      expect(result.success).toBe(true);
+      expect(verifyFileChecksum).toHaveBeenCalledWith(
+        expect.any(String),
+        'sha256:abc123'
+      );
+      expect(extractZipSafe).toHaveBeenCalled();
+    });
+
+    it('should fail when the archive checksum does not match', async () => {
+      const { verifyFileChecksum, extractZipSafe } =
+        await import('../utils/fs-utils');
+      vi.mocked(verifyFileChecksum).mockRejectedValueOnce(
+        new Error('Checksum mismatch: expected abc, got def')
+      );
+      const mockPlugin = {
+        id: 'p1',
+        name: 'Plugin 1',
+        version: '1.0.0',
+        downloadUrl: 'https://example.com/p1.zip',
+        checksum: 'sha256:abc123',
+        manifest: { id: 'p1', version: '1.0.0', main: 'index.js' },
+      };
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify([mockPlugin]));
+      vi.mocked(global.fetch as any).mockResolvedValue({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        body: { pipe: vi.fn() },
+      });
+
+      const result = await service.installPlugin('p1');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Checksum mismatch');
+      // Must not extract an archive that failed integrity check.
+      expect(extractZipSafe).not.toHaveBeenCalled();
+    });
+
+    it('should refuse an unchecksummed download in production', async () => {
+      vi.mocked(isProduction).mockReturnValue(true);
+      const { extractZipSafe } = await import('../utils/fs-utils');
+      const mockPlugin = {
+        id: 'p1',
+        name: 'Plugin 1',
+        version: '1.0.0',
+        downloadUrl: 'https://example.com/p1.zip',
+        // no checksum
+        manifest: { id: 'p1', version: '1.0.0', main: 'index.js' },
+      };
+      // getPluginDetails (backend) then the file download.
+      vi.mocked(global.fetch as any)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          json: async () => mockPlugin,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          body: { pipe: vi.fn() },
+        });
+
+      const result = await service.installPlugin('p1');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('no checksum');
+      expect(extractZipSafe).not.toHaveBeenCalled();
+    });
+
+    it('should reject a plugin id that would escape the plugins directory', async () => {
+      const result = await service.installPlugin('../../evil');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Invalid plugin ID');
     });
 
     it('should fail when HTTP download returns non-ok status', async () => {

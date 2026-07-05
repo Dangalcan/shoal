@@ -10,13 +10,17 @@ import fs from 'fs/promises';
 import { createWriteStream } from 'fs';
 import { pipeline } from 'stream/promises';
 import { app } from 'electron';
-import AdmZip from 'adm-zip';
 import semver from 'semver';
 import { Result, MarketplaceEntry } from '../../types/plugin-types';
-import { cleanupTempFile } from '../../utils/fs-utils';
+import {
+  cleanupTempFile,
+  extractZipSafe,
+  verifyFileChecksum,
+} from '../../utils/fs-utils';
 import { getErrorMessage } from '../../utils/error-utils';
 import { isProduction } from '../../utils/env-utils';
 import { pluginManager } from '../plugins/plugin-manager';
+import { assertValidPluginId } from '../plugins/plugin-validator';
 import log from '../../logger';
 
 export class MarketplaceService {
@@ -178,6 +182,9 @@ export class MarketplaceService {
    */
   async installPlugin(pluginId: string): Promise<Result<void>> {
     try {
+      // Guard against path traversal: pluginId becomes a directory name below.
+      assertValidPluginId(pluginId);
+
       // 1. Get metadata
       const detailsResult = await this.getPluginDetails(pluginId);
       if (!detailsResult.success || !detailsResult.data) {
@@ -241,11 +248,32 @@ export class MarketplaceService {
         const fileStream = createWriteStream(zipPath);
         await pipeline(response.body as any, fileStream);
 
-        await fs.mkdir(pluginDir, { recursive: true });
-        const zip = new AdmZip(zipPath);
-        zip.extractAllTo(pluginDir, true);
-        await cleanupTempFile(zipPath, '[MarketplaceService] plugin zip');
-        log.info(`[MarketplaceService] Extracted plugin to ${pluginDir}`);
+        try {
+          // Verify archive integrity before touching it. A checksum is
+          // required in production; in dev a missing checksum is allowed
+          // (local backend may not provide one yet).
+          if (plugin.checksum) {
+            await verifyFileChecksum(zipPath, plugin.checksum);
+            log.info(
+              `[MarketplaceService] Checksum verified for "${pluginId}"`
+            );
+          } else if (isProduction()) {
+            throw new Error(
+              `Refusing to install "${pluginId}": marketplace entry has no checksum.`
+            );
+          } else {
+            log.warn(
+              `[MarketplaceService] No checksum for "${pluginId}" (dev only) — skipping integrity check.`
+            );
+          }
+
+          await fs.mkdir(pluginDir, { recursive: true });
+          // Zip-slip-safe extraction (validates entries stay within pluginDir).
+          await extractZipSafe(zipPath, pluginDir);
+          log.info(`[MarketplaceService] Extracted plugin to ${pluginDir}`);
+        } finally {
+          await cleanupTempFile(zipPath, '[MarketplaceService] plugin zip');
+        }
       } else {
         throw new Error(
           `Unsupported download URL scheme for plugin "${pluginId}". Expected local:// or http(s)://`
