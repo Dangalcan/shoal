@@ -128,6 +128,7 @@ export function PluginFrame({
           entryUrl,
           styleUrls,
           view,
+          sizing,
           hostStyleTexts: hostStyles.texts,
           hostStyleHrefs: hostStyles.hrefs,
           theme,
@@ -144,16 +145,19 @@ export function PluginFrame({
       bridgeRef.current?.dispose();
       bridgeRef.current = null;
     };
-    // view is an object literal from callers; depend on its primitives so a
-    // new object identity per render doesn't needlessly re-init the frame.
+    // Callers rebuild `permissions`/`styleUrls`/`view` as fresh objects every
+    // render (e.g. the dashboard re-renders on auto-refresh). Depend on their
+    // stable serialized values, not identity, so the frame doesn't re-init and
+    // tear down in-flight plugin calls on every parent render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     pluginId,
     entryUrl,
     api,
     onTitle,
-    permissions,
-    styleUrls,
+    permissions.join('|'),
+    styleUrls.join('|'),
+    sizing,
     view.kind,
     view.kind === 'widget' ? view.widgetId : null,
   ]);

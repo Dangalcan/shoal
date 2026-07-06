@@ -31,6 +31,8 @@ interface InitMessage {
   styleUrls?: string[];
   /** What to render in this frame. Defaults to the plugin page. */
   view?: FrameView;
+  /** 'fill' pages scroll inside a 100%-height #root; 'content' widgets grow. */
+  sizing?: 'content' | 'fill';
   /** Inline CSS copied from the host <style> tags (dev). */
   hostStyleTexts?: string[];
   /** Stylesheet hrefs copied from the host <link> tags (prod). */
@@ -139,6 +141,21 @@ function loadStyles(urls: string[]): void {
   }
 }
 
+/**
+ * Establish the height/scroll context for the frame's sizing mode.
+ *  - 'fill' pages: give html/body/#root a definite 100% height and make #root
+ *    the scroll container, so `h-full` plugin layouts resolve and long pages
+ *    scroll inside the frame (which itself fills its host element).
+ *  - 'content' widgets: leave natural height so the frame grows to fit.
+ */
+function applySizing(sizing: 'content' | 'fill'): void {
+  if (sizing !== 'fill') return;
+  const style = document.createElement('style');
+  style.textContent =
+    'html,body{height:100%}#root{height:100%;overflow:auto;box-sizing:border-box}';
+  document.head.appendChild(style);
+}
+
 /** Reproduce the host app's CSS inside this iframe so plugins look native. */
 function applyHostStyles(data: InitMessage): void {
   for (const css of data.hostStyleTexts ?? []) {
@@ -191,15 +208,19 @@ window.addEventListener('message', function onInit(event: MessageEvent) {
   globals.LucideIcons = LucideIcons;
   globals.k8sPlugin = sdk;
   globals.electron = makeElectronShim(sdk);
+  const sizing: 'content' | 'fill' = data.sizing ?? 'content';
   const view: FrameView = data.view ?? { kind: 'page' };
   globals.pluginUIRegistry = makeRegistryShim(view, (Component) => {
     if (!root) root = createRoot(container);
     root.render(React.createElement(Component));
     sdk.ready();
-    observeHeight(sdk);
+    // Fill pages own their height (100%) and scroll internally, so don't drive
+    // the frame height from content; only content-sized widgets report height.
+    if (sizing === 'content') observeHeight(sdk);
   });
 
-  // Host app CSS first (base look), then the plugin's own styles on top.
+  // Height/scroll context first, then host app CSS, then the plugin's styles.
+  applySizing(sizing);
   applyHostStyles(data);
   loadStyles(data.styleUrls ?? []);
   loadEntry(data.entryUrl, sdk);
