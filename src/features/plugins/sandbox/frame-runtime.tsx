@@ -26,6 +26,12 @@ interface InitMessage {
   pluginId?: string;
   entryUrl?: string;
   styleUrls?: string[];
+  /** Inline CSS copied from the host <style> tags (dev). */
+  hostStyleTexts?: string[];
+  /** Stylesheet hrefs copied from the host <link> tags (prod). */
+  hostStyleHrefs?: string[];
+  /** Host color theme (e.g. "dark") to mirror on this document. */
+  theme?: string | null;
 }
 
 /** Re-wrap a resolved/rejected SDK call into the { success, data } shape that
@@ -100,6 +106,19 @@ function loadStyles(urls: string[]): void {
   }
 }
 
+/** Reproduce the host app's CSS inside this iframe so plugins look native. */
+function applyHostStyles(data: InitMessage): void {
+  for (const css of data.hostStyleTexts ?? []) {
+    const style = document.createElement('style');
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+  loadStyles(data.hostStyleHrefs ?? []);
+  if (data.theme) {
+    document.documentElement.setAttribute('data-theme', data.theme);
+  }
+}
+
 function loadEntry(entryUrl: string | undefined, sdk: K8sPluginSdk): void {
   if (!entryUrl) return;
   const script = document.createElement('script');
@@ -146,6 +165,8 @@ window.addEventListener('message', function onInit(event: MessageEvent) {
     observeHeight(sdk);
   });
 
+  // Host app CSS first (base look), then the plugin's own styles on top.
+  applyHostStyles(data);
   loadStyles(data.styleUrls ?? []);
   loadEntry(data.entryUrl, sdk);
 });

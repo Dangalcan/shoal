@@ -25,6 +25,27 @@ import type { PluginPermission } from './protocol';
 /** postMessage tag used to hand the SDK port to the iframe. */
 export const PLUGIN_PORT_INIT = 'k8s-plugin-port-init';
 
+/**
+ * Snapshot the host document's stylesheets so the sandboxed iframe (which is a
+ * separate document with none of the app's CSS) can reproduce the app's look.
+ * In dev, Vite injects <style> tags (copied by text); in prod, hashed <link>
+ * stylesheets (copied by href). The plugin's own styles are added separately.
+ */
+function collectHostStyles(): { texts: string[]; hrefs: string[] } {
+  const texts: string[] = [];
+  const hrefs: string[] = [];
+  document.querySelectorAll('style').forEach((s) => {
+    if (s.textContent) texts.push(s.textContent);
+  });
+  document
+    .querySelectorAll('link[rel="stylesheet"]')
+    .forEach((l) => {
+      const href = (l as HTMLLinkElement).href;
+      if (href) hrefs.push(href);
+    });
+  return { texts, hrefs };
+}
+
 interface PluginFrameProps {
   pluginId: string;
   /** Absolute plugin-file:// URL of the shipped iframe host document. */
@@ -82,9 +103,19 @@ export function PluginFrame({
       bridge.start();
       bridgeRef.current = bridge;
 
-      // Hand the plugin its port plus the URLs the bootstrap needs.
+      // Hand the plugin its port plus the URLs + host styles the bootstrap needs.
+      const hostStyles = collectHostStyles();
+      const theme = document.documentElement.getAttribute('data-theme');
       iframe.contentWindow.postMessage(
-        { type: PLUGIN_PORT_INIT, pluginId, entryUrl, styleUrls },
+        {
+          type: PLUGIN_PORT_INIT,
+          pluginId,
+          entryUrl,
+          styleUrls,
+          hostStyleTexts: hostStyles.texts,
+          hostStyleHrefs: hostStyles.hrefs,
+          theme,
+        },
         '*',
         [channel.port2]
       );
