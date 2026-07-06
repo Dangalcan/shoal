@@ -50,5 +50,14 @@
         "min": 1
       }
     }
+  },
+  "extensions": {
+    "widgets": [
+      {
+        "id": "pod-monitor-widget",
+        "title": "Live Pulse",
+        "size": "small"
+      }
+    ]
   }
 }

@@ -16,7 +16,7 @@ import { Button, Badge, Card, Animate } from '../components/ui';
 import { useApi } from '../services/api-context';
 import { isSuccess } from '../types/result';
 import { cn } from '../lib/utils';
-import { usePluginWidgets } from '../services/plugin-ui-registry';
+import { DashboardWidgets } from '../features/plugins/DashboardWidgets';
 
 interface StatCardProps {
   label: string;
@@ -73,7 +73,6 @@ export function Dashboard() {
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const widgets = usePluginWidgets();
 
   const refreshData = useCallback(async () => {
     setLoading(true);
@@ -248,22 +247,7 @@ export function Dashboard() {
         </Animate>
       </div>
 
-      {widgets.length > 0 && (
-        <div className="dashboard-widgets-section">
-          <Animate type="fade" delay={600}>
-             <h3 className="section-title">Plugin Widgets</h3>
-          </Animate>
-          <div className="widgets-grid">
-            {widgets.map((widget, index) => (
-              <Animate key={widget.id} type="slide-up" delay={600 + (index * 100)}>
-                <Card title={widget.title} className={`widget-card widget-${widget.size}`}>
-                  <widget.component />
-                </Card>
-              </Animate>
-            ))}
-          </div>
-        </div>
-      )}
+      <DashboardWidgets />
 
       <PodViewerModal
         isOpen={isModalOpen}

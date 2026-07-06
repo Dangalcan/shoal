@@ -137,6 +137,17 @@ export interface PageExtension {
   title?: string;
 }
 
+/**
+ * A dashboard widget contributed by a plugin. Declared in the manifest so the
+ * host can render it without executing plugin code: each widget is mounted in
+ * its own sandboxed iframe (see src/features/plugins/sandbox/PluginFrame).
+ */
+export interface WidgetExtension {
+  id: string;
+  title: string;
+  size: 'small' | 'medium' | 'large';
+}
+
 export interface PluginExtensions {
   sidebar?: SidebarExtension[];
   resourceActions?: ResourceActionExtension[];
@@ -163,7 +174,8 @@ export interface PluginManifest {
   marketplace?: PluginMarketplaceInfo;
   extensions?: {
     sidebar?: SidebarExtension[];
-    // Future: dashboard, menu, etc.
+    widgets?: WidgetExtension[];
+    // Future: menu, etc.
   };
   configuration?: PluginConfigurationSchema;
   dependencies?: Record<string, string>; // Plugin dependencies (id: semver range)

@@ -21,11 +21,16 @@ import type { SdkPortLike } from './plugin-sdk';
 
 const PLUGIN_PORT_INIT = 'k8s-plugin-port-init';
 
+/** Which contribution this frame should mount: the full page, or one widget. */
+type FrameView = { kind: 'page' } | { kind: 'widget'; widgetId: string };
+
 interface InitMessage {
   type: string;
   pluginId?: string;
   entryUrl?: string;
   styleUrls?: string[];
+  /** What to render in this frame. Defaults to the plugin page. */
+  view?: FrameView;
   /** Inline CSS copied from the host <style> tags (dev). */
   hostStyleTexts?: string[];
   /** Stylesheet hrefs copied from the host <link> tags (prod). */
@@ -74,17 +79,45 @@ function makeElectronShim(sdk: K8sPluginSdk): Record<string, unknown> {
   };
 }
 
-/** pluginUIRegistry shim: registerPage mounts the component into this iframe. */
+/**
+ * pluginUIRegistry shim. A plugin registers its page and any widgets during
+ * script execution; this frame mounts only the one contribution requested via
+ * `view` (the page, or a specific widget). Both page and widget UIs therefore
+ * run in isolated iframes — no plugin code executes in the host realm.
+ */
 function makeRegistryShim(
+  view: FrameView,
   mount: (component: React.ComponentType) => void
 ): Record<string, unknown> {
+  let mounted = false;
+  let page: React.ComponentType | null = null;
+  const widgets = new Map<string, React.ComponentType>();
+
+  const tryMount = () => {
+    if (mounted) return;
+    const target =
+      view.kind === 'page' ? page : widgets.get(view.widgetId) ?? null;
+    if (target) {
+      mounted = true;
+      mount(target);
+    }
+  };
+
   return {
-    registerPage: (page: { component?: React.ComponentType }) => {
-      if (page && page.component) mount(page.component);
+    registerPage: (p: { component?: React.ComponentType }) => {
+      if (p && p.component) {
+        page = p.component;
+        tryMount();
+      }
     },
-    // Widgets/modals/resource-actions belong to host chrome, not the page
-    // frame; accept and ignore them here so plugins don't throw.
-    registerWidget: () => {},
+    registerWidget: (w: { id?: string; component?: React.ComponentType }) => {
+      if (w && w.id && w.component) {
+        widgets.set(w.id, w.component);
+        tryMount();
+      }
+    },
+    // Modals/resource-actions are not (yet) supported in the sandbox; accept
+    // and ignore so plugins registering them don't throw.
     unregisterWidget: () => {},
     registerModal: () => {},
     unregisterModal: () => {},
@@ -158,7 +191,8 @@ window.addEventListener('message', function onInit(event: MessageEvent) {
   globals.LucideIcons = LucideIcons;
   globals.k8sPlugin = sdk;
   globals.electron = makeElectronShim(sdk);
-  globals.pluginUIRegistry = makeRegistryShim((Component) => {
+  const view: FrameView = data.view ?? { kind: 'page' };
+  globals.pluginUIRegistry = makeRegistryShim(view, (Component) => {
     if (!root) root = createRoot(container);
     root.render(React.createElement(Component));
     sdk.ready();

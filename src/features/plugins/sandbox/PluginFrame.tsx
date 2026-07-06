@@ -46,6 +46,9 @@ function collectHostStyles(): { texts: string[]; hrefs: string[] } {
   return { texts, hrefs };
 }
 
+/** Which plugin contribution this frame should mount. */
+export type PluginFrameView = { kind: 'page' } | { kind: 'widget'; widgetId: string };
+
 interface PluginFrameProps {
   pluginId: string;
   /** Absolute plugin-file:// URL of the shipped iframe host document. */
@@ -55,6 +58,8 @@ interface PluginFrameProps {
   /** plugin-file:// URLs of the plugin's stylesheets. */
   styleUrls?: string[];
   permissions: PluginPermission[];
+  /** What the frame mounts: the full page (default) or a single widget. */
+  view?: PluginFrameView;
   /** Notified when the plugin sets a page title. */
   onTitle?: (title: string) => void;
   className?: string;
@@ -66,6 +71,7 @@ export function PluginFrame({
   entryUrl,
   styleUrls = [],
   permissions,
+  view = { kind: 'page' },
   onTitle,
   className,
 }: PluginFrameProps) {
@@ -112,6 +118,7 @@ export function PluginFrame({
           pluginId,
           entryUrl,
           styleUrls,
+          view,
           hostStyleTexts: hostStyles.texts,
           hostStyleHrefs: hostStyles.hrefs,
           theme,
@@ -128,7 +135,19 @@ export function PluginFrame({
       bridgeRef.current?.dispose();
       bridgeRef.current = null;
     };
-  }, [pluginId, entryUrl, api, onTitle, permissions, styleUrls]);
+    // view is an object literal from callers; depend on its primitives so a
+    // new object identity per render doesn't needlessly re-init the frame.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    pluginId,
+    entryUrl,
+    api,
+    onTitle,
+    permissions,
+    styleUrls,
+    view.kind,
+    view.kind === 'widget' ? view.widgetId : null,
+  ]);
 
   return (
     <iframe
