@@ -99,9 +99,34 @@ describe('TemplateService', () => {
       expect(content).toContain('My Plugin');
     });
 
-    it('should write exactly two files (plugin.json + index.js)', async () => {
+    it('should write a sandboxed renderer.js using window.k8sPlugin', async () => {
       await service.scaffoldPlugin('/output/my-plugin', options);
-      expect(fs.writeFile).toHaveBeenCalledTimes(2);
+
+      const writeFileCalls = vi.mocked(fs.writeFile).mock.calls;
+      const rendererCall = writeFileCalls.find((call) =>
+        (call[0] as string).endsWith('renderer.js')
+      );
+      expect(rendererCall).toBeDefined();
+
+      const content = rendererCall![1] as string;
+      expect(content).toContain('window.k8sPlugin');
+      // Must NOT reach for host globals — the iframe has none of these.
+      expect(content).not.toContain('window.electron');
+      expect(content).not.toContain('pluginUIRegistry');
+    });
+
+    it('should declare the renderer entry in the manifest', async () => {
+      await service.scaffoldPlugin('/output/my-plugin', options);
+      const manifestCall = vi
+        .mocked(fs.writeFile)
+        .mock.calls.find((call) => (call[0] as string).endsWith('plugin.json'));
+      const manifest = JSON.parse(manifestCall![1] as string);
+      expect(manifest.renderer).toBe('renderer.js');
+    });
+
+    it('should write exactly three files (plugin.json + index.js + renderer.js)', async () => {
+      await service.scaffoldPlugin('/output/my-plugin', options);
+      expect(fs.writeFile).toHaveBeenCalledTimes(3);
     });
 
     it('should propagate fs errors', async () => {

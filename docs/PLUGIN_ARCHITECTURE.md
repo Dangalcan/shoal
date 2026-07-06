@@ -12,10 +12,8 @@ A hybrid plugin architecture with marketplace and licensing support that extends
 
 Kubernetes Desktop uses a **hybrid plugin architecture**:
 
-- **Main Process plugins** (`index.js`): Node.js code running in the Electron main process. Full access to Node.js APIs, the filesystem, and the application's internal services.
-- **UI extensions**: Plugins register sidebar items and custom pages through the `PluginContext` API. The renderer dynamically loads plugin UI via the `plugin-file://` custom protocol.
-
-This model maximizes developer flexibility at the cost of strict sandboxing. Plugin authors are expected to be trusted; see `plugin_system_analysis.md` for the security trade-off discussion.
+- **Main Process plugins** (`index.js`): Node.js code running in the Electron main process. Executed inside a `vm` sandbox with a built-in allowlist (`electron/services/plugins/plugin-sandbox.ts`) and a permission-gated `PluginContext`.
+- **Renderer plugins** (`renderer.js`): the plugin's UI, run inside an **isolated sandboxed iframe** (`sandbox="allow-scripts"`, opaque origin). The iframe has **no access** to `window.electron`, the host DOM, cookies, or other plugins. Its entire capability surface is `window.k8sPlugin`, a promise-based, permission-gated API delivered over a `MessageChannel` (see below).
 
 ### Monetization Model
 
@@ -29,9 +27,62 @@ Inspired by Odoo's App Store:
 ### Security Model
 
 - Plugin signing via RSA (`electron/services/security/signature-service.ts`)
-- Manifest-based permission declarations
+- Manifest-based permission declarations (`kubernetes`, `ui`, `storage`)
+- Renderer UI runs in a sandboxed iframe with a permission-gated bridge (see below)
 - License validation and encrypted local storage
 - `ALLOW_UNSIGNED_PLUGINS=true` env var required in dev mode to bypass signature checks
+
+### Renderer Sandbox
+
+Plugin UI never runs in the host realm. Each plugin page is hosted by
+`src/features/plugins/sandbox/PluginFrame.tsx`, which:
+
+1. Creates a `sandbox="allow-scripts"` iframe pointing at the shipped host
+   document `public/plugin-host/index.html` (opaque origin — no host access).
+2. Establishes a `MessageChannel` and transfers one port into the iframe.
+3. Runs a `PluginHostBridge` on its side that **enforces the permission gate**
+   before routing any call to `window.electron`.
+
+Inside the iframe, `public/plugin-host/bootstrap.js` adopts the port, exposes
+`window.k8sPlugin`, and loads the plugin's `renderer.js` into `#root`.
+
+The complete method allowlist lives in
+`src/features/plugins/sandbox/protocol.ts` (`METHOD_TABLE`). To grant a new
+capability, add it there deliberately. Notable rules:
+
+- `kubernetes.*` and `manifests.*` require the `kubernetes` permission.
+- `ui.*` requires the `ui` permission.
+- `settings.get/set` need no permission but act ONLY on the plugin's own
+  settings — the host injects the plugin id, so a plugin can never read or
+  write another plugin's data.
+
+#### `window.k8sPlugin` (renderer API)
+
+```js
+// kubernetes (needs "kubernetes" permission)
+await k8sPlugin.kubernetes.getCurrentContext();
+await k8sPlugin.kubernetes.getPods(contextName);
+await k8sPlugin.kubernetes.getResources({ contextName, resourceType, namespace });
+await k8sPlugin.kubernetes.getLogs({ contextName, podName, namespace, tailLines });
+await k8sPlugin.kubernetes.deleteResource({ ... });
+// manifests (needs "kubernetes")
+await k8sPlugin.manifests.apply(id);
+await k8sPlugin.manifests.save(manifest);
+// settings (own settings only)
+await k8sPlugin.settings.get();
+await k8sPlugin.settings.set({ ... });
+// ui (needs "ui")
+await k8sPlugin.ui.openExternal('https://example.com');
+await k8sPlugin.ui.showNotification('Done', 'success');
+k8sPlugin.ui.setTitle('My Plugin');   // host page title
+k8sPlugin.ui.setHeight(480);          // resize the frame
+// lifecycle
+k8sPlugin.ready();                     // call once mounted
+```
+
+Plugins own their rendering stack (plain DOM, React, etc.) and mount into
+`#root`; the host does not provide a framework. `npx tsx` scaffolding via
+`generate-plugin` emits a working `renderer.js` reference.
 
 ---
 
