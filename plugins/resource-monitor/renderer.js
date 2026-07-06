@@ -544,16 +544,21 @@
 
     useEffect(() => {
       const update = async () => {
-        const ctxRes = await window.electron.getCurrentContext();
-        if (ctxRes.success) {
+        try {
+          const ctxRes = await window.electron.getCurrentContext();
+          if (!ctxRes.success)
+            throw new Error(ctxRes.error || 'Failed to get current context');
           const res = await window.electron.getPods(ctxRes.data);
-          if (res.success) {
-            setStats({
-              total: res.data.length,
-              running: res.data.filter((p) => p.status.phase === 'Running')
-                .length,
-            });
-          }
+          if (!res.success) throw new Error(res.error || 'Failed to get pods');
+          const pods = Array.isArray(res.data) ? res.data : [];
+          setStats({
+            total: pods.length,
+            // Guard status/phase: pods can momentarily lack a status.phase, and
+            // one missing field must not throw and blank the whole widget.
+            running: pods.filter((p) => p?.status?.phase === 'Running').length,
+          });
+        } catch (err) {
+          console.error('[Resource Monitor] widget update failed:', err);
         }
       };
       update();

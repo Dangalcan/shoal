@@ -60,6 +60,14 @@ interface PluginFrameProps {
   permissions: PluginPermission[];
   /** What the frame mounts: the full page (default) or a single widget. */
   view?: PluginFrameView;
+  /**
+   * How the iframe is sized:
+   *  - 'content' (default): iframe grows to the plugin's reported height — used
+   *    for widgets so the surrounding card fits the content.
+   *  - 'fill': iframe fills its container and scrolls its own content — used
+   *    for full pages so long pages get a scrollbar.
+   */
+  sizing?: 'content' | 'fill';
   /** Notified when the plugin sets a page title. */
   onTitle?: (title: string) => void;
   className?: string;
@@ -72,6 +80,7 @@ export function PluginFrame({
   styleUrls = [],
   permissions,
   view = { kind: 'page' },
+  sizing = 'content',
   onTitle,
   className,
 }: PluginFrameProps) {
@@ -158,7 +167,9 @@ export function PluginFrame({
       className={className}
       style={{
         width: '100%',
-        height: height ? `${height}px` : '100%',
+        // 'fill' pages take the container height and scroll internally; 'content'
+        // widgets grow to the height the plugin reports.
+        height: sizing === 'fill' ? '100%' : height ? `${height}px` : '100%',
         border: 'none',
         display: 'block',
       }}

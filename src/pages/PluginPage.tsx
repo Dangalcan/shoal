@@ -88,6 +88,7 @@ export function PluginPage() {
         entryUrl={entryUrl}
         styleUrls={styleUrls}
         permissions={permissions}
+        sizing="fill"
         onTitle={setTitle}
         className="flex-1"
       />
