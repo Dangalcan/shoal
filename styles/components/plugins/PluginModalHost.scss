@@ -1,0 +1,34 @@
+/* Overlay + dialog for plugin-requested modals (rendered around a sandboxed
+   PluginFrame). The plugin owns the modal's inner content; the host only
+   provides the backdrop and centered container. */
+
+.plugin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+  background: rgb(0 0 0 / 0.5);
+  animation: fadeIn 150ms ease;
+}
+
+.plugin-modal-dialog {
+  width: 100%;
+  max-width: 640px;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg);
+  border-radius: 0.75rem;
+  box-shadow:
+    0 20px 25px -5px rgb(0 0 0 / 0.2),
+    0 8px 10px -6px rgb(0 0 0 / 0.2);
+
+  iframe {
+    flex: 1;
+    min-height: 120px;
+  }
+}

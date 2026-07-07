@@ -39,6 +39,10 @@ export interface HostBridgeConfig {
   onResize?: (height: number) => void;
   onTitle?: (title: string) => void;
   onNotification?: (message: string, type: string) => void;
+  /** Plugin asked to open a registered modal (already `ui`-permission gated). */
+  onOpenModal?: (modalId: string, props: unknown) => void;
+  /** Plugin asked to close its open modal. */
+  onCloseModal?: () => void;
 }
 
 export class PluginHostBridge {
@@ -90,6 +94,20 @@ export class PluginHostBridge {
         break;
       case 'title':
         this.config.onTitle?.(msg.title);
+        break;
+      case 'open-modal':
+        // Opening a modal is a UI capability — gate it like ui.* methods.
+        if (!this.config.permissions.has('ui')) {
+          this.config.onNotification?.(
+            'Plugin tried to open a modal without the "ui" permission',
+            'error'
+          );
+          return;
+        }
+        this.config.onOpenModal?.(msg.modalId, msg.props);
+        break;
+      case 'close-modal':
+        this.config.onCloseModal?.();
         break;
     }
   }

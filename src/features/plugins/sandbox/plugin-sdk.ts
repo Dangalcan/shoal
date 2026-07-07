@@ -62,6 +62,14 @@ export interface K8sPluginSdk {
     setHeight(height: number): void;
     /** Set the host page title for this plugin view. */
     setTitle(title: string): void;
+    /**
+     * Open one of the plugin's registered modals (by id) in a host overlay.
+     * `props` must be structured-cloneable (data only) — it is delivered to the
+     * modal, which renders in its own sandboxed iframe. Requires `ui`.
+     */
+    showModal(modalId: string, props?: unknown): void;
+    /** Close the plugin's currently open modal. */
+    closeModal(): void;
   };
   events: {
     on(name: string, handler: EventHandler): () => void;
@@ -148,6 +156,9 @@ export function createPluginSdk(port: SdkPortLike): K8sPluginSdk {
         call('ui.showNotification', message, type),
       setHeight: (height) => signal({ kind: 'ui', type: 'resize', height }),
       setTitle: (title) => signal({ kind: 'ui', type: 'title', title }),
+      showModal: (modalId, props) =>
+        signal({ kind: 'ui', type: 'open-modal', modalId, props }),
+      closeModal: () => signal({ kind: 'ui', type: 'close-modal' }),
     },
     events: {
       on: (name, handler) => {

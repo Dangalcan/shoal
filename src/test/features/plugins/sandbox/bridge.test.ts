@@ -34,6 +34,8 @@ function setup(permissions: PluginPermission[]) {
   const onReady = vi.fn();
   const onResize = vi.fn();
   const onTitle = vi.fn();
+  const onOpenModal = vi.fn();
+  const onCloseModal = vi.fn();
 
   const bridge = new PluginHostBridge(hostPort, {
     pluginId: 'my-plugin',
@@ -43,11 +45,23 @@ function setup(permissions: PluginPermission[]) {
     onReady,
     onResize,
     onTitle,
+    onOpenModal,
+    onCloseModal,
   });
   bridge.start();
 
   const sdk = createPluginSdk(framePort);
-  return { bridge, sdk, invoke, onNotification, onReady, onResize, onTitle };
+  return {
+    bridge,
+    sdk,
+    invoke,
+    onNotification,
+    onReady,
+    onResize,
+    onTitle,
+    onOpenModal,
+    onCloseModal,
+  };
 }
 
 describe('plugin sandbox bridge + sdk', () => {
@@ -159,5 +173,32 @@ describe('plugin sandbox bridge + sdk', () => {
     expect(onReady).toHaveBeenCalled();
     expect(onResize).toHaveBeenCalledWith(480);
     expect(onTitle).toHaveBeenCalledWith('My Plugin');
+  });
+
+  it('opens a modal via host callback when the ui permission is granted', async () => {
+    const { sdk, onOpenModal } = setup(['ui']);
+    sdk.ui.showModal('confirm-delete', { name: 'pod-1' });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(onOpenModal).toHaveBeenCalledWith('confirm-delete', {
+      name: 'pod-1',
+    });
+  });
+
+  it('denies opening a modal without the ui permission', async () => {
+    const { sdk, onOpenModal, onNotification } = setup(['kubernetes']);
+    sdk.ui.showModal('confirm-delete', { name: 'pod-1' });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(onOpenModal).not.toHaveBeenCalled();
+    expect(onNotification).toHaveBeenCalledWith(
+      expect.stringContaining('"ui" permission'),
+      'error'
+    );
+  });
+
+  it('forwards close-modal to the host callback', async () => {
+    const { sdk, onCloseModal } = setup(['ui']);
+    sdk.ui.closeModal();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(onCloseModal).toHaveBeenCalled();
   });
 });

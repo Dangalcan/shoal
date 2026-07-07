@@ -21,8 +21,11 @@ import type { SdkPortLike } from './plugin-sdk';
 
 const PLUGIN_PORT_INIT = 'k8s-plugin-port-init';
 
-/** Which contribution this frame should mount: the full page, or one widget. */
-type FrameView = { kind: 'page' } | { kind: 'widget'; widgetId: string };
+/** Which contribution this frame mounts: the page, a widget, or a modal. */
+export type FrameView =
+  | { kind: 'page' }
+  | { kind: 'widget'; widgetId: string }
+  | { kind: 'modal'; modalId: string };
 
 interface InitMessage {
   type: string;
@@ -31,6 +34,8 @@ interface InitMessage {
   styleUrls?: string[];
   /** What to render in this frame. Defaults to the plugin page. */
   view?: FrameView;
+  /** Data props for a modal view (structured-cloned from the host). */
+  viewProps?: unknown;
   /** 'fill' pages scroll inside a 100%-height #root; 'content' widgets grow. */
   sizing?: 'content' | 'fill';
   /** Inline CSS copied from the host <style> tags (dev). */
@@ -87,21 +92,34 @@ function makeElectronShim(sdk: K8sPluginSdk): Record<string, unknown> {
  * `view` (the page, or a specific widget). Both page and widget UIs therefore
  * run in isolated iframes — no plugin code executes in the host realm.
  */
-function makeRegistryShim(
+// Exported for unit testing; the bundle uses it internally.
+export function makeRegistryShim(
   view: FrameView,
-  mount: (component: React.ComponentType) => void
+  viewProps: unknown,
+  mount: (component: React.ComponentType, props?: Record<string, unknown>) => void
 ): Record<string, unknown> {
   let mounted = false;
   let page: React.ComponentType | null = null;
   const widgets = new Map<string, React.ComponentType>();
+  const modals = new Map<string, React.ComponentType>();
 
   const tryMount = () => {
     if (mounted) return;
-    const target =
-      view.kind === 'page' ? page : widgets.get(view.widgetId) ?? null;
+    let target: React.ComponentType | null = null;
+    let props: Record<string, unknown> | undefined;
+    if (view.kind === 'page') {
+      target = page;
+    } else if (view.kind === 'widget') {
+      target = widgets.get(view.widgetId) ?? null;
+    } else {
+      // modal: mount the registered modal and pass the host-supplied props plus
+      // a bound onClose that closes the overlay via the SDK.
+      target = modals.get(view.modalId) ?? null;
+      props = (viewProps as Record<string, unknown>) ?? {};
+    }
     if (target) {
       mounted = true;
-      mount(target);
+      mount(target, props);
     }
   };
 
@@ -118,12 +136,25 @@ function makeRegistryShim(
         tryMount();
       }
     },
-    // Modals/resource-actions are not (yet) supported in the sandbox; accept
-    // and ignore so plugins registering them don't throw.
+    registerModal: (m: { id?: string; component?: React.ComponentType }) => {
+      if (m && m.id && m.component) {
+        modals.set(m.id, m.component);
+        tryMount();
+      }
+    },
+    // Resource-actions register a modal-style component too; alias to modals so
+    // an action handler can render UI in its own frame.
+    registerResourceAction: (a: {
+      id?: string;
+      component?: React.ComponentType;
+    }) => {
+      if (a && a.id && a.component) {
+        modals.set(a.id, a.component);
+        tryMount();
+      }
+    },
     unregisterWidget: () => {},
-    registerModal: () => {},
     unregisterModal: () => {},
-    registerResourceAction: () => {},
     unregisterResourceAction: () => {},
     getWidgets: () => [],
     getResourceActions: () => [],
@@ -219,9 +250,14 @@ window.addEventListener('message', function onInit(event: MessageEvent) {
   globals.electron = makeElectronShim(sdk);
   const sizing: 'content' | 'fill' = data.sizing ?? 'content';
   const view: FrameView = data.view ?? { kind: 'page' };
-  globals.pluginUIRegistry = makeRegistryShim(view, (Component) => {
+  globals.pluginUIRegistry = makeRegistryShim(view, data.viewProps, (Component, props) => {
     if (!root) root = createRoot(container);
-    root.render(React.createElement(Component));
+    // Modals get an onClose bound to the SDK so the plugin can dismiss itself.
+    const finalProps =
+      view.kind === 'modal'
+        ? { ...(props ?? {}), onClose: () => sdk.ui.closeModal() }
+        : props;
+    root.render(React.createElement(Component, finalProps));
     sdk.ready();
     // Fill pages own their height (100%) and scroll internally, so don't drive
     // the frame height from content; only content-sized widgets report height.

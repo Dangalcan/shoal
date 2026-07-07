@@ -47,7 +47,10 @@ function collectHostStyles(): { texts: string[]; hrefs: string[] } {
 }
 
 /** Which plugin contribution this frame should mount. */
-export type PluginFrameView = { kind: 'page' } | { kind: 'widget'; widgetId: string };
+export type PluginFrameView =
+  | { kind: 'page' }
+  | { kind: 'widget'; widgetId: string }
+  | { kind: 'modal'; modalId: string };
 
 interface PluginFrameProps {
   pluginId: string;
@@ -68,8 +71,14 @@ interface PluginFrameProps {
    *    for full pages so long pages get a scrollbar.
    */
   sizing?: 'content' | 'fill';
+  /** Data props delivered to a modal/action view (structured-cloned). */
+  viewProps?: unknown;
   /** Notified when the plugin sets a page title. */
   onTitle?: (title: string) => void;
+  /** Plugin requested to open a registered modal (only for page/widget views). */
+  onOpenModal?: (modalId: string, props: unknown) => void;
+  /** Plugin (typically a modal) requested to close the current modal. */
+  onCloseModal?: () => void;
   className?: string;
 }
 
@@ -81,7 +90,10 @@ export function PluginFrame({
   permissions,
   view = { kind: 'page' },
   sizing = 'content',
+  viewProps,
   onTitle,
+  onOpenModal,
+  onCloseModal,
   className,
 }: PluginFrameProps) {
   const api = useApi();
@@ -114,6 +126,8 @@ export function PluginFrame({
           else if (type === 'warning') toast.warning(message, { description });
           else toast.info(message, { description });
         },
+        onOpenModal: (modalId, props) => onOpenModal?.(modalId, props),
+        onCloseModal: () => onCloseModal?.(),
       });
       bridge.start();
       bridgeRef.current = bridge;
@@ -128,6 +142,7 @@ export function PluginFrame({
           entryUrl,
           styleUrls,
           view,
+          viewProps,
           sizing,
           hostStyleTexts: hostStyles.texts,
           hostStyleHrefs: hostStyles.hrefs,
@@ -176,6 +191,7 @@ export function PluginFrame({
     sizing,
     view.kind,
     view.kind === 'widget' ? view.widgetId : null,
+    view.kind === 'modal' ? view.modalId : null,
   ]);
 
   return (

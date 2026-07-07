@@ -7,20 +7,18 @@
  * the permission-gated bridge.
  */
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePlugins } from '../features/plugins/PluginProvider';
 import { PluginFrame } from '../features/plugins/sandbox/PluginFrame';
-import type { PluginPermission } from '../features/plugins/sandbox/protocol';
+import { PluginModalHost } from '../features/plugins/sandbox/PluginModalHost';
+import { buildPluginFrameUrls } from '../features/plugins/sandbox/frame-props';
 import { AlertTriangle, Home, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui';
 
-const SANDBOX_PERMISSIONS: PluginPermission[] = ['kubernetes', 'ui', 'storage'];
-
-function toSandboxPermissions(list: string[] | undefined): PluginPermission[] {
-  return (list ?? []).filter((p): p is PluginPermission =>
-    (SANDBOX_PERMISSIONS as string[]).includes(p)
-  );
+interface OpenModal {
+  modalId: string;
+  props: unknown;
 }
 
 export function PluginPage() {
@@ -28,6 +26,13 @@ export function PluginPage() {
   const navigate = useNavigate();
   const { plugins, loading } = usePlugins();
   const [title, setTitle] = useState<string | null>(null);
+  const [modal, setModal] = useState<OpenModal | null>(null);
+
+  // Stable so the page frame doesn't re-init on every render.
+  const handleOpenModal = useCallback((modalId: string, props: unknown) => {
+    setModal({ modalId, props });
+  }, []);
+  const handleCloseModal = useCallback(() => setModal(null), []);
 
   if (loading) {
     return (
@@ -66,15 +71,8 @@ export function PluginPage() {
     );
   }
 
-  const hostDocumentUrl = new URL(
-    'plugin-host/index.html',
-    document.baseURI
-  ).href;
-  const entryUrl = `plugin-file:///${plugin.rendererEntry}`;
-  const styleUrls = (plugin.rendererStyles ?? []).map(
-    (s) => `plugin-file:///${s}`
-  );
-  const permissions = toSandboxPermissions(plugin.manifest.permissions);
+  const urls = buildPluginFrameUrls(plugin);
+  if (!urls) return null;
 
   return (
     <div
@@ -84,14 +82,24 @@ export function PluginPage() {
       {title && <div className="plugin-page-title">{title}</div>}
       <PluginFrame
         pluginId={plugin.manifest.id}
-        hostDocumentUrl={hostDocumentUrl}
-        entryUrl={entryUrl}
-        styleUrls={styleUrls}
-        permissions={permissions}
+        hostDocumentUrl={urls.hostDocumentUrl}
+        entryUrl={urls.entryUrl}
+        styleUrls={urls.styleUrls}
+        permissions={urls.permissions}
         sizing="fill"
         onTitle={setTitle}
+        onOpenModal={handleOpenModal}
         className="flex-1"
       />
+      {modal && (
+        <PluginModalHost
+          pluginId={plugin.manifest.id}
+          urls={urls}
+          modalId={modal.modalId}
+          props={modal.props}
+          onClose={handleCloseModal}
+        />
+      )}
     </div>
   );
 }

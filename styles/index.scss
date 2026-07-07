@@ -26,6 +26,7 @@
 @use 'components/plugins/LicenseActivationModal';
 @use 'components/plugins/PluginConfigurationForm';
 @use 'components/plugins/PluginRuntime';
+@use 'components/plugins/PluginModalHost';
 @use 'components/resource-tables/ResourceCells';
 @use 'components/resource-tables/ResourceRows';
 @use 'components/resource-tables/ResourceTable';

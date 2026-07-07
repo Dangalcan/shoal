@@ -120,6 +120,22 @@
         className: 'space-y-6 h-full flex flex-col resource-monitor-container',
       },
       [
+        // --- Open a sandboxed modal (renders in its own iframe) ---
+        React.createElement(
+          Button,
+          {
+            key: 'open-details',
+            'data-testid': 'rm-open-details',
+            variant: 'secondary',
+            size: 'sm',
+            onClick: () =>
+              window.k8sPlugin.ui.showModal('rm-details', {
+                total: stats.total,
+                running: stats.running,
+              }),
+          },
+          'Cluster Details'
+        ),
         // --- Stats Row ---
         React.createElement(
           'div',
@@ -624,6 +640,41 @@
     );
   }
 
+  // --- Sandboxed modal: rendered in its own iframe, receives props +
+  // an injected onClose from the host. No host-realm code execution. ---
+  function ClusterDetailsModal(props) {
+    return React.createElement(
+      'div',
+      {
+        className: 'p-6 space-y-4',
+        'data-testid': 'rm-details-modal',
+      },
+      [
+        React.createElement(
+          'h2',
+          { key: 'h', className: 'text-lg font-bold text-primary' },
+          'Cluster Details'
+        ),
+        React.createElement(
+          'p',
+          { key: 'p', className: 'text-secondary' },
+          `Running ${props.running ?? 0} of ${props.total ?? 0} pods.`
+        ),
+        React.createElement(
+          Button,
+          {
+            key: 'close',
+            'data-testid': 'rm-details-close',
+            variant: 'secondary',
+            size: 'sm',
+            onClick: () => props.onClose && props.onClose(),
+          },
+          'Close'
+        ),
+      ]
+    );
+  }
+
   // Global Registration
   pluginUIRegistry.registerPage({
     id: 'resource-monitor',
@@ -635,6 +686,10 @@
     title: 'Live Pulse',
     size: 'small',
     component: PodCountWidget,
+  });
+  pluginUIRegistry.registerModal({
+    id: 'rm-details',
+    component: ClusterDetailsModal,
   });
 
   console.log('[Resource Monitor] Premium extensions active');

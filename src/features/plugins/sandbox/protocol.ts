@@ -91,7 +91,13 @@ export interface HostEvent {
 export type UiSignal =
   | { kind: 'ui'; type: 'ready' }
   | { kind: 'ui'; type: 'resize'; height: number }
-  | { kind: 'ui'; type: 'title'; title: string };
+  | { kind: 'ui'; type: 'title'; title: string }
+  // Ask the host to open one of this plugin's registered modals in an overlay.
+  // `props` is structured-cloned across the port (data only, never functions),
+  // so no plugin code crosses into the host realm. Requires the `ui` permission.
+  | { kind: 'ui'; type: 'open-modal'; modalId: string; props?: unknown }
+  // Ask the host to close the plugin's currently open modal overlay.
+  | { kind: 'ui'; type: 'close-modal' };
 
 export type HostboundMessage = RpcRequest | UiSignal;
 export type PluginboundMessage = RpcResponse | HostEvent;
