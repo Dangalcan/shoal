@@ -155,13 +155,20 @@ All plugin-related IPC methods are exposed on `window.electron`. See [API_REFERE
 
 ## Plugin Extension Points
 
-| Point            | Registration Method                               | Description                                                                          |
-| ---------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Sidebar items    | `context.ui.registerSidebarItem(item)`            | Adds entries to the left navigation                                                  |
-| Pages            | `context.ui.registerPage(route, component)`       | Registers a custom React page at a `/plugin/*` route                                 |
-| Resource actions | `context.ui.registerResourceAction(type, action)` | Adds buttons to resource rows                                                        |
-| Notifications    | `context.ui.showNotification(msg, type)`          | Shows Sonner toast notifications                                                     |
-| Modal (partial)  | `context.ui.openModal(comp, props)`               | IPC bridge exists (`onPluginModal` event); renderer-side rendering is a pending TODO |
+All UI contributions render inside the plugin's sandboxed iframe — no plugin
+code runs in the host realm. Widgets and resource actions are **declared in the
+manifest** (`extensions.*`) so the host can render the entry (button/card)
+without executing the plugin; the plugin registers the matching component in its
+`renderer.js` via `pluginUIRegistry`.
+
+| Point             | Declared / Registered                                                          | Description                                                                    |
+| ----------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| Sidebar items     | manifest `extensions.sidebar`                                                  | Adds entries to the left navigation (from the manifest; no code run)           |
+| Pages             | `pluginUIRegistry.registerPage({ id, component })`                             | The plugin's page, mounted in a `fill` sandbox frame at `/plugin/:id`          |
+| Dashboard widgets | manifest `extensions.widgets` + `registerWidget({ id, component })`            | Each widget mounts in its own `content`-sized sandbox frame on the Dashboard   |
+| Resource actions  | manifest `extensions.resourceActions` + `registerResourceAction({ id, comp })` | Button per matching resource row; opens the action component in a modal frame  |
+| Modals            | `registerModal({ id, component })` + `k8sPlugin.ui.showModal(id, props)`       | Renders in a sandboxed overlay frame; `props` structured-cloned; requires `ui` |
+| Notifications     | `k8sPlugin.ui.showNotification(msg, type)`                                     | Shows a Sonner toast (host-side); requires `ui`                                |
 
 ---
 
@@ -207,7 +214,8 @@ This is **not** a production marketplace. A full marketplace backend (payment pr
 | Plugin scaffolding (`generatePlugin` IPC)                 | ✅ Implemented                                     |
 | Import unpacked plugin (`importLocalPlugin` IPC)          | ✅ Implemented                                     |
 | `watchResources` API                                      | ❌ Not yet implemented (TODO in plugin-context.ts) |
-| Modal IPC bridge (full renderer support)                  | ⚠️ IPC event exists, renderer handling is TODO     |
+| Plugin modals (sandboxed)                                 | ✅ Implemented (`ui.showModal` → overlay frame)    |
+| Resource-table actions (sandboxed)                        | ✅ Implemented (manifest `resourceActions`)        |
 | Structured plugin storage (SQLite per plugin)             | ❌ Future (currently file-per-key JSON)            |
 | Cross-plugin event communication                          | ❌ Future                                          |
 | Granular network/filesystem permissions                   | ❌ Future                                          |
@@ -222,7 +230,6 @@ See [plugin_system_analysis.md](./plugin_system_analysis.md) for a detailed anal
 
 **Summary:**
 
-1. **No sandboxing**: Plugins run in the Electron main process with full Node.js access. Only install trusted plugins.
+1. **Renderer UI is fully sandboxed**; **main-process code is not a hard boundary**. Plugin `renderer.js` (all UI: pages, widgets, modals, actions) runs in an opaque-origin iframe with only the permission-gated `window.k8sPlugin`. Plugin `index.js` (main process) runs in a `vm` sandbox with a built-in allowlist — this limits casual access but is **not** a security boundary against a determined plugin; run only signed/trusted `index.js`. Hardening it into a `utilityProcess` is future work.
 2. **Simple storage**: `StorageAPI` uses one JSON file per key. No concurrent write protection or structured queries.
-3. **Modal IPC incomplete**: `openModal` sends the IPC event but the renderer does not yet have a generic modal handler for plugin-defined components.
-4. **`watchResources` not implemented**: Real-time resource watching via the plugin context API is not yet connected.
+3. **`watchResources` not implemented**: Real-time resource watching via the plugin context API is not yet connected.

@@ -111,6 +111,8 @@ module.exports = {
  *   - k8sPlugin.kubernetes.*   (requires "kubernetes" permission)
  *   - k8sPlugin.settings.get/set  (this plugin's own settings)
  *   - k8sPlugin.ui.openExternal / showNotification  (requires "ui")
+ *   - k8sPlugin.ui.showModal(id, props) / closeModal  (requires "ui";
+ *       register the modal component by id in your renderer first)
  *   - k8sPlugin.ui.setTitle / setHeight
  *   - k8sPlugin.ready()  (call once mounted)
  */
