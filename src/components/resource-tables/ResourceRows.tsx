@@ -3,6 +3,7 @@ import { NameCell } from './ResourceCells'
 import { ResourceType, COLUMN_DEFINITIONS } from '../../lib/resources/resource-definitions'
 import type { K8sResource } from '../../types/k8s-types'
 import { renderCell } from './cell-renderers/renderCell'
+import { PluginResourceActions } from '../../features/plugins/PluginResourceActions'
 
 
 interface ResourceRowProps {
@@ -61,6 +62,12 @@ export const ResourceRow: React.FC<ResourceRowProps> = ({
                             namespace={item.metadata.namespace}
                             onLogClick={activeTab === 'pods' ? actions.onLogs : undefined}
                             actions={actions}
+                            extraActions={
+                                <PluginResourceActions
+                                    resource={item}
+                                    resourceType={activeTab}
+                                />
+                            }
                             style={style}
                         />
                     )

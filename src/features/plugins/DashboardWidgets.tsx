@@ -11,6 +11,7 @@ import { Card, Animate } from '../../components/ui';
 import { usePlugins } from './PluginProvider';
 import { PluginFrame } from './sandbox/PluginFrame';
 import { buildPluginFrameUrls } from './sandbox/frame-props';
+import { usePluginModal } from './sandbox/usePluginModal';
 import type { Plugin, WidgetExtension } from '../../../electron/types/plugin-types';
 
 interface ResolvedWidget {
@@ -32,6 +33,7 @@ function useDashboardWidgets(): ResolvedWidget[] {
 
 export function DashboardWidgets() {
   const widgets = useDashboardWidgets();
+  const { openModal, modalNode } = usePluginModal();
   if (widgets.length === 0) return null;
 
   return (
@@ -60,12 +62,16 @@ export function DashboardWidgets() {
                   styleUrls={urls.styleUrls}
                   permissions={urls.permissions}
                   view={{ kind: 'widget', widgetId: widget.id }}
+                  onOpenModal={(modalId, props) =>
+                    openModal(plugin.manifest.id, modalId, props)
+                  }
                 />
               </Card>
             </Animate>
           );
         })}
       </div>
+      {modalNode}
     </div>
   );
 }

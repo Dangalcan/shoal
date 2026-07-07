@@ -19,7 +19,9 @@ export const NameCell: React.FC<{
     namespace?: string
     onLogClick?: () => void
     actions: ActionProps
-} & React.HTMLAttributes<HTMLTableCellElement>> = ({ name, namespace, onLogClick, actions, ...props }) => {
+    /** Plugin-contributed action buttons rendered after the built-in ones. */
+    extraActions?: React.ReactNode
+} & React.HTMLAttributes<HTMLTableCellElement>> = ({ name, namespace, onLogClick, actions, extraActions, ...props }) => {
     return (
         <td className="table-cell table-cell-name" {...props} title={name}>
             <div className="table-cell-name-content">
@@ -62,6 +64,7 @@ export const NameCell: React.FC<{
                             <Trash2 size={14} />
                         </button>
                     )}
+                    {extraActions}
                 </div>
             </div>
         </td>

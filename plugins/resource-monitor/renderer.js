@@ -692,5 +692,50 @@
     component: ClusterDetailsModal,
   });
 
+  // --- Resource-table action: opens in a sandboxed modal frame with the
+  // clicked resource passed as props. Registered by the same id the manifest
+  // declares under extensions.resourceActions. ---
+  function InspectPodModal(props) {
+    const pod = props.resource || {};
+    const meta = pod.metadata || {};
+    const status = pod.status || {};
+    return React.createElement(
+      'div',
+      { className: 'p-6 space-y-3', 'data-testid': 'rm-inspect-modal' },
+      [
+        React.createElement(
+          'h2',
+          { key: 'h', className: 'text-lg font-bold text-primary' },
+          `Pod: ${meta.name || 'unknown'}`
+        ),
+        React.createElement(
+          'p',
+          { key: 'ns', className: 'text-secondary text-sm' },
+          `Namespace: ${meta.namespace || '—'}`
+        ),
+        React.createElement(
+          'p',
+          { key: 'ph', className: 'text-secondary text-sm' },
+          `Phase: ${status.phase || '—'}`
+        ),
+        React.createElement(
+          Button,
+          {
+            key: 'close',
+            'data-testid': 'rm-inspect-close',
+            variant: 'secondary',
+            size: 'sm',
+            onClick: () => props.onClose && props.onClose(),
+          },
+          'Close'
+        ),
+      ]
+    );
+  }
+  pluginUIRegistry.registerResourceAction({
+    id: 'rm-inspect',
+    component: InspectPodModal,
+  });
+
   console.log('[Resource Monitor] Premium extensions active');
 })();
