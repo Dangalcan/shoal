@@ -139,9 +139,25 @@ export function PluginFrame({
     };
 
     iframe.addEventListener('load', handleLoad);
+
+    // Keep the frame's theme in sync when the user toggles light/dark. The
+    // initial theme is sent in the init message; this pushes later changes.
+    const htmlEl = document.documentElement;
+    const themeObserver = new MutationObserver(() => {
+      bridgeRef.current?.dispatchEvent(
+        'host:theme',
+        htmlEl.getAttribute('data-theme')
+      );
+    });
+    themeObserver.observe(htmlEl, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+
     return () => {
       disposed = true;
       iframe.removeEventListener('load', handleLoad);
+      themeObserver.disconnect();
       bridgeRef.current?.dispose();
       bridgeRef.current = null;
     };

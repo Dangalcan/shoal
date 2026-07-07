@@ -194,6 +194,15 @@ window.addEventListener('message', function onInit(event: MessageEvent) {
   window.removeEventListener('message', onInit);
 
   const sdk = createPluginSdk(port as unknown as SdkPortLike);
+
+  // Keep the frame's theme in sync with the host after load (the host dispatches
+  // 'host:theme' when the user toggles light/dark).
+  sdk.events.on('host:theme', (payload) => {
+    const theme = typeof payload === 'string' ? payload : null;
+    if (theme) document.documentElement.setAttribute('data-theme', theme);
+    else document.documentElement.removeAttribute('data-theme');
+  });
+
   const container = document.getElementById('root');
   if (!container) return;
   let root: Root | null = null;
