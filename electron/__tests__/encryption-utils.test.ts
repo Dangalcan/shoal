@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import crypto from 'crypto';
 
 // Mock electron so app.getPath('userData') resolves without a real app.
 vi.mock('electron', () => ({
@@ -8,28 +9,30 @@ vi.mock('electron', () => ({
 }));
 
 // Mock the synchronous fs module used by getOrCreateSalt().
-// We return a stable, deterministic salt so the encryption key is consistent
-// within a test run, without touching the real filesystem.
-vi.mock('fs', () => {
-  const mockSalt = 'a'.repeat(64); // 64 hex chars = 32 bytes
-  return {
-    default: {
-      readFileSync: vi.fn(() => mockSalt),
-      writeFileSync: vi.fn(),
-      mkdirSync: vi.fn(),
-    },
-    readFileSync: vi.fn(() => mockSalt),
-    writeFileSync: vi.fn(),
-    mkdirSync: vi.fn(),
-  };
-});
+// Mutable, hoisted fn refs so individual tests can change fs behaviour and have
+// it apply to a freshly re-imported module (via vi.resetModules).
+const fsMock = vi.hoisted(() => ({
+  readFileSync: vi.fn(() => 'a'.repeat(64)), // 64 hex chars = 32 bytes
+  writeFileSync: vi.fn(),
+  mkdirSync: vi.fn(),
+}));
+vi.mock('fs', () => ({ default: fsMock, ...fsMock }));
 
 // Mock node-machine-id so machineIdSync() returns a stable value.
 vi.mock('node-machine-id', () => ({
   machineIdSync: vi.fn(() => 'test-machine-id-stable'),
 }));
 
-import { encrypt, decrypt } from '../services/security/encryption-utils';
+// Mock the logger to avoid electron-log re-initialisation across resetModules.
+vi.mock('../logger', () => ({
+  default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}));
+
+import {
+  encrypt,
+  decrypt,
+  isLegacyCBC,
+} from '../services/security/encryption-utils';
 
 describe('encryption-utils', () => {
   describe('encrypt', () => {
@@ -98,6 +101,73 @@ describe('encryption-utils', () => {
       parts[1] = 'ff'.repeat(16);
       const result = decrypt(parts.join(':'));
       expect(result).toBe('');
+    });
+  });
+
+  describe('decrypt – legacy CBC', () => {
+    // Key derivation is deterministic under the mocks above.
+    const key = crypto.scryptSync('test-machine-id-stable', 'a'.repeat(64), 32);
+
+    it('decrypts a legacy CBC (iv:ciphertext) value', () => {
+      const iv = crypto.randomBytes(16);
+      const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+      const ct = Buffer.concat([
+        cipher.update('legacy-secret'),
+        cipher.final(),
+      ]);
+      const value = iv.toString('hex') + ':' + ct.toString('hex');
+      expect(decrypt(value)).toBe('legacy-secret');
+    });
+
+    it('returns empty string for a two-part value with a bad IV length', () => {
+      expect(decrypt('00:00')).toBe('');
+    });
+  });
+
+  describe('isLegacyCBC', () => {
+    it('is true for a two-part value, false otherwise', () => {
+      expect(isLegacyCBC('aa:bb')).toBe(true);
+      expect(isLegacyCBC('aa:bb:cc')).toBe(false);
+      expect(isLegacyCBC('nodivider')).toBe(false);
+    });
+  });
+
+  describe('getOrCreateSalt – persistence', () => {
+    beforeEach(() => {
+      vi.resetModules();
+      // Reset fs mock impls to defaults before each test.
+      fsMock.readFileSync.mockReset();
+      fsMock.writeFileSync.mockReset();
+      fsMock.mkdirSync.mockReset();
+      fsMock.readFileSync.mockReturnValue('a'.repeat(64));
+    });
+
+    it('creates and persists a new salt when none exists', async () => {
+      fsMock.readFileSync.mockImplementation(() => {
+        throw new Error('ENOENT');
+      });
+      const mod = await import('../services/security/encryption-utils');
+      mod.encrypt('x'); // triggers getEncryptionKey → getOrCreateSalt
+      expect(fsMock.mkdirSync).toHaveBeenCalled();
+      expect(fsMock.writeFileSync).toHaveBeenCalled();
+    });
+
+    it('creates a new salt when the stored one is too short', async () => {
+      fsMock.readFileSync.mockReturnValue('short');
+      const mod = await import('../services/security/encryption-utils');
+      mod.encrypt('x');
+      expect(fsMock.writeFileSync).toHaveBeenCalled();
+    });
+
+    it('does not throw when the salt cannot be persisted', async () => {
+      fsMock.readFileSync.mockImplementation(() => {
+        throw new Error('ENOENT');
+      });
+      fsMock.writeFileSync.mockImplementation(() => {
+        throw new Error('EACCES');
+      });
+      const mod = await import('../services/security/encryption-utils');
+      expect(() => mod.encrypt('x')).not.toThrow();
     });
   });
 });
