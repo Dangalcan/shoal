@@ -115,6 +115,18 @@ describe('resourceSorters', () => {
       const p2 = createPod({ spec: { nodeName: 'node-b', containers: [] } });
       expect(sortByNode(p1, p2)).toBeLessThan(0);
     });
+
+    it('sortByIP returns empty string when podIP is absent', () => {
+      const p1 = createPod(); // status: {} → no podIP
+      const p2 = createPod();
+      expect(sortByIP(p1, p2)).toBe(0); // covers line 87
+    });
+
+    it('sortByNode returns empty string when nodeName is absent', () => {
+      const p1 = createPod(); // spec has no nodeName
+      const p2 = createPod();
+      expect(sortByNode(p1, p2)).toBe(0); // covers line 93
+    });
   });
 
   describe('Workload Sorters', () => {
