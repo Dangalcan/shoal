@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react';
+import { renderHook, render } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ApiProvider, useApi } from '../../services/api-context';
 import { mockApi } from '../../services/mockApi';
@@ -58,5 +58,34 @@ describe('ApiContext', () => {
     });
 
     expect(result.current).toBe(customApi);
+  });
+  describe('non-test environment', () => {
+    const originalEnv = process.env.NODE_ENV;
+
+    afterEach(() => {
+      process.env.NODE_ENV = originalEnv;
+      vi.resetModules();
+    });
+
+    it('should log error and return fallback UI when window.electron is missing outside tests', async () => {
+      process.env.NODE_ENV = 'production';
+      delete (window as any).electron;
+      
+      // Need to re-import the module to re-evaluate the IS_TEST constant
+      vi.resetModules();
+      const { ApiProvider } = await import('../../services/api-context');
+      
+      const { container } = render(
+        <ApiProvider>
+          <div>App Content</div>
+        </ApiProvider>
+      );
+      
+      expect(console.error).toHaveBeenCalledWith(
+        expect.stringContaining('window.electron is not available in a non-test environment')
+      );
+      expect(container.textContent).toContain('Fatal:');
+      expect(container.textContent).toContain('Electron IPC bridge not found');
+    });
   });
 });
