@@ -83,4 +83,26 @@ describe('useLocalStorage', () => {
     spy.mockRestore();
     setItemSpy.mockRestore();
   });
+
+  it('should handle undefined window (SSR environment)', () => {
+    const { result } = renderHook(() => {
+      const oldWindow = globalThis.window;
+      Object.defineProperty(globalThis, 'window', {
+        value: undefined,
+        writable: true,
+        configurable: true,
+      });
+      try {
+        return useLocalStorage('ssr-key', { foo: 'ssr' });
+      } finally {
+        Object.defineProperty(globalThis, 'window', {
+          value: oldWindow,
+          writable: true,
+          configurable: true,
+        });
+      }
+    });
+
+    expect(result.current[0]).toEqual({ foo: 'ssr' });
+  });
 });
