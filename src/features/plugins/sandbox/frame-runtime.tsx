@@ -182,8 +182,12 @@ function loadStyles(urls: string[]): void {
 function applySizing(sizing: 'content' | 'fill'): void {
   if (sizing !== 'fill') return;
   const style = document.createElement('style');
+  // !important so the copied host CSS (styles/index.scss sets a non-scrolling
+  // `html,body,#root{overflow:hidden}` app shell) can't clobber the frame's
+  // scroll container — the host rule is injected AFTER this one at equal
+  // specificity and would otherwise win.
   style.textContent =
-    'html,body{height:100%}#root{height:100%;overflow:auto;box-sizing:border-box}';
+    'html,body{height:100%!important}#root{height:100%!important;overflow:auto!important;box-sizing:border-box}';
   document.head.appendChild(style);
 }
 
