@@ -196,4 +196,7 @@ export const mockApi: ElectronAPI = {
   }),
   onTerminalOutput: () => () => {},
   onTerminalExited: () => () => {},
+  checkForAppUpdates: async () => ({ success: true, data: false }),
+  installAppUpdate: async () => ({ success: true, data: true }),
+  onUpdateStatus: () => () => {},
 };

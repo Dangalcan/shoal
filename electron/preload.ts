@@ -154,4 +154,14 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.on('terminal:exited', handler);
     return () => ipcRenderer.off('terminal:exited', handler);
   },
+
+  // App updates
+  checkForAppUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  installAppUpdate: () => ipcRenderer.invoke('install-update'),
+  onUpdateStatus: (callback: (status: unknown) => void) => {
+    const handler = (_event: IpcRendererEvent, status: unknown) =>
+      callback(status);
+    ipcRenderer.on('update-status', handler);
+    return () => ipcRenderer.off('update-status', handler);
+  },
 });

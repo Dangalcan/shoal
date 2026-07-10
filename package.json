@@ -54,6 +54,7 @@
     "better-sqlite3": "^12.6.2",
     "clsx": "^2.1.1",
     "electron-log": "^5.4.3",
+    "electron-updater": "^6.8.9",
     "husky": "^9.1.7",
     "js-yaml": "^4.1.1",
     "lucide-react": "^0.562.0",
@@ -114,6 +115,13 @@
       "dist-electron/**/*",
       "package.json"
     ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Dangalcan",
+        "repo": "Kubernetes-Desktop"
+      }
+    ],
     "win": {
       "icon": "public/icon.png",
       "target": [
@@ -129,8 +137,7 @@
             "x64"
           ]
         }
-      ],
-      "publish": null
+      ]
     },
     "linux": {
       "icon": "public/icon.png",

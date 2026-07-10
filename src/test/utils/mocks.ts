@@ -126,6 +126,11 @@ export function createMockElectronAPI(
       .mockResolvedValue({ success: true, data: undefined }),
     onTerminalOutput: vi.fn().mockReturnValue(() => {}),
     onTerminalExited: vi.fn().mockReturnValue(() => {}),
+    checkForAppUpdates: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: false }),
+    installAppUpdate: vi.fn().mockResolvedValue({ success: true, data: true }),
+    onUpdateStatus: vi.fn().mockReturnValue(() => {}),
     ...overrides,
   };
 }

@@ -135,6 +135,11 @@ export interface ElectronAPI {
   ) => () => void;
   onTerminalExited: (callback: (sessionId: string) => void) => () => void;
 
+  // App updates
+  checkForAppUpdates: () => Promise<Result<boolean>>;
+  installAppUpdate: () => Promise<Result<boolean>>;
+  onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
+
   // Listeners
   onSetKubeconfigPath: (callback: (value: boolean) => void) => void;
   onPluginNotification: (
@@ -142,6 +147,14 @@ export interface ElectronAPI {
   ) => () => void;
   onPluginModal: (callback: (data: PluginModalData) => void) => () => void;
 }
+
+export type UpdateStatus =
+  | { state: 'checking' }
+  | { state: 'available'; version: string }
+  | { state: 'not-available' }
+  | { state: 'downloading'; percent: number }
+  | { state: 'downloaded'; version: string }
+  | { state: 'error'; message: string };
 
 export interface MarketplaceEntry {
   id: string;
