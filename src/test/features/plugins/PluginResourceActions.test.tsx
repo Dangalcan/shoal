@@ -37,7 +37,10 @@ vi.mock('../../../features/plugins/sandbox/PluginFrame', () => ({
     view?: PluginFrameView;
     onCloseModal?: () => void;
   }) => (
-    <div data-testid="modal-frame" data-modal-id={(view as any)?.modalId}>
+    <div
+      data-testid="modal-frame"
+      data-modal-id={view?.kind === 'modal' ? view.modalId : undefined}
+    >
       <button onClick={() => onCloseModal?.()}>close-frame</button>
     </div>
   ),

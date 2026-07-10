@@ -47,8 +47,9 @@ interface InitMessage {
 }
 
 /** Re-wrap a resolved/rejected SDK call into the { success, data } shape that
- *  legacy plugins expect from `window.electron`. */
-function wrapResult<T>(
+ *  legacy plugins expect from `window.electron`.
+ *  Exported for unit testing; the bundle uses it internally. */
+export function wrapResult<T>(
   p: Promise<T>
 ): Promise<{ success: boolean; data?: T; error?: string }> {
   return p.then(
@@ -60,10 +61,12 @@ function wrapResult<T>(
   );
 }
 
-/** window.electron shim: the legacy IPC surface, routed through the gated SDK. */
-function makeElectronShim(sdk: K8sPluginSdk): Record<string, unknown> {
+/** window.electron shim: the legacy IPC surface, routed through the gated SDK.
+ *  Exported for unit testing; the bundle uses it internally. */
+export function makeElectronShim(sdk: K8sPluginSdk): Record<string, unknown> {
   return {
-    getResources: (a: unknown) => wrapResult(sdk.kubernetes.getResources(a as never)),
+    getResources: (a: unknown) =>
+      wrapResult(sdk.kubernetes.getResources(a as never)),
     getPods: (c: string) => wrapResult(sdk.kubernetes.getPods(c)),
     getNamespaces: (c: string) => wrapResult(sdk.kubernetes.getNamespaces(c)),
     getLogs: (a: unknown) => wrapResult(sdk.kubernetes.getLogs(a as never)),
@@ -71,7 +74,8 @@ function makeElectronShim(sdk: K8sPluginSdk): Record<string, unknown> {
       wrapResult(sdk.kubernetes.describeResource(a)),
     getResourceYaml: (a: unknown) =>
       wrapResult(sdk.kubernetes.getResourceYaml(a)),
-    deleteResource: (a: unknown) => wrapResult(sdk.kubernetes.deleteResource(a)),
+    deleteResource: (a: unknown) =>
+      wrapResult(sdk.kubernetes.deleteResource(a)),
     getCurrentContext: () => wrapResult(sdk.kubernetes.getCurrentContext()),
     getClusters: () => wrapResult(sdk.kubernetes.getClusters()),
     applyManifest: (id: number) => wrapResult(sdk.manifests.apply(id)),
@@ -96,7 +100,10 @@ function makeElectronShim(sdk: K8sPluginSdk): Record<string, unknown> {
 export function makeRegistryShim(
   view: FrameView,
   viewProps: unknown,
-  mount: (component: React.ComponentType, props?: Record<string, unknown>) => void
+  mount: (
+    component: React.ComponentType,
+    props?: Record<string, unknown>
+  ) => void
 ): Record<string, unknown> {
   let mounted = false;
   let page: React.ComponentType | null = null;
@@ -254,19 +261,23 @@ window.addEventListener('message', function onInit(event: MessageEvent) {
   globals.electron = makeElectronShim(sdk);
   const sizing: 'content' | 'fill' = data.sizing ?? 'content';
   const view: FrameView = data.view ?? { kind: 'page' };
-  globals.pluginUIRegistry = makeRegistryShim(view, data.viewProps, (Component, props) => {
-    if (!root) root = createRoot(container);
-    // Modals get an onClose bound to the SDK so the plugin can dismiss itself.
-    const finalProps =
-      view.kind === 'modal'
-        ? { ...(props ?? {}), onClose: () => sdk.ui.closeModal() }
-        : props;
-    root.render(React.createElement(Component, finalProps));
-    sdk.ready();
-    // Fill pages own their height (100%) and scroll internally, so don't drive
-    // the frame height from content; only content-sized widgets report height.
-    if (sizing === 'content') observeHeight(sdk);
-  });
+  globals.pluginUIRegistry = makeRegistryShim(
+    view,
+    data.viewProps,
+    (Component, props) => {
+      if (!root) root = createRoot(container);
+      // Modals get an onClose bound to the SDK so the plugin can dismiss itself.
+      const finalProps =
+        view.kind === 'modal'
+          ? { ...(props ?? {}), onClose: () => sdk.ui.closeModal() }
+          : props;
+      root.render(React.createElement(Component, finalProps));
+      sdk.ready();
+      // Fill pages own their height (100%) and scroll internally, so don't drive
+      // the frame height from content; only content-sized widgets report height.
+      if (sizing === 'content') observeHeight(sdk);
+    }
+  );
 
   // Height/scroll context first, then host app CSS, then the plugin's styles.
   applySizing(sizing);
