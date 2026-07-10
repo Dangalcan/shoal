@@ -137,6 +137,14 @@ export const mockApi: ElectronAPI = {
   }),
   getMarketplacePlugins: async () => ({ success: true, data: [] }),
   installPlugin: async (_id: string) => ({ success: true, data: undefined }),
+  createCheckout: async (_id: string) => ({
+    success: true,
+    data: { sessionId: 'cs_mock', url: 'https://example.com/pay' },
+  }),
+  getCheckoutStatus: async (_sessionId: string) => ({
+    success: true,
+    data: { status: 'paid' as const, licenseKey: 'LIC-MOCK' },
+  }),
   generatePlugin: async (_options: PluginScaffoldOptions) => ({
     success: true,
     data: true,

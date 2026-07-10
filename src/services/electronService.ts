@@ -109,6 +109,18 @@ export class ElectronService {
     return window.electron.installPlugin(pluginId);
   }
 
+  async createCheckout(
+    pluginId: string
+  ): Promise<Result<{ sessionId: string; url: string }>> {
+    return window.electron.createCheckout(pluginId);
+  }
+
+  async getCheckoutStatus(
+    sessionId: string
+  ): Promise<Result<{ status: 'pending' | 'paid'; licenseKey?: string }>> {
+    return window.electron.getCheckoutStatus(sessionId);
+  }
+
   async activatePluginLicense(
     pluginId: string,
     licenseKey: string

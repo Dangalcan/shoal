@@ -103,6 +103,10 @@ contextBridge.exposeInMainWorld('electron', {
   getMarketplacePlugins: () => ipcRenderer.invoke('get-marketplace-plugins'),
   installPlugin: (pluginId: string) =>
     ipcRenderer.invoke('install-plugin', pluginId),
+  createCheckout: (pluginId: string) =>
+    ipcRenderer.invoke('create-checkout', pluginId),
+  getCheckoutStatus: (sessionId: string) =>
+    ipcRenderer.invoke('get-checkout-status', sessionId),
   generatePlugin: (options: PluginScaffoldOptions) =>
     ipcRenderer.invoke('generate-plugin', options),
   reloadPlugin: (pluginId: string) =>

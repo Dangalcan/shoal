@@ -83,6 +83,14 @@ export function createMockElectronAPI(
     installPlugin: vi
       .fn()
       .mockResolvedValue({ success: true, data: undefined }),
+    createCheckout: vi.fn().mockResolvedValue({
+      success: true,
+      data: { sessionId: 'cs_mock', url: 'https://example.com/pay' },
+    }),
+    getCheckoutStatus: vi.fn().mockResolvedValue({
+      success: true,
+      data: { status: 'paid', licenseKey: 'LIC-MOCK' },
+    }),
     generatePlugin: vi.fn().mockResolvedValue({ success: true, data: true }),
     reloadPlugin: vi.fn().mockResolvedValue({ success: true, data: undefined }),
     importLocalPlugin: vi

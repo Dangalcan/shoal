@@ -94,6 +94,12 @@ export interface ElectronAPI {
   deactivatePluginLicense: (pluginId: string) => Promise<Result<void>>;
   getMarketplacePlugins: () => Promise<Result<MarketplaceEntry[]>>;
   installPlugin: (pluginId: string) => Promise<Result<void>>;
+  createCheckout: (
+    pluginId: string
+  ) => Promise<Result<{ sessionId: string; url: string }>>;
+  getCheckoutStatus: (
+    sessionId: string
+  ) => Promise<Result<{ status: 'pending' | 'paid'; licenseKey?: string }>>;
   generatePlugin: (options: PluginScaffoldOptions) => Promise<Result<boolean>>;
   reloadPlugin: (pluginId: string) => Promise<Result<void>>;
   importLocalPlugin: () => Promise<Result<string>>;

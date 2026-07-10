@@ -21,7 +21,18 @@ import { getErrorMessage } from '../../utils/error-utils';
 import { isProduction } from '../../utils/env-utils';
 import { pluginManager } from '../plugins/plugin-manager';
 import { assertValidPluginId } from '../plugins/plugin-validator';
+import { machineIdSync } from 'node-machine-id';
 import log from '../../logger';
+
+export interface CheckoutSession {
+  sessionId: string;
+  url: string;
+}
+
+export interface CheckoutStatus {
+  status: 'pending' | 'paid';
+  licenseKey?: string;
+}
 
 export class MarketplaceService {
   private get BACKEND_URL(): string {
@@ -289,6 +300,55 @@ export class MarketplaceService {
         success: false,
         error: getErrorMessage(error),
       };
+    }
+  }
+
+  /**
+   * Start a purchase for a paid plugin. Returns a Checkout URL the user opens
+   * to pay, plus a sessionId to poll with getCheckoutStatus.
+   */
+  async createCheckout(pluginId: string): Promise<Result<CheckoutSession>> {
+    try {
+      assertValidPluginId(pluginId);
+      const response = await fetch(`${this.BACKEND_URL}/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pluginId, machineId: machineIdSync() }),
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!response.ok) {
+        const err = await response
+          .json()
+          .catch(() => ({ error: `HTTP ${response.status}` }));
+        return {
+          success: false,
+          error: err.error || `HTTP ${response.status}`,
+        };
+      }
+      return {
+        success: true,
+        data: (await response.json()) as CheckoutSession,
+      };
+    } catch (error: unknown) {
+      log.error('[MarketplaceService] createCheckout failed:', error);
+      return { success: false, error: getErrorMessage(error) };
+    }
+  }
+
+  /**
+   * Poll a checkout session. Once `status` is 'paid', `licenseKey` holds the
+   * purchased key to activate + install.
+   */
+  async getCheckoutStatus(sessionId: string): Promise<Result<CheckoutStatus>> {
+    try {
+      const url = `${this.BACKEND_URL}/checkout/${encodeURIComponent(sessionId)}`;
+      const response = await this.fetchWithTimeout(url);
+      if (!response.ok) {
+        return { success: false, error: `HTTP ${response.status}` };
+      }
+      return { success: true, data: (await response.json()) as CheckoutStatus };
+    } catch (error: unknown) {
+      return { success: false, error: getErrorMessage(error) };
     }
   }
 
