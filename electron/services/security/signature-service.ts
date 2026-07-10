@@ -83,14 +83,29 @@ swIDAQAB
   }
 
   /**
-   * Verify a hex-encoded RSA-SHA256 signature against the embedded public key.
+   * The public key used to verify plugin signatures. Defaults to the embedded
+   * key, but a marketplace deployment can override it via MARKETPLACE_PUBLIC_KEY
+   * (PEM, with literal "\n" for line breaks) so the app trusts plugins signed by
+   * that marketplace — fetch it from the backend's /v1/signing-public-key. This
+   * makes key rotation a config change, not a code change.
+   */
+  private get verificationKey(): string {
+    const override = process.env.MARKETPLACE_PUBLIC_KEY;
+    if (override && override.includes('BEGIN PUBLIC KEY')) {
+      return override.replace(/\\n/g, '\n');
+    }
+    return this.PUBLIC_KEY;
+  }
+
+  /**
+   * Verify a hex-encoded RSA-SHA256 signature against the verification key.
    */
   private verifySignature(data: string, signature: string): boolean {
     try {
       return crypto.verify(
         'sha256',
         Buffer.from(data),
-        this.PUBLIC_KEY,
+        this.verificationKey,
         Buffer.from(signature.trim(), 'hex')
       );
     } catch (error) {

@@ -93,6 +93,42 @@ describe('SignatureService', () => {
       expect(result).toBe(true);
     });
 
+    it('verifies against MARKETPLACE_PUBLIC_KEY when set (rotation)', async () => {
+      const overridePem =
+        '-----BEGIN PUBLIC KEY-----\\nMARKETPLACEKEY\\n-----END PUBLIC KEY-----';
+      vi.stubEnv('MARKETPLACE_PUBLIC_KEY', overridePem);
+      vi.mocked(fs.readFile)
+        .mockResolvedValueOnce('{"id":"test-plugin"}')
+        .mockResolvedValueOnce('somesig');
+      getVerifyMock().mockReturnValue(true);
+
+      const result = await service.verifyPlugin('/fake/plugin/path');
+      expect(result).toBe(true);
+
+      // The override key (with real newlines, not escaped) is used for verify.
+      const keyArg = String(getVerifyMock().mock.calls[0][2]);
+      expect(keyArg).toContain('MARKETPLACEKEY');
+      expect(keyArg).toContain('\n');
+      expect(keyArg).not.toContain('\\n');
+
+      vi.unstubAllEnvs();
+    });
+
+    it('ignores a malformed MARKETPLACE_PUBLIC_KEY and uses the embedded key', async () => {
+      vi.stubEnv('MARKETPLACE_PUBLIC_KEY', 'not-a-pem');
+      vi.mocked(fs.readFile)
+        .mockResolvedValueOnce('{"id":"test-plugin"}')
+        .mockResolvedValueOnce('somesig');
+      getVerifyMock().mockReturnValue(true);
+
+      await service.verifyPlugin('/fake/plugin/path');
+      const keyArg = String(getVerifyMock().mock.calls[0][2]);
+      expect(keyArg).toContain('BEGIN PUBLIC KEY');
+      expect(keyArg).not.toContain('not-a-pem');
+
+      vi.unstubAllEnvs();
+    });
+
     it('should return false when crypto.verify throws (e.g. bad key)', async () => {
       vi.mocked(fs.readFile)
         .mockResolvedValueOnce('{"id":"test-plugin"}')
