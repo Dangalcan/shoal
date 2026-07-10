@@ -94,6 +94,10 @@ vi.mock('fs/promises', () => {
   };
 });
 
+vi.mock('node-machine-id', () => ({
+  machineIdSync: vi.fn(() => 'test-machine-id'),
+}));
+
 // Mock global fetch
 global.fetch = vi.fn();
 
@@ -585,6 +589,80 @@ describe('MarketplaceService', () => {
     it('should return false if coercion fails', () => {
       expect(service.isNewer('invalid', '1.0.0')).toBe(false);
       expect(service.isNewer('1.0.0', 'invalid')).toBe(false);
+    });
+  });
+
+  describe('createCheckout', () => {
+    it('posts pluginId + machineId and returns the session', async () => {
+      vi.mocked(global.fetch as any).mockResolvedValue({
+        ok: true,
+        json: async () => ({ sessionId: 'cs_1', url: 'https://pay/cs_1' }),
+      });
+
+      const res = await service.createCheckout('paid-plugin');
+      expect(res.success).toBe(true);
+      if (res.success) {
+        expect(res.data).toEqual({
+          sessionId: 'cs_1',
+          url: 'https://pay/cs_1',
+        });
+      }
+
+      const [url, init] = vi.mocked(global.fetch as any).mock.calls[0];
+      expect(String(url)).toMatch(/\/checkout$/);
+      expect(init.method).toBe('POST');
+      expect(JSON.parse(init.body)).toEqual({
+        pluginId: 'paid-plugin',
+        machineId: 'test-machine-id',
+      });
+    });
+
+    it('returns a failure Result on a non-ok response', async () => {
+      vi.mocked(global.fetch as any).mockResolvedValue({
+        ok: false,
+        status: 409,
+        json: async () => ({ error: 'Seller payouts not set up' }),
+      });
+      const res = await service.createCheckout('paid-plugin');
+      expect(res.success).toBe(false);
+      if (!res.success) expect(res.error).toMatch(/payouts/);
+    });
+
+    it('rejects an invalid plugin id before calling fetch', async () => {
+      const res = await service.createCheckout('../evil');
+      expect(res.success).toBe(false);
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('returns a failure Result when fetch throws', async () => {
+      vi.mocked(global.fetch as any).mockRejectedValue(new Error('network'));
+      const res = await service.createCheckout('paid-plugin');
+      expect(res.success).toBe(false);
+    });
+  });
+
+  describe('getCheckoutStatus', () => {
+    it('returns the paid status + license key', async () => {
+      vi.mocked(global.fetch as any).mockResolvedValue({
+        ok: true,
+        json: async () => ({ status: 'paid', licenseKey: 'LIC-1' }),
+      });
+      const res = await service.getCheckoutStatus('cs_1');
+      expect(res.success).toBe(true);
+      if (res.success) {
+        expect(res.data).toEqual({ status: 'paid', licenseKey: 'LIC-1' });
+      }
+      const [url] = vi.mocked(global.fetch as any).mock.calls[0];
+      expect(String(url)).toMatch(/\/checkout\/cs_1$/);
+    });
+
+    it('returns a failure Result on a non-ok response', async () => {
+      vi.mocked(global.fetch as any).mockResolvedValue({
+        ok: false,
+        status: 404,
+      });
+      const res = await service.getCheckoutStatus('missing');
+      expect(res.success).toBe(false);
     });
   });
 });
