@@ -6,10 +6,22 @@ import '@xterm/xterm/css/xterm.css';
 interface TerminalProps {
   sessionId: string;
   kind: 'local' | 'pod-exec';
+  /**
+   * Line-ending family of the shell. Local Windows shells (PowerShell,
+   * cmd) need \r\n input and emit \r\n output; unix shells (Git Bash,
+   * WSL, pod shells) need \n input and emit bare \n output.
+   * Defaults: local → 'windows', pod-exec → 'unix'.
+   */
+  shellFamily?: 'windows' | 'unix';
   className?: string;
 }
 
-export function Terminal({ sessionId, kind, className = '' }: TerminalProps) {
+export function Terminal({
+  sessionId,
+  kind,
+  shellFamily,
+  className = '',
+}: TerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -28,6 +40,8 @@ export function Terminal({ sessionId, kind, className = '' }: TerminalProps) {
   useEffect(() => {
     if (!containerRef.current) return;
     const isLocal = kind === 'local';
+    const isWindowsShell =
+      (shellFamily ?? (isLocal ? 'windows' : 'unix')) === 'windows';
 
     const terminal = new XTerm({
       cursorBlink: true,
@@ -49,6 +63,14 @@ export function Terminal({ sessionId, kind, className = '' }: TerminalProps) {
     xtermRef.current = terminal;
     fitAddonRef.current = fitAddon;
 
+    // Local unix shells (WSL, Git Bash without stderr prompt) print nothing
+    // until the first command — without this the terminal looks dead.
+    if (isLocal && !isWindowsShell) {
+      terminal.write(
+        '\x1b[90m[Shell ready — no PTY prompt; type a command and press Enter]\x1b[0m\r\n'
+      );
+    }
+
     // Both local and pod-exec: buffer input locally and echo to screen.
     // - cmd.exe (local): never echoes piped input, so we must echo.
     // - pod shell (pod-exec): no real PTY, so the shell won't echo char-by-char.
@@ -64,8 +86,8 @@ export function Terminal({ sessionId, kind, className = '' }: TerminalProps) {
             const cmd = inputBuffer.trim().toLowerCase();
             if (cmd === 'clear' || cmd === 'cls') terminal.clear();
           }
-          // cmd.exe (Windows) needs \r\n; Linux shells need just \n
-          const eol = isLocal ? '\r\n' : '\n';
+          // Windows shells need \r\n; unix shells need just \n
+          const eol = isWindowsShell ? '\r\n' : '\n';
           window.electron.terminalInput(sessionId, inputBuffer + eol);
           inputBuffer = '';
         } else if (code === 0x03) {
@@ -87,8 +109,8 @@ export function Terminal({ sessionId, kind, className = '' }: TerminalProps) {
     const cleanupOutput = window.electron.onTerminalOutput(
       (sid: string, data: string) => {
         if (sid !== sessionId) return;
-        // Linux shells output bare \n; xterm needs \r\n to return to column 0.
-        const output = isLocal ? data : data.replace(/\r?\n/g, '\r\n');
+        // Unix shells output bare \n; xterm needs \r\n to return to column 0.
+        const output = isWindowsShell ? data : data.replace(/\r?\n/g, '\r\n');
         terminal.write(output);
       }
     );
@@ -108,7 +130,7 @@ export function Terminal({ sessionId, kind, className = '' }: TerminalProps) {
       observer.disconnect();
       terminal.dispose();
     };
-  }, [sessionId, kind, fit]);
+  }, [sessionId, kind, shellFamily, fit]);
 
   return (
     <div
