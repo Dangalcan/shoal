@@ -16,11 +16,16 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-// Global clipboard mock
+// Global clipboard mock. `navigator` is a global only in jsdom and Node >= 21;
+// node-environment test files on CI (Node 20) don't have it.
 export const writeTextMock = vi.fn();
-Object.assign(navigator, {
-  clipboard: { writeText: writeTextMock },
-});
+if (typeof navigator !== 'undefined') {
+  Object.assign(navigator, {
+    clipboard: { writeText: writeTextMock },
+  });
+} else {
+  vi.stubGlobal('navigator', { clipboard: { writeText: writeTextMock } });
+}
 
 // Mock scrollIntoView and matchMedia (not available in jsdom)
 if (typeof window !== 'undefined') {
