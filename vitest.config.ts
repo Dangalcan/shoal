@@ -12,6 +12,9 @@ export default defineConfig({
       '**/dist-electron/**',
       'e2e/**',
       'marketplace-backend/**',
+      // Claude Code worktrees live inside the project dir; without this the
+      // main checkout's test run picks up a duplicate copy of every test.
+      '**/.claude/**',
     ],
     globals: true,
     environment: 'jsdom',
@@ -35,6 +38,7 @@ export default defineConfig({
         '**/dist-electron/**',
         '**/e2e/**',
         'marketplace-backend/**',
+        '**/.claude/**',
       ],
     },
   },
