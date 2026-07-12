@@ -126,6 +126,15 @@ Deletes a specific resource.
 - **Arguments**: Same as `getResourceYaml`
 - **Returns**: `Promise<Result<void>>`
 
+### `scaleResource(args)`
+
+Scales a workload to a given replica count via `kubectl scale`. Only
+`deployments`, `statefulsets` and `replicasets` are accepted; the replica
+count must be an integer between 0 and 1000.
+
+- **Arguments**: `contextName`, `resourceType`, `resourceName`, `namespace`, `replicas`
+- **Returns**: `Promise<Result<void>>`
+
 ---
 
 ## Application Settings
@@ -178,6 +187,44 @@ Applies a saved manifest to the currently active cluster context using `kubectl 
 
 - **Parameters**: `id`: `number`
 - **Returns**: `Promise<Result<void>>`
+
+### Manifest Folders
+
+Manifests can be organized into nested folders (a Drive-like hierarchy). A manifest's `folder_id` is `null` when it lives at the root. Folder names are limited to 100 characters.
+
+### `getManifestFolders()`
+
+Returns all manifest folders, sorted by name.
+
+- **Returns**: `Promise<Result<ManifestFolder[]>>`
+
+### `saveManifestFolder(folder)`
+
+Creates or renames a folder. Pass `id` to rename an existing folder; pass `parent_id` to create a folder nested inside another one (`null` or omitted for the root).
+
+- **Parameters**: `folder`: `Partial<ManifestFolder>` (`name` required)
+- **Returns**: `Promise<Result<number>>` (Returns the ID of the saved folder)
+
+### `deleteManifestFolder(id, mode?)`
+
+Deletes a folder. With mode `move-to-parent` (default), the folder's manifests and subfolders move up to its parent. With mode `recursive`, the folder, all of its subfolders, and every manifest inside are permanently deleted.
+
+- **Parameters**: `id`: `number`, `mode`: `'move-to-parent' | 'recursive'` (optional)
+- **Returns**: `Promise<Result<boolean>>`
+
+### `moveManifest(id, folderId)`
+
+Moves a manifest into a folder, or to the root when `folderId` is `null`.
+
+- **Parameters**: `id`: `number`, `folderId`: `number | null`
+- **Returns**: `Promise<Result<boolean>>`
+
+### `moveManifestFolder(id, parentId)`
+
+Moves a folder under a new parent, or to the root when `parentId` is `null`. Moving a folder into itself or one of its own descendants is rejected.
+
+- **Parameters**: `id`: `number`, `parentId`: `number | null`
+- **Returns**: `Promise<Result<boolean>>`
 
 ---
 
@@ -308,17 +355,31 @@ The Terminal API allows creating and interacting with shell sessions (local or p
 
 ### `terminalCreate(args)`
 
-Creates a new terminal session.
+Creates a new terminal session. Local sessions start in a dedicated temp
+directory (`<os-tmpdir>/kubernetes-desktop-terminal`) rather than the app
+installation directory.
 
 - **Arguments**:
   - `kind`: `'local' | 'pod-exec'`
   - `podName`: `string` (required for `pod-exec`)
   - `namespace`: `string` (required for `pod-exec`)
   - `contextName`: `string` (required for `pod-exec`)
-  - `shell`: `string` (optional, default: `/bin/sh` or `powershell.exe`)
+  - `shell`: `string` (optional). For `local`, a shell id from
+    `terminalShells()` (e.g. `powershell`, `cmd`, `gitbash`, `wsl`) —
+    validated against the detected allowlist. For `pod-exec`, the shell
+    path inside the container (default: `/bin/sh`).
   - `cols`: `number` (optional)
   - `rows`: `number` (optional)
 - **Returns**: `Promise<Result<{ sessionId: string }>>`
+
+### `terminalShells()`
+
+Lists local shells detected on this machine for the shell type picker.
+
+- **Returns**: `Promise<Result<{ shells: LocalShellInfo[]; defaultShell: string }>>`
+  - `LocalShellInfo`: `{ id: string; label: string; family: 'windows' | 'unix' }`
+  - Windows candidates: PowerShell, PowerShell 7, Command Prompt, Git Bash, WSL
+  - Other platforms: Bash, Zsh, sh (default follows `$SHELL`)
 
 ### `terminalInput(sessionId, data)`
 
@@ -352,6 +413,40 @@ Sends an interrupt signal to the process (Ctrl+C).
 
 ---
 
+## Port Forwarding API
+
+Manages long-running `kubectl port-forward` tunnels. Tunnels live until
+stopped, until the backend process dies, or until the app quits.
+
+### `portForwardStart(args)`
+
+Starts a tunnel and resolves once kubectl reports it is listening.
+
+- **Arguments** (`PortForwardArgs`):
+  - `contextName`: `string`
+  - `namespace`: `string`
+  - `resourceType`: `'pod' | 'service'`
+  - `resourceName`: `string`
+  - `localPort`: `number` (1-65535, must not already be forwarded)
+  - `remotePort`: `number` (1-65535)
+- **Returns**: `Promise<Result<PortForwardInfo>>`
+  - `PortForwardInfo`: `PortForwardArgs & { id: string; startedAt: string }`
+
+### `portForwardStop(id)`
+
+Stops a tunnel. Resolves `false` if the id is unknown.
+
+- **Parameters**: `id`: `string`
+- **Returns**: `Promise<Result<boolean>>`
+
+### `portForwardList()`
+
+Lists active tunnels.
+
+- **Returns**: `Promise<Result<PortForwardInfo[]>>`
+
+---
+
 ## Events (Listen)
 
 All event listeners return an **unsubscribe function** `() => void`.
@@ -379,6 +474,13 @@ Fires when a terminal session produces output.
 Fires when a terminal session exits.
 
 - **Callback**: `(sessionId: string) => void`
+
+### `onPortForwardClosed(callback)`
+
+Fires when an established port-forward dies on its own (pod deleted,
+connection lost). Not fired for user-requested stops.
+
+- **Callback**: `(info: PortForwardInfo, error?: string) => void`
 
 ---
 

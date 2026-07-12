@@ -1,18 +1,24 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ClusterManagementService } from '../../../electron/services/cluster/cluster-management-service';
-import * as child_process from 'child_process';
+import { safeExec } from '../../../electron/utils/safe-exec';
 
-// Improved mock to avoid "No default export" error
-vi.mock('child_process', () => {
-  return {
-    exec: vi.fn(),
-  };
-});
+vi.mock('../../../electron/utils/safe-exec', () => ({
+  safeExec: vi.fn(),
+  ALLOWED_TOOLS: new Set(['kubectl', 'kind', 'k3d']),
+}));
+
+vi.mock('../../../electron/services/plugins/plugin-events', () => ({
+  pluginEventBus: {
+    emitClusterConnected: vi.fn(),
+    emitClusterDisconnected: vi.fn(),
+  },
+}));
+
+const mockSafeExec = vi.mocked(safeExec);
 
 describe('ClusterManagementService Tests', () => {
   let service: ClusterManagementService;
-  const mockExec = vi.mocked(child_process.exec);
 
   beforeEach(() => {
     service = new ClusterManagementService();
@@ -22,43 +28,39 @@ describe('ClusterManagementService Tests', () => {
   describe('deleteCluster', () => {
     it('should delete a kind cluster and remove its context', async () => {
       const contextName = 'kind-test-cluster';
-      let callCount = 0;
+      let getContextsCalls = 0;
 
-      mockExec.mockImplementation((cmd: string, callback: any) => {
-        callCount++;
-        if (cmd === 'kind delete cluster --name test-cluster') {
-          callback(null, { stdout: 'Deleted' });
-        } else if (cmd === 'kubectl config get-contexts -o name') {
-          if (callCount <= 2) {
-            callback(null, { stdout: 'kind-test-cluster\nother-context' });
-          } else {
-            callback(null, { stdout: 'other-context' });
-          }
-        } else if (cmd === 'kubectl config delete-context kind-test-cluster') {
-          callback(null, { stdout: 'deleted' });
+      mockSafeExec.mockImplementation(async (tool, args) => {
+        const cmd = `${tool} ${(args as string[]).join(' ')}`;
+        if (cmd === 'kubectl config get-contexts -o name') {
+          getContextsCalls++;
+          return getContextsCalls === 1
+            ? { stdout: 'kind-test-cluster\nother-context', stderr: '' }
+            : { stdout: 'other-context', stderr: '' };
         }
-        return {} as any;
+        return { stdout: '', stderr: '' };
       });
 
       const result = await service.deleteCluster(contextName);
 
       expect(result.success).toBe(true);
-      expect(mockExec).toHaveBeenCalledWith(
-        expect.stringContaining('kind delete cluster'),
-        expect.any(Function)
-      );
+      expect(mockSafeExec).toHaveBeenCalledWith('kind', [
+        'delete',
+        'cluster',
+        '--name',
+        'test-cluster',
+      ]);
     });
 
     it('should return failure if context still exists after all attempts', async () => {
       const contextName = 'stubborn-cluster';
 
-      mockExec.mockImplementation((cmd: string, callback: any) => {
+      mockSafeExec.mockImplementation(async (tool, args) => {
+        const cmd = `${tool} ${(args as string[]).join(' ')}`;
         if (cmd === 'kubectl config get-contexts -o name') {
-          callback(null, { stdout: 'stubborn-cluster' });
-        } else if (cmd === 'kubectl config delete-context stubborn-cluster') {
-          callback(null, { stdout: 'Attempted delete' });
+          return { stdout: 'stubborn-cluster', stderr: '' };
         }
-        return {} as any;
+        return { stdout: '', stderr: '' };
       });
 
       const result = await service.deleteCluster(contextName);

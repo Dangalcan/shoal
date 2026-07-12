@@ -7,8 +7,8 @@ import type {
 } from './types/plugin-types';
 
 contextBridge.exposeInMainWorld('electron', {
-  runCommand: (command: string) => ipcRenderer.invoke('run-command', command),
   checkTool: (tool: string) => ipcRenderer.invoke('check-tool', tool),
+  openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
   createCluster: (name: string, provider: string) =>
     ipcRenderer.invoke('create-cluster', { name, provider }),
   getClusters: () => ipcRenderer.invoke('get-clusters'),
@@ -54,6 +54,13 @@ contextBridge.exposeInMainWorld('electron', {
     resourceName: string;
     namespace: string;
   }) => ipcRenderer.invoke('delete-resource', args),
+  scaleResource: (args: {
+    contextName: string;
+    resourceType: string;
+    resourceName: string;
+    namespace: string;
+    replicas: number;
+  }) => ipcRenderer.invoke('scale-resource', args),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   getKubeconfigPath: () => ipcRenderer.invoke('get-kubeconfig-path'),
   setKubeconfigPath: (path: string) =>
@@ -103,6 +110,10 @@ contextBridge.exposeInMainWorld('electron', {
   getMarketplacePlugins: () => ipcRenderer.invoke('get-marketplace-plugins'),
   installPlugin: (pluginId: string) =>
     ipcRenderer.invoke('install-plugin', pluginId),
+  createCheckout: (pluginId: string) =>
+    ipcRenderer.invoke('create-checkout', pluginId),
+  getCheckoutStatus: (sessionId: string) =>
+    ipcRenderer.invoke('get-checkout-status', sessionId),
   generatePlugin: (options: PluginScaffoldOptions) =>
     ipcRenderer.invoke('generate-plugin', options),
   reloadPlugin: (pluginId: string) =>
@@ -117,15 +128,49 @@ contextBridge.exposeInMainWorld('electron', {
   deleteManifest: (id: number) => ipcRenderer.invoke('delete-manifest', id),
   applyManifest: (id: number) => ipcRenderer.invoke('apply-manifest', id),
 
+  // Manifest folders
+  getManifestFolders: () => ipcRenderer.invoke('get-manifest-folders'),
+  saveManifestFolder: (folder: Record<string, unknown>) =>
+    ipcRenderer.invoke('save-manifest-folder', folder),
+  deleteManifestFolder: (id: number, mode?: string) =>
+    ipcRenderer.invoke('delete-manifest-folder', id, mode),
+  moveManifest: (id: number, folderId: number | null) =>
+    ipcRenderer.invoke('move-manifest', id, folderId),
+  moveManifestFolder: (id: number, parentId: number | null) =>
+    ipcRenderer.invoke('move-manifest-folder', id, parentId),
+
   // Terminal
   terminalCreate: (args: {
     kind: 'local' | 'pod-exec';
     podName?: string;
     namespace?: string;
     contextName?: string;
+    shell?: string;
     cols?: number;
     rows?: number;
   }) => ipcRenderer.invoke('terminal:create', args),
+  terminalShells: () => ipcRenderer.invoke('terminal:shells'),
+
+  // Port forwarding
+  portForwardStart: (args: {
+    contextName: string;
+    namespace: string;
+    resourceType: 'pod' | 'service';
+    resourceName: string;
+    localPort: number;
+    remotePort: number;
+  }) => ipcRenderer.invoke('portforward:start', args),
+  portForwardStop: (id: string) =>
+    ipcRenderer.invoke('portforward:stop', { id }),
+  portForwardList: () => ipcRenderer.invoke('portforward:list'),
+  onPortForwardClosed: (callback: (info: unknown, error?: string) => void) => {
+    const handler = (
+      _event: IpcRendererEvent,
+      { info, error }: { info: unknown; error?: string }
+    ) => callback(info, error);
+    ipcRenderer.on('portforward:closed', handler);
+    return () => ipcRenderer.off('portforward:closed', handler);
+  },
   terminalInput: (sessionId: string, data: string) =>
     ipcRenderer.invoke('terminal:input', { sessionId, data }),
   terminalResize: (sessionId: string, cols: number, rows: number) =>
@@ -149,5 +194,15 @@ contextBridge.exposeInMainWorld('electron', {
     ) => callback(sessionId);
     ipcRenderer.on('terminal:exited', handler);
     return () => ipcRenderer.off('terminal:exited', handler);
+  },
+
+  // App updates
+  checkForAppUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  installAppUpdate: () => ipcRenderer.invoke('install-update'),
+  onUpdateStatus: (callback: (status: unknown) => void) => {
+    const handler = (_event: IpcRendererEvent, status: unknown) =>
+      callback(status);
+    ipcRenderer.on('update-status', handler);
+    return () => ipcRenderer.off('update-status', handler);
   },
 });

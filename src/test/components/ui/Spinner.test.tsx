@@ -18,4 +18,20 @@ describe('Spinner Component', () => {
     const { container } = render(<Spinner className="custom-spinner" />);
     expect(container.firstChild).toHaveClass('custom-spinner');
   });
+
+  it('maps a known string size to its pixel value', () => {
+    render(<Spinner size="lg" />);
+    expect(document.querySelector('.ui-spinner-icon')).toHaveAttribute(
+      'width',
+      '60'
+    );
+  });
+
+  it('falls back to 24 for an unknown string size', () => {
+    render(<Spinner size="bogus" />);
+    expect(document.querySelector('.ui-spinner-icon')).toHaveAttribute(
+      'width',
+      '24'
+    );
+  });
 });

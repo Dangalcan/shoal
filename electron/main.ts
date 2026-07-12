@@ -11,6 +11,9 @@ import { registerPluginsIpcHandlers } from './ipc/plugins-ipc';
 import { registerMarketplaceIpcHandlers } from './ipc/marketplace-ipc';
 import { registerManifestsIpcHandlers } from './ipc/manifests-ipc';
 import { registerTerminalIpcHandlers } from './ipc/terminal-ipc';
+import { registerPortForwardIpcHandlers } from './ipc/portforward-ipc';
+import { registerUpdateIpcHandlers } from './ipc/update-ipc';
+import { updateService } from './services/update';
 import log from './logger';
 
 const DEFAULT_WINDOW_WIDTH = 1200;
@@ -45,6 +48,8 @@ function registerIpcHandlers(): void {
   registerMarketplaceIpcHandlers();
   registerManifestsIpcHandlers();
   registerTerminalIpcHandlers();
+  registerPortForwardIpcHandlers();
+  registerUpdateIpcHandlers();
 }
 
 function createWindow(): void {
@@ -74,6 +79,12 @@ function createWindow(): void {
   }
 
   pluginEventBus.setMainWindow(win);
+
+  // Push update status to the renderer, then run a startup check (packaged only).
+  updateService.init((status) => {
+    win?.webContents.send('update-status', status);
+  });
+  void updateService.checkForUpdates();
 }
 
 app.on('window-all-closed', () => {

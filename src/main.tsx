@@ -7,14 +7,10 @@ import { ClusterProvider } from './features/clusters/ClusterContext'
 import '../styles/tailwind.css'
 import '../styles/index.scss'
 import { PluginProvider } from './features/plugins/PluginProvider';
-import { PluginRuntime } from './features/plugins/PluginRuntime';
-import * as UI from './components/ui';
-import * as LucideIcons from 'lucide-react';
+import { PluginNotifications } from './features/plugins/PluginNotifications';
 
-// Expose React and other common libs for plugins
-window.React = React;
-window.K8sUI = UI as Record<string, unknown>;
-window.LucideIcons = LucideIcons as Record<string, unknown>;
+// Plugin UIs run in sandboxed iframes (see features/plugins/sandbox); the host
+// realm no longer exposes React/UI globals or executes plugin renderer code.
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
@@ -22,7 +18,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <ApiProvider>
                 <ClusterProvider>
                     <PluginProvider>
-                        <PluginRuntime />
+                        <PluginNotifications />
                         <App />
                     </PluginProvider>
                 </ClusterProvider>

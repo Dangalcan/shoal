@@ -1,0 +1,41 @@
+/* ExampleTemplatesModal.scss */
+@use '../mixins' as *;
+
+.example-templates {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-sm);
+  max-height: 60vh;
+  overflow-y: auto;
+  @include scrollbar();
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-md);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    text-align: left;
+    cursor: pointer;
+    @include smooth-transition(all, 150ms);
+
+    &:hover {
+      border-color: var(--color-primary);
+      background: var(--bg-tertiary);
+    }
+  }
+
+  &__name {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  &__description {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+  }
+}

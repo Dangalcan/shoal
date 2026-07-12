@@ -96,7 +96,6 @@ describe('mockApi', () => {
   });
 
   it('should handle miscellaneous operations', async () => {
-    expect((await mockApi.runCommand('echo')).success).toBe(true);
     expect((await mockApi.checkTool('kubectl')).success).toBe(true);
     expect((await mockApi.getAppVersion()).success).toBe(true);
     expect((await mockApi.getKubeconfigPath()).success).toBe(true);
@@ -194,8 +193,50 @@ describe('mockApi', () => {
     expect(typeof mockApi.onSetKubeconfigPath).toBe('function');
     expect(typeof mockApi.onPluginNotification).toBe('function');
 
-    // Call them to cover the empty function bodies
+    // Call them to cover the empty function bodies (and the returned unsub fn)
     mockApi.onSetKubeconfigPath(() => {});
-    mockApi.onPluginNotification(() => {});
+    mockApi.onPluginNotification(() => {})();
+  });
+
+  it('should cover external + terminal stubs', async () => {
+    expect((await mockApi.openExternal('https://example.com')).success).toBe(
+      true
+    );
+
+    // Terminal stubs are not available in browser mode
+    expect((await mockApi.terminalCreate({ kind: 'local' })).success).toBe(
+      false
+    );
+    expect((await mockApi.terminalShells()).success).toBe(false);
+    expect((await mockApi.terminalInput('s', 'data')).success).toBe(false);
+    expect((await mockApi.terminalResize('s', 80, 24)).success).toBe(false);
+    expect((await mockApi.terminalKill('s')).success).toBe(false);
+    expect((await mockApi.terminalInterrupt('s')).success).toBe(false);
+
+    // Port forward stubs
+    expect(
+      (
+        await mockApi.portForwardStart({
+          contextName: 'c',
+          namespace: 'default',
+          resourceType: 'pod',
+          resourceName: 'p',
+          localPort: 8080,
+          remotePort: 80,
+        })
+      ).success
+    ).toBe(false);
+    expect((await mockApi.portForwardStop('id')).success).toBe(false);
+    expect((await mockApi.portForwardList()).success).toBe(true);
+    mockApi.onPortForwardClosed(() => {})();
+
+    // Listeners: verify they are functions, then invoke bodies + unsubscribe fns
+    expect(typeof mockApi.onPluginModal).toBe('function');
+    expect(typeof mockApi.onTerminalOutput).toBe('function');
+    expect(typeof mockApi.onTerminalExited).toBe('function');
+
+    mockApi.onPluginModal(() => {})();
+    mockApi.onTerminalOutput(() => {})();
+    mockApi.onTerminalExited(() => {})();
   });
 });

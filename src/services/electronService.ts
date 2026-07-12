@@ -15,12 +15,6 @@ export class ElectronService {
     return ElectronService.instance;
   }
 
-  async runCommand(
-    command: string
-  ): Promise<Result<{ stdout: string; stderr: string }>> {
-    return window.electron.runCommand(command);
-  }
-
   async checkTool(tool: string): Promise<Result<boolean>> {
     return window.electron.checkTool(tool);
   }
@@ -102,6 +96,16 @@ export class ElectronService {
     return window.electron.deleteResource(args);
   }
 
+  async scaleResource(args: {
+    contextName: string;
+    resourceType: string;
+    resourceName: string;
+    namespace: string;
+    replicas: number;
+  }): Promise<Result<void>> {
+    return window.electron.scaleResource(args);
+  }
+
   async checkForPluginUpdates(): Promise<Result<void>> {
     return window.electron.checkForPluginUpdates();
   }
@@ -113,6 +117,18 @@ export class ElectronService {
 
   async installPlugin(pluginId: string): Promise<Result<void>> {
     return window.electron.installPlugin(pluginId);
+  }
+
+  async createCheckout(
+    pluginId: string
+  ): Promise<Result<{ sessionId: string; url: string }>> {
+    return window.electron.createCheckout(pluginId);
+  }
+
+  async getCheckoutStatus(
+    sessionId: string
+  ): Promise<Result<{ status: 'pending' | 'paid'; licenseKey?: string }>> {
+    return window.electron.getCheckoutStatus(sessionId);
   }
 
   async activatePluginLicense(

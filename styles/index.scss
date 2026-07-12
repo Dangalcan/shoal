@@ -12,6 +12,7 @@
 /* Shared Components */
 @use 'components/Sidebar';
 @use 'components/ContextSwitcher';
+@use 'components/ExampleTemplatesModal';
 @use 'components/common/ErrorBoundary';
 @use 'components/cluster/DetailsHeader';
 @use 'components/cluster/NamespaceSelector';
@@ -23,9 +24,11 @@
 @use 'components/modals/LogViewerModal';
 @use 'components/modals/PodViewerModal';
 @use 'components/modals/PodTerminalModal';
+@use 'components/modals/ScaleResourceModal';
 @use 'components/plugins/LicenseActivationModal';
 @use 'components/plugins/PluginConfigurationForm';
 @use 'components/plugins/PluginRuntime';
+@use 'components/plugins/PluginModalHost';
 @use 'components/resource-tables/ResourceCells';
 @use 'components/resource-tables/ResourceRows';
 @use 'components/resource-tables/ResourceTable';
@@ -41,6 +44,7 @@
 @use 'pages/Dashboard';
 @use 'pages/Manifests';
 @use 'pages/Plugins';
+@use 'pages/PortForwards';
 @use 'pages/Settings';
 @use 'pages/TerminalPage';
 

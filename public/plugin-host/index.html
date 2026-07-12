@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!--
+      Sandboxed plugin host document.
+
+      Loaded as the src of a `sandbox="allow-scripts"` iframe (opaque origin).
+      It has NO access to window.electron or the host DOM. bootstrap.js adopts
+      the MessagePort handed in by the host, exposes window.k8sPlugin, and loads
+      the plugin's own renderer bundle into #root.
+    -->
+    <title>Plugin</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
+      /*
+        Height context is set at runtime by bootstrap.js based on the frame's
+        sizing mode: 'fill' pages get a 100%-height scroll container (#root),
+        while 'content' widgets keep natural height so the frame grows to fit.
+      */
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="bootstrap.js"></script>
+  </body>
+</html>

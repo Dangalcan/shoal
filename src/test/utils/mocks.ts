@@ -22,9 +22,6 @@ export function createMockElectronAPI(
   overrides?: Partial<ElectronAPI>
 ): vi.Mocked<ElectronAPI> {
   return {
-    runCommand: vi
-      .fn()
-      .mockResolvedValue({ success: true, data: { stdout: '', stderr: '' } }),
     checkTool: vi.fn().mockResolvedValue(true),
     createCluster: vi
       .fn()
@@ -47,6 +44,9 @@ export function createMockElectronAPI(
       .fn()
       .mockResolvedValue({ success: true, data: undefined }),
     deleteResource: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: undefined }),
+    scaleResource: vi
       .fn()
       .mockResolvedValue({ success: true, data: undefined }),
     getAppVersion: vi
@@ -86,6 +86,14 @@ export function createMockElectronAPI(
     installPlugin: vi
       .fn()
       .mockResolvedValue({ success: true, data: undefined }),
+    createCheckout: vi.fn().mockResolvedValue({
+      success: true,
+      data: { sessionId: 'cs_mock', url: 'https://example.com/pay' },
+    }),
+    getCheckoutStatus: vi.fn().mockResolvedValue({
+      success: true,
+      data: { status: 'paid', licenseKey: 'LIC-MOCK' },
+    }),
     generatePlugin: vi.fn().mockResolvedValue({ success: true, data: true }),
     reloadPlugin: vi.fn().mockResolvedValue({ success: true, data: undefined }),
     importLocalPlugin: vi
@@ -101,6 +109,17 @@ export function createMockElectronAPI(
       data: { stdout: 'Mock apply', stderr: '' },
     }),
 
+    // Manifest folders
+    getManifestFolders: vi.fn().mockResolvedValue({ success: true, data: [] }),
+    saveManifestFolder: vi.fn().mockResolvedValue({ success: true, data: 1 }),
+    deleteManifestFolder: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: true }),
+    moveManifest: vi.fn().mockResolvedValue({ success: true, data: true }),
+    moveManifestFolder: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: true }),
+
     onSetKubeconfigPath: vi.fn(),
     onPluginNotification: vi.fn().mockReturnValue(() => {}),
     onPluginModal: vi.fn().mockReturnValue(() => {}),
@@ -109,6 +128,17 @@ export function createMockElectronAPI(
     terminalCreate: vi
       .fn()
       .mockResolvedValue({ success: true, data: 'test-session-id' }),
+    terminalShells: vi.fn().mockResolvedValue({
+      success: true,
+      data: {
+        shells: [
+          { id: 'powershell', label: 'PowerShell', family: 'windows' },
+          { id: 'cmd', label: 'Command Prompt', family: 'windows' },
+          { id: 'wsl', label: 'WSL', family: 'unix' },
+        ],
+        defaultShell: 'powershell',
+      },
+    }),
     terminalInput: vi
       .fn()
       .mockResolvedValue({ success: true, data: undefined }),
@@ -121,6 +151,27 @@ export function createMockElectronAPI(
       .mockResolvedValue({ success: true, data: undefined }),
     onTerminalOutput: vi.fn().mockReturnValue(() => {}),
     onTerminalExited: vi.fn().mockReturnValue(() => {}),
+    portForwardStart: vi.fn().mockResolvedValue({
+      success: true,
+      data: {
+        id: 'fwd-1',
+        contextName: 'kind-test',
+        namespace: 'default',
+        resourceType: 'pod',
+        resourceName: 'my-pod',
+        localPort: 8080,
+        remotePort: 80,
+        startedAt: '2026-01-01T00:00:00.000Z',
+      },
+    }),
+    portForwardStop: vi.fn().mockResolvedValue({ success: true, data: true }),
+    portForwardList: vi.fn().mockResolvedValue({ success: true, data: [] }),
+    onPortForwardClosed: vi.fn().mockReturnValue(() => {}),
+    checkForAppUpdates: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: false }),
+    installAppUpdate: vi.fn().mockResolvedValue({ success: true, data: true }),
+    onUpdateStatus: vi.fn().mockReturnValue(() => {}),
     ...overrides,
   };
 }

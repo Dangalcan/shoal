@@ -16,6 +16,7 @@ describe('useResourceActions', () => {
     const mockApi = {
         rolloutRestart: vi.fn(),
         deleteResource: vi.fn(),
+        scaleResource: vi.fn(),
     };
     const onActionComplete = vi.fn();
 
@@ -76,12 +77,43 @@ describe('useResourceActions', () => {
 
     it('should NOT call api when handleDelete is called without context', async () => {
         const { result } = renderHook(() => useResourceActions(undefined, onActionComplete));
-        
+
         await act(async () => {
             await result.current.handleDelete('res', 'ns', 'Pod');
         });
 
         expect(handleAsyncOperation).not.toHaveBeenCalled();
         expect(mockApi.deleteResource).not.toHaveBeenCalled();
+    });
+
+    it('should call api.scaleResource when handleScale is called with context', async () => {
+        const { result } = renderHook(() => useResourceActions('test-ctx', onActionComplete));
+
+        await act(async () => {
+            await result.current.handleScale('res', 'ns', 'deployments', 4);
+        });
+
+        expect(handleAsyncOperation).toHaveBeenCalled();
+        const operation = vi.mocked(handleAsyncOperation).mock.calls[0][0];
+        await operation();
+
+        expect(mockApi.scaleResource).toHaveBeenCalledWith({
+            contextName: 'test-ctx',
+            resourceType: 'deployments',
+            resourceName: 'res',
+            namespace: 'ns',
+            replicas: 4,
+        });
+    });
+
+    it('should NOT call api when handleScale is called without context', async () => {
+        const { result } = renderHook(() => useResourceActions(undefined, onActionComplete));
+
+        await act(async () => {
+            await result.current.handleScale('res', 'ns', 'deployments', 4);
+        });
+
+        expect(handleAsyncOperation).not.toHaveBeenCalled();
+        expect(mockApi.scaleResource).not.toHaveBeenCalled();
     });
 });

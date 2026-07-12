@@ -222,36 +222,82 @@ Add `"renderer": "renderer.js"` to your `plugin.json`. This file is loaded autom
 
 The following globals are injected into the renderer context:
 
-| Global                    | Description                                                                  |
-| ------------------------- | ---------------------------------------------------------------------------- |
-| `window.React`            | React 19                                                                     |
-| `window.LucideIcons`      | All Lucide icon components                                                   |
-| `window.K8sUI`            | Core UI components (`Button`, `Badge`, `Card`, `Spinner`)                    |
-| `window.pluginUIRegistry` | Registry for registering pages, widgets, sidebar items, and resource actions |
+`renderer.js` runs inside an isolated, opaque-origin iframe. It has **no**
+`window.electron` and no access to the host DOM. The following globals are
+injected; all host access goes through `window.k8sPlugin` (see API reference).
+
+| Global                    | Description                                                                |
+| ------------------------- | -------------------------------------------------------------------------- |
+| `window.React`            | React 19                                                                   |
+| `window.LucideIcons`      | All Lucide icon components                                                 |
+| `window.K8sUI`            | Core UI components (`Button`, `Badge`, `Card`, `Spinner`)                  |
+| `window.k8sPlugin`        | The permission-gated host API (kubernetes, settings, ui, events)           |
+| `window.pluginUIRegistry` | Register the components for your page/widgets/modals/actions (object form) |
+
+The host mounts exactly one contribution per frame (the page, one widget, or one
+modal), so register components by id and let the host pick which to show.
 
 ### Registering a Page
 
 ```javascript
 // renderer.js
-const { pluginUIRegistry, React } = window;
+const { pluginUIRegistry, React, k8sPlugin } = window;
 
 function MyPage() {
   return React.createElement('div', null, 'Hello from my plugin!');
 }
 
-pluginUIRegistry.registerPage('my-cool-plugin', MyPage);
+pluginUIRegistry.registerPage({ id: 'my-cool-plugin', component: MyPage });
+k8sPlugin.ready();
 ```
 
-The page is accessible at `/plugin/my-cool-plugin` (matching the route in your sidebar extension).
+The page is accessible at `/plugin/my-cool-plugin` (the plugin id).
 
 ### Registering a Dashboard Widget
+
+Declare the widget in `plugin.json` (`extensions.widgets`), then register the
+component with the same id:
 
 ```javascript
 function MyWidget() {
   return React.createElement('div', { className: 'p-4' }, 'My Widget');
 }
 
-pluginUIRegistry.registerWidget('my-cool-plugin', MyWidget);
+pluginUIRegistry.registerWidget({
+  id: 'my-widget',
+  pluginId: 'my-cool-plugin',
+  title: 'My Widget',
+  size: 'small',
+  component: MyWidget,
+});
+```
+
+### Modals and Resource Actions
+
+```javascript
+// A modal component receives an injected `onClose`.
+function ConfirmModal(props) {
+  return React.createElement('div', { className: 'p-6' }, [
+    React.createElement('p', { key: 't' }, 'Delete ' + props.name + '?'),
+    React.createElement(
+      window.K8sUI.Button,
+      { key: 'c', onClick: () => props.onClose() },
+      'Cancel'
+    ),
+  ]);
+}
+pluginUIRegistry.registerModal({ id: 'confirm', component: ConfirmModal });
+
+// Open it from anywhere in your UI (requires the "ui" permission):
+k8sPlugin.ui.showModal('confirm', { name: 'pod-1' });
+
+// A resource-table action: declare it in plugin.json
+// (extensions.resourceActions) and register the component here. It opens in a
+// modal frame with the clicked resource passed as props.resource.
+pluginUIRegistry.registerResourceAction({
+  id: 'inspect',
+  component: ConfirmModal,
+});
 ```
 
 ---
@@ -282,7 +328,13 @@ Passed to `activate(context)`.
 | `registerResourceAction(type, act)` | Add button to resource rows in Cluster Details                  |
 | `registerDashboardWidget(widget)`   | Add widget tile to the Dashboard page                           |
 | `showNotification(msg, type)`       | Show Sonner toast (type: `success`, `error`, `info`, `warning`) |
-| `openModal(comp, props)`            | Open dialog (IPC bridge exists; renderer handler is a TODO)     |
+
+> **Note:** This table is the **main-process** `context` (passed to
+> `activate(context)` in `index.js`). All **UI** — pages, widgets, modals, and
+> resource actions — is now registered in **`renderer.js`** via
+> `window.pluginUIRegistry` and opened via `window.k8sPlugin.ui` (see
+> [Renderer UI](#registering-a-page) above). The renderer runs sandboxed; it is
+> the correct place for anything that renders.
 
 #### context.events
 

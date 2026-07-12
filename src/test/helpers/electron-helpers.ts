@@ -99,10 +99,6 @@ export const mockResourceResponse = <T>(
  * ```
  */
 export const resetElectronMocks = () => {
-  mockElectronAPI.runCommand.mockResolvedValue({
-    success: true,
-    data: { stdout: '', stderr: '' },
-  });
   mockElectronAPI.checkTool.mockResolvedValue(true);
   mockElectronAPI.createCluster.mockResolvedValue({
     success: true,

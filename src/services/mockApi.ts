@@ -1,6 +1,8 @@
 import type {
   ElectronAPI,
+  FolderDeleteMode,
   Manifest,
+  ManifestFolder,
   PluginNotificationData,
   PluginModalData,
   PluginScaffoldOptions,
@@ -11,12 +13,12 @@ let mockClusters = ['minikube', 'kind-cluster-1', 'docker-desktop'];
 let mockCurrentContext = 'minikube';
 
 export const mockApi: ElectronAPI = {
-  runCommand: async (command: string) => {
-    console.log('[MockAPI] runCommand:', command);
-    return { success: true, data: { stdout: 'Mock output', stderr: '' } };
-  },
   checkTool: async (tool: string) => {
     console.log('[MockAPI] checkTool:', tool);
+    return { success: true, data: true };
+  },
+  openExternal: async (url: string) => {
+    console.log('[MockAPI] openExternal:', url);
     return { success: true, data: true };
   },
   createCluster: async (name: string, provider: string) => {
@@ -85,6 +87,10 @@ export const mockApi: ElectronAPI = {
     console.log('[MockAPI] deleteResource:', args);
     return { success: true, data: undefined };
   },
+  scaleResource: async (args) => {
+    console.log('[MockAPI] scaleResource:', args);
+    return { success: true, data: undefined };
+  },
   getAppVersion: async () => {
     console.log('[MockAPI] getAppVersion');
     return { success: true, data: 'v0.1.0-mock' };
@@ -137,6 +143,14 @@ export const mockApi: ElectronAPI = {
   }),
   getMarketplacePlugins: async () => ({ success: true, data: [] }),
   installPlugin: async (_id: string) => ({ success: true, data: undefined }),
+  createCheckout: async (_id: string) => ({
+    success: true,
+    data: { sessionId: 'cs_mock', url: 'https://example.com/pay' },
+  }),
+  getCheckoutStatus: async (_sessionId: string) => ({
+    success: true,
+    data: { status: 'paid' as const, licenseKey: 'LIC-MOCK' },
+  }),
   generatePlugin: async (_options: PluginScaffoldOptions) => ({
     success: true,
     data: true,
@@ -159,6 +173,28 @@ export const mockApi: ElectronAPI = {
     data: { stdout: 'Mock apply success', stderr: '' },
   }),
 
+  // Manifest folders
+  getManifestFolders: async () => ({
+    success: true,
+    data: [] as ManifestFolder[],
+  }),
+  saveManifestFolder: async (_folder: Partial<ManifestFolder>) => ({
+    success: true,
+    data: Date.now(),
+  }),
+  deleteManifestFolder: async (_id: number, _mode?: FolderDeleteMode) => ({
+    success: true,
+    data: true,
+  }),
+  moveManifest: async (_id: number, _folderId: number | null) => ({
+    success: true,
+    data: true,
+  }),
+  moveManifestFolder: async (_id: number, _parentId: number | null) => ({
+    success: true,
+    data: true,
+  }),
+
   // Listeners
   onSetKubeconfigPath: (_callback: (value: boolean) => void) => {},
   onPluginNotification:
@@ -167,6 +203,10 @@ export const mockApi: ElectronAPI = {
 
   // Terminal (mock stubs — not functional in browser)
   terminalCreate: async () => ({
+    success: false,
+    error: 'Not available in browser',
+  }),
+  terminalShells: async () => ({
     success: false,
     error: 'Not available in browser',
   }),
@@ -188,4 +228,19 @@ export const mockApi: ElectronAPI = {
   }),
   onTerminalOutput: () => () => {},
   onTerminalExited: () => () => {},
+
+  // Port forwarding (mock stubs — not functional in browser)
+  portForwardStart: async () => ({
+    success: false,
+    error: 'Not available in browser',
+  }),
+  portForwardStop: async () => ({
+    success: false,
+    error: 'Not available in browser',
+  }),
+  portForwardList: async () => ({ success: true, data: [] }),
+  onPortForwardClosed: () => () => {},
+  checkForAppUpdates: async () => ({ success: true, data: false }),
+  installAppUpdate: async () => ({ success: true, data: true }),
+  onUpdateStatus: () => () => {},
 };

@@ -9,6 +9,7 @@ import Plugins from './pages/Plugins'
 import { PluginPage } from './pages/PluginPage'
 import { Manifests } from './pages/Manifests'
 import { TerminalPage } from './pages/TerminalPage'
+import { PortForwards } from './pages/PortForwards'
 
 function App() {
     return (
@@ -24,6 +25,7 @@ function App() {
                     <Route path="plugin/:pluginId" element={<PluginPage />} />
                     <Route path="manifests" element={<Manifests />} />
                     <Route path="terminal" element={<TerminalPage />} />
+                    <Route path="port-forwards" element={<PortForwards />} />
                 </Route>
             </Routes>
         </HashRouter>

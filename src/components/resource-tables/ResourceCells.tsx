@@ -1,5 +1,5 @@
 import React from 'react'
-import { Terminal, Eye, FileCode, RefreshCw, Trash2, SquareTerminal } from 'lucide-react'
+import { Terminal, Eye, FileCode, RefreshCw, Trash2, SquareTerminal, ArrowRightLeft, SlidersHorizontal } from 'lucide-react'
 
 
 interface ActionProps {
@@ -9,9 +9,13 @@ interface ActionProps {
     onLogs?: () => void
     onDelete?: () => void
     onExec?: () => void
+    onForward?: () => void
+    onScale?: () => void
     showRestart?: boolean
     showLogs?: boolean
     showExec?: boolean
+    showForward?: boolean
+    showScale?: boolean
 }
 
 export const NameCell: React.FC<{
@@ -19,7 +23,9 @@ export const NameCell: React.FC<{
     namespace?: string
     onLogClick?: () => void
     actions: ActionProps
-} & React.HTMLAttributes<HTMLTableCellElement>> = ({ name, namespace, onLogClick, actions, ...props }) => {
+    /** Plugin-contributed action buttons rendered after the built-in ones. */
+    extraActions?: React.ReactNode
+} & React.HTMLAttributes<HTMLTableCellElement>> = ({ name, namespace, onLogClick, actions, extraActions, ...props }) => {
     return (
         <td className="table-cell table-cell-name" {...props} title={name}>
             <div className="table-cell-name-content">
@@ -47,6 +53,11 @@ export const NameCell: React.FC<{
                             <RefreshCw size={14} />
                         </button>
                     )}
+                    {actions.showScale && actions.onScale && (
+                        <button onClick={actions.onScale} className="action-button action-button-scale" title="Scale Replicas">
+                            <SlidersHorizontal size={14} />
+                        </button>
+                    )}
                     {actions.showLogs && actions.onLogs && (
                         <button onClick={actions.onLogs} className="action-button action-button-logs" title="View Logs">
                             <Terminal size={14} />
@@ -57,11 +68,17 @@ export const NameCell: React.FC<{
                             <SquareTerminal size={14} />
                         </button>
                     )}
+                    {actions.showForward && actions.onForward && (
+                        <button onClick={actions.onForward} className="action-button action-button-forward" title="Forward Port">
+                            <ArrowRightLeft size={14} />
+                        </button>
+                    )}
                     {actions.onDelete && (
                         <button onClick={actions.onDelete} className="action-button action-button-delete" title="Delete Resource">
                             <Trash2 size={14} />
                         </button>
                     )}
+                    {extraActions}
                 </div>
             </div>
         </td>

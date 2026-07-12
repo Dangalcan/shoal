@@ -3,6 +3,7 @@ import { NameCell } from './ResourceCells'
 import { ResourceType, COLUMN_DEFINITIONS } from '../../lib/resources/resource-definitions'
 import type { K8sResource } from '../../types/k8s-types'
 import { renderCell } from './cell-renderers/renderCell'
+import { PluginResourceActions } from '../../features/plugins/PluginResourceActions'
 
 
 interface ResourceRowProps {
@@ -15,6 +16,8 @@ interface ResourceRowProps {
     onRestart?: (item: K8sResource) => void
     onLogs?: (item: K8sResource) => void
     onExec?: (item: K8sResource) => void
+    onForward?: (item: K8sResource) => void
+    onScale?: (item: K8sResource) => void
     onDelete: (item: K8sResource) => void
 }
 
@@ -28,6 +31,8 @@ export const ResourceRow: React.FC<ResourceRowProps> = ({
     onRestart,
     onLogs,
     onExec,
+    onForward,
+    onScale,
     onDelete
 }) => {
     const actions = {
@@ -36,10 +41,14 @@ export const ResourceRow: React.FC<ResourceRowProps> = ({
         onRestart: onRestart ? () => onRestart(item) : undefined,
         onLogs: onLogs ? () => onLogs(item) : undefined,
         onExec: onExec ? () => onExec(item) : undefined,
+        onForward: onForward ? () => onForward(item) : undefined,
+        onScale: onScale ? () => onScale(item) : undefined,
         onDelete: () => onDelete(item),
         showRestart: activeTab === 'deployments' || activeTab === 'statefulsets' || activeTab === 'daemonsets',
+        showScale: activeTab === 'deployments' || activeTab === 'statefulsets',
         showLogs: activeTab === 'pods',
         showExec: activeTab === 'pods',
+        showForward: activeTab === 'pods' || activeTab === 'services',
     }
 
     const columns = COLUMN_DEFINITIONS[activeTab] || []
@@ -61,6 +70,12 @@ export const ResourceRow: React.FC<ResourceRowProps> = ({
                             namespace={item.metadata.namespace}
                             onLogClick={activeTab === 'pods' ? actions.onLogs : undefined}
                             actions={actions}
+                            extraActions={
+                                <PluginResourceActions
+                                    resource={item}
+                                    resourceType={activeTab}
+                                />
+                            }
                             style={style}
                         />
                     )

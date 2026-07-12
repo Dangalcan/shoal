@@ -1,0 +1,191 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { IpcMainInvokeEvent } from 'electron';
+import { ipcMain } from 'electron';
+import { registerManifestsIpcHandlers } from '../ipc/manifests-ipc';
+import { manifestDb } from '../database';
+
+vi.mock('../logger', () => ({
+  default: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+vi.mock('electron', () => ({
+  ipcMain: {
+    handle: vi.fn(),
+  },
+}));
+
+vi.mock('../database', () => ({
+  manifestDb: {
+    getManifests: vi.fn(),
+    saveManifest: vi.fn(),
+    deleteManifest: vi.fn(),
+    applyManifest: vi.fn(),
+    getFolders: vi.fn(),
+    saveFolder: vi.fn(),
+    deleteFolder: vi.fn(),
+    moveManifest: vi.fn(),
+    moveFolder: vi.fn(),
+  },
+}));
+
+type IpcHandler = (
+  event: IpcMainInvokeEvent,
+  ...args: unknown[]
+) => Promise<{ success: boolean; data?: unknown; error?: string }>;
+
+const mockEvent = {} as IpcMainInvokeEvent;
+
+function getHandler(channel: string): IpcHandler {
+  const call = vi
+    .mocked(ipcMain.handle)
+    .mock.calls.find(([name]) => name === channel);
+  if (!call) throw new Error(`No handler registered for ${channel}`);
+  return call[1] as IpcHandler;
+}
+
+describe('manifests-ipc folder handlers', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    registerManifestsIpcHandlers();
+  });
+
+  describe('get-manifest-folders', () => {
+    it('returns folders from the database', async () => {
+      const folders = [{ id: 1, name: 'infra', parent_id: null }];
+      vi.mocked(manifestDb.getFolders).mockReturnValue(
+        folders as ReturnType<typeof manifestDb.getFolders>
+      );
+
+      const result = await getHandler('get-manifest-folders')(mockEvent);
+
+      expect(result).toEqual({ success: true, data: folders });
+    });
+  });
+
+  describe('save-manifest-folder', () => {
+    it('saves a valid folder', async () => {
+      vi.mocked(manifestDb.saveFolder).mockReturnValue(7);
+
+      const result = await getHandler('save-manifest-folder')(mockEvent, {
+        name: 'prod',
+        parent_id: null,
+      });
+
+      expect(result).toEqual({ success: true, data: 7 });
+      expect(manifestDb.saveFolder).toHaveBeenCalledWith({
+        name: 'prod',
+        parent_id: null,
+      });
+    });
+
+    it('rejects a missing name', async () => {
+      const result = await getHandler('save-manifest-folder')(mockEvent, {
+        name: '   ',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/name is required/i);
+      expect(manifestDb.saveFolder).not.toHaveBeenCalled();
+    });
+
+    it('rejects a name longer than 100 characters', async () => {
+      const result = await getHandler('save-manifest-folder')(mockEvent, {
+        name: 'x'.repeat(101),
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/at most 100/i);
+    });
+
+    it('rejects a non-integer parent id', async () => {
+      const result = await getHandler('save-manifest-folder')(mockEvent, {
+        name: 'ok',
+        parent_id: 'DROP TABLE' as unknown as number,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/invalid parent folder id/i);
+    });
+  });
+
+  describe('delete-manifest-folder', () => {
+    it('deletes with an explicit mode', async () => {
+      const result = await getHandler('delete-manifest-folder')(
+        mockEvent,
+        3,
+        'recursive'
+      );
+
+      expect(result).toEqual({ success: true, data: true });
+      expect(manifestDb.deleteFolder).toHaveBeenCalledWith(3, 'recursive');
+    });
+
+    it('rejects an invalid mode', async () => {
+      const result = await getHandler('delete-manifest-folder')(
+        mockEvent,
+        3,
+        'nuke'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/invalid folder delete mode/i);
+      expect(manifestDb.deleteFolder).not.toHaveBeenCalled();
+    });
+
+    it('rejects a non-positive id', async () => {
+      const result = await getHandler('delete-manifest-folder')(mockEvent, 0);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/invalid folder id/i);
+    });
+  });
+
+  describe('move-manifest', () => {
+    it('moves a manifest into a folder', async () => {
+      const result = await getHandler('move-manifest')(mockEvent, 5, 2);
+
+      expect(result).toEqual({ success: true, data: true });
+      expect(manifestDb.moveManifest).toHaveBeenCalledWith(5, 2);
+    });
+
+    it('moves a manifest to the root with null', async () => {
+      const result = await getHandler('move-manifest')(mockEvent, 5, null);
+
+      expect(result).toEqual({ success: true, data: true });
+      expect(manifestDb.moveManifest).toHaveBeenCalledWith(5, null);
+    });
+
+    it('rejects an invalid manifest id', async () => {
+      const result = await getHandler('move-manifest')(mockEvent, -1, 2);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/invalid manifest id/i);
+      expect(manifestDb.moveManifest).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('move-manifest-folder', () => {
+    it('moves a folder under a new parent', async () => {
+      const result = await getHandler('move-manifest-folder')(mockEvent, 4, 1);
+
+      expect(result).toEqual({ success: true, data: true });
+      expect(manifestDb.moveFolder).toHaveBeenCalledWith(4, 1);
+    });
+
+    it('surfaces database errors as failures', async () => {
+      vi.mocked(manifestDb.moveFolder).mockImplementation(() => {
+        throw new Error('Cannot move a folder into its own descendant');
+      });
+
+      const result = await getHandler('move-manifest-folder')(mockEvent, 4, 9);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/own descendant/i);
+    });
+  });
+});

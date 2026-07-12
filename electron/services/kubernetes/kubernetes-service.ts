@@ -3,16 +3,50 @@
  *
  * Central service for Kubernetes operations.
  * Emits events to the plugin event bus.
+ *
+ * SECURITY: all inputs are validated HERE (not only in the IPC layer)
+ * because this service is reachable from plugin contexts. All commands
+ * run through safeExec (execFile, no shell).
  */
 
 import path from 'path';
 import fs from 'fs/promises';
 import { app } from 'electron';
-import { execPromise } from '../../utils/exec-utils';
+import { safeExec } from '../../utils/safe-exec';
+import {
+  assertContext,
+  assertResourceType,
+  assertResourceName,
+  assertNamespace,
+} from '../../utils/k8s-validate';
 import { cleanupTempFile } from '../../utils/fs-utils';
 import { getErrorMessage } from '../../utils/error-utils';
 import { pluginEventBus } from '../plugins/plugin-events';
 import log from '../../logger';
+
+/** Builds ['--context', ctx] when a context is given, validating it. */
+function contextArgs(contextName?: string): string[] {
+  if (!contextName) return [];
+  assertContext(contextName);
+  return ['--context', contextName];
+}
+
+/** Builds the namespace args, validating unless it's the "all" sentinel. */
+function namespaceArgs(namespace: string): string[] {
+  if (namespace === 'all') return ['-A'];
+  assertNamespace(namespace);
+  return ['-n', namespace];
+}
+
+/** Workloads whose replica count can be changed with `kubectl scale`. */
+const SCALABLE_RESOURCE_TYPES = new Set([
+  'deployments',
+  'statefulsets',
+  'replicasets',
+]);
+
+/** Sanity cap to catch typos and hostile input; real clusters rarely need more. */
+const MAX_REPLICAS = 1000;
 
 export class KubernetesService {
   /**
@@ -24,11 +58,15 @@ export class KubernetesService {
     contextName?: string
   ): Promise<unknown[]> {
     try {
-      const nsFlag = namespace === 'all' ? '-A' : `-n ${namespace}`;
-      const contextFlag = contextName ? `--context ${contextName}` : '';
-      const { stdout } = await execPromise(
-        `kubectl get ${type} ${contextFlag} ${nsFlag} -o json`
-      );
+      assertResourceType(type);
+      const { stdout } = await safeExec('kubectl', [
+        'get',
+        type,
+        ...contextArgs(contextName),
+        ...namespaceArgs(namespace),
+        '-o',
+        'json',
+      ]);
       const data = JSON.parse(stdout) as Record<string, unknown>;
       return (data.items as unknown[]) || [];
     } catch (error: unknown) {
@@ -48,8 +86,12 @@ export class KubernetesService {
     );
     try {
       await fs.writeFile(tempFile, JSON.stringify(manifest), 'utf-8');
-      const contextFlag = contextName ? `--context ${contextName}` : '';
-      await execPromise(`kubectl apply ${contextFlag} -f ${tempFile}`);
+      await safeExec('kubectl', [
+        'apply',
+        ...contextArgs(contextName),
+        '-f',
+        tempFile,
+      ]);
 
       // Emit event
       pluginEventBus.emitResourceCreated(manifest);
@@ -77,8 +119,12 @@ export class KubernetesService {
     );
     try {
       await fs.writeFile(tempFile, JSON.stringify(manifest), 'utf-8');
-      const contextFlag = contextName ? `--context ${contextName}` : '';
-      await execPromise(`kubectl apply ${contextFlag} -f ${tempFile}`);
+      await safeExec('kubectl', [
+        'apply',
+        ...contextArgs(contextName),
+        '-f',
+        tempFile,
+      ]);
 
       // Emit event
       pluginEventBus.emitResourceUpdated(manifest);
@@ -101,11 +147,17 @@ export class KubernetesService {
     contextName?: string
   ): Promise<void> {
     try {
-      const nsFlag = namespace === 'all' || !namespace ? '' : `-n ${namespace}`;
-      const contextFlag = contextName ? `--context ${contextName}` : '';
-      await execPromise(
-        `kubectl delete ${type} ${name} ${contextFlag} ${nsFlag}`
-      );
+      assertResourceType(type);
+      assertResourceName(name);
+      const nsArgs =
+        namespace === 'all' || !namespace ? [] : namespaceArgs(namespace);
+      await safeExec('kubectl', [
+        'delete',
+        type,
+        name,
+        ...contextArgs(contextName),
+        ...nsArgs,
+      ]);
 
       // Emit event
       pluginEventBus.emitResourceDeleted({ type, name, namespace });
@@ -117,7 +169,57 @@ export class KubernetesService {
   }
 
   /**
-   * Execute command in a pod
+   * Scale a workload to a number of replicas.
+   *
+   * Only replica-based workloads can be scaled; the type is checked against
+   * an allowlist so arbitrary resource kinds cannot be passed to kubectl.
+   */
+  async scaleResource(
+    type: string,
+    name: string,
+    namespace: string,
+    replicas: number,
+    contextName?: string
+  ): Promise<void> {
+    try {
+      assertResourceType(type);
+      assertResourceName(name);
+      if (!SCALABLE_RESOURCE_TYPES.has(type)) {
+        throw new Error(`Resource type "${type}" cannot be scaled`);
+      }
+      if (
+        !Number.isInteger(replicas) ||
+        replicas < 0 ||
+        replicas > MAX_REPLICAS
+      ) {
+        throw new Error(
+          `Invalid replica count: must be an integer between 0 and ${MAX_REPLICAS}`
+        );
+      }
+      const nsArgs =
+        namespace === 'all' || !namespace ? [] : namespaceArgs(namespace);
+      await safeExec('kubectl', [
+        'scale',
+        `${type}/${name}`,
+        `--replicas=${replicas}`,
+        ...contextArgs(contextName),
+        ...nsArgs,
+      ]);
+
+      pluginEventBus.emitResourceUpdated({ type, name, namespace, replicas });
+    } catch (error: unknown) {
+      const msg = getErrorMessage(error);
+      log.error(`[KubernetesService] Failed to scale resource: ${msg}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Execute command in a pod.
+   *
+   * The command string is split on whitespace and passed after `--`, so it
+   * is executed by the container runtime, never by a local shell. Quoted
+   * arguments with spaces are not supported by design.
    */
   async executeCommand(
     pod: string,
@@ -126,10 +228,21 @@ export class KubernetesService {
     contextName?: string
   ): Promise<string> {
     try {
-      const contextFlag = contextName ? `--context ${contextName}` : '';
-      const { stdout } = await execPromise(
-        `kubectl exec ${pod} ${contextFlag} -n ${namespace} -- ${command}`
-      );
+      assertResourceName(pod);
+      assertNamespace(namespace);
+      const commandParts = command.trim().split(/\s+/).filter(Boolean);
+      if (commandParts.length === 0) {
+        throw new Error('Empty command');
+      }
+      const { stdout } = await safeExec('kubectl', [
+        'exec',
+        pod,
+        ...contextArgs(contextName),
+        '-n',
+        namespace,
+        '--',
+        ...commandParts,
+      ]);
       return stdout;
     } catch (error: unknown) {
       const msg = getErrorMessage(error);

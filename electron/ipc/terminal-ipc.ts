@@ -7,6 +7,12 @@ import {
   assertNamespace,
   assertResourceName,
 } from './ipc-utils';
+import {
+  getDefaultShellId,
+  getLocalShells,
+  getTerminalCwd,
+  resolveLocalShell,
+} from '../services/terminal/local-shells';
 import log from '../logger';
 
 interface CreateTerminalArgs {
@@ -35,10 +41,15 @@ export function registerTerminalIpcHandlers(): void {
 
         let file: string;
         let spawnArgs: string[];
+        let cwd: string | undefined;
 
         if (kind === 'local') {
-          file = 'powershell.exe';
-          spawnArgs = ['-NoLogo'];
+          // args.shell is a shell id validated against the detected
+          // allowlist — never an arbitrary executable path.
+          const localShell = resolveLocalShell(args.shell);
+          file = localShell.file;
+          spawnArgs = [...localShell.args];
+          cwd = getTerminalCwd();
         } else {
           const { podName, namespace, contextName } = args;
           if (!podName || !namespace || !contextName) {
@@ -75,6 +86,7 @@ export function registerTerminalIpcHandlers(): void {
           stdio: ['pipe', 'pipe', 'pipe'],
           env: process.env,
           windowsHide: true,
+          cwd,
         });
 
         sessions.set(sessionId, { process: child });
@@ -109,6 +121,14 @@ export function registerTerminalIpcHandlers(): void {
         return { sessionId };
       }
     )
+  );
+
+  ipcMain.handle(
+    'terminal:shells',
+    wrapIpcHandler('terminal:shells', async () => ({
+      shells: getLocalShells(),
+      defaultShell: getDefaultShellId(),
+    }))
   );
 
   ipcMain.handle(

@@ -106,6 +106,23 @@ describe('sortStrategies', () => {
 
       expect(sorter(noDate, withDate)).toBeLessThan(0);
     });
+
+    it('treats a missing timestamp on the second argument as epoch (0)', () => {
+      const sorter = sortByDate((r) => (r as any).metadata.creationTimestamp);
+      const withDate = makeResource({
+        metadata: {
+          name: 'wd',
+          uid: '1',
+          resourceVersion: '1',
+          creationTimestamp: '2020-01-01T00:00:00Z',
+        },
+      });
+      const noDate = makeResource({
+        metadata: { name: 'nd', uid: '2', resourceVersion: '1' },
+      });
+      // getter(b) undefined → line 38 `|| 0` branch
+      expect(sorter(withDate, noDate)).toBeGreaterThan(0);
+    });
   });
 
   describe('reverseSorter', () => {

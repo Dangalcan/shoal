@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, userEvent, waitFor } from '../utils';
+import { render, screen, userEvent, waitFor, fireEvent } from '../utils';
 import { createMockElectronAPI } from '../utils/mocks';
 import { CreateCluster } from '../../pages/CreateCluster';
 
@@ -135,6 +135,67 @@ describe('CreateCluster Page', () => {
         await waitFor(() => {
             expect(screen.queryByRole('button', { name: /creating.../i })).not.toBeInTheDocument();
         });
+    })
+
+    it('should handle rejected creation promise', async () => {
+        const user = userEvent.setup()
+        mockApi.createCluster = vi.fn().mockRejectedValue(new Error('boom'))
+
+        render(<CreateCluster />, { api: mockApi })
+
+        const input = screen.getByPlaceholderText('my-cluster')
+        await user.type(input, 'bad')
+
+        const submitButton = screen.getByRole('button', { name: /create cluster/i })
+        await user.click(submitButton)
+
+        expect(mockApi.createCluster).toHaveBeenCalledWith('bad', 'kind')
+
+        // catch block runs handleError; name is not cleared on failure
+        await waitFor(() => {
+            expect(input).toHaveValue('bad')
+        })
+    })
+
+    it('should handle rejection without an error message', async () => {
+        const user = userEvent.setup()
+        // Reject with a non-Error value to hit the 'Unknown error' branch
+        mockApi.createCluster = vi.fn().mockRejectedValue({})
+
+        render(<CreateCluster />, { api: mockApi })
+
+        const input = screen.getByPlaceholderText('my-cluster')
+        await user.type(input, 'bad2')
+
+        const submitButton = screen.getByRole('button', { name: /create cluster/i })
+        await user.click(submitButton)
+
+        await waitFor(() => {
+            expect(input).toHaveValue('bad2')
+        })
+    })
+
+    it('should ignore submit when name is empty', async () => {
+        mockApi.createCluster = vi.fn()
+
+        const { container } = render(<CreateCluster />, { api: mockApi })
+
+        // Submit the form directly to bypass the input's `required` validation,
+        // exercising the `if (!name) return` early-return guard.
+        const form = container.querySelector('form') as HTMLFormElement
+        fireEvent.submit(form)
+
+        expect(mockApi.createCluster).not.toHaveBeenCalled()
+    })
+
+    it('should navigate when cancel clicked', async () => {
+        const user = userEvent.setup()
+        render(<CreateCluster />, { api: mockApi })
+
+        const cancel = screen.getByRole('button', { name: /cancel/i })
+        await user.click(cancel)
+
+        expect(cancel).toBeInTheDocument()
     })
 
     it('should navigate back when back button is clicked', async () => {

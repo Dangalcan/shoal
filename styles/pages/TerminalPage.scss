@@ -38,6 +38,40 @@
   border-radius: 4px;
 }
 
+.terminal-page__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.terminal-page__shell-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.terminal-page__shell-select {
+  appearance: none;
+  padding: 6px 28px 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+
+  &:hover {
+    background: var(--bg-primary);
+  }
+}
+
+.terminal-page__shell-chevron {
+  position: absolute;
+  right: 8px;
+  pointer-events: none;
+  color: var(--text-muted);
+}
+
 .terminal-page__new-btn {
   display: flex;
   align-items: center;

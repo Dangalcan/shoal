@@ -12,3 +12,5 @@ test-results
 licenses.db
 licenses.db-shm
 licenses.db-wal
+# Generated plugin iframe runtime (built by build:plugin-runtime)
+public/plugin-host/bootstrap.js

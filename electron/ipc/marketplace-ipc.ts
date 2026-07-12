@@ -22,4 +22,18 @@ export function registerMarketplaceIpcHandlers(): void {
       return await marketplaceService.installPlugin(pluginId);
     })
   );
+
+  ipcMain.handle(
+    'create-checkout',
+    wrapIpcHandler('create-checkout', async (_event, pluginId: string) => {
+      return await marketplaceService.createCheckout(pluginId);
+    })
+  );
+
+  ipcMain.handle(
+    'get-checkout-status',
+    wrapIpcHandler('get-checkout-status', async (_event, sessionId: string) => {
+      return await marketplaceService.getCheckoutStatus(sessionId);
+    })
+  );
 }

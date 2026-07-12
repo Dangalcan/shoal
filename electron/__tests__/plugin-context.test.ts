@@ -18,6 +18,15 @@ import {
 import fs from 'fs/promises';
 import { app } from 'electron';
 import child_process from 'child_process';
+import { safeExec } from '../utils/safe-exec';
+
+// kubernetes-service runs commands through safeExec; mock it so the k8s API
+// tests below don't shell out. watchResources still uses child_process.spawn.
+vi.mock('../utils/safe-exec', () => ({
+  safeExec: vi.fn(),
+  ALLOWED_TOOLS: new Set(['kubectl', 'kind', 'k3d']),
+}));
+const mockSafeExec = vi.mocked(safeExec);
 
 // Mocks
 vi.mock('fs/promises', () => {
@@ -171,10 +180,7 @@ describe('Plugin Context', () => {
         'storage',
       ]);
 
-      vi.mocked(child_process.exec).mockImplementation(((
-        cmd: string,
-        cb: any
-      ) => cb(null, { stdout: '{}' })) as any);
+      mockSafeExec.mockResolvedValue({ stdout: '{}', stderr: '' });
       await expect(
         context.kubernetes.getResources('pods', 'default')
       ).resolves.not.toThrow();
@@ -188,41 +194,33 @@ describe('Plugin Context', () => {
     const context = createPluginContext(pluginId, pluginPath, ['kubernetes']);
 
     it('getResources should call kubectl get', async () => {
-      const execMock = vi.mocked(child_process.exec) as unknown as ReturnType<
-        typeof vi.fn
-      >;
-      execMock.mockImplementation((cmd, cb) =>
-        cb(null, { stdout: JSON.stringify({ items: [] }) })
-      );
+      mockSafeExec.mockResolvedValue({
+        stdout: JSON.stringify({ items: [] }),
+        stderr: '',
+      });
 
       await context.kubernetes.getResources('pods', 'default');
-      expect(execMock).toHaveBeenCalledWith(
-        expect.stringContaining('kubectl get pods'),
-        expect.any(Function)
+      expect(mockSafeExec).toHaveBeenCalledWith(
+        'kubectl',
+        expect.arrayContaining(['get', 'pods'])
       );
     });
 
     it('createResource should call kubectl apply', async () => {
-      const execMock = vi.mocked(child_process.exec) as unknown as ReturnType<
-        typeof vi.fn
-      >;
-      execMock.mockImplementation((cmd, cb) => cb(null, { stdout: '' }));
+      mockSafeExec.mockResolvedValue({ stdout: '', stderr: '' });
       vi.mocked(fs.writeFile).mockResolvedValue(undefined);
       vi.mocked(fs.unlink).mockResolvedValue(undefined);
 
       await context.kubernetes.createResource({ kind: 'Pod' });
       expect(fs.writeFile).toHaveBeenCalled();
-      expect(execMock).toHaveBeenCalledWith(
-        expect.stringContaining('kubectl apply'),
-        expect.any(Function)
+      expect(mockSafeExec).toHaveBeenCalledWith(
+        'kubectl',
+        expect.arrayContaining(['apply'])
       );
     });
 
     it('updateResource should call kubectl apply', async () => {
-      const execMock = vi.mocked(child_process.exec) as unknown as ReturnType<
-        typeof vi.fn
-      >;
-      execMock.mockImplementation((cmd, cb) => cb(null, { stdout: '' }));
+      mockSafeExec.mockResolvedValue({ stdout: '', stderr: '' });
       vi.mocked(fs.writeFile).mockResolvedValue(undefined);
 
       await context.kubernetes.updateResource('pods', 'p1', { kind: 'Pod' });
@@ -230,21 +228,15 @@ describe('Plugin Context', () => {
     });
 
     it('deleteResource should handle namespace', async () => {
-      const execMock = vi.mocked(child_process.exec) as unknown as ReturnType<
-        typeof vi.fn
-      >;
-      execMock.mockImplementation((cmd, cb) => cb(null, { stdout: '' }));
+      mockSafeExec.mockResolvedValue({ stdout: '', stderr: '' });
 
       await context.kubernetes.deleteResource('pods', 'p1', 'all');
       await context.kubernetes.deleteResource('pods', 'p1', 'default');
-      expect(execMock).toHaveBeenCalledTimes(2);
+      expect(mockSafeExec).toHaveBeenCalledTimes(2);
     });
 
     it('executeCommand should call kubectl exec', async () => {
-      const execMock = vi.mocked(child_process.exec) as unknown as ReturnType<
-        typeof vi.fn
-      >;
-      execMock.mockImplementation((cmd, cb) => cb(null, { stdout: 'output' }));
+      mockSafeExec.mockResolvedValue({ stdout: 'output', stderr: '' });
 
       const res = await context.kubernetes.executeCommand('p1', 'ns1', 'ls');
       expect(res).toBe('output');
@@ -330,10 +322,7 @@ describe('Plugin Context', () => {
     });
 
     it('should handle errors in all kubernetes methods', async () => {
-      (vi.mocked(child_process.exec) as any).mockImplementation(
-        (cmd: any, cb: any) =>
-          cb(new Error('fail'), { stdout: '', stderr: 'fail' })
-      );
+      mockSafeExec.mockRejectedValue(new Error('fail'));
 
       await expect(context.kubernetes.getResources('p', 'n')).rejects.toThrow(
         'Failed to get resources'

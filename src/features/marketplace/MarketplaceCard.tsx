@@ -2,10 +2,11 @@
  * Marketplace Card Component
  */
 
-import { Download, Check, DollarSign, User, Package } from 'lucide-react';
+import { Download, Check, DollarSign, User, Package, ShoppingCart } from 'lucide-react';
 import type { MarketplaceEntry } from '../../types';
 import { StarRating } from './StarRating';
 import { useInstallPlugin } from './useInstallPlugin';
+import { usePurchasePlugin } from './usePurchasePlugin';
 
 
 interface MarketplaceCardProps {
@@ -19,10 +20,17 @@ export function MarketplaceCard({ entry, featured = false, onOpenDetail }: Marke
     entry.id,
     entry.name
   );
+  const { purchasing, handlePurchase } = usePurchasePlugin(entry.id, entry.name);
+  const isPaid = entry.price > 0;
 
   const handleInstallClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     handleInstall();
+  };
+
+  const handleBuyClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    handlePurchase();
   };
 
   return (
@@ -87,6 +95,18 @@ export function MarketplaceCard({ entry, featured = false, onOpenDetail }: Marke
             disabled
           >
             <Check size={16} /> Installed
+          </button>
+        ) : isPaid && !hasUpdate ? (
+          <button
+            className="btn btn--full btn--primary"
+            onClick={handleBuyClick}
+            disabled={purchasing}
+          >
+            {purchasing ? (
+              <><span className="spinner spinner--small" /> Purchasing...</>
+            ) : (
+              <><ShoppingCart size={16} /> Buy ${entry.price}</>
+            )}
           </button>
         ) : (
           <button

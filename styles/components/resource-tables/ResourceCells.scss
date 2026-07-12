@@ -116,6 +116,9 @@
   &-delete:hover {
     color: var(--color-error);
   }
+  &-plugin:hover {
+    color: var(--color-purple);
+  }
 }
 
 /* Status badges are defined in components/ui/StatusBadge.scss */

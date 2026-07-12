@@ -30,6 +30,7 @@ export class TemplateService {
       description: options.description,
       author: options.author,
       main: 'index.js',
+      renderer: 'renderer.js',
       permissions: ['ui', 'kubernetes'],
       license: {
         type: 'free',
@@ -95,6 +96,63 @@ module.exports = {
 `.trim();
 
     await fs.writeFile(path.join(targetDir, 'index.js'), indexJs, 'utf-8');
+
+    // 3. Create renderer.js — the sandboxed UI bundle.
+    //
+    // The renderer runs inside an isolated iframe (opaque origin, no
+    // window.electron). Its ONLY capability surface is `window.k8sPlugin`,
+    // a promise-based, permission-gated API. The plugin owns its rendering:
+    // mount into #root with any framework, or plain DOM as shown here.
+    const rendererJs = `
+/**
+ * ${options.name} - Renderer (sandboxed UI)
+ *
+ * Runs in an isolated iframe. Use window.k8sPlugin for all host access:
+ *   - k8sPlugin.kubernetes.*   (requires "kubernetes" permission)
+ *   - k8sPlugin.settings.get/set  (this plugin's own settings)
+ *   - k8sPlugin.ui.openExternal / showNotification  (requires "ui")
+ *   - k8sPlugin.ui.showModal(id, props) / closeModal  (requires "ui";
+ *       register the modal component by id in your renderer first)
+ *   - k8sPlugin.ui.setTitle / setHeight
+ *   - k8sPlugin.ready()  (call once mounted)
+ */
+(async function () {
+  const api = window.k8sPlugin;
+  const root = document.getElementById('root');
+
+  api.ui.setTitle('${options.name}');
+
+  try {
+    const context = await api.kubernetes.getCurrentContext();
+    root.innerHTML =
+      '<h1>${options.name}</h1>' +
+      '<p>Current context: <strong>' + (context || 'none') + '</strong></p>' +
+      '<button id="refresh">Refresh pods</button>' +
+      '<pre id="out"></pre>';
+
+    document.getElementById('refresh').addEventListener('click', async () => {
+      const out = document.getElementById('out');
+      out.textContent = 'Loading...';
+      try {
+        const pods = await api.kubernetes.getPods(context);
+        out.textContent = 'Pods: ' + (Array.isArray(pods) ? pods.length : 0);
+      } catch (err) {
+        out.textContent = 'Error: ' + err.message;
+      }
+    });
+  } catch (err) {
+    root.innerHTML = '<p>Failed to initialise: ' + err.message + '</p>';
+  }
+
+  api.ready();
+})();
+`.trim();
+
+    await fs.writeFile(
+      path.join(targetDir, 'renderer.js'),
+      rendererJs,
+      'utf-8'
+    );
   }
 }
 

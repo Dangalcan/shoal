@@ -120,6 +120,22 @@
         className: 'space-y-6 h-full flex flex-col resource-monitor-container',
       },
       [
+        // --- Open a sandboxed modal (renders in its own iframe) ---
+        React.createElement(
+          Button,
+          {
+            key: 'open-details',
+            'data-testid': 'rm-open-details',
+            variant: 'secondary',
+            size: 'sm',
+            onClick: () =>
+              window.k8sPlugin.ui.showModal('rm-details', {
+                total: stats.total,
+                running: stats.running,
+              }),
+          },
+          'Cluster Details'
+        ),
         // --- Stats Row ---
         React.createElement(
           'div',
@@ -544,16 +560,21 @@
 
     useEffect(() => {
       const update = async () => {
-        const ctxRes = await window.electron.getCurrentContext();
-        if (ctxRes.success) {
+        try {
+          const ctxRes = await window.electron.getCurrentContext();
+          if (!ctxRes.success)
+            throw new Error(ctxRes.error || 'Failed to get current context');
           const res = await window.electron.getPods(ctxRes.data);
-          if (res.success) {
-            setStats({
-              total: res.data.length,
-              running: res.data.filter((p) => p.status.phase === 'Running')
-                .length,
-            });
-          }
+          if (!res.success) throw new Error(res.error || 'Failed to get pods');
+          const pods = Array.isArray(res.data) ? res.data : [];
+          setStats({
+            total: pods.length,
+            // Guard status/phase: pods can momentarily lack a status.phase, and
+            // one missing field must not throw and blank the whole widget.
+            running: pods.filter((p) => p?.status?.phase === 'Running').length,
+          });
+        } catch (err) {
+          console.error('[Resource Monitor] widget update failed:', err);
         }
       };
       update();
@@ -619,6 +640,41 @@
     );
   }
 
+  // --- Sandboxed modal: rendered in its own iframe, receives props +
+  // an injected onClose from the host. No host-realm code execution. ---
+  function ClusterDetailsModal(props) {
+    return React.createElement(
+      'div',
+      {
+        className: 'p-6 space-y-4',
+        'data-testid': 'rm-details-modal',
+      },
+      [
+        React.createElement(
+          'h2',
+          { key: 'h', className: 'text-lg font-bold text-primary' },
+          'Cluster Details'
+        ),
+        React.createElement(
+          'p',
+          { key: 'p', className: 'text-secondary' },
+          `Running ${props.running ?? 0} of ${props.total ?? 0} pods.`
+        ),
+        React.createElement(
+          Button,
+          {
+            key: 'close',
+            'data-testid': 'rm-details-close',
+            variant: 'secondary',
+            size: 'sm',
+            onClick: () => props.onClose && props.onClose(),
+          },
+          'Close'
+        ),
+      ]
+    );
+  }
+
   // Global Registration
   pluginUIRegistry.registerPage({
     id: 'resource-monitor',
@@ -630,6 +686,55 @@
     title: 'Live Pulse',
     size: 'small',
     component: PodCountWidget,
+  });
+  pluginUIRegistry.registerModal({
+    id: 'rm-details',
+    component: ClusterDetailsModal,
+  });
+
+  // --- Resource-table action: opens in a sandboxed modal frame with the
+  // clicked resource passed as props. Registered by the same id the manifest
+  // declares under extensions.resourceActions. ---
+  function InspectPodModal(props) {
+    const pod = props.resource || {};
+    const meta = pod.metadata || {};
+    const status = pod.status || {};
+    return React.createElement(
+      'div',
+      { className: 'p-6 space-y-3', 'data-testid': 'rm-inspect-modal' },
+      [
+        React.createElement(
+          'h2',
+          { key: 'h', className: 'text-lg font-bold text-primary' },
+          `Pod: ${meta.name || 'unknown'}`
+        ),
+        React.createElement(
+          'p',
+          { key: 'ns', className: 'text-secondary text-sm' },
+          `Namespace: ${meta.namespace || '—'}`
+        ),
+        React.createElement(
+          'p',
+          { key: 'ph', className: 'text-secondary text-sm' },
+          `Phase: ${status.phase || '—'}`
+        ),
+        React.createElement(
+          Button,
+          {
+            key: 'close',
+            'data-testid': 'rm-inspect-close',
+            variant: 'secondary',
+            size: 'sm',
+            onClick: () => props.onClose && props.onClose(),
+          },
+          'Close'
+        ),
+      ]
+    );
+  }
+  pluginUIRegistry.registerResourceAction({
+    id: 'rm-inspect',
+    component: InspectPodModal,
   });
 
   console.log('[Resource Monitor] Premium extensions active');

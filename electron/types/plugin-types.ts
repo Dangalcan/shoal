@@ -137,6 +137,33 @@ export interface PageExtension {
   title?: string;
 }
 
+/**
+ * A dashboard widget contributed by a plugin. Declared in the manifest so the
+ * host can render it without executing plugin code: each widget is mounted in
+ * its own sandboxed iframe (see src/features/plugins/sandbox/PluginFrame).
+ */
+export interface WidgetExtension {
+  id: string;
+  title: string;
+  size: 'small' | 'medium' | 'large';
+}
+
+/**
+ * A row action a plugin contributes to resource tables. Declared in the
+ * manifest (metadata only) so the host renders the button without executing
+ * plugin code. When clicked, the host opens the plugin's action component
+ * (registered via `registerResourceAction(id)`) in a sandboxed modal frame,
+ * passing the selected resource as props. `id` must match the registered id.
+ */
+export interface ResourceActionWidget {
+  id: string;
+  label: string;
+  /** lucide-react icon name, e.g. "Rocket". Optional. */
+  icon?: string;
+  /** Resource types this action applies to, e.g. ['pods']; '*' for all. */
+  resourceTypes: string[];
+}
+
 export interface PluginExtensions {
   sidebar?: SidebarExtension[];
   resourceActions?: ResourceActionExtension[];
@@ -163,7 +190,9 @@ export interface PluginManifest {
   marketplace?: PluginMarketplaceInfo;
   extensions?: {
     sidebar?: SidebarExtension[];
-    // Future: dashboard, menu, etc.
+    widgets?: WidgetExtension[];
+    resourceActions?: ResourceActionWidget[];
+    // Future: menu, etc.
   };
   configuration?: PluginConfigurationSchema;
   dependencies?: Record<string, string>; // Plugin dependencies (id: semver range)
@@ -356,6 +385,8 @@ export interface MarketplaceEntry {
   rating: number;
   reviews: number;
   downloadUrl: string;
+  /** Hex SHA-256 of the download archive (optional "sha256:" prefix). */
+  checksum?: string;
   tags: string[];
   featured?: boolean;
   changelog?: string;
