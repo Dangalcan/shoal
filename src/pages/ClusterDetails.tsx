@@ -8,6 +8,7 @@ import { YamlModal } from '../components/modals/YamlModal'
 import { ConfirmModal } from '../components/modals/ConfirmModal'
 import { PodTerminalModal } from '../components/modals/PodTerminalModal'
 import { PortForwardModal } from '../components/modals/PortForwardModal'
+import { ScaleResourceModal } from '../components/modals/ScaleResourceModal'
 import { getForwardablePorts } from '../features/portforward/port-utils'
 import { ResourceType, ALL_TABS, RESOURCE_CONFIGS } from '../lib/resources/resource-definitions'
 import { DetailsHeader } from '../components/cluster/DetailsHeader'
@@ -43,8 +44,8 @@ const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaces(na
     // 2. Data Fetching
     const { items, loading, error, fetchData } = useClusterData(name, activeTab, selectedNamespace)
 
-    // 3. Actions (Restart/Delete)
-    const { handleRestart, handleDelete } = useResourceActions(name, fetchData)
+    // 3. Actions (Restart/Delete/Scale)
+    const { handleRestart, handleDelete, handleScale } = useResourceActions(name, fetchData)
 
     // 4. Modal State
     const modals = useModalState()
@@ -174,6 +175,7 @@ const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaces(na
                     onLogs={modals.openLogs}
                     onExec={modals.openExec}
                     onForward={modals.openForward}
+                    onScale={modals.openScale}
                     onDelete={modals.openDelete}
                     onRetry={fetchData}
                     selectedNamespace={selectedNamespace}
@@ -239,6 +241,26 @@ const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaces(na
                 podName={modals.selectedItem?.metadata.name ?? ''}
                 namespace={modals.selectedItem?.metadata.namespace ?? ''}
                 contextName={name ?? ''}
+            />
+            <ScaleResourceModal
+                isOpen={modals.activeModal === 'scale'}
+                onClose={modals.closeAll}
+                onScale={(replicas) => {
+                    if (modals.selectedItem) {
+                        handleScale(
+                            modals.selectedItem.metadata.name,
+                            modals.selectedItem.metadata.namespace || '',
+                            activeTab,
+                            replicas
+                        )
+                    }
+                }}
+                resourceType={activeTab}
+                resourceName={modals.selectedItem?.metadata.name ?? ''}
+                currentReplicas={
+                    (modals.selectedItem?.spec as { replicas?: number } | undefined)
+                        ?.replicas ?? 0
+                }
             />
             <PortForwardModal
                 isOpen={modals.activeModal === 'forward'}

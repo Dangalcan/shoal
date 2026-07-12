@@ -96,6 +96,16 @@ export class ElectronService {
     return window.electron.deleteResource(args);
   }
 
+  async scaleResource(args: {
+    contextName: string;
+    resourceType: string;
+    resourceName: string;
+    namespace: string;
+    replicas: number;
+  }): Promise<Result<void>> {
+    return window.electron.scaleResource(args);
+  }
+
   async checkForPluginUpdates(): Promise<Result<void>> {
     return window.electron.checkForPluginUpdates();
   }

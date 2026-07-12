@@ -193,6 +193,32 @@ export function registerResourcesIpcHandlers(): void {
   );
 
   ipcMain.handle(
+    'scale-resource',
+    wrapIpcHandler(
+      'scale-resource',
+      async (
+        _event,
+        { contextName, resourceType, resourceName, namespace, replicas }
+      ) => {
+        assertContext(contextName);
+        assertResourceType(resourceType);
+        assertResourceName(resourceName);
+        if (namespace && namespace !== 'all') assertNamespace(namespace);
+        if (!Number.isInteger(replicas) || replicas < 0) {
+          throw new Error(`Invalid replica count: "${replicas}"`);
+        }
+        return await kubernetesService.scaleResource(
+          resourceType,
+          resourceName,
+          namespace,
+          replicas,
+          contextName
+        );
+      }
+    )
+  );
+
+  ipcMain.handle(
     'delete-resource',
     wrapIpcHandler(
       'delete-resource',

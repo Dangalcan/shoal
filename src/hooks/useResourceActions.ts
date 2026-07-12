@@ -5,6 +5,12 @@ import { useApi } from '../services/api-context';
 interface UseResourceActionsResult {
   handleRestart: (resName: string, ns: string, type: string) => Promise<void>;
   handleDelete: (resName: string, ns: string, type: string) => Promise<void>;
+  handleScale: (
+    resName: string,
+    ns: string,
+    type: string,
+    replicas: number
+  ) => Promise<void>;
 }
 
 export function useResourceActions(
@@ -59,5 +65,29 @@ export function useResourceActions(
     [api, contextName, onActionComplete]
   );
 
-  return { handleRestart, handleDelete };
+  const handleScale = useCallback(
+    async (resName: string, ns: string, type: string, replicas: number) => {
+      if (!contextName) return;
+
+      await handleAsyncOperation(
+        () =>
+          api.scaleResource({
+            contextName,
+            resourceType: type,
+            resourceName: resName,
+            namespace: ns,
+            replicas,
+          }),
+        {
+          loadingMessage: `Scaling ${type}/${resName} to ${replicas} replicas...`,
+          successMessage: `Scaled to ${replicas} replica${replicas === 1 ? '' : 's'}`,
+          errorTitle: 'Failed to scale resource',
+          onSuccess: onActionComplete,
+        }
+      );
+    },
+    [api, contextName, onActionComplete]
+  );
+
+  return { handleRestart, handleDelete, handleScale };
 }

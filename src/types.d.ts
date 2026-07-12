@@ -94,6 +94,13 @@ export interface ElectronAPI {
     resourceName: string;
     namespace: string;
   }) => Promise<Result<void>>;
+  scaleResource: (args: {
+    contextName: string;
+    resourceType: string;
+    resourceName: string;
+    namespace: string;
+    replicas: number;
+  }) => Promise<Result<void>>;
   getAppVersion: () => Promise<Result<string>>;
   getKubeconfigPath: () => Promise<Result<string>>;
   setKubeconfigPath: (path: string) => Promise<Result<boolean>>;

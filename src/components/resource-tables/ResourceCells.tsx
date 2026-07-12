@@ -1,5 +1,5 @@
 import React from 'react'
-import { Terminal, Eye, FileCode, RefreshCw, Trash2, SquareTerminal, ArrowRightLeft } from 'lucide-react'
+import { Terminal, Eye, FileCode, RefreshCw, Trash2, SquareTerminal, ArrowRightLeft, SlidersHorizontal } from 'lucide-react'
 
 
 interface ActionProps {
@@ -10,10 +10,12 @@ interface ActionProps {
     onDelete?: () => void
     onExec?: () => void
     onForward?: () => void
+    onScale?: () => void
     showRestart?: boolean
     showLogs?: boolean
     showExec?: boolean
     showForward?: boolean
+    showScale?: boolean
 }
 
 export const NameCell: React.FC<{
@@ -49,6 +51,11 @@ export const NameCell: React.FC<{
                     {actions.showRestart && actions.onRestart && (
                         <button onClick={actions.onRestart} className="action-button action-button-restart" title="Rollout Restart">
                             <RefreshCw size={14} />
+                        </button>
+                    )}
+                    {actions.showScale && actions.onScale && (
+                        <button onClick={actions.onScale} className="action-button action-button-scale" title="Scale Replicas">
+                            <SlidersHorizontal size={14} />
                         </button>
                     )}
                     {actions.showLogs && actions.onLogs && (

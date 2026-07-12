@@ -38,6 +38,16 @@ function namespaceArgs(namespace: string): string[] {
   return ['-n', namespace];
 }
 
+/** Workloads whose replica count can be changed with `kubectl scale`. */
+const SCALABLE_RESOURCE_TYPES = new Set([
+  'deployments',
+  'statefulsets',
+  'replicasets',
+]);
+
+/** Sanity cap to catch typos and hostile input; real clusters rarely need more. */
+const MAX_REPLICAS = 1000;
+
 export class KubernetesService {
   /**
    * Get resources of a specific type
@@ -154,6 +164,52 @@ export class KubernetesService {
     } catch (error: unknown) {
       const msg = getErrorMessage(error);
       log.error(`[KubernetesService] Failed to delete resource: ${msg}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Scale a workload to a number of replicas.
+   *
+   * Only replica-based workloads can be scaled; the type is checked against
+   * an allowlist so arbitrary resource kinds cannot be passed to kubectl.
+   */
+  async scaleResource(
+    type: string,
+    name: string,
+    namespace: string,
+    replicas: number,
+    contextName?: string
+  ): Promise<void> {
+    try {
+      assertResourceType(type);
+      assertResourceName(name);
+      if (!SCALABLE_RESOURCE_TYPES.has(type)) {
+        throw new Error(`Resource type "${type}" cannot be scaled`);
+      }
+      if (
+        !Number.isInteger(replicas) ||
+        replicas < 0 ||
+        replicas > MAX_REPLICAS
+      ) {
+        throw new Error(
+          `Invalid replica count: must be an integer between 0 and ${MAX_REPLICAS}`
+        );
+      }
+      const nsArgs =
+        namespace === 'all' || !namespace ? [] : namespaceArgs(namespace);
+      await safeExec('kubectl', [
+        'scale',
+        `${type}/${name}`,
+        `--replicas=${replicas}`,
+        ...contextArgs(contextName),
+        ...nsArgs,
+      ]);
+
+      pluginEventBus.emitResourceUpdated({ type, name, namespace, replicas });
+    } catch (error: unknown) {
+      const msg = getErrorMessage(error);
+      log.error(`[KubernetesService] Failed to scale resource: ${msg}`);
       throw error;
     }
   }

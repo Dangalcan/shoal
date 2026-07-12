@@ -46,6 +46,9 @@ export function createMockElectronAPI(
     deleteResource: vi
       .fn()
       .mockResolvedValue({ success: true, data: undefined }),
+    scaleResource: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: undefined }),
     getAppVersion: vi
       .fn()
       .mockResolvedValue({ success: true, data: '1.0.0-test' }),

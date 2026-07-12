@@ -17,6 +17,7 @@ interface ResourceRowProps {
     onLogs?: (item: K8sResource) => void
     onExec?: (item: K8sResource) => void
     onForward?: (item: K8sResource) => void
+    onScale?: (item: K8sResource) => void
     onDelete: (item: K8sResource) => void
 }
 
@@ -31,6 +32,7 @@ export const ResourceRow: React.FC<ResourceRowProps> = ({
     onLogs,
     onExec,
     onForward,
+    onScale,
     onDelete
 }) => {
     const actions = {
@@ -40,8 +42,10 @@ export const ResourceRow: React.FC<ResourceRowProps> = ({
         onLogs: onLogs ? () => onLogs(item) : undefined,
         onExec: onExec ? () => onExec(item) : undefined,
         onForward: onForward ? () => onForward(item) : undefined,
+        onScale: onScale ? () => onScale(item) : undefined,
         onDelete: () => onDelete(item),
         showRestart: activeTab === 'deployments' || activeTab === 'statefulsets' || activeTab === 'daemonsets',
+        showScale: activeTab === 'deployments' || activeTab === 'statefulsets',
         showLogs: activeTab === 'pods',
         showExec: activeTab === 'pods',
         showForward: activeTab === 'pods' || activeTab === 'services',

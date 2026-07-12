@@ -54,6 +54,13 @@ contextBridge.exposeInMainWorld('electron', {
     resourceName: string;
     namespace: string;
   }) => ipcRenderer.invoke('delete-resource', args),
+  scaleResource: (args: {
+    contextName: string;
+    resourceType: string;
+    resourceName: string;
+    namespace: string;
+    replicas: number;
+  }) => ipcRenderer.invoke('scale-resource', args),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   getKubeconfigPath: () => ipcRenderer.invoke('get-kubeconfig-path'),
   setKubeconfigPath: (path: string) =>

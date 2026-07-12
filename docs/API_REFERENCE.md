@@ -126,6 +126,15 @@ Deletes a specific resource.
 - **Arguments**: Same as `getResourceYaml`
 - **Returns**: `Promise<Result<void>>`
 
+### `scaleResource(args)`
+
+Scales a workload to a given replica count via `kubectl scale`. Only
+`deployments`, `statefulsets` and `replicasets` are accepted; the replica
+count must be an integer between 0 and 1000.
+
+- **Arguments**: `contextName`, `resourceType`, `resourceName`, `namespace`, `replicas`
+- **Returns**: `Promise<Result<void>>`
+
 ---
 
 ## Application Settings
