@@ -40,7 +40,6 @@ jobs:
 
       - name: Unit & integration tests
         run: npm test
-        # Note: the root vitest run also executes the marketplace-backend
-        # catalog tests. A dedicated backend job is intentionally omitted —
-        # the backend is being extracted to its own repo, which will own its
-        # build/test pipeline.
+        # Note: marketplace-backend/** is EXCLUDED from the root vitest run
+        # (legacy dev-only mock; see vitest.config.ts). The real backend is
+        # kdMarket, a separate repo that owns its own build/test pipeline.
