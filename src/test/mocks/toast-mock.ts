@@ -29,6 +29,7 @@ export const mockToast = {
   }),
   success: vi.fn((_m?: any, _o?: any) => 'dummy-id'),
   error: vi.fn((_m?: any, _o?: any) => 'dummy-id'),
+  warning: vi.fn((_m?: any, _o?: any) => 'dummy-id'),
   loading: vi.fn((_m?: any, _o?: any) => 'dummy-id'),
   dismiss: vi.fn(),
 };

@@ -207,10 +207,28 @@ describe('mockApi', () => {
     expect((await mockApi.terminalCreate({ kind: 'local' })).success).toBe(
       false
     );
+    expect((await mockApi.terminalShells()).success).toBe(false);
     expect((await mockApi.terminalInput('s', 'data')).success).toBe(false);
     expect((await mockApi.terminalResize('s', 80, 24)).success).toBe(false);
     expect((await mockApi.terminalKill('s')).success).toBe(false);
     expect((await mockApi.terminalInterrupt('s')).success).toBe(false);
+
+    // Port forward stubs
+    expect(
+      (
+        await mockApi.portForwardStart({
+          contextName: 'c',
+          namespace: 'default',
+          resourceType: 'pod',
+          resourceName: 'p',
+          localPort: 8080,
+          remotePort: 80,
+        })
+      ).success
+    ).toBe(false);
+    expect((await mockApi.portForwardStop('id')).success).toBe(false);
+    expect((await mockApi.portForwardList()).success).toBe(true);
+    mockApi.onPortForwardClosed(() => {})();
 
     // Listeners: verify they are functions, then invoke bodies + unsubscribe fns
     expect(typeof mockApi.onPluginModal).toBe('function');
