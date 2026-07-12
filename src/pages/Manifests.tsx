@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAsyncData } from '../hooks/useAsyncData';
-import { FileCode, Plus, Save, Edit2, Upload, FileUp, FolderPlus } from 'lucide-react';
+import { FileCode, Plus, Save, Edit2, Upload, FileUp, FolderPlus, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApi } from '../services/api-context';
 import { Manifest, ManifestFolder } from '../types.d';
@@ -14,6 +14,8 @@ import { DeleteFolderModal } from '../features/manifests/DeleteFolderModal';
 import { MoveToFolderModal } from '../features/manifests/MoveToFolderModal';
 import { useManifestFolders } from '../features/manifests/useManifestFolders';
 import { isFileDrag } from '../features/manifests/manifest-dnd';
+import { ExampleTemplatesModal } from '../features/manifests/ExampleTemplatesModal';
+import type { ExampleTemplate } from '../features/manifests/example-templates';
 
 type FolderNameModalState =
   | { mode: 'create' }
@@ -61,6 +63,7 @@ export function Manifests() {
   const [folderNameModal, setFolderNameModal] = useState<FolderNameModalState>(null);
   const [deleteFolderTarget, setDeleteFolderTarget] = useState<ManifestFolder | null>(null);
   const [moveTarget, setMoveTarget] = useState<MoveTarget>(null);
+  const [isExamplesOpen, setIsExamplesOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -133,6 +136,13 @@ export function Manifests() {
       const input = document.getElementById('manifest-name');
       input?.focus();
     }, 100);
+  };
+
+  const handleExampleSelect = (template: ExampleTemplate) => {
+    setFormData({ name: template.name, content: template.content });
+    setEditingId(null);
+    setIsModalOpen(true);
+    setTimeout(() => textareaRef.current?.focus(), 100);
   };
 
   const handleFileRead = (file: File): Promise<{name: string, content: string}> => {
@@ -320,6 +330,13 @@ export function Manifests() {
             <Upload size={18} />
             <span>Upload YAML</span>
           </button>
+          <button
+            className="btn btn--secondary btn--md upload-btn"
+            onClick={() => setIsExamplesOpen(true)}
+          >
+            <BookOpen size={18} />
+            <span>Examples</span>
+          </button>
           <button className="btn btn--primary btn--md add-btn" onClick={handleAddNew}>
             <Plus size={18} />
             <span>New Manifest</span>
@@ -398,6 +415,14 @@ export function Manifests() {
         confirmLabel="Delete Manifest"
         variant="danger"
       />
+
+      {/* Example templates picker */}
+      {isExamplesOpen && (
+        <ExampleTemplatesModal
+          onClose={() => setIsExamplesOpen(false)}
+          onSelect={handleExampleSelect}
+        />
+      )}
 
       {/* Folder create / rename */}
       {folderNameModal && (

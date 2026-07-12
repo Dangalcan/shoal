@@ -189,6 +189,71 @@ describe('KubernetesService', () => {
     });
   });
 
+  describe('scaleResource', () => {
+    it('should scale a deployment with the expected kubectl args', async () => {
+      execResolves('');
+
+      await service.scaleResource('deployments', 'web', 'default', 3);
+      expect(mockSafeExec).toHaveBeenCalledWith('kubectl', [
+        'scale',
+        'deployments/web',
+        '--replicas=3',
+        '-n',
+        'default',
+      ]);
+      expect(pluginEventBus.emitResourceUpdated).toHaveBeenCalledWith({
+        type: 'deployments',
+        name: 'web',
+        namespace: 'default',
+        replicas: 3,
+      });
+    });
+
+    it('should include context flag when contextName is supplied', async () => {
+      execResolves('');
+
+      await service.scaleResource('statefulsets', 'db', 'prod', 5, 'prod-ctx');
+      expect(lastArgs()).toEqual(
+        expect.arrayContaining(['--context', 'prod-ctx'])
+      );
+    });
+
+    it('should allow scaling to zero', async () => {
+      execResolves('');
+
+      await service.scaleResource('deployments', 'web', 'default', 0);
+      expect(lastArgs()).toContain('--replicas=0');
+    });
+
+    it('should reject non-scalable resource types', async () => {
+      await expect(
+        service.scaleResource('pods', 'p1', 'default', 3)
+      ).rejects.toThrow(/cannot be scaled/);
+      expect(mockSafeExec).not.toHaveBeenCalled();
+    });
+
+    it('should reject negative, fractional, and oversized replica counts', async () => {
+      for (const bad of [-1, 1.5, 1001, NaN]) {
+        await expect(
+          service.scaleResource('deployments', 'web', 'default', bad)
+        ).rejects.toThrow(/Invalid replica count/);
+      }
+      expect(mockSafeExec).not.toHaveBeenCalled();
+    });
+
+    it('should reject invalid resource names', async () => {
+      await expect(
+        service.scaleResource(
+          'deployments',
+          'web; kubectl delete ns prod',
+          'default',
+          3
+        )
+      ).rejects.toThrow();
+      expect(mockSafeExec).not.toHaveBeenCalled();
+    });
+  });
+
   describe('deleteResource', () => {
     it('should delete resource', async () => {
       execResolves('deleted');

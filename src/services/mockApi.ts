@@ -87,6 +87,10 @@ export const mockApi: ElectronAPI = {
     console.log('[MockAPI] deleteResource:', args);
     return { success: true, data: undefined };
   },
+  scaleResource: async (args) => {
+    console.log('[MockAPI] scaleResource:', args);
+    return { success: true, data: undefined };
+  },
   getAppVersion: async () => {
     console.log('[MockAPI] getAppVersion');
     return { success: true, data: 'v0.1.0-mock' };
