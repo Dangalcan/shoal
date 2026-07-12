@@ -1,17 +1,30 @@
-import { Play, Edit2, Trash2 } from 'lucide-react';
+import { Play, Edit2, FolderInput, Trash2 } from 'lucide-react';
 import type { Manifest } from '../../types.d';
+import { MANIFEST_DRAG_TYPE, setDragPayload } from './manifest-dnd';
 
 interface ManifestCardProps {
   manifest: Manifest;
   applying: number | null;
   onApply: (id: number) => void;
   onEdit: (manifest: Manifest) => void;
+  onMove?: (manifest: Manifest) => void;
   onDelete: (id: number) => void;
 }
 
-export function ManifestCard({ manifest: m, applying, onApply, onEdit, onDelete }: ManifestCardProps) {
+export function ManifestCard({
+  manifest: m,
+  applying,
+  onApply,
+  onEdit,
+  onMove,
+  onDelete,
+}: ManifestCardProps) {
   return (
-    <div className="manifest-card">
+    <div
+      className="manifest-card"
+      draggable
+      onDragStart={(e) => setDragPayload(e, MANIFEST_DRAG_TYPE, m.id)}
+    >
       <div className="card-header">
         <h3 title={m.name}>{m.name}</h3>
         <div className="card-actions">
@@ -21,7 +34,11 @@ export function ManifestCard({ manifest: m, applying, onApply, onEdit, onDelete 
             onClick={() => onApply(m.id)}
             disabled={applying === m.id}
           >
-            {applying === m.id ? <div className="spinner-small" /> : <Play size={16} />}
+            {applying === m.id ? (
+              <div className="spinner-small" />
+            ) : (
+              <Play size={16} />
+            )}
           </button>
           <button
             className="btn-icon btn-edit"
@@ -30,6 +47,15 @@ export function ManifestCard({ manifest: m, applying, onApply, onEdit, onDelete 
           >
             <Edit2 size={16} />
           </button>
+          {onMove && (
+            <button
+              className="btn-icon btn-move"
+              title="Move to Folder"
+              onClick={() => onMove(m)}
+            >
+              <FolderInput size={16} />
+            </button>
+          )}
           <button
             className="btn-icon btn-delete"
             title="Delete"

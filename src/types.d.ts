@@ -14,8 +14,39 @@ export interface Manifest {
   name: string;
   cluster_context: string;
   content: string;
+  folder_id: number | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface ManifestFolder {
+  id: number;
+  name: string;
+  parent_id: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type FolderDeleteMode = 'move-to-parent' | 'recursive';
+
+export interface LocalShellInfo {
+  id: string;
+  label: string;
+  family: 'windows' | 'unix';
+}
+
+export interface PortForwardArgs {
+  contextName: string;
+  namespace: string;
+  resourceType: 'pod' | 'service';
+  resourceName: string;
+  localPort: number;
+  remotePort: number;
+}
+
+export interface PortForwardInfo extends PortForwardArgs {
+  id: string;
+  startedAt: string;
 }
 
 export interface ElectronAPI {
@@ -112,6 +143,24 @@ export interface ElectronAPI {
     id: number
   ) => Promise<Result<{ stdout: string; stderr: string }>>;
 
+  // Manifest folders
+  getManifestFolders: () => Promise<Result<ManifestFolder[]>>;
+  saveManifestFolder: (
+    folder: Partial<ManifestFolder>
+  ) => Promise<Result<number>>;
+  deleteManifestFolder: (
+    id: number,
+    mode?: FolderDeleteMode
+  ) => Promise<Result<boolean>>;
+  moveManifest: (
+    id: number,
+    folderId: number | null
+  ) => Promise<Result<boolean>>;
+  moveManifestFolder: (
+    id: number,
+    parentId: number | null
+  ) => Promise<Result<boolean>>;
+
   // Terminal
   terminalCreate: (args: {
     kind: 'local' | 'pod-exec';
@@ -122,6 +171,17 @@ export interface ElectronAPI {
     cols?: number;
     rows?: number;
   }) => Promise<Result<{ sessionId: string }>>;
+  terminalShells: () => Promise<
+    Result<{ shells: LocalShellInfo[]; defaultShell: string }>
+  >;
+
+  // Port forwarding
+  portForwardStart: (args: PortForwardArgs) => Promise<Result<PortForwardInfo>>;
+  portForwardStop: (id: string) => Promise<Result<boolean>>;
+  portForwardList: () => Promise<Result<PortForwardInfo[]>>;
+  onPortForwardClosed: (
+    callback: (info: PortForwardInfo, error?: string) => void
+  ) => () => void;
   terminalInput: (sessionId: string, data: string) => Promise<Result<boolean>>;
   terminalResize: (
     sessionId: string,

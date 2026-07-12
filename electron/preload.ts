@@ -121,15 +121,49 @@ contextBridge.exposeInMainWorld('electron', {
   deleteManifest: (id: number) => ipcRenderer.invoke('delete-manifest', id),
   applyManifest: (id: number) => ipcRenderer.invoke('apply-manifest', id),
 
+  // Manifest folders
+  getManifestFolders: () => ipcRenderer.invoke('get-manifest-folders'),
+  saveManifestFolder: (folder: Record<string, unknown>) =>
+    ipcRenderer.invoke('save-manifest-folder', folder),
+  deleteManifestFolder: (id: number, mode?: string) =>
+    ipcRenderer.invoke('delete-manifest-folder', id, mode),
+  moveManifest: (id: number, folderId: number | null) =>
+    ipcRenderer.invoke('move-manifest', id, folderId),
+  moveManifestFolder: (id: number, parentId: number | null) =>
+    ipcRenderer.invoke('move-manifest-folder', id, parentId),
+
   // Terminal
   terminalCreate: (args: {
     kind: 'local' | 'pod-exec';
     podName?: string;
     namespace?: string;
     contextName?: string;
+    shell?: string;
     cols?: number;
     rows?: number;
   }) => ipcRenderer.invoke('terminal:create', args),
+  terminalShells: () => ipcRenderer.invoke('terminal:shells'),
+
+  // Port forwarding
+  portForwardStart: (args: {
+    contextName: string;
+    namespace: string;
+    resourceType: 'pod' | 'service';
+    resourceName: string;
+    localPort: number;
+    remotePort: number;
+  }) => ipcRenderer.invoke('portforward:start', args),
+  portForwardStop: (id: string) =>
+    ipcRenderer.invoke('portforward:stop', { id }),
+  portForwardList: () => ipcRenderer.invoke('portforward:list'),
+  onPortForwardClosed: (callback: (info: unknown, error?: string) => void) => {
+    const handler = (
+      _event: IpcRendererEvent,
+      { info, error }: { info: unknown; error?: string }
+    ) => callback(info, error);
+    ipcRenderer.on('portforward:closed', handler);
+    return () => ipcRenderer.off('portforward:closed', handler);
+  },
   terminalInput: (sessionId: string, data: string) =>
     ipcRenderer.invoke('terminal:input', { sessionId, data }),
   terminalResize: (sessionId: string, cols: number, rows: number) =>

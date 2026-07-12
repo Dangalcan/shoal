@@ -1,6 +1,8 @@
 import type {
   ElectronAPI,
+  FolderDeleteMode,
   Manifest,
+  ManifestFolder,
   PluginNotificationData,
   PluginModalData,
   PluginScaffoldOptions,
@@ -167,6 +169,28 @@ export const mockApi: ElectronAPI = {
     data: { stdout: 'Mock apply success', stderr: '' },
   }),
 
+  // Manifest folders
+  getManifestFolders: async () => ({
+    success: true,
+    data: [] as ManifestFolder[],
+  }),
+  saveManifestFolder: async (_folder: Partial<ManifestFolder>) => ({
+    success: true,
+    data: Date.now(),
+  }),
+  deleteManifestFolder: async (_id: number, _mode?: FolderDeleteMode) => ({
+    success: true,
+    data: true,
+  }),
+  moveManifest: async (_id: number, _folderId: number | null) => ({
+    success: true,
+    data: true,
+  }),
+  moveManifestFolder: async (_id: number, _parentId: number | null) => ({
+    success: true,
+    data: true,
+  }),
+
   // Listeners
   onSetKubeconfigPath: (_callback: (value: boolean) => void) => {},
   onPluginNotification:
@@ -175,6 +199,10 @@ export const mockApi: ElectronAPI = {
 
   // Terminal (mock stubs — not functional in browser)
   terminalCreate: async () => ({
+    success: false,
+    error: 'Not available in browser',
+  }),
+  terminalShells: async () => ({
     success: false,
     error: 'Not available in browser',
   }),
@@ -196,6 +224,18 @@ export const mockApi: ElectronAPI = {
   }),
   onTerminalOutput: () => () => {},
   onTerminalExited: () => () => {},
+
+  // Port forwarding (mock stubs — not functional in browser)
+  portForwardStart: async () => ({
+    success: false,
+    error: 'Not available in browser',
+  }),
+  portForwardStop: async () => ({
+    success: false,
+    error: 'Not available in browser',
+  }),
+  portForwardList: async () => ({ success: true, data: [] }),
+  onPortForwardClosed: () => () => {},
   checkForAppUpdates: async () => ({ success: true, data: false }),
   installAppUpdate: async () => ({ success: true, data: true }),
   onUpdateStatus: () => () => {},
