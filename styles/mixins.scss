@@ -50,9 +50,9 @@
   animation: spin $duration linear infinite;
 }
 
-@mixin scrollbar() {
+@mixin scrollbar($thumb: var(--border-color)) {
   scrollbar-width: thin;
-  scrollbar-color: var(--border-color) transparent;
+  scrollbar-color: $thumb transparent;
 
   &::-webkit-scrollbar {
     width: 8px;
@@ -62,7 +62,7 @@
     background: transparent;
   }
   &::-webkit-scrollbar-thumb {
-    background: var(--border-color);
+    background: $thumb;
     border-radius: 20px;
     border: 2px solid transparent;
     background-clip: content-box;
@@ -73,7 +73,7 @@
   }
 
   [data-theme='dark'] &::-webkit-scrollbar-thumb {
-    background: var(--border-color);
+    background: $thumb;
     &:hover {
       background: var(--text-muted);
     }
