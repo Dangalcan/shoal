@@ -1,15 +1,22 @@
 name: Build/Release
 
 on:
+  # Master builds run only after the CI workflow (typecheck + tests) has
+  # completed successfully for that commit.
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+    branches: [master]
   push:
-    branches:
-      - master
     tags:
       - 'v*'
   workflow_dispatch:
 
 jobs:
   release:
+    # Gate on CI success when triggered by workflow_run; tag pushes and
+    # manual dispatches build directly.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -19,6 +26,9 @@ jobs:
     steps:
       - name: Check out git repository
         uses: actions/checkout@v4
+        with:
+          # For workflow_run, build the exact commit CI validated.
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Install Node.js
         uses: actions/setup-node@v4
