@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { FolderBreadcrumbs } from '../../../features/manifests/FolderBreadcrumbs';
 import { MANIFEST_DRAG_TYPE } from '../../../features/manifests/manifest-dnd';
+import { FOLDER_DRAG_TYPE } from '../../../features/manifests/manifest-dnd';
 import type { ManifestFolder } from '../../../types.d';
 
 function makeFolder(overrides: Partial<ManifestFolder>): ManifestFolder {
@@ -67,5 +68,23 @@ describe('FolderBreadcrumbs', () => {
       },
     });
     expect(onDropManifest).toHaveBeenCalledWith(9, null);
+  });
+
+  it('accepts a folder dropped on an ancestor and ignores unrelated drags', () => {
+    renderCrumbs();
+    const infra = screen.getByText('infra');
+
+    fireEvent.drop(infra, {
+      dataTransfer: {
+        types: [FOLDER_DRAG_TYPE],
+        getData: (type: string) => (type === FOLDER_DRAG_TYPE ? '9' : ''),
+      },
+    });
+    fireEvent.drop(infra, {
+      dataTransfer: { types: ['Files'], getData: () => '' },
+    });
+
+    expect(onDropFolder).toHaveBeenCalledWith(9, 1);
+    expect(onDropManifest).not.toHaveBeenCalled();
   });
 });

@@ -66,6 +66,18 @@ describe('FolderCard', () => {
     expect(onOpen).toHaveBeenCalledWith(7);
   });
 
+  it('opens the folder with the space key and starts a typed folder drag', () => {
+    renderCard();
+    const card = screen.getByRole('button', { name: /production/i });
+    const setData = vi.fn();
+
+    fireEvent.keyDown(card, { key: ' ' });
+    fireEvent.dragStart(card, { dataTransfer: { setData } });
+
+    expect(onOpen).toHaveBeenCalledWith(7);
+    expect(setData).toHaveBeenCalledWith(FOLDER_DRAG_TYPE, '7');
+  });
+
   it('fires action callbacks without opening the folder', () => {
     renderCard();
     fireEvent.click(screen.getByTitle('Rename Folder'));
@@ -118,5 +130,25 @@ describe('FolderCard', () => {
     });
     expect(onDropManifest).not.toHaveBeenCalled();
     expect(onDropFolder).not.toHaveBeenCalled();
+  });
+
+  it('ignores invalid payloads and clears the drag-over state', () => {
+    renderCard();
+    const card = screen.getByRole('button', { name: /production/i });
+
+    fireEvent.dragOver(card, {
+      dataTransfer: { types: [MANIFEST_DRAG_TYPE], dropEffect: 'none' },
+    });
+    expect(card).toHaveClass('folder-card--drag-over');
+
+    fireEvent.drop(card, {
+      dataTransfer: {
+        types: [MANIFEST_DRAG_TYPE],
+        getData: () => 'not-a-number',
+      },
+    });
+
+    expect(card).not.toHaveClass('folder-card--drag-over');
+    expect(onDropManifest).not.toHaveBeenCalled();
   });
 });

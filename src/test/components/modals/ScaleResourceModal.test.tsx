@@ -2,7 +2,9 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ScaleResourceModal } from '../../../components/modals/ScaleResourceModal';
 
-function renderModal(overrides: Partial<Parameters<typeof ScaleResourceModal>[0]> = {}) {
+function renderModal(
+  overrides: Partial<Parameters<typeof ScaleResourceModal>[0]> = {}
+) {
   const props = {
     isOpen: true,
     onClose: vi.fn(),
@@ -72,6 +74,45 @@ describe('ScaleResourceModal', () => {
     });
 
     expect(screen.getByRole('button', { name: /Scale to/ })).toBeDisabled();
+  });
+
+  it('normalizes invalid numeric input and disables fractional replica values', () => {
+    renderModal();
+    const input = screen.getByLabelText('Replica count');
+
+    fireEvent.change(input, { target: { value: 'not-a-number' } });
+    expect(input).toHaveValue(0);
+    expect(screen.getByText(/stops all pods/)).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: '2.8' } });
+    expect(input).toHaveValue(2);
+    expect(screen.getByRole('button', { name: /Scale to 2/ })).toBeEnabled();
+  });
+
+  it('resets the count to the resource value each time it reopens', () => {
+    const { rerender } = render(
+      <ScaleResourceModal
+        isOpen={false}
+        onClose={vi.fn()}
+        onScale={vi.fn()}
+        resourceType="deployments"
+        resourceName="web"
+        currentReplicas={3}
+      />
+    );
+
+    rerender(
+      <ScaleResourceModal
+        isOpen
+        onClose={vi.fn()}
+        onScale={vi.fn()}
+        resourceType="deployments"
+        resourceName="web"
+        currentReplicas={6}
+      />
+    );
+
+    expect(screen.getByLabelText('Replica count')).toHaveValue(6);
   });
 
   it('does not scale when cancelled', () => {

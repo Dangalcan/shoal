@@ -78,7 +78,7 @@ function makeFakeChild() {
 
 const mockEvent = {
   sender: {
-    isDestroyed: () => false,
+    isDestroyed: vi.fn(() => false),
     send: vi.fn(),
   },
 } as unknown as IpcMainInvokeEvent;
@@ -243,6 +243,133 @@ describe('terminal-ipc', () => {
           defaultShell: 'powershell',
         },
       });
+    });
+  });
+
+  describe('session lifecycle', () => {
+    it('forwards stdout and stderr, then reports a process exit', async () => {
+      const child = makeFakeChild();
+      vi.mocked(spawn).mockReturnValue(
+        child as unknown as ReturnType<typeof spawn>
+      );
+
+      const result = await getHandler('terminal:create')(mockEvent, {
+        kind: 'local',
+      });
+      const sessionId = (result.data as { sessionId: string }).sessionId;
+
+      const stdoutListener = child.stdout.on.mock.calls[0][1] as (
+        data: Buffer
+      ) => void;
+      const stderrListener = child.stderr.on.mock.calls[0][1] as (
+        data: Buffer
+      ) => void;
+      const exitListener = child.on.mock.calls[0][1] as () => void;
+
+      stdoutListener(Buffer.from('standard output'));
+      stderrListener(Buffer.from('standard error'));
+      exitListener();
+
+      expect(mockEvent.sender.send).toHaveBeenNthCalledWith(
+        1,
+        'terminal:output',
+        { sessionId, data: 'standard output' }
+      );
+      expect(mockEvent.sender.send).toHaveBeenNthCalledWith(
+        2,
+        'terminal:output',
+        { sessionId, data: 'standard error' }
+      );
+      expect(mockEvent.sender.send).toHaveBeenLastCalledWith(
+        'terminal:exited',
+        { sessionId }
+      );
+
+      const inputResult = await getHandler('terminal:input')(mockEvent, {
+        sessionId,
+        data: 'echo after exit',
+      });
+      expect(inputResult).toMatchObject({ success: false });
+    });
+
+    it('does not send output or exit events to a destroyed renderer', async () => {
+      const child = makeFakeChild();
+      vi.mocked(spawn).mockReturnValue(
+        child as unknown as ReturnType<typeof spawn>
+      );
+      vi.mocked(mockEvent.sender.isDestroyed).mockReturnValue(true);
+
+      await getHandler('terminal:create')(mockEvent, { kind: 'local' });
+      const stdoutListener = child.stdout.on.mock.calls[0][1] as (
+        data: Buffer
+      ) => void;
+      const exitListener = child.on.mock.calls[0][1] as () => void;
+
+      stdoutListener(Buffer.from('ignored'));
+      exitListener();
+
+      expect(mockEvent.sender.send).not.toHaveBeenCalled();
+    });
+
+    it('writes input, validates resize, kills sessions, and interrupts child processes', async () => {
+      const child = makeFakeChild();
+      vi.mocked(spawn).mockReturnValue(
+        child as unknown as ReturnType<typeof spawn>
+      );
+
+      const result = await getHandler('terminal:create')(mockEvent, {
+        kind: 'local',
+      });
+      const sessionId = (result.data as { sessionId: string }).sessionId;
+
+      await expect(
+        getHandler('terminal:input')(mockEvent, { sessionId, data: 'ls\n' })
+      ).resolves.toMatchObject({ success: true });
+      expect(child.stdin.write).toHaveBeenCalledWith('ls\n');
+
+      await expect(
+        getHandler('terminal:resize')(mockEvent, {
+          sessionId,
+          cols: 120,
+          rows: 40,
+        })
+      ).resolves.toMatchObject({ success: true });
+      await expect(
+        getHandler('terminal:interrupt')(mockEvent, { sessionId })
+      ).resolves.toMatchObject({ success: true });
+      if (process.platform === 'win32') {
+        expect(spawn).toHaveBeenLastCalledWith(
+          'powershell.exe',
+          expect.any(Array),
+          expect.objectContaining({ windowsHide: true, stdio: 'ignore' })
+        );
+      } else {
+        expect(child.kill).toHaveBeenCalledWith('SIGINT');
+      }
+
+      await expect(
+        getHandler('terminal:kill')(mockEvent, { sessionId })
+      ).resolves.toMatchObject({ success: true });
+      expect(child.kill).toHaveBeenCalledTimes(
+        process.platform === 'win32' ? 1 : 2
+      );
+
+      await expect(
+        getHandler('terminal:resize')(mockEvent, {
+          sessionId: 'missing',
+          cols: 80,
+          rows: 24,
+        })
+      ).resolves.toMatchObject({ success: false });
+      await expect(
+        getHandler('terminal:input')(mockEvent, {
+          sessionId: 'missing',
+          data: 'x',
+        })
+      ).resolves.toMatchObject({ success: false });
+      await expect(
+        getHandler('terminal:kill')(mockEvent, { sessionId: 'missing' })
+      ).resolves.toMatchObject({ success: true });
     });
   });
 });

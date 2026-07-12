@@ -83,9 +83,7 @@ describe('MarketplaceCard ownership states', () => {
     ];
     render(<MarketplaceCard entry={entry} onOpenDetail={vi.fn()} />);
     expect(screen.getByText('Expired')).toBeInTheDocument();
-    expect(
-      screen.getByText(/License expired — Buy \$19/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/License expired — Buy \$19/)).toBeInTheDocument();
   });
 
   it('shows plain Installed for a free plugin', () => {
@@ -95,6 +93,41 @@ describe('MarketplaceCard ownership states', () => {
     );
     expect(screen.getAllByText('Installed').length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText(/Licensed/)).not.toBeInTheDocument();
+  });
+
+  it('renders featured metadata and opens details with pointer or keyboard input', () => {
+    const onOpenDetail = vi.fn();
+    render(
+      <MarketplaceCard
+        entry={{ ...entry, icon: '/plugin.svg', rating: 4.5, reviews: 12 }}
+        featured
+        onOpenDetail={onOpenDetail}
+      />
+    );
+
+    const card = screen.getByRole('button', { name: /Helm Manager/i });
+    expect(card).toHaveClass('marketplace-card--featured');
+    expect(screen.getByRole('img', { name: 'Helm Manager' })).toHaveAttribute(
+      'src',
+      '/plugin.svg'
+    );
+    expect(screen.getByLabelText('4.5 out of 5 stars')).toBeInTheDocument();
+
+    fireEvent.keyDown(card, { key: 'Enter' });
+    fireEvent.click(card);
+    expect(onOpenDetail).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows the update state and installs without opening card details', async () => {
+    const onOpenDetail = vi.fn();
+    pluginsState.plugins = [installedPlugin({ hasUpdate: true })];
+    installPlugin.mockResolvedValue(undefined);
+    render(<MarketplaceCard entry={entry} onOpenDetail={onOpenDetail} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Update' }));
+
+    expect(installPlugin).toHaveBeenCalledWith('helm-manager');
+    expect(onOpenDetail).not.toHaveBeenCalled();
   });
 
   it('shows waiting state with a working Cancel button while awaiting payment', async () => {

@@ -118,6 +118,32 @@ describe('StorageService', () => {
     );
   });
 
+  it('returns parseable values across plugins and skips malformed values', () => {
+    const db = (storageService as any).db;
+    const prepareSpy = vi.spyOn(db, 'prepare');
+    const all = vi.fn().mockReturnValue([
+      { plugin_id: 'first', value: JSON.stringify({ enabled: true }) },
+      { plugin_id: 'broken', value: 'not-json' },
+      { plugin_id: 'second', value: JSON.stringify(['a', 'b']) },
+    ]);
+    prepareSpy.mockReturnValue({ all } as any);
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    expect(storageService.getAllByKey('settings')).toEqual(
+      new Map([
+        ['first', { enabled: true }],
+        ['second', ['a', 'b']],
+      ])
+    );
+    expect(prepareSpy).toHaveBeenCalledWith(
+      expect.stringContaining('SELECT plugin_id, value')
+    );
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to parse value')
+    );
+    consoleSpy.mockRestore();
+  });
+
   it('should handle JSON migration', async () => {
     const pluginId = 'test-p';
     // Success case

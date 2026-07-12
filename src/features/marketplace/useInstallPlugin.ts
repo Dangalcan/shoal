@@ -11,7 +11,7 @@ export function useInstallPlugin(pluginId: string, pluginName: string) {
   const hasUpdate = installedPlugin?.hasUpdate ?? false;
 
   const handleInstall = async () => {
-    if (isInstalled || installing) return;
+    if ((isInstalled && !hasUpdate) || installing) return;
     setInstalling(true);
     const toastId = toast.loading(`Installing ${pluginName}...`);
     try {
