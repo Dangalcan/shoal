@@ -145,7 +145,7 @@ describe('terminal-ipc', () => {
   });
 
   describe('terminal:create (pod-exec)', () => {
-    it('spawns kubectl exec through cmd.exe without a temp cwd', async () => {
+    it('spawns kubectl directly (no cmd.exe) without a temp cwd', async () => {
       const result = await getHandler('terminal:create')(mockEvent, {
         kind: 'pod-exec',
         podName: 'my-pod',
@@ -156,10 +156,66 @@ describe('terminal-ipc', () => {
       expect(result.success).toBe(true);
       expect(getTerminalCwd).not.toHaveBeenCalled();
       expect(spawn).toHaveBeenCalledWith(
-        'cmd.exe',
-        expect.arrayContaining(['kubectl', 'exec', 'my-pod']),
+        'kubectl',
+        [
+          'exec',
+          '-i',
+          'my-pod',
+          '-n',
+          'default',
+          '--context',
+          'kind-test',
+          '--',
+          '/bin/sh',
+          '-i',
+        ],
         expect.objectContaining({ cwd: undefined })
       );
+    });
+
+    it('passes an allowlisted shell through to kubectl', async () => {
+      const result = await getHandler('terminal:create')(mockEvent, {
+        kind: 'pod-exec',
+        podName: 'my-pod',
+        namespace: 'default',
+        contextName: 'kind-test',
+        shell: '/bin/bash',
+      });
+
+      expect(result.success).toBe(true);
+      expect(spawn).toHaveBeenCalledWith(
+        'kubectl',
+        expect.arrayContaining(['--', '/bin/bash', '-i']),
+        expect.anything()
+      );
+    });
+
+    it('rejects a shell with metacharacters without spawning', async () => {
+      const result = await getHandler('terminal:create')(mockEvent, {
+        kind: 'pod-exec',
+        podName: 'my-pod',
+        namespace: 'default',
+        contextName: 'kind-test',
+        shell: 'sh&calc.exe',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/Invalid pod shell/);
+      expect(spawn).not.toHaveBeenCalled();
+    });
+
+    it('rejects a shell outside the allowlist without spawning', async () => {
+      const result = await getHandler('terminal:create')(mockEvent, {
+        kind: 'pod-exec',
+        podName: 'my-pod',
+        namespace: 'default',
+        contextName: 'kind-test',
+        shell: '/usr/bin/python3',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/Invalid pod shell/);
+      expect(spawn).not.toHaveBeenCalled();
     });
 
     it('fails when pod-exec args are missing', async () => {

@@ -29,6 +29,24 @@ interface Session {
   process: ChildProcess;
 }
 
+// Shells we agree to exec inside a pod. The renderer offers exactly these
+// (PodTerminalModal SHELL_OPTIONS); anything else over IPC is rejected so a
+// compromised renderer can't smuggle arbitrary strings into the spawn args.
+const POD_EXEC_SHELLS = new Set([
+  '/bin/sh',
+  '/bin/bash',
+  '/bin/ash',
+  '/bin/zsh',
+  'sh',
+  'bash',
+  'ash',
+  'zsh',
+]);
+
+function assertPodShell(v: string): void {
+  if (!POD_EXEC_SHELLS.has(v)) throw new Error(`Invalid pod shell: "${v}"`);
+}
+
 const sessions = new Map<string, Session>();
 
 export function registerTerminalIpcHandlers(): void {
@@ -61,12 +79,14 @@ export function registerTerminalIpcHandlers(): void {
           assertNamespace(namespace);
           assertContext(contextName);
 
-          // Route through cmd.exe so kubectl is found in the user's PATH
           const shell = args.shell || '/bin/sh';
-          file = 'cmd.exe';
+          assertPodShell(shell);
+
+          // Spawn kubectl directly (PATH resolves kubectl.exe on Windows,
+          // same as safe-exec). No cmd.exe: /c re-parses metacharacters,
+          // which would turn renderer input into host command injection.
+          file = 'kubectl';
           spawnArgs = [
-            '/c',
-            'kubectl',
             'exec',
             '-i',
             podName,
