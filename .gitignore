@@ -14,3 +14,12 @@ licenses.db-shm
 licenses.db-wal
 # Generated plugin iframe runtime (built by build:plugin-runtime)
 public/plugin-host/bootstrap.js
+
+# Marketplace plugins live in their own GitHub repos; only bundled examples
+# (namespace-watcher, resource-monitor) are tracked here.
+plugins/ci-pipeline-view/
+plugins/helm-manager/
+plugins/ingress-inspector/
+plugins/log-aggregator/
+plugins/rbac-visualizer/
+plugins/secret-manager/
