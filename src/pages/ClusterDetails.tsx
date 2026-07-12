@@ -7,6 +7,8 @@ import { DescribeModal } from '../components/modals/DescribeModal'
 import { YamlModal } from '../components/modals/YamlModal'
 import { ConfirmModal } from '../components/modals/ConfirmModal'
 import { PodTerminalModal } from '../components/modals/PodTerminalModal'
+import { PortForwardModal } from '../components/modals/PortForwardModal'
+import { getForwardablePorts } from '../features/portforward/port-utils'
 import { ResourceType, ALL_TABS, RESOURCE_CONFIGS } from '../lib/resources/resource-definitions'
 import { DetailsHeader } from '../components/cluster/DetailsHeader'
 import { ResourceTabs } from '../components/cluster/ResourceTabs'
@@ -171,6 +173,7 @@ const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaces(na
                     onRestart={(item) => handleRestart(item.metadata.name, item.metadata.namespace || '', activeTab)}
                     onLogs={modals.openLogs}
                     onExec={modals.openExec}
+                    onForward={modals.openForward}
                     onDelete={modals.openDelete}
                     onRetry={fetchData}
                     selectedNamespace={selectedNamespace}
@@ -236,6 +239,22 @@ const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaces(na
                 podName={modals.selectedItem?.metadata.name ?? ''}
                 namespace={modals.selectedItem?.metadata.namespace ?? ''}
                 contextName={name ?? ''}
+            />
+            <PortForwardModal
+                isOpen={modals.activeModal === 'forward'}
+                onClose={modals.closeAll}
+                contextName={name ?? ''}
+                namespace={modals.selectedItem?.metadata.namespace ?? 'default'}
+                resourceType={activeTab === 'services' ? 'service' : 'pod'}
+                resourceName={modals.selectedItem?.metadata.name ?? ''}
+                suggestedPorts={
+                    modals.selectedItem
+                        ? getForwardablePorts(
+                              modals.selectedItem,
+                              activeTab === 'services' ? 'service' : 'pod'
+                          )
+                        : []
+                }
             />
             <Toaster position="bottom-right" richColors />
         </div>
