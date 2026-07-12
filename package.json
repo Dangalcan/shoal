@@ -1,7 +1,7 @@
 {
   "name": "kubernetes-desktop",
   "version": "1.0.0",
-  "description": "",
+  "description": "Desktop application for managing Kubernetes clusters, with a plugin marketplace.",
   "main": "dist-electron/main.js",
   "scripts": {
     "start": "npm run dev",
@@ -41,7 +41,10 @@
     ]
   },
   "keywords": [],
-  "author": "",
+  "author": {
+    "name": "dangalcan",
+    "email": "megamagolas@gmail.com"
+  },
   "license": "LGPL-3.0-or-later",
   "type": "commonjs",
   "bugs": {
