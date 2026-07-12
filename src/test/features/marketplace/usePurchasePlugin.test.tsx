@@ -20,6 +20,7 @@ vi.mock('sonner', () => ({
     loading: vi.fn(() => 'toast-id'),
     success: vi.fn(),
     error: vi.fn(),
+    info: vi.fn(),
   },
 }));
 
@@ -76,7 +77,7 @@ describe('usePurchasePlugin', () => {
     expect(toast.error).toHaveBeenCalled();
   });
 
-  it('errors if payment never completes within the poll budget', async () => {
+  it('reports a distinct timeout when payment never completes in the poll budget', async () => {
     api.createCheckout.mockResolvedValue({
       success: true,
       data: { sessionId: 'cs_2', url: 'https://pay.test/cs_2' },
@@ -96,7 +97,66 @@ describe('usePurchasePlugin', () => {
     expect(api.getCheckoutStatus).toHaveBeenCalledTimes(3);
     expect(activateLicense).not.toHaveBeenCalled();
     expect(installPlugin).not.toHaveBeenCalled();
-    expect(toast.error).toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith(
+      expect.stringContaining('Payment was not confirmed'),
+      expect.anything()
+    );
+    expect(result.current.purchasing).toBe(false);
+  });
+
+  it('cancelPurchase stops polling and shows a cancelled notice, not an error', async () => {
+    api.createCheckout.mockResolvedValue({
+      success: true,
+      data: { sessionId: 'cs_4', url: 'https://pay.test/cs_4' },
+    });
+    let polls = 0;
+    const { result } = renderHook(() =>
+      usePurchasePlugin('paid-plugin', 'Paid', { pollIntervalMs: 0, maxPolls: 50 })
+    );
+    api.getCheckoutStatus.mockImplementation(async () => {
+      polls++;
+      // Cancel while the payment page is "open" and polling is underway.
+      if (polls === 2) result.current.cancelPurchase();
+      return { success: true, data: { status: 'pending' } };
+    });
+
+    await act(async () => {
+      await result.current.handlePurchase();
+    });
+
+    expect(polls).toBeLessThan(50);
+    expect(activateLicense).not.toHaveBeenCalled();
+    expect(installPlugin).not.toHaveBeenCalled();
+    expect(toast.info).toHaveBeenCalledWith(
+      expect.stringContaining('cancelled'),
+      expect.anything()
+    );
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(result.current.purchasing).toBe(false);
+  });
+
+  it('a new purchase after a cancel starts with a fresh cancel flag', async () => {
+    api.createCheckout.mockResolvedValue({
+      success: true,
+      data: { sessionId: 'cs_5', url: 'https://pay.test/cs_5' },
+    });
+    api.getCheckoutStatus.mockResolvedValue({
+      success: true,
+      data: { status: 'paid', licenseKey: 'LIC-5' },
+    });
+
+    const { result } = renderHook(() =>
+      usePurchasePlugin('paid-plugin', 'Paid', { pollIntervalMs: 0 })
+    );
+
+    // Cancel before any purchase, then purchase: must still complete.
+    act(() => result.current.cancelPurchase());
+    await act(async () => {
+      await result.current.handlePurchase();
+    });
+
+    expect(activateLicense).toHaveBeenCalledWith('paid-plugin', 'LIC-5');
+    expect(toast.success).toHaveBeenCalled();
   });
 
   it('ignores concurrent clicks while purchasing', async () => {

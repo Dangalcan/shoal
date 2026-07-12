@@ -2,11 +2,23 @@
  * Marketplace Card Component
  */
 
-import { Download, Check, DollarSign, User, Package, ShoppingCart } from 'lucide-react';
+import {
+  Download,
+  Check,
+  DollarSign,
+  User,
+  Package,
+  ShoppingCart,
+  BadgeCheck,
+  Clock,
+  AlertTriangle,
+  X,
+} from 'lucide-react';
 import type { MarketplaceEntry } from '../../types';
 import { StarRating } from './StarRating';
 import { useInstallPlugin } from './useInstallPlugin';
 import { usePurchasePlugin } from './usePurchasePlugin';
+import { getOwnershipState } from './ownership';
 
 
 interface MarketplaceCardProps {
@@ -16,12 +28,16 @@ interface MarketplaceCardProps {
 }
 
 export function MarketplaceCard({ entry, featured = false, onOpenDetail }: MarketplaceCardProps) {
-  const { isInstalled, hasUpdate, installing, handleInstall } = useInstallPlugin(
+  const { isInstalled, hasUpdate, installedPlugin, installing, handleInstall } = useInstallPlugin(
     entry.id,
     entry.name
   );
-  const { purchasing, handlePurchase } = usePurchasePlugin(entry.id, entry.name);
+  const { purchasing, awaitingPayment, handlePurchase, cancelPurchase } = usePurchasePlugin(
+    entry.id,
+    entry.name
+  );
   const isPaid = entry.price > 0;
+  const ownership = getOwnershipState(installedPlugin, isPaid);
 
   const handleInstallClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -33,6 +49,31 @@ export function MarketplaceCard({ entry, featured = false, onOpenDetail }: Marke
     handlePurchase();
   };
 
+  const handleCancelClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    cancelPurchase();
+  };
+
+  const badge = hasUpdate ? (
+    <span className="marketplace-card__badge marketplace-card__badge--update">Update</span>
+  ) : ownership === 'licensed' ? (
+    <span className="marketplace-card__badge marketplace-card__badge--licensed">
+      <BadgeCheck size={10} /> Licensed
+    </span>
+  ) : ownership === 'trial' ? (
+    <span className="marketplace-card__badge marketplace-card__badge--trial">
+      <Clock size={10} /> Trial
+    </span>
+  ) : ownership === 'expired' ? (
+    <span className="marketplace-card__badge marketplace-card__badge--expired">
+      <AlertTriangle size={10} /> Expired
+    </span>
+  ) : ownership === 'installed' ? (
+    <span className="marketplace-card__badge marketplace-card__badge--installed">
+      <Check size={10} /> Installed
+    </span>
+  ) : null;
+
   return (
     <div
       className={`marketplace-card ${featured ? 'marketplace-card--featured' : ''}`}
@@ -41,14 +82,7 @@ export function MarketplaceCard({ entry, featured = false, onOpenDetail }: Marke
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && onOpenDetail(entry)}
     >
-      {hasUpdate && (
-        <span className="marketplace-card__badge marketplace-card__badge--update">Update</span>
-      )}
-      {isInstalled && !hasUpdate && (
-        <span className="marketplace-card__badge marketplace-card__badge--installed">
-          <Check size={10} /> Installed
-        </span>
-      )}
+      {badge}
 
       <div className="marketplace-card__header">
         <div className="marketplace-card__icon">
@@ -89,24 +123,45 @@ export function MarketplaceCard({ entry, featured = false, onOpenDetail }: Marke
       </div>
 
       <div className="marketplace-card__footer">
-        {isInstalled && !hasUpdate ? (
+        {purchasing ? (
+          <div className="marketplace-card__purchase-row">
+            <button className="btn btn--full btn--primary" disabled>
+              <span className="spinner spinner--small" />
+              {awaitingPayment ? 'Waiting for payment...' : 'Purchasing...'}
+            </button>
+            {awaitingPayment && (
+              <button
+                className="btn btn--outline marketplace-card__cancel-btn"
+                onClick={handleCancelClick}
+                title="Cancel purchase"
+              >
+                <X size={14} /> Cancel
+              </button>
+            )}
+          </div>
+        ) : ownership === 'expired' ? (
+          <button className="btn btn--full btn--warning" onClick={handleBuyClick}>
+            <ShoppingCart size={16} /> License expired — Buy ${entry.price}
+          </button>
+        ) : isInstalled && !hasUpdate ? (
           <button
             className="btn btn--outline btn--full btn--success"
             disabled
           >
-            <Check size={16} /> Installed
+            {ownership === 'licensed' ? (
+              <><BadgeCheck size={16} /> Licensed</>
+            ) : ownership === 'trial' ? (
+              <><Clock size={16} /> Trial active</>
+            ) : (
+              <><Check size={16} /> Installed</>
+            )}
           </button>
         ) : isPaid && !hasUpdate ? (
           <button
             className="btn btn--full btn--primary"
             onClick={handleBuyClick}
-            disabled={purchasing}
           >
-            {purchasing ? (
-              <><span className="spinner spinner--small" /> Purchasing...</>
-            ) : (
-              <><ShoppingCart size={16} /> Buy ${entry.price}</>
-            )}
+            <ShoppingCart size={16} /> Buy ${entry.price}
           </button>
         ) : (
           <button

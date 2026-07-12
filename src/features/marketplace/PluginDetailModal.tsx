@@ -1,8 +1,21 @@
 import { useState } from 'react';
-import { Download, Check, Package, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Download,
+  Check,
+  Package,
+  ChevronLeft,
+  ChevronRight,
+  ShoppingCart,
+  BadgeCheck,
+  Clock,
+  AlertTriangle,
+  X,
+} from 'lucide-react';
 import type { MarketplaceEntry } from '../../types';
 import { StarRating } from './StarRating';
 import { useInstallPlugin } from './useInstallPlugin';
+import { usePurchasePlugin } from './usePurchasePlugin';
+import { getOwnershipState, formatExpiry } from './ownership';
 import { BaseModal } from '../../components/modals/BaseModal';
 
 
@@ -32,8 +45,20 @@ const PERMISSION_LABELS: Record<string, { label: string; description: string }> 
 };
 
 export function PluginDetailModal({ entry, onClose }: PluginDetailModalProps) {
-  const { isInstalled, installing, handleInstall } = useInstallPlugin(entry.id, entry.name);
+  const { isInstalled, installedPlugin, installing, handleInstall } = useInstallPlugin(
+    entry.id,
+    entry.name
+  );
+  const { purchasing, awaitingPayment, handlePurchase, cancelPurchase } = usePurchasePlugin(
+    entry.id,
+    entry.name
+  );
   const [activeScreenshot, setActiveScreenshot] = useState(0);
+
+  const isPaid = entry.price > 0;
+  const ownership = getOwnershipState(installedPlugin, isPaid);
+  const licenseExpiry = formatExpiry(installedPlugin?.licenseInfo?.expiresAt);
+  const trialEnd = formatExpiry(installedPlugin?.licenseInfo?.trialEndsAt);
 
   const screenshots = entry.screenshots ?? [];
   const tags = entry.tags ?? [];
@@ -132,11 +157,62 @@ export function PluginDetailModal({ entry, onClose }: PluginDetailModalProps) {
           </div>
         </div>
 
-        {/* Install action */}
+        {/* Install / purchase action */}
         <div className="plugin-detail-modal__actions">
-          {isInstalled ? (
+          {purchasing ? (
+            <div className="plugin-detail-modal__purchase-row">
+              <button className="btn btn--primary btn--full" disabled>
+                <span className="spinner spinner--small" />
+                {awaitingPayment ? 'Waiting for payment...' : 'Purchasing...'}
+              </button>
+              {awaitingPayment && (
+                <button
+                  className="btn btn--outline plugin-detail-modal__cancel-btn"
+                  onClick={cancelPurchase}
+                  title="Cancel purchase"
+                >
+                  <X size={14} /> Cancel
+                </button>
+              )}
+            </div>
+          ) : ownership === 'expired' ? (
+            <>
+              <div className="plugin-detail-modal__license-note plugin-detail-modal__license-note--expired">
+                <AlertTriangle size={14} /> Your license has expired
+                {licenseExpiry ? ` (on ${licenseExpiry})` : ''}.
+              </div>
+              <button className="btn btn--warning btn--full" onClick={handlePurchase}>
+                <ShoppingCart size={16} /> Buy again — ${entry.price}
+              </button>
+            </>
+          ) : ownership === 'licensed' ? (
+            <>
+              <button className="btn btn--outline btn--full btn--success" disabled>
+                <BadgeCheck size={16} /> Licensed
+              </button>
+              {licenseExpiry && (
+                <div className="plugin-detail-modal__license-note">
+                  License valid until {licenseExpiry}.
+                </div>
+              )}
+            </>
+          ) : ownership === 'trial' ? (
+            <>
+              <button className="btn btn--outline btn--full btn--success" disabled>
+                <Clock size={16} /> Trial active
+              </button>
+              <div className="plugin-detail-modal__license-note">
+                {trialEnd ? `Trial ends ${trialEnd}. ` : ''}Buy a license to keep
+                using {entry.name} afterwards.
+              </div>
+            </>
+          ) : isInstalled ? (
             <button className="btn btn--outline btn--full btn--success" disabled>
               <Check size={16} /> Installed
+            </button>
+          ) : isPaid ? (
+            <button className="btn btn--primary btn--full" onClick={handlePurchase}>
+              <ShoppingCart size={16} /> Buy & Install — ${entry.price}
             </button>
           ) : (
             <button
@@ -147,7 +223,7 @@ export function PluginDetailModal({ entry, onClose }: PluginDetailModalProps) {
               {installing ? (
                 <><span className="spinner spinner--small" /> Installing...</>
               ) : (
-                <><Download size={16} /> {entry.price > 0 ? 'Buy & Install' : 'Install'}</>
+                <><Download size={16} /> Install</>
               )}
             </button>
           )}
