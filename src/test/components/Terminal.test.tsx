@@ -50,7 +50,11 @@ let capturedExit: (sid: string) => void;
 const cleanupOutput = vi.fn();
 const cleanupExit = vi.fn();
 
-const renderTerminal = (kind: 'local' | 'pod-exec', sessionId = 's1') => {
+const renderTerminal = (
+  kind: 'local' | 'pod-exec',
+  sessionId = 's1',
+  shellFamily?: 'windows' | 'unix'
+) => {
   window.electron.onTerminalOutput = vi.fn((cb: any) => {
     capturedOutput = cb;
     return cleanupOutput;
@@ -59,7 +63,9 @@ const renderTerminal = (kind: 'local' | 'pod-exec', sessionId = 's1') => {
     capturedExit = cb;
     return cleanupExit;
   }) as any;
-  return render(<Terminal sessionId={sessionId} kind={kind} />);
+  return render(
+    <Terminal sessionId={sessionId} kind={kind} shellFamily={shellFamily} />
+  );
 };
 
 describe('Terminal', () => {
@@ -83,7 +89,10 @@ describe('Terminal', () => {
 
     cb('clear\r'); // Enter with clear command (local)
     expect(termClear).toHaveBeenCalled();
-    expect(window.electron.terminalInput).toHaveBeenCalledWith('s1', 'clear\r\n');
+    expect(window.electron.terminalInput).toHaveBeenCalledWith(
+      's1',
+      'clear\r\n'
+    );
 
     termClear.mockClear();
     cb('cls\r'); // 'cls' alias also clears
@@ -97,6 +106,25 @@ describe('Terminal', () => {
     termWrite.mockClear();
     cb('é'); // code > 0x7e → ignored (no branch matches)
     expect(termWrite).not.toHaveBeenCalled();
+  });
+
+  it('uses \\n eol and output conversion for local unix shells (Git Bash/WSL)', () => {
+    renderTerminal('local', 's1', 'unix');
+    const cb = onDataCbs[0]!;
+
+    // Ready banner shown because unix shells print nothing without a PTY
+    expect(termWrite).toHaveBeenCalledWith(
+      '\x1b[90m[Shell ready — no PTY prompt; type a command and press Enter]\x1b[0m\r\n'
+    );
+
+    cb('ls\r'); // local unix shell → \n eol, but clear intercept still local
+    expect(window.electron.terminalInput).toHaveBeenCalledWith('s1', 'ls\n');
+
+    cb('clear\r'); // 'clear' intercept applies to local regardless of family
+    expect(termClear).toHaveBeenCalled();
+
+    capturedOutput('s1', 'x\n'); // unix output normalized to \r\n
+    expect(termWrite).toHaveBeenCalledWith('x\r\n');
   });
 
   it('uses \\n eol for pod-exec Enter (no clear branch)', () => {
