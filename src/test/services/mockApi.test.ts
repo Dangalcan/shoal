@@ -189,6 +189,44 @@ describe('mockApi', () => {
     expect((await mockApi.applyManifest(1)).success).toBe(true);
   });
 
+  it('should support manifest folder operations', async () => {
+    expect((await mockApi.getManifestFolders()).success).toBe(true);
+    expect((await mockApi.saveManifestFolder({ name: 'f' })).success).toBe(
+      true
+    );
+    expect((await mockApi.deleteManifestFolder(1)).success).toBe(true);
+    expect((await mockApi.deleteManifestFolder(1, 'recursive')).success).toBe(
+      true
+    );
+    expect((await mockApi.moveManifest(1, null)).success).toBe(true);
+    expect((await mockApi.moveManifestFolder(1, 2)).success).toBe(true);
+  });
+
+  it('should scale resources', async () => {
+    const result = await mockApi.scaleResource({
+      contextName: 'ctx',
+      resourceType: 'deployments',
+      resourceName: 'web',
+      namespace: 'default',
+      replicas: 3,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('should support the marketplace checkout flow', async () => {
+    const checkout = await mockApi.createCheckout('paid-plugin');
+    expect(checkout.success).toBe(true);
+    if (!checkout.success) throw new Error('checkout failed');
+    expect(checkout.data.sessionId).toBeTruthy();
+    expect(checkout.data.url).toMatch(/^https?:\/\//);
+
+    const status = await mockApi.getCheckoutStatus(checkout.data.sessionId);
+    expect(status.success).toBe(true);
+    if (!status.success) throw new Error('status failed');
+    expect(status.data.status).toBe('paid');
+    expect(status.data.licenseKey).toBeTruthy();
+  });
+
   it('should have listener methods defined', () => {
     expect(typeof mockApi.onSetKubeconfigPath).toBe('function');
     expect(typeof mockApi.onPluginNotification).toBe('function');

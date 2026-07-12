@@ -1,18 +1,25 @@
 import { test, expect, _electron as electron } from '@playwright/test';
 import type { ElectronApplication, Page } from '@playwright/test';
 import path from 'path';
+import os from 'os';
+import fs from 'fs';
 
 /**
  * Manifest Manager flows: create/edit/delete a manifest, load an example
  * template, and folder management. No cluster required (apply is not tested).
  *
- * Each entity gets a unique name and is deleted at the end, so reruns on the
- * same machine stay clean even though manifests persist in the app database.
+ * The app is launched with an isolated, throwaway userData directory (via the
+ * Electron `--user-data-dir` switch) so the manifest SQLite database starts
+ * empty every run. Manifests persist in that database, so without isolation
+ * failed runs would leave rows behind that accumulate over time — bloating the
+ * (unvirtualized) card grid until hovers and re-renders exceed their timeouts.
  */
 
 const RUN_ID = Date.now().toString(36);
 const MANIFEST_NAME = `e2e-manifest-${RUN_ID}`;
 const FOLDER_NAME = `e2e-folder-${RUN_ID}`;
+
+let userDataDir: string;
 
 const SAMPLE_YAML = `apiVersion: v1
 kind: ConfigMap
@@ -26,8 +33,9 @@ let app: ElectronApplication;
 let window: Page;
 
 test.beforeAll(async () => {
+  userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kd-e2e-manifests-'));
   app = await electron.launch({
-    args: [path.resolve(__dirname, '../..')],
+    args: [`--user-data-dir=${userDataDir}`, path.resolve(__dirname, '../..')],
     env: { ...process.env, ALLOW_UNSIGNED_PLUGINS: 'true', NODE_ENV: 'test' },
   });
   window = await app.firstWindow();
@@ -41,6 +49,7 @@ test.beforeAll(async () => {
 
 test.afterAll(async () => {
   await app.close();
+  fs.rmSync(userDataDir, { recursive: true, force: true });
 });
 
 test('creates a manifest through the editor modal', async () => {

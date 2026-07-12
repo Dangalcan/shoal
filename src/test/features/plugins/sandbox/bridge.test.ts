@@ -201,4 +201,101 @@ describe('plugin sandbox bridge + sdk', () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(onCloseModal).toHaveBeenCalled();
   });
+
+  it('ignores messages that are not host-bound envelopes', async () => {
+    const { invoke } = setup(['kubernetes']);
+    const [hostPort] = linkedPorts();
+    const bridge = new PluginHostBridge(hostPort, {
+      pluginId: 'x',
+      permissions: new Set<PluginPermission>(['kubernetes']),
+      invoke,
+    });
+    bridge.start();
+
+    hostPort.onmessage?.({ data: { kind: 'not-a-real-kind' } });
+    hostPort.onmessage?.({ data: null });
+    hostPort.onmessage?.({ data: 'garbage' });
+
+    await new Promise((r) => setTimeout(r, 0));
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it('defaults rpc args to an empty array when omitted', async () => {
+    const invoke = vi.fn(async () => 'OK');
+    const [hostPort, framePort] = linkedPorts();
+    const bridge = new PluginHostBridge(hostPort, {
+      pluginId: 'p',
+      permissions: new Set<PluginPermission>(['kubernetes']),
+      invoke,
+    });
+    bridge.start();
+
+    const replies: unknown[] = [];
+    framePort.onmessage = (ev) => replies.push(ev.data);
+    // No `args` field at all — exercises `msg.args ?? []`.
+    framePort.postMessage({
+      kind: 'rpc-request',
+      id: 1,
+      method: 'kubernetes.getClusters',
+    });
+
+    await new Promise((r) => setTimeout(r, 0));
+    expect(invoke).toHaveBeenCalledWith('kubernetes.getClusters', []);
+    expect(replies).toEqual([
+      { kind: 'rpc-response', id: 1, ok: true, result: 'OK' },
+    ]);
+    bridge.dispose();
+  });
+
+  it('stringifies a non-Error rejection from invoke', async () => {
+    const { sdk, invoke } = setup(['kubernetes']);
+    invoke.mockRejectedValueOnce('plain string failure');
+    await expect(sdk.kubernetes.getClusters()).rejects.toThrow(
+      'plain string failure'
+    );
+  });
+
+  it('coerces missing notification message and type to defaults', async () => {
+    const { onNotification } = setup(['ui']);
+    const [hostPort] = linkedPorts();
+    const onNotification2 = vi.fn();
+    const bridge = new PluginHostBridge(hostPort, {
+      pluginId: 'p',
+      permissions: new Set<PluginPermission>(['ui']),
+      invoke: vi.fn(),
+      onNotification: onNotification2,
+    });
+    bridge.start();
+
+    // rpc-request for ui.showNotification with NO args → message/type fallbacks.
+    hostPort.onmessage?.({
+      data: { kind: 'rpc-request', id: 3, method: 'ui.showNotification' },
+    });
+
+    await new Promise((r) => setTimeout(r, 0));
+    expect(onNotification2).toHaveBeenCalledWith('', 'info');
+    expect(onNotification).not.toHaveBeenCalled();
+    bridge.dispose();
+  });
+
+  it('does not dispatch events or responses after disposal', async () => {
+    const posted: unknown[] = [];
+    const port: PortLike = {
+      onmessage: null,
+      postMessage: (m) => posted.push(m),
+      start: () => {},
+      close: () => {},
+    };
+    const bridge = new PluginHostBridge(port, {
+      pluginId: 'p',
+      permissions: new Set<PluginPermission>(['kubernetes']),
+      invoke: vi.fn(async () => 'x'),
+    });
+    bridge.start();
+    bridge.dispose();
+
+    bridge.dispatchEvent('resource:created', { name: 'pod' });
+    expect(posted).toEqual([]);
+    expect(port.onmessage).toBeNull();
+  });
 });

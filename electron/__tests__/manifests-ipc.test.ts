@@ -48,6 +48,63 @@ function getHandler(channel: string): IpcHandler {
   return call[1] as IpcHandler;
 }
 
+describe('manifests-ipc manifest CRUD handlers', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    registerManifestsIpcHandlers();
+  });
+
+  it('get-manifests returns manifests, forwarding the cluster context', async () => {
+    const manifests = [{ id: 1, name: 'nginx' }];
+    vi.mocked(manifestDb.getManifests).mockReturnValue(
+      manifests as ReturnType<typeof manifestDb.getManifests>
+    );
+
+    const result = await getHandler('get-manifests')(mockEvent, 'kind-dev');
+
+    expect(result).toEqual({ success: true, data: manifests });
+    expect(manifestDb.getManifests).toHaveBeenCalledWith('kind-dev');
+  });
+
+  it('save-manifest persists the manifest and returns its id', async () => {
+    vi.mocked(manifestDb.saveManifest).mockReturnValue(42);
+
+    const manifest = { name: 'svc', content: 'apiVersion: v1' };
+    const result = await getHandler('save-manifest')(mockEvent, manifest);
+
+    expect(result).toEqual({ success: true, data: 42 });
+    expect(manifestDb.saveManifest).toHaveBeenCalledWith(manifest);
+  });
+
+  it('delete-manifest removes the manifest and returns true', async () => {
+    const result = await getHandler('delete-manifest')(mockEvent, 3);
+
+    expect(result).toEqual({ success: true, data: true });
+    expect(manifestDb.deleteManifest).toHaveBeenCalledWith(3);
+  });
+
+  it('apply-manifest returns the apply result', async () => {
+    const applyResult = { stdout: 'deployment/web created', stderr: '' };
+    vi.mocked(manifestDb.applyManifest).mockResolvedValue(applyResult);
+
+    const result = await getHandler('apply-manifest')(mockEvent, 5);
+
+    expect(result).toEqual({ success: true, data: applyResult });
+    expect(manifestDb.applyManifest).toHaveBeenCalledWith(5);
+  });
+
+  it('apply-manifest surfaces database errors as a failed Result', async () => {
+    vi.mocked(manifestDb.applyManifest).mockRejectedValue(
+      new Error('kubectl apply failed')
+    );
+
+    const result = await getHandler('apply-manifest')(mockEvent, 5);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/kubectl apply failed/);
+  });
+});
+
 describe('manifests-ipc folder handlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();

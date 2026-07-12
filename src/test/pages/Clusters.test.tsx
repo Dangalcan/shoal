@@ -139,4 +139,33 @@ describe('Clusters Page', () => {
 
          fireEvent.click(screen.getByTitle('View Pods'))
     })
+
+    it('should close the pod viewer modal', async () => {
+         renderClustersPage(['cluster-view'])
+         await waitFor(() => expect(screen.getByText('cluster-view')).toBeInTheDocument())
+
+         fireEvent.click(screen.getByTitle('View Pods'))
+         await waitFor(() => expect(screen.getByTestId('pod-modal')).toBeInTheDocument())
+
+         fireEvent.click(screen.getByText('Close'))
+         await waitFor(() => expect(screen.queryByTestId('pod-modal')).toBeNull())
+    })
+
+    it('should navigate to the create-cluster page', async () => {
+         renderClustersPage([])
+         await waitFor(() => expect(screen.getByText(/No clusters found/i)).toBeInTheDocument())
+
+         fireEvent.click(screen.getByTitle('Create New Cluster'))
+    })
+
+    it('should switch the active context from a cluster card', async () => {
+         renderClustersPage(['cluster-a'])
+         await waitFor(() => expect(screen.getByText('cluster-a')).toBeInTheDocument())
+
+         fireEvent.click(screen.getByTitle('Set as Active Context'))
+
+         await waitFor(() => {
+             expect(mockApi.switchContext).toHaveBeenCalledWith('cluster-a')
+         })
+    })
 })

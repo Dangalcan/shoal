@@ -22,4 +22,37 @@ describe('PodCells', () => {
         render(<table><tbody><tr><NodeNameCell resource={mockPod as any} style={style} /></tr></tbody></table>)
         expect(screen.getByText('node-A')).toBeInTheDocument()
     })
+
+    const empty = { metadata: { name: 'p', creationTimestamp: '2026-01-01T00:00:00Z' } } as any
+
+    it('RestartsCell shows 0 when status is missing', () => {
+        render(<table><tbody><tr><RestartsCell resource={empty} style={style} /></tr></tbody></table>)
+        expect(screen.getByText('0')).toBeInTheDocument()
+    })
+
+    it('PodIPCell and NodeNameCell fall back to <none>', () => {
+        const { unmount } = render(<table><tbody><tr><PodIPCell resource={empty} style={style} /></tr></tbody></table>)
+        expect(screen.getByText('<none>')).toBeInTheDocument()
+        unmount()
+        render(<table><tbody><tr><NodeNameCell resource={empty} style={style} /></tr></tbody></table>)
+        expect(screen.getByText('<none>')).toBeInTheDocument()
+    })
+
+    it('NominatedNodeCell renders the nominated node or <none>', () => {
+        const withNode = { ...empty, status: { phase: 'Pending', nominatedNodeName: 'node-2' } }
+        const { unmount } = render(<table><tbody><tr><NominatedNodeCell resource={withNode} style={style} /></tr></tbody></table>)
+        expect(screen.getByText('node-2')).toBeInTheDocument()
+        unmount()
+        render(<table><tbody><tr><NominatedNodeCell resource={empty} style={style} /></tr></tbody></table>)
+        expect(screen.getByText('<none>')).toBeInTheDocument()
+    })
+
+    it('ReadinessGatesCell lists gate types or <none>', () => {
+        const withGates = { ...empty, spec: { containers: [], readinessGates: [{ conditionType: 'www/ready' }, { conditionType: 'db/ready' }] } }
+        const { unmount } = render(<table><tbody><tr><ReadinessGatesCell resource={withGates} style={style} /></tr></tbody></table>)
+        expect(screen.getByText('www/ready, db/ready')).toBeInTheDocument()
+        unmount()
+        render(<table><tbody><tr><ReadinessGatesCell resource={empty} style={style} /></tr></tbody></table>)
+        expect(screen.getByText('<none>')).toBeInTheDocument()
+    })
 })

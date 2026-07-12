@@ -49,6 +49,47 @@ describe('DataLoader', () => {
     expect(result.length).toBe(0); // Skips unsupported formats
   });
 
+  it('returns an empty list when the manifest declares no data files', async () => {
+    const noData = { ...mockManifest, data: undefined };
+    expect(await dataLoader.loadPluginData('/mock/path', noData)).toEqual([]);
+
+    const emptyData = { ...mockManifest, data: [] };
+    expect(await dataLoader.loadPluginData('/mock/path', emptyData)).toEqual(
+      []
+    );
+    expect(readFile).not.toHaveBeenCalled();
+  });
+
+  it('supports the .yml extension', async () => {
+    const manifest = { ...mockManifest, data: ['data/config.yml'] };
+    (readFile as any).mockResolvedValueOnce('answer: 42');
+
+    const result = await dataLoader.loadPluginData('/mock/path', manifest);
+    expect(result).toEqual([
+      { path: 'data/config.yml', content: { answer: 42 } },
+    ]);
+  });
+
+  it('throws a descriptive error when a data file cannot be read', async () => {
+    const manifest = { ...mockManifest, data: ['data/missing.json'] };
+    (readFile as any).mockRejectedValueOnce(new Error('ENOENT'));
+
+    await expect(
+      dataLoader.loadPluginData('/mock/path', manifest)
+    ).rejects.toThrow(/Failed to load data file data\/missing\.json: ENOENT/);
+  });
+
+  it('reads files relative to the plugin path', async () => {
+    const manifest = { ...mockManifest, data: ['data/config.json'] };
+    (readFile as any).mockResolvedValueOnce('{}');
+
+    await dataLoader.loadPluginData('/plugins/p1', manifest);
+    expect(readFile).toHaveBeenCalledWith(
+      path.join('/plugins/p1', 'data/config.json'),
+      'utf-8'
+    );
+  });
+
   it('should apply data to storage', async () => {
     const dataFiles = [{ path: 'data/config.json', content: { a: 1 } }];
     const mockStorage = {

@@ -109,6 +109,28 @@ describe('ElectronService', () => {
     expect(getMockApi().deleteResource).toHaveBeenCalledWith(args);
   });
 
+  it('scaleResource calls window.electron.scaleResource', async () => {
+    const args = {
+      contextName: 'ctx',
+      resourceType: 'deployments',
+      resourceName: 'web',
+      namespace: 'default',
+      replicas: 4,
+    };
+    await electronService.scaleResource(args);
+    expect(getMockApi().scaleResource).toHaveBeenCalledWith(args);
+  });
+
+  it('createCheckout calls window.electron.createCheckout', async () => {
+    await electronService.createCheckout('paid-plugin');
+    expect(getMockApi().createCheckout).toHaveBeenCalledWith('paid-plugin');
+  });
+
+  it('getCheckoutStatus calls window.electron.getCheckoutStatus', async () => {
+    await electronService.getCheckoutStatus('cs_123');
+    expect(getMockApi().getCheckoutStatus).toHaveBeenCalledWith('cs_123');
+  });
+
   it('checkForPluginUpdates calls window.electron.checkForPluginUpdates', async () => {
     await electronService.checkForPluginUpdates();
     expect(getMockApi().checkForPluginUpdates).toHaveBeenCalled();

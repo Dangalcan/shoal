@@ -70,6 +70,45 @@ describe('FolderBreadcrumbs', () => {
     expect(onDropManifest).toHaveBeenCalledWith(9, null);
   });
 
+  it('highlights a crumb on drag-over and clears it on drag-leave', () => {
+    renderCrumbs();
+    const crumb = screen.getByText('All Manifests').closest('button')!;
+
+    fireEvent.dragOver(crumb, {
+      dataTransfer: { types: [MANIFEST_DRAG_TYPE], dropEffect: '' },
+    });
+    expect(crumb.className).toContain('folder-breadcrumbs__crumb--drag-over');
+
+    fireEvent.dragLeave(crumb);
+    expect(crumb.className).not.toContain(
+      'folder-breadcrumbs__crumb--drag-over'
+    );
+  });
+
+  it('ignores drag-over of unrelated content', () => {
+    renderCrumbs();
+    const crumb = screen.getByText('All Manifests').closest('button')!;
+
+    fireEvent.dragOver(crumb, {
+      dataTransfer: { types: ['Files'], dropEffect: '' },
+    });
+    expect(crumb.className).not.toContain(
+      'folder-breadcrumbs__crumb--drag-over'
+    );
+  });
+
+  it('drops a folder payload even when a manifest payload is absent', () => {
+    renderCrumbs();
+    fireEvent.drop(screen.getByText('nginx'), {
+      dataTransfer: {
+        types: [FOLDER_DRAG_TYPE, MANIFEST_DRAG_TYPE],
+        getData: (type: string) => (type === FOLDER_DRAG_TYPE ? '4' : ''),
+      },
+    });
+    expect(onDropFolder).toHaveBeenCalledWith(4, 3);
+    expect(onDropManifest).not.toHaveBeenCalled();
+  });
+
   it('accepts a folder dropped on an ancestor and ignores unrelated drags', () => {
     renderCrumbs();
     const infra = screen.getByText('infra');
