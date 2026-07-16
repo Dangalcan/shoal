@@ -1,5 +1,8 @@
 # Plugin System Architecture Analysis
 
+> [!WARNING]
+> **Historical document (February 2026).** Written before the plugin UI was moved into sandboxed iframes with a permission-gated bridge (July 2026). Architecture details below may no longer match the code — see [PLUGIN_ARCHITECTURE.md](./PLUGIN_ARCHITECTURE.md) for the current model.
+
 ## Kubernetes Desktop vs Odoo Module System
 
 > [!NOTE]

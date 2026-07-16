@@ -8,9 +8,12 @@ Welcome to **Kubernetes Desktop**, your modern cockpit for Kubernetes management
 - [Cluster Management](#cluster-management)
 - [Managing Resources](#managing-resources)
 - [Manifests](#manifests)
+- [Migrating from Docker Compose](#migrating-from-docker-compose)
 - [Terminal](#terminal)
+- [Port Forwarding](#port-forwarding)
 - [Using Plugins](#using-plugins)
 - [Settings & Configuration](#settings--configuration)
+- [App Updates](#app-updates)
 
 ---
 
@@ -63,6 +66,8 @@ Click on a resource name to view more options:
 - **YAML View**: Inspect the live YAML manifest of the resource.
 - **Logs**: Stream live logs from your containers.
 - **Restart/Delete**: Safely perform rollouts or deletions directly from the UI.
+- **Scale**: Set the replica count for Deployments, StatefulSets, and ReplicaSets (0–1000).
+- **Port Forward**: Open a `kubectl port-forward` tunnel to a pod or service (see [Port Forwarding](#port-forwarding)).
 
 ---
 
@@ -79,6 +84,18 @@ The **Manifests** page lets you store, edit, and apply Kubernetes resource manif
 
 You can also **drag and drop** a `.yaml` or `.json` file onto the editor, or use the file upload button to import from disk.
 
+### Starting from a Template
+
+When creating a new manifest, you can pick one of the built-in **templates** (Deployment, Service, ConfigMap, and more) instead of starting from a blank editor, then adjust the YAML to your needs.
+
+### Organizing with Folders
+
+Manifests can be organized into **nested folders**, similar to a file explorer:
+
+- Create a folder with the **"New Folder"** button; folders can be nested inside each other.
+- **Move** manifests (and whole folders) between folders or back to the root.
+- When deleting a folder you choose between moving its contents up to the parent, or deleting the folder **and everything inside it**.
+
 ### Editing a Manifest
 
 Click the **edit** icon next to any saved manifest to open it in the editor. Make your changes and click **"Save"**.
@@ -93,6 +110,20 @@ Click the **trash** icon and confirm the deletion.
 
 ---
 
+## Migrating from Docker Compose
+
+The **Migrate** page converts a `docker-compose.yml` file into Kubernetes manifests using the [kompose](https://kompose.io) CLI.
+
+1. Install kompose and make sure it is on your `PATH` (the page shows install instructions if it is not detected).
+2. Click **"Migrate"** in the sidebar, then **"Select compose file"** and pick your `.yml`/`.yaml` file (up to 1 MiB).
+3. Review the conversion result:
+   - One Kubernetes resource per generated manifest (Deployments, Services, ...).
+   - **Warnings** for compose keys kompose could not convert.
+   - A list of **locally built images** (services with a `build:` key) — a cluster cannot pull these, so load or push them to a registry first.
+4. Import the manifests. They are saved into a new **manifest folder** named after your project, tied to the selected cluster context, and you are taken to the Manifests page to review and apply them.
+
+---
+
 ## Terminal
 
 The **Terminal** page provides direct shell access — either a local shell on your machine or an interactive session inside a running pod.
@@ -100,21 +131,38 @@ The **Terminal** page provides direct shell access — either a local shell on y
 ### Opening a Local Shell
 
 1. Click **"Terminal"** in the left sidebar.
-2. A local shell session opens automatically (PowerShell on Windows, `bash` or `sh` on macOS/Linux).
-3. Type commands as normal. Press **Ctrl+C** to interrupt a running process.
-4. Close the session with the **Kill** button or by typing `exit`.
+2. A local shell session opens automatically using your default shell.
+3. Use the **shell picker** to switch to any other shell detected on your machine — PowerShell, PowerShell 7, Git Bash, or WSL on Windows; `bash`, `zsh`, or `sh` on macOS/Linux.
+4. Type commands as normal. Press **Ctrl+C** to interrupt a running process.
+5. Close the session with the **Kill** button or by typing `exit`.
 
 ### Opening a Pod Exec Session
 
 1. Navigate to a cluster's **Cluster Details** view.
 2. Click on a **Pod** row to open its action menu.
-3. Select **"Open Terminal"**. A new session starts inside the pod's default container using `/bin/sh`.
+3. Select **"Open Terminal"**. A new session starts inside the pod's default container using `/bin/sh` (you can choose a different shell for containers that ship one, e.g. `/bin/bash`).
 4. The session is bound to the pod's lifecycle — if the pod restarts, the session ends.
 
 ### Notes
 
 - Terminal resize is supported on macOS and Linux (PTY). On Windows, resize is a no-op for piped processes.
 - Each session is independent; multiple sessions are not currently supported from a single Terminal page visit.
+
+---
+
+## Port Forwarding
+
+Port forwarding opens a local tunnel to a pod or service in your cluster (`kubectl port-forward`), so you can reach it at `localhost:<port>`.
+
+### Starting a Tunnel
+
+1. In **Cluster Details**, open the action menu of a **Pod** or **Service** and choose **"Port Forward"**.
+2. Pick the remote (container/service) port — exposed ports are suggested automatically — and a free local port.
+3. Click **"Start"**. The tunnel stays open until you stop it or quit the app.
+
+### Managing Tunnels
+
+Click **"Port Forwards"** in the sidebar to see every active tunnel, with its local and remote port, target, and start time. Stop any tunnel from there. If a tunnel dies on its own (for example the pod was deleted), you get a notification.
 
 ---
 
@@ -128,12 +176,21 @@ Plugins allow you to extend the functionality of Kubernetes Desktop.
 2. Browse the **Marketplace** for extensions like "Advanced Log Viewer" or "Network Topology".
 3. Click **"Install"**.
 
+### Buying Paid Plugins
+
+1. In the **Marketplace**, click **"Buy"** on a paid plugin.
+2. A checkout page opens in your browser — complete the payment there.
+3. Back in the app, the purchase is detected automatically: your license is activated and the plugin is installed. No manual key entry needed.
+
+If the payment is cancelled or times out, nothing is installed and you can retry.
+
 ### Managing Licenses
 
 For paid or trial plugins:
 
 1. Navigate to the **"Installed Plugins"** tab.
-2. Click **"Activate"** to enter your license key or start a trial period.
+2. Click **"Activate"** to enter your license key or start a trial period (14 days, one per machine per plugin).
+3. You can also **deactivate** a license on the current machine to use it elsewhere.
 
 ---
 
@@ -145,6 +202,15 @@ Click on **"Settings"** in the sidebar to customize your experience:
 - **Kubeconfig Path**: Update the path to your `.kube/config` if it's stored in a non-standard location.
 - **Refresh Interval**: Adjust how often the UI polls for resource changes.
 - **Developer Mode**: Enable this to load unpacked plugins from your local machine (for developers).
+
+---
+
+## App Updates
+
+Kubernetes Desktop updates itself automatically from GitHub Releases:
+
+- When a new version is found, a toast tells you it is downloading in the background.
+- Once downloaded, a persistent **"Restart"** prompt appears — click it to install the update and relaunch. You can also keep working and the update installs on the next app restart.
 
 ---
 

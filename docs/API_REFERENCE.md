@@ -6,18 +6,19 @@ All `invoke` methods return a `Promise<Result<T>>`. See the [Types](#types) sect
 
 ## Diagnostics
 
-### `runCommand(command)`
-
-Runs an arbitrary shell command (restricted to safe Kubernetes tooling).
-
-- **Parameters**: `command`: `string`
-- **Returns**: `Promise<Result<{ stdout: string, stderr: string }>>`
-
 ### `checkTool(tool)`
 
 Checks whether a required CLI tool (e.g., `kubectl`, `kind`, `minikube`) is available on the system.
 
 - **Parameters**: `tool`: `string`
+- **Returns**: `Promise<Result<boolean>>`
+
+### `openExternal(url)`
+
+Opens a URL in the system's default browser (used e.g. to open the
+marketplace checkout page).
+
+- **Parameters**: `url`: `string`
 - **Returns**: `Promise<Result<boolean>>`
 
 ---
@@ -347,6 +348,44 @@ Downloads and installs a plugin from the marketplace.
 - **Parameters**: `pluginId`: `string`
 - **Returns**: `Promise<Result<void>>`
 
+### `createCheckout(pluginId)`
+
+Starts a purchase for a paid plugin. Returns a checkout URL the user opens
+in the browser to pay (see `openExternal`), plus a `sessionId` to poll with
+`getCheckoutStatus`.
+
+- **Parameters**: `pluginId`: `string`
+- **Returns**: `Promise<Result<{ sessionId: string; url: string }>>`
+
+### `getCheckoutStatus(sessionId)`
+
+Polls a checkout session. Once `status` is `'paid'`, `licenseKey` holds the
+purchased key to activate and install the plugin with.
+
+- **Parameters**: `sessionId`: `string`
+- **Returns**: `Promise<Result<{ status: 'pending' | 'paid'; licenseKey?: string }>>`
+
+---
+
+## App Updates
+
+In-app auto-update via `electron-updater` and GitHub Releases. Update
+progress is pushed from the main process on the `update-status` channel
+(see `onUpdateStatus`).
+
+### `checkForAppUpdates()`
+
+Triggers a manual update check. Forced even in development so the button
+always gives feedback.
+
+- **Returns**: `Promise<Result<boolean>>`
+
+### `installAppUpdate()`
+
+Quits the app and installs a previously downloaded update.
+
+- **Returns**: `Promise<Result<boolean>>`
+
 ---
 
 ## Terminal API
@@ -530,6 +569,22 @@ Fires when an established port-forward dies on its own (pod deleted,
 connection lost). Not fired for user-requested stops.
 
 - **Callback**: `(info: PortForwardInfo, error?: string) => void`
+
+### `onUpdateStatus(callback)`
+
+Fires as an app update check/download progresses.
+
+- **Callback**: `(status: UpdateStatus) => void`
+
+```typescript
+type UpdateStatus =
+  | { state: 'checking' }
+  | { state: 'available'; version: string }
+  | { state: 'not-available' }
+  | { state: 'downloading'; percent: number }
+  | { state: 'downloaded'; version: string }
+  | { state: 'error'; message: string };
+```
 
 ---
 

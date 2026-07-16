@@ -1,5 +1,8 @@
 # Plugin System Analysis: Kubernetes Desktop
 
+> [!WARNING]
+> **Historical document (March 2026).** Written before the sandboxed-iframe plugin UI rework (July 2026). See [PLUGIN_ARCHITECTURE.md](./PLUGIN_ARCHITECTURE.md) for the current architecture.
+
 This document outlines the current state of the plugin system, identifies critical architectural problems, and proposes improvements to enhance security, stability, and developer experience.
 
 ## 1. Architectural Overview
