@@ -447,6 +447,55 @@ Lists active tunnels.
 
 ---
 
+## Migration API
+
+Converts a docker-compose file into Kubernetes manifests using the
+[kompose](https://kompose.io) CLI (Apache 2.0). The binary must be on
+PATH; conversion never writes to disk (`--stdout`), and the result is
+imported into the manifest library for review before applying.
+
+### `migrationCheckKompose()`
+
+Probes for the kompose binary. Absence is a valid state, not an error.
+
+- **Returns**: `Promise<Result<KomposeStatus>>`
+  - `KomposeStatus`: `{ available: boolean; version?: string }`
+
+### `migrationSelectComposeFile()`
+
+Opens a native file picker filtered to `.yml`/`.yaml` files.
+
+- **Returns**: `Promise<Result<string | null>>` — `null` when cancelled
+
+### `migrationConvertCompose(filePath)`
+
+Runs `kompose convert` on the given compose file. The file must exist,
+have a `.yml`/`.yaml` extension, and be at most 1 MiB.
+
+- **Parameters**: `filePath`: `string`
+- **Returns**: `Promise<Result<ComposeConversion>>`
+  - `ComposeConversion`:
+    - `manifests`: `ConvertedManifest[]` — one entry per Kubernetes resource
+      (`{ fileName, kind, name, content }`)
+    - `warnings`: `string[]` — kompose warnings for keys it could not convert
+    - `locallyBuiltImages`: `string[]` — images from `build:` sections that a
+      cluster cannot pull (load into kind/minikube or push to a registry
+      first)
+
+### `migrationImportManifests(args)`
+
+Saves the converted manifests into the manifest library as a new folder.
+
+- **Arguments** (`MigrationImportArgs`):
+  - `projectName`: `string` (folder name, max 100 chars)
+  - `contextName`: `string` (validated context name)
+  - `manifests`: `{ name: string; content: string }[]` (non-empty, each
+    manifest at most 1 MiB)
+- **Returns**: `Promise<Result<MigrationImportResult>>`
+  - `MigrationImportResult`: `{ folderId: number; manifestIds: number[] }`
+
+---
+
 ## Events (Listen)
 
 All event listeners return an **unsubscribe function** `() => void`.

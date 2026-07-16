@@ -173,6 +173,51 @@ export const mockApi: ElectronAPI = {
     data: { stdout: 'Mock apply success', stderr: '' },
   }),
 
+  // Migration
+  migrationCheckKompose: async () => {
+    console.log('[MockAPI] migrationCheckKompose');
+    return { success: true, data: { available: true, version: '1.34.0' } };
+  },
+  migrationSelectComposeFile: async () => {
+    console.log('[MockAPI] migrationSelectComposeFile');
+    return { success: true, data: '/mock/docker-compose.yml' };
+  },
+  migrationConvertCompose: async (filePath: string) => {
+    console.log('[MockAPI] migrationConvertCompose:', filePath);
+    return {
+      success: true,
+      data: {
+        manifests: [
+          {
+            fileName: 'web-deployment.yaml',
+            kind: 'Deployment',
+            name: 'web',
+            content:
+              'apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: web',
+          },
+          {
+            fileName: 'web-service.yaml',
+            kind: 'Service',
+            name: 'web',
+            content: 'apiVersion: v1\nkind: Service\nmetadata:\n  name: web',
+          },
+        ],
+        warnings: ['Mock warning: restart policy ignored'],
+        locallyBuiltImages: ['api'],
+      },
+    };
+  },
+  migrationImportManifests: async (args) => {
+    console.log('[MockAPI] migrationImportManifests:', args);
+    return {
+      success: true,
+      data: {
+        folderId: 1,
+        manifestIds: args.manifests.map((_, index) => index + 1),
+      },
+    };
+  },
+
   // Manifest folders
   getManifestFolders: async () => ({
     success: true,

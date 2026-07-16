@@ -26,6 +26,7 @@ export const ALLOWED_TOOLS = new Set([
   'kubens',
   'docker',
   'podman',
+  'kompose',
 ]);
 
 export interface SafeExecOptions {

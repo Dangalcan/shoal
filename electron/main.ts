@@ -10,6 +10,7 @@ import { registerResourcesIpcHandlers } from './ipc/resources-ipc';
 import { registerPluginsIpcHandlers } from './ipc/plugins-ipc';
 import { registerMarketplaceIpcHandlers } from './ipc/marketplace-ipc';
 import { registerManifestsIpcHandlers } from './ipc/manifests-ipc';
+import { registerMigrationIpcHandlers } from './ipc/migration-ipc';
 import { registerTerminalIpcHandlers } from './ipc/terminal-ipc';
 import { registerPortForwardIpcHandlers } from './ipc/portforward-ipc';
 import { registerUpdateIpcHandlers } from './ipc/update-ipc';
@@ -47,6 +48,7 @@ function registerIpcHandlers(): void {
   registerPluginsIpcHandlers();
   registerMarketplaceIpcHandlers();
   registerManifestsIpcHandlers();
+  registerMigrationIpcHandlers();
   registerTerminalIpcHandlers();
   registerPortForwardIpcHandlers();
   registerUpdateIpcHandlers();

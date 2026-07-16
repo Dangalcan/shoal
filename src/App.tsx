@@ -8,6 +8,7 @@ import { Settings } from './pages/Settings'
 import Plugins from './pages/Plugins'
 import { PluginPage } from './pages/PluginPage'
 import { Manifests } from './pages/Manifests'
+import { Migration } from './pages/Migration'
 import { TerminalPage } from './pages/TerminalPage'
 import { PortForwards } from './pages/PortForwards'
 
@@ -24,6 +25,7 @@ function App() {
                     <Route path="plugins" element={<Plugins />} />
                     <Route path="plugin/:pluginId" element={<PluginPage />} />
                     <Route path="manifests" element={<Manifests />} />
+                    <Route path="migration" element={<Migration />} />
                     <Route path="terminal" element={<TerminalPage />} />
                     <Route path="port-forwards" element={<PortForwards />} />
                 </Route>
