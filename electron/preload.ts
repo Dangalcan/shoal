@@ -29,6 +29,9 @@ contextBridge.exposeInMainWorld('electron', {
     podName: string;
     namespace: string;
     tailLines?: number;
+    container?: string;
+    timestamps?: boolean;
+    sinceSeconds?: number;
   }) => ipcRenderer.invoke('get-logs', args),
   describeResource: (args: {
     contextName: string;
@@ -119,6 +122,39 @@ contextBridge.exposeInMainWorld('electron', {
   reloadPlugin: (pluginId: string) =>
     ipcRenderer.invoke('reload-plugin', pluginId),
   importLocalPlugin: () => ipcRenderer.invoke('import-local-plugin'),
+
+  // Helm
+  helmInstall: (args: {
+    contextName: string;
+    namespace: string;
+    releaseName: string;
+    chart: string;
+    version?: string;
+    values?: string;
+    createNamespace?: boolean;
+  }) => ipcRenderer.invoke('helm:install', args),
+  helmUpgrade: (args: {
+    contextName: string;
+    namespace: string;
+    releaseName: string;
+    chart: string;
+    version?: string;
+    values?: string;
+  }) => ipcRenderer.invoke('helm:upgrade', args),
+  helmRollback: (args: {
+    contextName: string;
+    namespace: string;
+    releaseName: string;
+    revision: number;
+  }) => ipcRenderer.invoke('helm:rollback', args),
+  helmUninstall: (args: {
+    contextName: string;
+    namespace: string;
+    releaseName: string;
+  }) => ipcRenderer.invoke('helm:uninstall', args),
+  helmRepoAdd: (args: { name: string; url: string }) =>
+    ipcRenderer.invoke('helm:repo-add', args),
+  helmRepoList: () => ipcRenderer.invoke('helm:repo-list'),
 
   // Manifests
   getManifests: (clusterContext?: string) =>

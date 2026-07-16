@@ -108,6 +108,22 @@ export function createMockElectronAPI(
       success: true,
       data: { stdout: 'Mock apply', stderr: '' },
     }),
+    helmInstall: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: 'Mock install' }),
+    helmUpgrade: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: 'Mock upgrade' }),
+    helmRollback: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: 'Mock rollback' }),
+    helmUninstall: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: 'Mock uninstall' }),
+    helmRepoAdd: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: 'Mock repo add' }),
+    helmRepoList: vi.fn().mockResolvedValue({ success: true, data: [] }),
 
     // Manifest folders
     getManifestFolders: vi.fn().mockResolvedValue({ success: true, data: [] }),

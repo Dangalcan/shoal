@@ -69,6 +69,9 @@ export interface ElectronAPI {
     podName: string;
     namespace: string;
     tailLines?: number;
+    container?: string;
+    timestamps?: boolean;
+    sinceSeconds?: number;
   }) => Promise<Result<string>>;
   describeResource: (args: {
     contextName: string;
@@ -141,6 +144,38 @@ export interface ElectronAPI {
   generatePlugin: (options: PluginScaffoldOptions) => Promise<Result<boolean>>;
   reloadPlugin: (pluginId: string) => Promise<Result<void>>;
   importLocalPlugin: () => Promise<Result<string>>;
+
+  // Helm
+  helmInstall: (args: {
+    contextName: string;
+    namespace: string;
+    releaseName: string;
+    chart: string;
+    version?: string;
+    values?: string;
+    createNamespace?: boolean;
+  }) => Promise<Result<string>>;
+  helmUpgrade: (args: {
+    contextName: string;
+    namespace: string;
+    releaseName: string;
+    chart: string;
+    version?: string;
+    values?: string;
+  }) => Promise<Result<string>>;
+  helmRollback: (args: {
+    contextName: string;
+    namespace: string;
+    releaseName: string;
+    revision: number;
+  }) => Promise<Result<string>>;
+  helmUninstall: (args: {
+    contextName: string;
+    namespace: string;
+    releaseName: string;
+  }) => Promise<Result<string>>;
+  helmRepoAdd: (args: { name: string; url: string }) => Promise<Result<string>>;
+  helmRepoList: () => Promise<Result<Array<{ name: string; url: string }>>>;
 
   // Manifests
   getManifests: (clusterContext?: string) => Promise<Result<Manifest[]>>;

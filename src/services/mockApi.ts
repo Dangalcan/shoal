@@ -173,6 +173,20 @@ export const mockApi: ElectronAPI = {
     data: { stdout: 'Mock apply success', stderr: '' },
   }),
 
+  // Helm
+  helmInstall: async () => ({ success: true, data: 'Mock install success' }),
+  helmUpgrade: async () => ({ success: true, data: 'Mock upgrade success' }),
+  helmRollback: async () => ({ success: true, data: 'Mock rollback success' }),
+  helmUninstall: async () => ({
+    success: true,
+    data: 'Mock uninstall success',
+  }),
+  helmRepoAdd: async () => ({ success: true, data: 'Mock repo added' }),
+  helmRepoList: async () => ({
+    success: true,
+    data: [] as Array<{ name: string; url: string }>,
+  }),
+
   // Manifest folders
   getManifestFolders: async () => ({
     success: true,

@@ -28,6 +28,12 @@ function mockElectron(overrides?: Partial<ElectronAPI>): {
     getPluginSettings: method('getPluginSettings'),
     setPluginSettings: method('setPluginSettings'),
     openExternal: method('openExternal'),
+    helmInstall: method('helmInstall'),
+    helmUpgrade: method('helmUpgrade'),
+    helmRollback: method('helmRollback'),
+    helmUninstall: method('helmUninstall'),
+    helmRepoAdd: method('helmRepoAdd'),
+    helmRepoList: method('helmRepoList'),
   };
   const electron = { ...fns, ...overrides } as unknown as ElectronAPI;
   return { electron, fns };
@@ -135,6 +141,29 @@ describe('createElectronInvoker', () => {
       'saveManifest-data'
     );
     expect(fns.saveManifest).toHaveBeenCalledWith({ kind: 'Pod' });
+  });
+
+  it.each([
+    ['helm.install', 'helmInstall'],
+    ['helm.upgrade', 'helmUpgrade'],
+    ['helm.rollback', 'helmRollback'],
+    ['helm.uninstall', 'helmUninstall'],
+    ['helm.repoAdd', 'helmRepoAdd'],
+  ])('routes %s with its args object', async (method, fnName) => {
+    const { electron, fns } = mockElectron();
+    const invoke = createElectronInvoker(electron);
+    const arg = { releaseName: 'r' };
+    await expect(invoke(method, [arg])).resolves.toBe(`${fnName}-data`);
+    expect(fns[fnName]).toHaveBeenCalledWith(arg);
+  });
+
+  it('routes helm.repoList with no args', async () => {
+    const { electron, fns } = mockElectron();
+    const invoke = createElectronInvoker(electron);
+    await expect(invoke('helm.repoList', [])).resolves.toBe(
+      'helmRepoList-data'
+    );
+    expect(fns.helmRepoList).toHaveBeenCalledTimes(1);
   });
 
   it('routes settings.get with the injected plugin id', async () => {

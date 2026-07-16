@@ -99,13 +99,29 @@ export function registerResourcesIpcHandlers(): void {
     'get-logs',
     wrapIpcHandler(
       'get-logs',
-      async (_event, { contextName, podName, namespace, tailLines }) => {
+      async (
+        _event,
+        {
+          contextName,
+          podName,
+          namespace,
+          tailLines,
+          container,
+          timestamps,
+          sinceSeconds,
+        }
+      ) => {
         assertContext(contextName);
         assertResourceName(podName);
+        if (container !== undefined) assertResourceName(container);
         const tail =
           Number.isInteger(tailLines) && tailLines > 0
             ? tailLines
             : DEFAULT_LOG_TAIL_LINES;
+        const since =
+          Number.isInteger(sinceSeconds) && sinceSeconds > 0
+            ? sinceSeconds
+            : null;
         const { stdout } = await safeExec('kubectl', [
           'logs',
           podName,
@@ -113,6 +129,9 @@ export function registerResourcesIpcHandlers(): void {
           contextName,
           ...optionalNamespaceArgs(namespace),
           `--tail=${tail}`,
+          ...(container ? ['-c', container] : []),
+          ...(timestamps === true ? ['--timestamps'] : []),
+          ...(since ? [`--since=${since}s`] : []),
         ]);
         return stdout;
       }

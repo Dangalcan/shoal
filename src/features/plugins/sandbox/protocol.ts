@@ -55,6 +55,14 @@ export const METHOD_TABLE: Record<string, MethodSpec> = {
   'manifests.apply': { permission: 'kubernetes' },
   'manifests.save': { permission: 'kubernetes' },
 
+  // Helm — cluster mutation via the validated helm service, require `kubernetes`.
+  'helm.install': { permission: 'kubernetes' },
+  'helm.upgrade': { permission: 'kubernetes' },
+  'helm.rollback': { permission: 'kubernetes' },
+  'helm.uninstall': { permission: 'kubernetes' },
+  'helm.repoAdd': { permission: 'kubernetes' },
+  'helm.repoList': { permission: 'kubernetes' },
+
   // Settings — the plugin's OWN settings only; pluginId is injected by the
   // host so a plugin cannot read or write another plugin's settings.
   'settings.get': { permission: null, injectsPluginId: true },

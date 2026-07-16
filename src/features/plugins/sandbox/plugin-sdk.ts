@@ -37,6 +37,9 @@ export interface K8sPluginSdk {
       podName: string;
       namespace: string;
       tailLines?: number;
+      container?: string;
+      timestamps?: boolean;
+      sinceSeconds?: number;
     }): Promise<unknown>;
     describeResource(args: unknown): Promise<unknown>;
     getResourceYaml(args: unknown): Promise<unknown>;
@@ -47,6 +50,38 @@ export interface K8sPluginSdk {
   manifests: {
     apply(id: number): Promise<unknown>;
     save(manifest: Record<string, unknown>): Promise<unknown>;
+  };
+  helm: {
+    install(args: {
+      contextName: string;
+      namespace: string;
+      releaseName: string;
+      chart: string;
+      version?: string;
+      values?: string;
+      createNamespace?: boolean;
+    }): Promise<unknown>;
+    upgrade(args: {
+      contextName: string;
+      namespace: string;
+      releaseName: string;
+      chart: string;
+      version?: string;
+      values?: string;
+    }): Promise<unknown>;
+    rollback(args: {
+      contextName: string;
+      namespace: string;
+      releaseName: string;
+      revision: number;
+    }): Promise<unknown>;
+    uninstall(args: {
+      contextName: string;
+      namespace: string;
+      releaseName: string;
+    }): Promise<unknown>;
+    repoAdd(args: { name: string; url: string }): Promise<unknown>;
+    repoList(): Promise<unknown>;
   };
   settings: {
     get(): Promise<unknown>;
@@ -145,6 +180,14 @@ export function createPluginSdk(port: SdkPortLike): K8sPluginSdk {
     manifests: {
       apply: (id) => call('manifests.apply', id),
       save: (manifest) => call('manifests.save', manifest),
+    },
+    helm: {
+      install: (args) => call('helm.install', args),
+      upgrade: (args) => call('helm.upgrade', args),
+      rollback: (args) => call('helm.rollback', args),
+      uninstall: (args) => call('helm.uninstall', args),
+      repoAdd: (args) => call('helm.repoAdd', args),
+      repoList: () => call('helm.repoList'),
     },
     settings: {
       get: () => call('settings.get'),
