@@ -17,6 +17,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { safeExec } from '../../utils/safe-exec';
 import { assertContext, assertNamespace } from '../../utils/k8s-validate';
+import { resourceReadCache } from '../kubernetes/resource-read-cache';
 
 /** Helm release names: RFC 1123 label (helm enforces <=53 chars). */
 const RELEASE_NAME_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
@@ -160,6 +161,8 @@ async function runReleaseMutation(
     const { stdout } = await safeExec('helm', cli, {
       timeout: MUTATE_TIMEOUT_MS,
     });
+    // Helm changed cluster state (incl. release secrets) — drop cached reads
+    resourceReadCache.clear();
     return stdout;
   } finally {
     await staged.cleanup();
@@ -191,6 +194,7 @@ export class HelmService {
       ],
       { timeout: MUTATE_TIMEOUT_MS }
     );
+    resourceReadCache.clear();
     return stdout;
   }
 
@@ -208,6 +212,7 @@ export class HelmService {
       ],
       { timeout: MUTATE_TIMEOUT_MS }
     );
+    resourceReadCache.clear();
     return stdout;
   }
 

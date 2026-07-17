@@ -22,6 +22,7 @@ import {
 import { cleanupTempFile } from '../../utils/fs-utils';
 import { getErrorMessage } from '../../utils/error-utils';
 import { pluginEventBus } from '../plugins/plugin-events';
+import { resourceReadCache } from './resource-read-cache';
 import log from '../../logger';
 
 /** Builds ['--context', ctx] when a context is given, validating it. */
@@ -59,16 +60,26 @@ export class KubernetesService {
   ): Promise<unknown[]> {
     try {
       assertResourceType(type);
-      const { stdout } = await safeExec('kubectl', [
-        'get',
-        type,
-        ...contextArgs(contextName),
-        ...namespaceArgs(namespace),
-        '-o',
-        'json',
-      ]);
-      const data = JSON.parse(stdout) as Record<string, unknown>;
-      return (data.items as unknown[]) || [];
+      // Validate eagerly so a cache hit can never bypass validation
+      const ctx = contextArgs(contextName);
+      const ns = namespaceArgs(namespace);
+      // Identical list reads from plugins/widgets within the TTL window
+      // collapse into one kubectl invocation.
+      return await resourceReadCache.getOrFetch(
+        `${contextName ?? ''}|${type}|${namespace}`,
+        async () => {
+          const { stdout } = await safeExec('kubectl', [
+            'get',
+            type,
+            ...ctx,
+            ...ns,
+            '-o',
+            'json',
+          ]);
+          const data = JSON.parse(stdout) as Record<string, unknown>;
+          return (data.items as unknown[]) || [];
+        }
+      );
     } catch (error: unknown) {
       const msg = getErrorMessage(error);
       log.error(`[KubernetesService] Failed to get resources: ${msg}`);
@@ -93,6 +104,7 @@ export class KubernetesService {
         tempFile,
       ]);
 
+      resourceReadCache.clear();
       // Emit event
       pluginEventBus.emitResourceCreated(manifest);
     } catch (error: unknown) {
@@ -126,6 +138,7 @@ export class KubernetesService {
         tempFile,
       ]);
 
+      resourceReadCache.clear();
       // Emit event
       pluginEventBus.emitResourceUpdated(manifest);
     } catch (error: unknown) {
@@ -159,6 +172,7 @@ export class KubernetesService {
         ...nsArgs,
       ]);
 
+      resourceReadCache.clear();
       // Emit event
       pluginEventBus.emitResourceDeleted({ type, name, namespace });
     } catch (error: unknown) {
@@ -206,6 +220,7 @@ export class KubernetesService {
         ...nsArgs,
       ]);
 
+      resourceReadCache.clear();
       pluginEventBus.emitResourceUpdated({ type, name, namespace, replicas });
     } catch (error: unknown) {
       const msg = getErrorMessage(error);

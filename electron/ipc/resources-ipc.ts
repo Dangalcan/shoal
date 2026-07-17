@@ -11,6 +11,7 @@
 import { ipcMain } from 'electron';
 import { safeExec } from '../utils/safe-exec';
 import { kubernetesService } from '../services/kubernetes/kubernetes-service';
+import { resourceReadCache } from '../services/kubernetes/resource-read-cache';
 import {
   wrapIpcHandler,
   assertContext,
@@ -39,17 +40,9 @@ export function registerResourcesIpcHandlers(): void {
     'get-pods',
     wrapIpcHandler('get-pods', async (_event, contextName) => {
       assertContext(contextName);
-      const { stdout } = await safeExec('kubectl', [
-        'get',
-        'pods',
-        '--context',
-        contextName,
-        '-A',
-        '-o',
-        'json',
-      ]);
-      const data = JSON.parse(stdout);
-      return data.items || [];
+      // Routed through the service so identical plugin/widget polls hit the
+      // shared short-TTL read cache instead of spawning kubectl each time.
+      return await kubernetesService.getResources('pods', 'all', contextName);
     })
   );
 
@@ -80,17 +73,12 @@ export function registerResourcesIpcHandlers(): void {
       async (_event, { contextName, resourceType, namespace }) => {
         assertContext(contextName);
         assertResourceType(resourceType);
-        const { stdout } = await safeExec('kubectl', [
-          'get',
+        if (namespace !== 'all') assertNamespace(namespace);
+        return await kubernetesService.getResources(
           resourceType,
-          '--context',
-          contextName,
-          ...namespaceArgs(namespace),
-          '-o',
-          'json',
-        ]);
-        const data = JSON.parse(stdout);
-        return data.items || [];
+          namespace,
+          contextName
+        );
       }
     )
   );
@@ -207,6 +195,7 @@ export function registerResourcesIpcHandlers(): void {
           contextName,
           ...optionalNamespaceArgs(namespace),
         ]);
+        resourceReadCache.clear();
       }
     )
   );

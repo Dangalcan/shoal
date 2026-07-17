@@ -8,6 +8,7 @@
 import { ipcMain } from 'electron';
 import { manifestDb } from '../database';
 import type { FolderDeleteMode, Manifest, ManifestFolder } from '../database';
+import { resourceReadCache } from '../services/kubernetes/resource-read-cache';
 import { wrapIpcHandler } from './ipc-utils';
 
 const MAX_FOLDER_NAME_LENGTH = 100;
@@ -67,7 +68,10 @@ export function registerManifestsIpcHandlers(): void {
   ipcMain.handle(
     'apply-manifest',
     wrapIpcHandler('apply-manifest', async (_event, id: number) => {
-      return await manifestDb.applyManifest(id);
+      const result = await manifestDb.applyManifest(id);
+      // Applying a manifest mutates the cluster — invalidate cached reads
+      resourceReadCache.clear();
+      return result;
     })
   );
 

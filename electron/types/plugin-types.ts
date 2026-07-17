@@ -294,6 +294,18 @@ export interface UIAPI {
     message: string,
     type: 'success' | 'error' | 'info' | 'warning'
   ) => void;
+  /**
+   * Deduplicated notification: fires showNotification only if no notification
+   * with the same `key` fired within `cooldownMs` (default 30 minutes).
+   * Returns true when the notification was actually shown. Use for periodic
+   * scan findings so users aren't re-alerted on every refresh interval.
+   */
+  notifyOnce: (
+    key: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning',
+    cooldownMs?: number
+  ) => boolean;
   openModal: (component: string, props?: Record<string, unknown>) => void;
 }
 
