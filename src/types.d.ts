@@ -6,8 +6,22 @@ import type {
   PluginModalData,
   PluginScaffoldOptions,
 } from '../electron/types/plugin-types';
+import type {
+  KomposeStatus,
+  ComposeConversion,
+  ConvertedManifest,
+  MigrationImportArgs,
+  MigrationImportResult,
+} from '../electron/types/migration-types';
 
 export type { PluginNotificationData, PluginModalData, PluginScaffoldOptions };
+export type {
+  KomposeStatus,
+  ComposeConversion,
+  ConvertedManifest,
+  MigrationImportArgs,
+  MigrationImportResult,
+};
 
 export interface Manifest {
   id: number;
@@ -202,6 +216,16 @@ export interface ElectronAPI {
     id: number,
     parentId: number | null
   ) => Promise<Result<boolean>>;
+
+  // Migration (Docker Compose → Kubernetes)
+  migrationCheckKompose: () => Promise<Result<KomposeStatus>>;
+  migrationSelectComposeFile: () => Promise<Result<string | null>>;
+  migrationConvertCompose: (
+    filePath: string
+  ) => Promise<Result<ComposeConversion>>;
+  migrationImportManifests: (
+    args: MigrationImportArgs
+  ) => Promise<Result<MigrationImportResult>>;
 
   // Terminal
   terminalCreate: (args: {

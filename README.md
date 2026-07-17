@@ -40,32 +40,49 @@ A modern, desktop-based management tool for Kubernetes clusters and container ru
 - 📊 Real-time resource status updates
 - 📝 View resource YAML and logs
 - 🔄 Rollout restart for Deployments, DaemonSets, StatefulSets
+- ⚖️ Scale Deployments, StatefulSets, and ReplicaSets to any replica count
 - 🗑️ Delete any resource directly from the UI
 
 ### Manifest Management
 
 - 📄 Save and edit YAML manifests in a built-in editor
+- 🗂️ Organize manifests into nested folders (Drive-like hierarchy)
+- 📑 Start from ready-made manifest templates (Deployment, Service, ConfigMap, ...)
 - 📂 Drag-and-drop YAML/JSON file import
 - ▶️ Apply manifests to the active cluster with one click
 - 💾 Persisted locally in SQLite
 
+### Migration
+
+- 🚚 Convert `docker-compose.yml` files into Kubernetes manifests via [kompose](https://kompose.io)
+- 📥 Import the converted resources into the manifest library for review before applying
+
 ### Terminal
 
-- 💻 Local shell session (PowerShell on Windows, bash/sh on macOS/Linux)
+- 💻 Local shell sessions with a shell picker (PowerShell, PowerShell 7, Git Bash, WSL on Windows; bash, zsh, sh on macOS/Linux)
 - 🐚 Pod exec (`kubectl exec`) sessions inside any running container
 - 📐 Resizable terminal with interrupt support
 
+### Port Forwarding
+
+- 🔌 Start and stop `kubectl port-forward` tunnels to pods and services
+- 📡 Manage all active tunnels from a dedicated page, with automatic notification when a tunnel dies
+
 ### Plugin System (Beta)
 
-- 🔌 Extensible plugin architecture
-- 🛒 Marketplace for free and paid plugins
+- 🔌 Extensible plugin architecture with sandboxed plugin UI
+- 🛒 Marketplace for free and paid plugins, with in-app checkout for purchases
 - 🔐 Secure plugin signing and verification
-- 💳 License management for commercial plugins
-- 🎨 UI extensions (sidebar items, pages, resource actions)
+- 💳 License management for commercial plugins (trials, activation, deactivation)
+- 🎨 UI extensions (sidebar items, pages, resource actions, dashboard widgets)
+
+### App Updates
+
+- ⬆️ In-app auto-update via `electron-updater` and GitHub Releases
 
 ### Developer Tools
 
-- 🧪 Comprehensive test suite (85%+ coverage)
+- 🧪 Comprehensive test suite (90%+ coverage)
 - 📚 Detailed contribution guides
 - 🎯 Type-safe IPC communication
 - 🔧 Hot-reload development mode
@@ -101,27 +118,31 @@ Kubernetes-Desktop/
 │   ├── main.ts            # Entry point, window setup
 │   ├── preload.ts         # ContextBridge — secure IPC surface
 │   ├── database.ts        # SQLite setup (manifests)
-│   ├── ipc/               # IPC handler modules (cluster, resources, plugins, manifests, terminal)
+│   ├── ipc/               # IPC handler modules (cluster, resources, plugins, manifests, migration, terminal, portforward, update)
 │   ├── services/          # Business logic
 │   │   ├── cluster/       # Kind/K3d cluster management
 │   │   ├── kubernetes/    # kubectl API wrapper
 │   │   ├── plugins/       # Plugin manager, loader, registry, context, events, sandbox
 │   │   ├── marketplace/   # Marketplace HTTP client
+│   │   ├── migration/     # Docker Compose → Kubernetes conversion (kompose)
+│   │   ├── portforward/   # kubectl port-forward tunnel manager
+│   │   ├── terminal/      # Local & pod-exec shell sessions
+│   │   ├── update/        # electron-updater integration
 │   │   └── security/      # License manager, signature verification, encryption
-│   ├── types/             # Shared TypeScript types (plugin-types.ts)
+│   ├── types/             # Shared TypeScript types (plugin-types.ts, migration-types.ts)
 │   └── tsconfig.json      # Main process TS config
 ├── src/                    # ⚛️ Renderer Source (React)
 │   ├── components/        # Reusable UI components (tables, modals, sidebar, terminal)
 │   ├── features/          # Feature modules (plugins, marketplace, manifests, terminal)
 │   ├── hooks/             # Custom React hooks
 │   ├── layouts/           # Page layouts
-│   ├── pages/             # Route-level components (Dashboard, Clusters, Manifests, Plugins, Terminal, Settings)
+│   ├── pages/             # Route-level components (Dashboard, Clusters, Manifests, Migration, Plugins, PortForwards, Terminal, Settings)
 │   ├── services/          # Frontend API service layer & plugin UI registry
 │   ├── types/             # Frontend TypeScript interfaces
 │   ├── lib/               # Utilities and resource definitions
 │   ├── App.tsx            # React Router setup
 │   └── main.tsx           # React entry point
-├── marketplace-backend/    # 🛒 Plugin marketplace Express.js service
+├── marketplace-backend/    # 🛒 Dev-only mock of the marketplace API (production uses kdMarket)
 ├── plugins/               # 🔌 Bundled example plugins (8 plugins)
 ├── styles/                # 🎨 SCSS stylesheets (variables, animations, components)
 ├── e2e/                   # 🎭 Playwright end-to-end tests
@@ -146,7 +167,8 @@ Kubernetes-Desktop/
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Routing**: [React Router v7](https://reactrouter.com/)
 - **Database**: [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) (manifests & plugin registry)
-- **Terminal**: [node-pty](https://github.com/microsoft/node-pty) (PTY sessions)
+- **Terminal**: [xterm.js](https://xtermjs.org/) frontend over spawned shell processes
+- **Auto-Update**: [electron-updater](https://www.electron.build/auto-update) (GitHub Releases)
 - **Notifications**: [Sonner](https://sonner.emilkowal.ski/) (toasts)
 - **Testing**: [Vitest 4](https://vitest.dev/) (unit) + [Playwright](https://playwright.dev/) (E2E)
 - **Marketplace Backend**: [Express.js](https://expressjs.com/) + JWT
@@ -257,40 +279,34 @@ The marketplace provides:
 
 - Plugin discovery and search
 - Secure plugin downloads
-- License management
-- Payment processing (coming soon)
+- License management (trials, activation, deactivation)
+- Paid plugin checkout — pay in the browser, license activates automatically
 - Reviews and ratings
 
 For more information, see [Plugin Architecture](docs/PLUGIN_ARCHITECTURE.md).
 
 ## 🛒 Marketplace Backend
 
-The marketplace backend is a separate Express.js service that powers the plugin ecosystem.
+The plugin ecosystem is powered by **kdMarket**, a standalone, contract-first marketplace API (separate repository) serving under a `/v1` base URL. It provides:
 
-### Features
-
-- RESTful API for plugin catalog (search, filter, pagination)
+- RESTful API for the plugin catalog (search, filter, pagination)
 - License key validation and JWT-based license generation
 - Trial period activation and tracking
+- Checkout sessions for paid plugin purchases
 - Admin endpoints for managing license keys and catalog entries
 - Rate limiting and Helmet security middleware
 
-### Running the Marketplace Backend
+The app selects the backend via the `MARKETPLACE_BACKEND_URL` environment variable (e.g. `http://localhost:3001/v1` for a local kdMarket).
+
+### In-repo mock backend
+
+The bundled [marketplace-backend/](marketplace-backend/README.md) directory is a **dev-only, catalog-only mock** kept as an offline fallback — do not build new features against it. It serves at the bare root (`http://localhost:3001`, no `/v1`):
 
 ```bash
 cd marketplace-backend
 npm install
-npm run dev
-```
-
-The backend runs on `http://localhost:3001` by default.
-
-### Configuration
-
-Copy `.env.example` to `.env` and configure:
-
-```bash
 cp .env.example .env
+npm run dev
 ```
 
 ## 🧪 Testing
@@ -420,8 +436,8 @@ npm run dev
 **Issue: Tests failing**
 
 ```bash
-# Clear test cache
-npm run test -- --clearCache
+# Clear Vitest's cache, then re-run
+rm -rf node_modules/.vite
 npm run test
 ```
 

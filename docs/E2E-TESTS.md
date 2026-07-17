@@ -12,7 +12,9 @@ e2e/
 │   └── app.fixture.ts            # Shared Electron launch fixture (app + window)
 ├── features/
 │   ├── cluster-lifecycle.spec.ts # Create and delete a cluster end-to-end
-│   └── cluster-details.spec.ts   # Cluster details UI: tabs, sorting, filters, settings
+│   ├── cluster-details.spec.ts   # Cluster details UI: tabs, sorting, filters, settings
+│   ├── sandbox-theme.spec.ts     # Plugin iframe follows host theme toggles
+│   └── sandbox-widget.spec.ts    # Plugin dashboard widget + page frame stability
 └── explore.spec.ts               # Interactive exploration tool (not auto-run)
 ```
 
@@ -116,6 +118,17 @@ Creates a cluster once (`beforeAll`), runs 10 UI tests against its details page,
 | Settings filter    | Typing in search narrows the resource list                   |
 | Settings toggle    | Jobs toggle switch changes CSS class (on → off → on)         |
 | Settings columns   | Column section title matches the active tab name             |
+
+### `sandbox-theme.spec.ts`
+
+Verifies that a mounted plugin iframe follows the host app's theme: toggles dark/light mode while a plugin frame is open and asserts the frame's `data-theme` updates. Does not need a cluster.
+
+### `sandbox-widget.spec.ts`
+
+Covers the sandboxed plugin UI surfaces (no cluster needed):
+
+- A plugin dashboard widget renders inside its iframe and stays stable (no iframe remount thrash).
+- A plugin page frame is height-bounded so long plugin pages scroll inside the frame instead of growing the app layout.
 
 ---
 

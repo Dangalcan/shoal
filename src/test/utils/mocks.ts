@@ -23,6 +23,7 @@ export function createMockElectronAPI(
 ): vi.Mocked<ElectronAPI> {
   return {
     checkTool: vi.fn().mockResolvedValue(true),
+    openExternal: vi.fn().mockResolvedValue({ success: true, data: true }),
     createCluster: vi
       .fn()
       .mockResolvedValue({ success: true, data: undefined }),
@@ -124,6 +125,24 @@ export function createMockElectronAPI(
       .fn()
       .mockResolvedValue({ success: true, data: 'Mock repo add' }),
     helmRepoList: vi.fn().mockResolvedValue({ success: true, data: [] }),
+
+    // Migration
+    migrationCheckKompose: vi.fn().mockResolvedValue({
+      success: true,
+      data: { available: true, version: '1.34.0' },
+    }),
+    migrationSelectComposeFile: vi.fn().mockResolvedValue({
+      success: true,
+      data: 'C:/project/docker-compose.yml',
+    }),
+    migrationConvertCompose: vi.fn().mockResolvedValue({
+      success: true,
+      data: { manifests: [], warnings: [], locallyBuiltImages: [] },
+    }),
+    migrationImportManifests: vi.fn().mockResolvedValue({
+      success: true,
+      data: { folderId: 1, manifestIds: [1] },
+    }),
 
     // Manifest folders
     getManifestFolders: vi.fn().mockResolvedValue({ success: true, data: [] }),

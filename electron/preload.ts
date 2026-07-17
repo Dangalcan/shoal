@@ -5,6 +5,7 @@ import type {
   PluginModalData,
   PluginScaffoldOptions,
 } from './types/plugin-types';
+import type { MigrationImportArgs } from './types/migration-types';
 
 contextBridge.exposeInMainWorld('electron', {
   checkTool: (tool: string) => ipcRenderer.invoke('check-tool', tool),
@@ -174,6 +175,15 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.invoke('move-manifest', id, folderId),
   moveManifestFolder: (id: number, parentId: number | null) =>
     ipcRenderer.invoke('move-manifest-folder', id, parentId),
+
+  // Migration (Docker Compose → Kubernetes)
+  migrationCheckKompose: () => ipcRenderer.invoke('migration:check-kompose'),
+  migrationSelectComposeFile: () =>
+    ipcRenderer.invoke('migration:select-compose-file'),
+  migrationConvertCompose: (filePath: string) =>
+    ipcRenderer.invoke('migration:convert', filePath),
+  migrationImportManifests: (args: MigrationImportArgs) =>
+    ipcRenderer.invoke('migration:import', args),
 
   // Terminal
   terminalCreate: (args: {

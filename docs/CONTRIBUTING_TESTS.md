@@ -138,11 +138,12 @@ npm run test:e2e:interactive
 
 ## Coverage Requirements
 
-We maintain high standards for core logic:
+We maintain high standards for core logic (enforced in `vitest.config.ts`):
 
-- **Lines**: 85%
-- **Functions**: 80%
-- **Branches**: 70%
+- **Lines**: 90%
+- **Statements**: 90%
+- **Functions**: 90%
+- **Branches**: 80%
 
 Run coverage report:
 
