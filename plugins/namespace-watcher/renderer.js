@@ -128,7 +128,7 @@
     );
   }
 
-  function NamespaceRow({ ns, expanded, onToggle, resourceCounts }) {
+  function NamespaceRow({ ns, expanded, onToggle, resourceCounts, context }) {
     const name = ns.metadata?.name ?? '—';
     const phase = ns.status?.phase ?? 'Unknown';
     const created = ns.metadata?.creationTimestamp;
@@ -136,6 +136,39 @@
     const annotations = ns.metadata?.annotations ?? {};
     const counts = resourceCounts[name] ?? {};
     const system = isSystemNamespace(name);
+
+    // ResourceQuotas + LimitRanges are fetched lazily on first expand
+    const [governance, setGovernance] = useState(null); // {quotas, limitRanges} | null
+    const [governanceLoading, setGovernanceLoading] = useState(false);
+
+    useEffect(() => {
+      if (!expanded || governance || governanceLoading || !context || !name)
+        return;
+      setGovernanceLoading(true);
+      Promise.all([
+        window.electron
+          .getResources({
+            contextName: context,
+            resourceType: 'resourcequotas',
+            namespace: name,
+          })
+          .catch(() => ({ success: false })),
+        window.electron
+          .getResources({
+            contextName: context,
+            resourceType: 'limitranges',
+            namespace: name,
+          })
+          .catch(() => ({ success: false })),
+      ])
+        .then(([qRes, lRes]) => {
+          setGovernance({
+            quotas: qRes.success ? (qRes.data ?? []) : [],
+            limitRanges: lRes.success ? (lRes.data ?? []) : [],
+          });
+        })
+        .finally(() => setGovernanceLoading(false));
+    }, [expanded, governance, governanceLoading, context, name]);
 
     return React.createElement(
       React.Fragment,
@@ -283,6 +316,139 @@
                     { className: 'nw-detail-empty' },
                     created ? new Date(created).toLocaleString() : '—'
                   )
+                ),
+                React.createElement(
+                  'div',
+                  { className: 'nw-detail-section' },
+                  React.createElement(
+                    'div',
+                    { className: 'nw-detail-title' },
+                    React.createElement(Box, { size: 12 }),
+                    'Resource Quotas & Limits'
+                  ),
+                  governanceLoading
+                    ? React.createElement(Spinner, { size: 'small' })
+                    : !governance ||
+                        (governance.quotas.length === 0 &&
+                          governance.limitRanges.length === 0)
+                      ? React.createElement(
+                          'span',
+                          { className: 'nw-detail-empty' },
+                          'No quotas or limit ranges'
+                        )
+                      : React.createElement(
+                          'div',
+                          { className: 'nw-governance' },
+                          [
+                            ...governance.quotas.map((q) =>
+                              React.createElement(
+                                'div',
+                                {
+                                  key: `q-${q.metadata?.name}`,
+                                  className: 'nw-quota-block',
+                                },
+                                [
+                                  React.createElement(
+                                    'p',
+                                    {
+                                      key: 'name',
+                                      className: 'nw-quota-name',
+                                    },
+                                    `Quota: ${q.metadata?.name}`
+                                  ),
+                                  ...Object.entries(
+                                    q.status?.hard ?? q.spec?.hard ?? {}
+                                  ).map(([k, v]) =>
+                                    React.createElement(
+                                      'div',
+                                      {
+                                        key: k,
+                                        className: 'nw-quota-row',
+                                      },
+                                      [
+                                        React.createElement(
+                                          'span',
+                                          {
+                                            key: 'k',
+                                            className: 'nw-annot-key',
+                                          },
+                                          k
+                                        ),
+                                        React.createElement(
+                                          'span',
+                                          {
+                                            key: 'v',
+                                            className: 'nw-annot-val',
+                                          },
+                                          q.status?.used?.[k] !== undefined
+                                            ? `${q.status.used[k]} / ${v}`
+                                            : String(v)
+                                        ),
+                                      ]
+                                    )
+                                  ),
+                                ]
+                              )
+                            ),
+                            ...governance.limitRanges.map((lr) =>
+                              React.createElement(
+                                'div',
+                                {
+                                  key: `lr-${lr.metadata?.name}`,
+                                  className: 'nw-quota-block',
+                                },
+                                [
+                                  React.createElement(
+                                    'p',
+                                    {
+                                      key: 'name',
+                                      className: 'nw-quota-name',
+                                    },
+                                    `LimitRange: ${lr.metadata?.name}`
+                                  ),
+                                  ...(lr.spec?.limits ?? []).map((lim, i) =>
+                                    React.createElement(
+                                      'div',
+                                      {
+                                        key: i,
+                                        className: 'nw-quota-row',
+                                      },
+                                      [
+                                        React.createElement(
+                                          'span',
+                                          {
+                                            key: 'k',
+                                            className: 'nw-annot-key',
+                                          },
+                                          lim.type ?? 'Limit'
+                                        ),
+                                        React.createElement(
+                                          'span',
+                                          {
+                                            key: 'v',
+                                            className: 'nw-annot-val',
+                                          },
+                                          [
+                                            'default',
+                                            'defaultRequest',
+                                            'max',
+                                            'min',
+                                          ]
+                                            .filter((f) => lim[f])
+                                            .map(
+                                              (f) =>
+                                                `${f}: cpu=${lim[f].cpu ?? '—'} mem=${lim[f].memory ?? '—'}`
+                                            )
+                                            .join(' · ') || '—'
+                                        ),
+                                      ]
+                                    )
+                                  ),
+                                ]
+                              )
+                            ),
+                          ]
+                        )
                 )
               )
             )
@@ -679,6 +845,7 @@
                       expanded: expandedRow === name,
                       onToggle: () => toggleRow(name),
                       resourceCounts,
+                      context,
                     });
                   })
                 )

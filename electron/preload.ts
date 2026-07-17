@@ -34,6 +34,8 @@ contextBridge.exposeInMainWorld('electron', {
     timestamps?: boolean;
     sinceSeconds?: number;
   }) => ipcRenderer.invoke('get-logs', args),
+  getPodMetrics: (args: { contextName: string; namespace: string }) =>
+    ipcRenderer.invoke('get-pod-metrics', args),
   describeResource: (args: {
     contextName: string;
     resourceType: string;

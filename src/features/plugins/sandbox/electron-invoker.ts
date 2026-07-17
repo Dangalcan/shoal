@@ -39,6 +39,7 @@ export function createElectronInvoker(
     'kubernetes.getPods': (a) => electron.getPods(a[0] as string),
     'kubernetes.getNamespaces': (a) => electron.getNamespaces(a[0] as string),
     'kubernetes.getLogs': (a) => electron.getLogs(a[0] as never),
+    'kubernetes.getPodMetrics': (a) => electron.getPodMetrics(a[0] as never),
     'kubernetes.describeResource': (a) =>
       electron.describeResource(a[0] as never),
     'kubernetes.getResourceYaml': (a) =>

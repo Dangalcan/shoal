@@ -45,6 +45,7 @@ export const METHOD_TABLE: Record<string, MethodSpec> = {
   'kubernetes.getPods': { permission: 'kubernetes' },
   'kubernetes.getNamespaces': { permission: 'kubernetes' },
   'kubernetes.getLogs': { permission: 'kubernetes' },
+  'kubernetes.getPodMetrics': { permission: 'kubernetes' },
   'kubernetes.describeResource': { permission: 'kubernetes' },
   'kubernetes.getResourceYaml': { permission: 'kubernetes' },
   'kubernetes.deleteResource': { permission: 'kubernetes' },

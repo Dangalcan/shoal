@@ -15,6 +15,7 @@
 
   function ResourceMonitorPage() {
     const [pods, setPods] = useState([]);
+    const [metricsByPod, setMetricsByPod] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [refreshCount, setRefreshCount] = useState(0);
@@ -38,6 +39,21 @@
           setPods(result.data);
         } else {
           setError(result.error);
+        }
+
+        // Live usage from metrics-server — optional, page works without it
+        if (window.electron.getPodMetrics) {
+          const metricsRes = await window.electron.getPodMetrics({
+            contextName: context,
+            namespace: 'all',
+          });
+          if (metricsRes?.success) {
+            const map = {};
+            for (const m of metricsRes.data ?? []) {
+              map[`${m.namespace}/${m.name}`] = m;
+            }
+            setMetricsByPod(map);
+          }
         }
       } catch (err) {
         setError(err.message || 'An unknown error occurred');
@@ -68,7 +84,7 @@
         running: pods.filter((p) => p.status.phase === 'Running').length,
         pending: pods.filter((p) => p.status.phase === 'Pending').length,
         failed: pods.filter(
-          (p) => p.status.phase === 'Failed' || p.status.phase === 'Error'
+          (p) => p.status.phase === 'Failed' || p.status.phase === 'Unknown'
         ).length,
       }),
       [pods]
@@ -145,7 +161,7 @@
           },
           [
             {
-              label: 'Total Nodes',
+              label: 'Total Pods',
               val: stats.total,
               icon: Box,
               color: '#3b82f6',
@@ -326,6 +342,10 @@
                       : pod.status.phase === 'Pending'
                         ? '#f59e0b'
                         : '#ef4444';
+                  const usage =
+                    metricsByPod[
+                      `${pod.metadata.namespace}/${pod.metadata.name}`
+                    ];
                   return React.createElement(
                     Animate,
                     {
@@ -449,6 +469,42 @@
                                     ) || 0
                                   ),
                                 ]),
+                                React.createElement('div', { key: 'cpu' }, [
+                                  React.createElement(
+                                    'p',
+                                    {
+                                      className:
+                                        'text-[9px] font-black text-muted uppercase tracking-tighter',
+                                    },
+                                    'CPU'
+                                  ),
+                                  React.createElement(
+                                    'p',
+                                    {
+                                      className: 'font-mono text-xs font-bold',
+                                    },
+                                    usage ? `${usage.cpuMillicores}m` : '—'
+                                  ),
+                                ]),
+                                React.createElement('div', { key: 'mem' }, [
+                                  React.createElement(
+                                    'p',
+                                    {
+                                      className:
+                                        'text-[9px] font-black text-muted uppercase tracking-tighter',
+                                    },
+                                    'Memory'
+                                  ),
+                                  React.createElement(
+                                    'p',
+                                    {
+                                      className: 'font-mono text-xs font-bold',
+                                    },
+                                    usage
+                                      ? `${Math.round(usage.memoryMi)} Mi`
+                                      : '—'
+                                  ),
+                                ]),
                               ]
                             ),
 
@@ -555,8 +611,35 @@
 
   // --- Dynamic Widget ---
 
+  const SPARK_SAMPLES = 20;
+
+  function Sparkline({ values, width = 64, height = 18, color = '#3b82f6' }) {
+    if (!values || values.length < 2) return null;
+    const max = Math.max(...values, 1);
+    const step = width / (values.length - 1);
+    const points = values
+      .map(
+        (v, i) =>
+          `${(i * step).toFixed(1)},${(height - (v / max) * (height - 2) - 1).toFixed(1)}`
+      )
+      .join(' ');
+    return React.createElement(
+      'svg',
+      { width, height, className: 'block' },
+      React.createElement('polyline', {
+        points,
+        fill: 'none',
+        stroke: color,
+        strokeWidth: 1.5,
+        strokeLinejoin: 'round',
+        strokeLinecap: 'round',
+      })
+    );
+  }
+
   function PodCountWidget() {
     const [stats, setStats] = useState({ total: 0, running: 0 });
+    const [cpuHistory, setCpuHistory] = useState([]);
 
     useEffect(() => {
       const update = async () => {
@@ -573,6 +656,23 @@
             // one missing field must not throw and blank the whole widget.
             running: pods.filter((p) => p?.status?.phase === 'Running').length,
           });
+
+          // Cluster-wide CPU sample for the sparkline (metrics-server optional)
+          if (window.electron.getPodMetrics) {
+            const mRes = await window.electron.getPodMetrics({
+              contextName: ctxRes.data,
+              namespace: 'all',
+            });
+            if (mRes?.success) {
+              const totalCpu = (mRes.data ?? []).reduce(
+                (sum, m) => sum + (m.cpuMillicores ?? 0),
+                0
+              );
+              setCpuHistory((prev) =>
+                [...prev, totalCpu].slice(-SPARK_SAMPLES)
+              );
+            }
+          }
         } catch (err) {
           console.error('[Resource Monitor] widget update failed:', err);
         }
@@ -634,6 +734,16 @@
               },
               'Cluster Health'
             ),
+            cpuHistory.length > 1 &&
+              React.createElement(
+                'div',
+                {
+                  key: 'spark',
+                  className: 'mt-1',
+                  title: `Cluster CPU: ${cpuHistory[cpuHistory.length - 1]}m`,
+                },
+                React.createElement(Sparkline, { values: cpuHistory })
+              ),
           ]
         ),
       ]

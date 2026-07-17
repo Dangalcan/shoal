@@ -87,6 +87,16 @@ export interface ElectronAPI {
     timestamps?: boolean;
     sinceSeconds?: number;
   }) => Promise<Result<string>>;
+  getPodMetrics: (args: { contextName: string; namespace: string }) => Promise<
+    Result<
+      Array<{
+        namespace: string;
+        name: string;
+        cpuMillicores: number;
+        memoryMi: number;
+      }>
+    >
+  >;
   describeResource: (args: {
     contextName: string;
     resourceType: string;

@@ -70,6 +70,8 @@ export function makeElectronShim(sdk: K8sPluginSdk): Record<string, unknown> {
     getPods: (c: string) => wrapResult(sdk.kubernetes.getPods(c)),
     getNamespaces: (c: string) => wrapResult(sdk.kubernetes.getNamespaces(c)),
     getLogs: (a: unknown) => wrapResult(sdk.kubernetes.getLogs(a as never)),
+    getPodMetrics: (a: unknown) =>
+      wrapResult(sdk.kubernetes.getPodMetrics(a as never)),
     describeResource: (a: unknown) =>
       wrapResult(sdk.kubernetes.describeResource(a)),
     getResourceYaml: (a: unknown) =>

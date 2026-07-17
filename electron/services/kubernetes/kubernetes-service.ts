@@ -46,6 +46,76 @@ const SCALABLE_RESOURCE_TYPES = new Set([
   'replicasets',
 ]);
 
+export interface PodMetrics {
+  namespace: string;
+  name: string;
+  /** CPU usage in millicores (kubectl top "5m" → 5, "1" core → 1000). */
+  cpuMillicores: number;
+  /** Memory usage in MiB. */
+  memoryMi: number;
+}
+
+/** "250m" → 250; "1" → 1000; "1.5" → 1500. */
+export function parseCpuToMillicores(v: string): number {
+  if (v.endsWith('m')) return parseInt(v.slice(0, -1), 10) || 0;
+  const cores = parseFloat(v);
+  return Number.isFinite(cores) ? Math.round(cores * 1000) : 0;
+}
+
+/** "23Mi" → 23; "1Gi" → 1024; "512Ki" → 0.5. */
+export function parseMemoryToMi(v: string): number {
+  const m = /^([\d.]+)(Ki|Mi|Gi|Ti)?$/.exec(v);
+  if (!m) return 0;
+  const n = parseFloat(m[1]);
+  if (!Number.isFinite(n)) return 0;
+  switch (m[2]) {
+    case 'Ki':
+      return n / 1024;
+    case 'Gi':
+      return n * 1024;
+    case 'Ti':
+      return n * 1024 * 1024;
+    default:
+      return n; // Mi (kubectl top default) or bare bytes-as-Mi fallback
+  }
+}
+
+/**
+ * Parse `kubectl top pods --no-headers` output. With -A the first column is
+ * the namespace; with -n it is omitted, so the caller's namespace is used.
+ */
+export function parseTopPodsOutput(
+  stdout: string,
+  namespace: string
+): PodMetrics[] {
+  const all = namespace === 'all';
+  return stdout
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const cols = line.split(/\s+/);
+      if (all && cols.length >= 4) {
+        return {
+          namespace: cols[0],
+          name: cols[1],
+          cpuMillicores: parseCpuToMillicores(cols[2]),
+          memoryMi: parseMemoryToMi(cols[3]),
+        };
+      }
+      if (!all && cols.length >= 3) {
+        return {
+          namespace,
+          name: cols[0],
+          cpuMillicores: parseCpuToMillicores(cols[1]),
+          memoryMi: parseMemoryToMi(cols[2]),
+        };
+      }
+      return null;
+    })
+    .filter((m): m is PodMetrics => m !== null);
+}
+
 /** Sanity cap to catch typos and hostile input; real clusters rarely need more. */
 const MAX_REPLICAS = 1000;
 
@@ -225,6 +295,44 @@ export class KubernetesService {
     } catch (error: unknown) {
       const msg = getErrorMessage(error);
       log.error(`[KubernetesService] Failed to scale resource: ${msg}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Pod resource usage from the metrics-server (`kubectl top pods`).
+   * Returns [] (not an error) when the metrics API is unavailable so callers
+   * can degrade gracefully — many local clusters run without metrics-server.
+   */
+  async getPodMetrics(
+    namespace: string,
+    contextName?: string
+  ): Promise<PodMetrics[]> {
+    const ctx = contextArgs(contextName);
+    const ns = namespaceArgs(namespace);
+    try {
+      return (await resourceReadCache.getOrFetch(
+        `${contextName ?? ''}|top-pods|${namespace}`,
+        async () => {
+          const { stdout } = await safeExec('kubectl', [
+            'top',
+            'pods',
+            ...ctx,
+            ...ns,
+            '--no-headers',
+          ]);
+          return parseTopPodsOutput(stdout, namespace);
+        }
+      )) as PodMetrics[];
+    } catch (error: unknown) {
+      const msg = getErrorMessage(error);
+      if (
+        /metrics|Metrics API not available|the server could not find/i.test(msg)
+      ) {
+        log.warn('[KubernetesService] Metrics API unavailable:', msg);
+        return [];
+      }
+      log.error(`[KubernetesService] Failed to get pod metrics: ${msg}`);
       throw error;
     }
   }

@@ -41,6 +41,10 @@ export interface K8sPluginSdk {
       timestamps?: boolean;
       sinceSeconds?: number;
     }): Promise<unknown>;
+    getPodMetrics(args: {
+      contextName: string;
+      namespace: string;
+    }): Promise<unknown>;
     describeResource(args: unknown): Promise<unknown>;
     getResourceYaml(args: unknown): Promise<unknown>;
     deleteResource(args: unknown): Promise<unknown>;
@@ -171,6 +175,7 @@ export function createPluginSdk(port: SdkPortLike): K8sPluginSdk {
       getNamespaces: (contextName) =>
         call('kubernetes.getNamespaces', contextName),
       getLogs: (args) => call('kubernetes.getLogs', args),
+      getPodMetrics: (args) => call('kubernetes.getPodMetrics', args),
       describeResource: (args) => call('kubernetes.describeResource', args),
       getResourceYaml: (args) => call('kubernetes.getResourceYaml', args),
       deleteResource: (args) => call('kubernetes.deleteResource', args),

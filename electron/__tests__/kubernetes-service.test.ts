@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { KubernetesService } from '../services/kubernetes/kubernetes-service';
+import {
+  KubernetesService,
+  parseCpuToMillicores,
+  parseMemoryToMi,
+  parseTopPodsOutput,
+} from '../services/kubernetes/kubernetes-service';
 import { resourceReadCache } from '../services/kubernetes/resource-read-cache';
 import { pluginEventBus } from '../services/plugins/plugin-events';
 import { safeExec } from '../utils/safe-exec';
@@ -359,5 +364,71 @@ describe('KubernetesService', () => {
       ).rejects.toThrow('Empty command');
       expect(mockSafeExec).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('pod metrics', () => {
+  beforeEach(() => resourceReadCache.clear());
+
+  it('parses cpu values', () => {
+    expect(parseCpuToMillicores('250m')).toBe(250);
+    expect(parseCpuToMillicores('1')).toBe(1000);
+    expect(parseCpuToMillicores('1.5')).toBe(1500);
+    expect(parseCpuToMillicores('garbage')).toBe(0);
+  });
+
+  it('parses memory values', () => {
+    expect(parseMemoryToMi('23Mi')).toBe(23);
+    expect(parseMemoryToMi('1Gi')).toBe(1024);
+    expect(parseMemoryToMi('512Ki')).toBe(0.5);
+    expect(parseMemoryToMi('nope')).toBe(0);
+  });
+
+  it('parses -A output with namespace column', () => {
+    const out =
+      'default   nginx-1   5m    23Mi\nkube-system   dns-2   12m   45Mi\n';
+    expect(parseTopPodsOutput(out, 'all')).toEqual([
+      { namespace: 'default', name: 'nginx-1', cpuMillicores: 5, memoryMi: 23 },
+      {
+        namespace: 'kube-system',
+        name: 'dns-2',
+        cpuMillicores: 12,
+        memoryMi: 45,
+      },
+    ]);
+  });
+
+  it('parses single-namespace output without namespace column', () => {
+    const out = 'nginx-1   5m   23Mi\n';
+    expect(parseTopPodsOutput(out, 'default')).toEqual([
+      { namespace: 'default', name: 'nginx-1', cpuMillicores: 5, memoryMi: 23 },
+    ]);
+  });
+
+  it('getPodMetrics runs kubectl top and parses output', async () => {
+    const svc = new KubernetesService();
+    mockSafeExec.mockResolvedValue({
+      stdout: 'default   nginx-1   5m   23Mi\n',
+      stderr: '',
+    });
+    await expect(svc.getPodMetrics('all', 'ctx')).resolves.toEqual([
+      { namespace: 'default', name: 'nginx-1', cpuMillicores: 5, memoryMi: 23 },
+    ]);
+    expect(lastArgs()).toEqual([
+      'top',
+      'pods',
+      '--context',
+      'ctx',
+      '-A',
+      '--no-headers',
+    ]);
+  });
+
+  it('getPodMetrics returns [] when the metrics API is unavailable', async () => {
+    const svc = new KubernetesService();
+    mockSafeExec.mockRejectedValue(
+      new Error('error: Metrics API not available')
+    );
+    await expect(svc.getPodMetrics('all', 'ctx')).resolves.toEqual([]);
   });
 });

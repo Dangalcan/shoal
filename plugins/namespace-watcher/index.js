@@ -230,12 +230,22 @@ async function refreshNamespaces(context, config) {
       `Found ${count} namespaces (${totalCount} total, system: ${showSystemNamespaces})`
     );
 
-    // Check alert threshold
-    if (totalCount >= alertThreshold && notificationLevel === 'critical') {
-      context.ui.showNotification(
-        `Alert: ${totalCount} namespaces detected (threshold: ${alertThreshold})`,
-        'warning'
-      );
+    // Check alert threshold. Previously this only fired when the user set
+    // notificationLevel to exactly 'critical', silencing it for everyone
+    // else — the threshold alert is the most important signal, so it fires
+    // for every level except 'none', deduped per count.
+    if (totalCount >= alertThreshold && notificationLevel !== 'none') {
+      const msg = `Alert: ${totalCount} namespaces detected (threshold: ${alertThreshold})`;
+      if (typeof context.ui.notifyOnce === 'function') {
+        context.ui.notifyOnce(
+          `ns-threshold:${totalCount}`,
+          msg,
+          'warning',
+          6 * 60 * 60 * 1000
+        );
+      } else {
+        context.ui.showNotification(msg, 'warning');
+      }
     }
 
     // Update sidebar using configuration from default-config.json

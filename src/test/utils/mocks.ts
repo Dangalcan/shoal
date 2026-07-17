@@ -109,6 +109,7 @@ export function createMockElectronAPI(
       success: true,
       data: { stdout: 'Mock apply', stderr: '' },
     }),
+    getPodMetrics: vi.fn().mockResolvedValue({ success: true, data: [] }),
     helmInstall: vi
       .fn()
       .mockResolvedValue({ success: true, data: 'Mock install' }),

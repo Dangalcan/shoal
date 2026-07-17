@@ -75,6 +75,12 @@ export function createPluginContext(
             'execute command'
           ),
 
+        getPodMetrics: (namespace: string) =>
+          wrapK8sCall(
+            () => kubernetesService.getPodMetrics(namespace),
+            'get pod metrics'
+          ),
+
         watchResources: (type: string, callback: (event: unknown) => void) => {
           // Validate resource type to prevent command injection
           if (!/^[a-zA-Z0-9.\-/]+$/.test(type)) {

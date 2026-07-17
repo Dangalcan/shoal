@@ -277,6 +277,15 @@ export interface KubernetesAPI {
     namespace: string,
     command: string
   ) => Promise<string>;
+  /** Pod CPU/memory usage from metrics-server; [] when unavailable. */
+  getPodMetrics: (namespace: string) => Promise<
+    Array<{
+      namespace: string;
+      name: string;
+      cpuMillicores: number;
+      memoryMi: number;
+    }>
+  >;
   watchResources: (
     type: string,
     callback: (event: unknown) => void

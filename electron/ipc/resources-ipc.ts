@@ -84,6 +84,18 @@ export function registerResourcesIpcHandlers(): void {
   );
 
   ipcMain.handle(
+    'get-pod-metrics',
+    wrapIpcHandler(
+      'get-pod-metrics',
+      async (_event, { contextName, namespace }) => {
+        assertContext(contextName);
+        if (namespace !== 'all') assertNamespace(namespace);
+        return await kubernetesService.getPodMetrics(namespace, contextName);
+      }
+    )
+  );
+
+  ipcMain.handle(
     'get-logs',
     wrapIpcHandler(
       'get-logs',
