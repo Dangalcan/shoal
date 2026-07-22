@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { LocalPluginModule } from '../../../electron/services/plugins/host/module-handle';
 
 vi.mock('electron', () => ({
   app: {
@@ -34,20 +35,20 @@ const mocks = vi.hoisted(() => ({
     getPluginPath: vi.fn().mockResolvedValue('/mock/plugin'),
     loadPluginCode: vi.fn().mockResolvedValue({}),
     unloadPluginCode: vi.fn().mockResolvedValue(undefined),
+    acquireModuleHandle: vi.fn(),
+    releaseModuleHandle: vi.fn(),
     updatePluginState: vi.fn(),
   },
   license: {
     checkLicense: vi.fn().mockReturnValue({ valid: true }),
   },
   depResolver: {
-    validateDependencies: vi
-      .fn()
-      .mockReturnValue({
-        valid: true,
-        missing: [],
-        incompatible: [],
-        circular: [],
-      }),
+    validateDependencies: vi.fn().mockReturnValue({
+      valid: true,
+      missing: [],
+      incompatible: [],
+      circular: [],
+    }),
     getDependents: vi.fn().mockReturnValue([]),
   },
   storage: {
@@ -172,6 +173,14 @@ describe('PluginManager', () => {
     mocks.depResolver.getDependents.mockReturnValue([]);
     mocks.license.checkLicense.mockReturnValue({ valid: true });
     mocks.loader.loadPluginCode.mockResolvedValue({});
+    // Route module handles through loadPluginCode so per-test module mocks
+    // keep driving the hooks exactly as before the handle abstraction.
+    mocks.loader.acquireModuleHandle.mockImplementation(
+      async (pluginId: string, pluginPath: string) =>
+        new LocalPluginModule(
+          await mocks.loader.loadPluginCode(pluginId, pluginPath)
+        )
+    );
     mocks.loader.getPluginPath.mockResolvedValue('/mock/plugin');
   });
 
