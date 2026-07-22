@@ -29,8 +29,36 @@ Inspired by Odoo's App Store:
 - Plugin signing via RSA (`electron/services/security/signature-service.ts`)
 - Manifest-based permission declarations (`kubernetes`, `ui`, `storage`)
 - Renderer UI runs in a sandboxed iframe with a permission-gated bridge (see below)
+- Node entry (`index.js`) of user-installed plugins runs in an isolated
+  Electron utility process (see "Main-Process Isolation" below)
 - License validation and encrypted local storage
 - `ALLOW_UNSIGNED_PLUGINS=true` env var required in dev mode to bypass signature checks
+
+### Main-Process Isolation (utility process)
+
+A plugin's Node entry never shares a process with Electron internals unless it
+is trusted. `plugin-loader.shouldIsolatePlugin()` decides per plugin:
+
+- **User-installed plugins** (under the userData `plugins/` dir — anything
+  installed from the marketplace or imported) run in a dedicated
+  `utilityProcess` spawned by
+  `electron/services/plugins/host/plugin-host-manager.ts`. The entry file is
+  still executed inside the `vm` sandbox (defense in depth) by
+  `host/plugin-host.ts`, and the `PluginContext` it receives is a proxy:
+  every privileged call is forwarded over the process boundary and executed
+  by the real, permission-enforcing context in main. Crashes, hangs, or vm
+  escapes are confined to the disposable child process.
+- **Bundled plugins** (shipped in-tree) keep the original in-process `vm`
+  execution.
+- `PLUGIN_ISOLATION=all` forces isolation for every plugin;
+  `PLUGIN_ISOLATION=off` disables it (useful for debugging).
+
+The RPC protocol lives in `host/host-protocol.ts`; callbacks
+(`watchResources`, `events.onBroadcast`, app lifecycle events) are bridged by
+id, and every subscription is cleaned up when the plugin is disabled or its
+host process dies. `events.on/emit` stay local to the plugin, and
+`ui.notifyOnce` keeps its cooldown ledger inside the host process (it resets
+on reload, matching in-process behaviour).
 
 ### Renderer Sandbox
 
@@ -90,18 +118,22 @@ Plugins own their rendering stack (plain DOM, React, etc.) and mount into
 
 ### Core Plugin Infrastructure (`electron/services/plugins/`)
 
-| File                     | Description                                                                                                                                                          |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `plugin-manager.ts`      | Central orchestrator. Wires together loader, registry, context, and dependency resolver.                                                                             |
-| `plugin-loader.ts`       | Discovers plugins from disk, validates manifests, requires entry point.                                                                                              |
-| `plugin-registry.ts`     | Persists plugin state and settings in `plugin-config.json`.                                                                                                          |
-| `plugin-context.ts`      | Creates the scoped API surface (`kubernetes`, `ui`, `storage`, `logger`, `events`) injected into each plugin.                                                        |
-| `plugin-events.ts`       | Global event bus used by `context.events`. Supports `on`, `once`, `off`, `emit` and app-level events.                                                                |
-| `dependency-resolver.ts` | Topological sort for activation order; detects circular dependencies; cascades disable to dependents.                                                                |
-| `path-service.ts`        | Platform-aware path resolution for the plugins directory (`~/.kubernetes-desktop/plugins/` on macOS/Linux, `%USERPROFILE%\.kubernetes-desktop\plugins\` on Windows). |
-| `storage-service.ts`     | File-per-key JSON storage scoped per plugin.                                                                                                                         |
-| `data-loader.ts`         | Auto-loads files declared in the `data` manifest field into `context.storage`.                                                                                       |
-| `template-service.ts`    | Scaffolds new plugin directories from a built-in template.                                                                                                           |
+| File                          | Description                                                                                                                                                          |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugin-manager.ts`           | Central orchestrator. Wires together loader, registry, context, and dependency resolver.                                                                             |
+| `plugin-loader.ts`            | Discovers plugins from disk, validates manifests, requires entry point. Decides in-process vs utility-process execution and hands out module handles.                |
+| `host/plugin-host.ts`         | Utility-process entry: runs the plugin's `index.js` in a vm sandbox with an RPC-proxied `PluginContext`.                                                             |
+| `host/plugin-host-manager.ts` | Main-process side: spawns/kills plugin utility processes and routes context RPC to the real permission-enforcing context.                                            |
+| `host/module-handle.ts`       | `PluginModuleHandle` abstraction — `LocalPluginModule` (in-process vm) and `RemotePluginModule` (utility process) behind one interface.                              |
+| `host/host-protocol.ts`       | Typed message contract between main and plugin host processes.                                                                                                       |
+| `plugin-registry.ts`          | Persists plugin state and settings in `plugin-config.json`.                                                                                                          |
+| `plugin-context.ts`           | Creates the scoped API surface (`kubernetes`, `ui`, `storage`, `logger`, `events`) injected into each plugin.                                                        |
+| `plugin-events.ts`            | Global event bus used by `context.events`. Supports `on`, `once`, `off`, `emit` and app-level events.                                                                |
+| `dependency-resolver.ts`      | Topological sort for activation order; detects circular dependencies; cascades disable to dependents.                                                                |
+| `path-service.ts`             | Platform-aware path resolution for the plugins directory (`~/.kubernetes-desktop/plugins/` on macOS/Linux, `%USERPROFILE%\.kubernetes-desktop\plugins\` on Windows). |
+| `storage-service.ts`          | File-per-key JSON storage scoped per plugin.                                                                                                                         |
+| `data-loader.ts`              | Auto-loads files declared in the `data` manifest field into `context.storage`.                                                                                       |
+| `template-service.ts`         | Scaffolds new plugin directories from a built-in template.                                                                                                           |
 
 ### Security (`electron/services/security/`)
 
