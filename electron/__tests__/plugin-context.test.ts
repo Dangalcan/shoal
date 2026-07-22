@@ -114,6 +114,12 @@ describe('Plugin Context', () => {
     vi.resetAllMocks();
     mockStore.clear();
 
+    // The shared read cache is a module singleton — flush it so getResources
+    // tests always reach the mocked safeExec
+    const { resourceReadCache } =
+      await import('../services/kubernetes/resource-read-cache');
+    resourceReadCache.clear();
+
     // Re-apply stateful implementations so UI/extension tests work without
     // manual mock setup, and clearPluginExtensions() below doesn't throw
     const { storageService } =
@@ -408,6 +414,36 @@ describe('Plugin Context', () => {
     it('showNotification should handle null win', () => {
       mockWin = null;
       context.ui.showNotification('Hello', 'info');
+    });
+
+    it('notifyOnce suppresses repeats within the cooldown window', () => {
+      const sendMock = vi.fn();
+      mockWin = { webContents: { send: sendMock } };
+      vi.useFakeTimers();
+      try {
+        expect(context.ui.notifyOnce('k', 'First', 'warning', 60_000)).toBe(
+          true
+        );
+        expect(context.ui.notifyOnce('k', 'Repeat', 'warning', 60_000)).toBe(
+          false
+        );
+        expect(sendMock).toHaveBeenCalledTimes(1);
+
+        // A different key is independent
+        expect(context.ui.notifyOnce('other', 'Other', 'info', 60_000)).toBe(
+          true
+        );
+        expect(sendMock).toHaveBeenCalledTimes(2);
+
+        // After the cooldown elapses the same key fires again
+        vi.advanceTimersByTime(60_001);
+        expect(context.ui.notifyOnce('k', 'Again', 'warning', 60_000)).toBe(
+          true
+        );
+        expect(sendMock).toHaveBeenCalledTimes(3);
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('openModal should send IPC message', () => {

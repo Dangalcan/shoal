@@ -75,6 +75,12 @@ export function createPluginContext(
             'execute command'
           ),
 
+        getPodMetrics: (namespace: string) =>
+          wrapK8sCall(
+            () => kubernetesService.getPodMetrics(namespace),
+            'get pod metrics'
+          ),
+
         watchResources: (type: string, callback: (event: unknown) => void) => {
           // Validate resource type to prevent command injection
           if (!/^[a-zA-Z0-9.\-/]+$/.test(type)) {
@@ -142,6 +148,31 @@ export function createPluginContext(
         },
       }
     : (createDeniedAPI('kubernetes') as KubernetesAPI);
+
+  // Deliver a notification to the main window (shared by showNotification
+  // and notifyOnce).
+  const sendNotification = (
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning'
+  ): void => {
+    const win = pluginEventBus.getMainWindow();
+    if (win) {
+      win.webContents.send('plugin-notification', {
+        pluginId,
+        message,
+        type,
+      });
+    }
+    log.info(
+      `[PluginContext] Notification sent from ${pluginId}:`,
+      type,
+      message
+    );
+  };
+
+  // Per-plugin notifyOnce cooldown ledger (reset when the plugin reloads)
+  const notifiedAt = new Map<string, number>();
+  const DEFAULT_NOTIFY_COOLDOWN_MS = 30 * 60 * 1000;
 
   // Create UI API (if permission granted)
   const ui: UIAPI = permissions.includes('ui')
@@ -248,19 +279,21 @@ export function createPluginContext(
           message: string,
           type: 'success' | 'error' | 'info' | 'warning'
         ) => {
-          const win = pluginEventBus.getMainWindow();
-          if (win) {
-            win.webContents.send('plugin-notification', {
-              pluginId,
-              message,
-              type,
-            });
-          }
-          log.info(
-            `[PluginContext] Notification sent from ${pluginId}:`,
-            type,
-            message
-          );
+          sendNotification(message, type);
+        },
+
+        notifyOnce: (
+          key: string,
+          message: string,
+          type: 'success' | 'error' | 'info' | 'warning',
+          cooldownMs: number = DEFAULT_NOTIFY_COOLDOWN_MS
+        ): boolean => {
+          const now = Date.now();
+          const last = notifiedAt.get(key) ?? 0;
+          if (now - last < cooldownMs) return false;
+          notifiedAt.set(key, now);
+          sendNotification(message, type);
+          return true;
         },
 
         openModal: (component: string, props?: Record<string, unknown>) => {

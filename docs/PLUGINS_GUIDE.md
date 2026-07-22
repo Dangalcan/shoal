@@ -382,6 +382,36 @@ Package your plugin as a `.zip` archive containing `plugin.json`, `index.js`, an
 
 A security warning is shown for plugins without a valid RSA signature.
 
+### Paid Plugins & Licensing
+
+Plugins can be sold through the marketplace. Declare the model in the `license` field of `plugin.json`:
+
+```json
+{
+  "license": {
+    "type": "paid",
+    "spdx": "proprietary",
+    "pricing": {
+      "model": "one-time",
+      "price": 9.99,
+      "currency": "EUR",
+      "trialDays": 14
+    }
+  }
+}
+```
+
+- **`type`**: `'free' | 'paid' | 'trial' | 'subscription'`.
+- **`pricing.model`**: `'one-time' | 'subscription' | 'freemium'` (subscriptions take an `interval` of `'monthly'` or `'yearly'`).
+
+How it works for the user:
+
+1. **Trial**: paid plugins can offer a trial (14-day JWT license, one per machine per plugin) started from the app with one click.
+2. **Purchase**: the **Buy** button opens a checkout page in the browser; when payment completes, the app receives the license key automatically, activates it, and installs the plugin.
+3. **Activation**: license keys are validated against the marketplace API and stored encrypted on the machine. Users can deactivate a license to move it to another machine.
+
+At runtime the app enforces the license state: an expired trial or missing license keeps the plugin in the `trial`/`expired` state and its UI unavailable until activated.
+
 ### Marketplace Submission
 
-The marketplace backend (`marketplace-backend/`) is currently a local development mock. Production marketplace publishing (CDN, developer portal, payment processing) is planned for a future release. See [PLUGIN_ARCHITECTURE.md](./PLUGIN_ARCHITECTURE.md) for the implementation roadmap.
+Production plugin distribution goes through **kdMarket**, the standalone marketplace API (plugin catalog, licensing, and checkout). The in-repo `marketplace-backend/` is a dev-only, catalog-only mock kept as an offline fallback. Submission/developer-portal tooling is still being rolled out — see [PLUGIN_ARCHITECTURE.md](./PLUGIN_ARCHITECTURE.md) for the architecture and `docs/PENDING_WORK.md` for the current release plan.

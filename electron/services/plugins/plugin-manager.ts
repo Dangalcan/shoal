@@ -6,6 +6,7 @@
  */
 
 import type { Plugin, PluginContext } from '../../types/plugin-types';
+import type { PluginModuleHandle } from './host/module-handle';
 
 interface PluginUpdateInfo {
   pluginId: string;
@@ -33,18 +34,20 @@ import { assertValidPluginId } from './plugin-validator';
 import fs from 'fs';
 import path from 'path';
 
-/** Calls a lifecycle hook on a plugin module if it exists, logging before invocation. */
+/** Calls a lifecycle hook through a plugin module handle if it exists. */
 async function callHookIfExists(
-  pluginModule: Record<string, unknown>,
+  handle: PluginModuleHandle,
   hookName: string,
   pluginId: string,
-  ...args: unknown[]
+  context?: PluginContext
 ): Promise<void> {
-  const hook = pluginModule[hookName];
-  if (hook && typeof hook === 'function') {
-    log.info(`[PluginManager] Executing ${hookName} for ${pluginId}`);
-    await (hook as (...a: unknown[]) => Promise<void>)(...args);
-  }
+  if (!handle.has(hookName)) return;
+  log.info(`[PluginManager] Executing ${hookName} for ${pluginId}`);
+  await handle.invoke(
+    hookName,
+    { withContext: context !== undefined },
+    context
+  );
 }
 
 export class PluginManager {
@@ -383,21 +386,24 @@ export class PluginManager {
       throw error;
     }
 
-    const pluginModule = await pluginLoader.loadPluginCode(
+    const handle = await pluginLoader.acquireModuleHandle(
       pluginId,
-      pluginPath
+      pluginPath,
+      context
     );
-    const mod = pluginModule as Record<string, unknown>;
     try {
-      await callHookIfExists(mod, 'beforeActivate', pluginId, context);
-      await callHookIfExists(mod, 'activate', pluginId, context);
-      await callHookIfExists(mod, 'afterActivate', pluginId, context);
+      await callHookIfExists(handle, 'beforeActivate', pluginId, context);
+      await callHookIfExists(handle, 'activate', pluginId, context);
+      await callHookIfExists(handle, 'afterActivate', pluginId, context);
     } catch (error: unknown) {
       // Rollback: clean up any extensions registered during partial activation
       try {
-        await callHookIfExists(mod, 'deactivate', pluginId);
-      } catch (_) {}
+        await callHookIfExists(handle, 'deactivate', pluginId);
+      } catch {
+        // Best-effort rollback; the original activation error is rethrown below
+      }
       clearPluginExtensions(pluginId);
+      pluginLoader.releaseModuleHandle(pluginId);
       throw error;
     }
   }
@@ -419,31 +425,21 @@ export class PluginManager {
       }
 
       // Get plugin context
-      const context = pluginRegistry.getPluginContext(pluginId);
+      const context = pluginRegistry.getPluginContext(pluginId) as
+        | PluginContext
+        | undefined;
 
-      // Load plugin code to call deactivate
+      // Run deactivation hooks through the module handle (reuses the running
+      // utility process for isolated plugins)
       try {
-        const pluginModule = await pluginLoader.loadPluginCode(
+        const handle = await pluginLoader.acquireModuleHandle(
           pluginId,
-          pluginPath!
-        );
-
-        await callHookIfExists(
-          pluginModule as Record<string, unknown>,
-          'beforeDeactivate',
-          pluginId,
+          pluginPath!,
           context
         );
-        await callHookIfExists(
-          pluginModule as Record<string, unknown>,
-          'deactivate',
-          pluginId
-        );
-        await callHookIfExists(
-          pluginModule as Record<string, unknown>,
-          'afterDeactivate',
-          pluginId
-        );
+        await callHookIfExists(handle, 'beforeDeactivate', pluginId, context);
+        await callHookIfExists(handle, 'deactivate', pluginId);
+        await callHookIfExists(handle, 'afterDeactivate', pluginId);
       } catch (error) {
         // Plugin might not be loaded, that's okay
         log.warn(
@@ -452,7 +448,8 @@ export class PluginManager {
         );
       }
 
-      // Unload plugin code
+      // Tear down any isolated host process and unload plugin code
+      pluginLoader.releaseModuleHandle(pluginId);
       await pluginLoader.unloadPluginCode(pluginId, pluginPath!);
 
       // Clear plugin extensions
@@ -492,7 +489,9 @@ export class PluginManager {
 
       if (extensionPoint) {
         // Get specific extension point
-        const extList = (extensions as any)[extensionPoint];
+        const extList = (extensions as Record<string, unknown[] | undefined>)[
+          extensionPoint
+        ];
         if (extList) {
           results.push(...extList);
         }
@@ -528,21 +527,22 @@ export class PluginManager {
       throw new Error(`Plugin path not found for ${pluginId}`);
     }
 
-    // Load plugin module
-    const pluginModule = await pluginLoader.loadPluginCode(
+    // Get a module handle (running utility process for isolated plugins,
+    // fresh vm execution for in-process plugins)
+    const context = pluginRegistry.getPluginContext(pluginId) as
+      | PluginContext
+      | undefined;
+    const handle = await pluginLoader.acquireModuleHandle(
       pluginId,
-      pluginPath
+      pluginPath,
+      context
     );
 
     // Find and execute the action
-    if (
-      pluginModule[actionId] &&
-      typeof pluginModule[actionId] === 'function'
-    ) {
-      return await pluginModule[actionId](args);
+    if (!handle.has(actionId)) {
+      throw new Error(`Action ${actionId} not found in plugin ${pluginId}`);
     }
-
-    throw new Error(`Action ${actionId} not found in plugin ${pluginId}`);
+    return await handle.invoke(actionId, { args: [args] }, context);
   }
 
   /**

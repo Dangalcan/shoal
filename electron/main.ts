@@ -2,6 +2,7 @@ import { app, BrowserWindow, Menu, protocol, net } from 'electron';
 import path from 'path';
 import { pathToFileURL } from 'url';
 import { pluginManager } from './services/plugins/plugin-manager';
+import { pluginHostManager } from './services/plugins/host/plugin-host-manager';
 import { pluginEventBus } from './services/plugins/plugin-events';
 import { manifestDb } from './database';
 import { getErrorMessage } from './utils/error-utils';
@@ -10,6 +11,8 @@ import { registerResourcesIpcHandlers } from './ipc/resources-ipc';
 import { registerPluginsIpcHandlers } from './ipc/plugins-ipc';
 import { registerMarketplaceIpcHandlers } from './ipc/marketplace-ipc';
 import { registerManifestsIpcHandlers } from './ipc/manifests-ipc';
+import { registerHelmIpcHandlers } from './ipc/helm-ipc';
+import { registerMigrationIpcHandlers } from './ipc/migration-ipc';
 import { registerTerminalIpcHandlers } from './ipc/terminal-ipc';
 import { registerPortForwardIpcHandlers } from './ipc/portforward-ipc';
 import { registerUpdateIpcHandlers } from './ipc/update-ipc';
@@ -47,6 +50,8 @@ function registerIpcHandlers(): void {
   registerPluginsIpcHandlers();
   registerMarketplaceIpcHandlers();
   registerManifestsIpcHandlers();
+  registerHelmIpcHandlers();
+  registerMigrationIpcHandlers();
   registerTerminalIpcHandlers();
   registerPortForwardIpcHandlers();
   registerUpdateIpcHandlers();
@@ -92,6 +97,11 @@ app.on('window-all-closed', () => {
     app.quit();
     win = null;
   }
+});
+
+// Tear down plugin utility processes cleanly before Electron force-kills them
+app.on('before-quit', () => {
+  pluginHostManager.disposeAll();
 });
 
 app.on('activate', () => {

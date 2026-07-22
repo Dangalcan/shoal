@@ -6,8 +6,22 @@ import type {
   PluginModalData,
   PluginScaffoldOptions,
 } from '../electron/types/plugin-types';
+import type {
+  KomposeStatus,
+  ComposeConversion,
+  ConvertedManifest,
+  MigrationImportArgs,
+  MigrationImportResult,
+} from '../electron/types/migration-types';
 
 export type { PluginNotificationData, PluginModalData, PluginScaffoldOptions };
+export type {
+  KomposeStatus,
+  ComposeConversion,
+  ConvertedManifest,
+  MigrationImportArgs,
+  MigrationImportResult,
+};
 
 export interface Manifest {
   id: number;
@@ -69,7 +83,20 @@ export interface ElectronAPI {
     podName: string;
     namespace: string;
     tailLines?: number;
+    container?: string;
+    timestamps?: boolean;
+    sinceSeconds?: number;
   }) => Promise<Result<string>>;
+  getPodMetrics: (args: { contextName: string; namespace: string }) => Promise<
+    Result<
+      Array<{
+        namespace: string;
+        name: string;
+        cpuMillicores: number;
+        memoryMi: number;
+      }>
+    >
+  >;
   describeResource: (args: {
     contextName: string;
     resourceType: string;
@@ -142,6 +169,38 @@ export interface ElectronAPI {
   reloadPlugin: (pluginId: string) => Promise<Result<void>>;
   importLocalPlugin: () => Promise<Result<string>>;
 
+  // Helm
+  helmInstall: (args: {
+    contextName: string;
+    namespace: string;
+    releaseName: string;
+    chart: string;
+    version?: string;
+    values?: string;
+    createNamespace?: boolean;
+  }) => Promise<Result<string>>;
+  helmUpgrade: (args: {
+    contextName: string;
+    namespace: string;
+    releaseName: string;
+    chart: string;
+    version?: string;
+    values?: string;
+  }) => Promise<Result<string>>;
+  helmRollback: (args: {
+    contextName: string;
+    namespace: string;
+    releaseName: string;
+    revision: number;
+  }) => Promise<Result<string>>;
+  helmUninstall: (args: {
+    contextName: string;
+    namespace: string;
+    releaseName: string;
+  }) => Promise<Result<string>>;
+  helmRepoAdd: (args: { name: string; url: string }) => Promise<Result<string>>;
+  helmRepoList: () => Promise<Result<Array<{ name: string; url: string }>>>;
+
   // Manifests
   getManifests: (clusterContext?: string) => Promise<Result<Manifest[]>>;
   saveManifest: (manifest: Partial<Manifest>) => Promise<Result<number>>;
@@ -167,6 +226,16 @@ export interface ElectronAPI {
     id: number,
     parentId: number | null
   ) => Promise<Result<boolean>>;
+
+  // Migration (Docker Compose → Kubernetes)
+  migrationCheckKompose: () => Promise<Result<KomposeStatus>>;
+  migrationSelectComposeFile: () => Promise<Result<string | null>>;
+  migrationConvertCompose: (
+    filePath: string
+  ) => Promise<Result<ComposeConversion>>;
+  migrationImportManifests: (
+    args: MigrationImportArgs
+  ) => Promise<Result<MigrationImportResult>>;
 
   // Terminal
   terminalCreate: (args: {

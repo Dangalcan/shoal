@@ -1,7 +1,7 @@
 {
   "id": "namespace-watcher",
   "name": "Namespace Watcher",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Monitors Kubernetes namespaces and provides quick stats.",
   "author": "K8s Desktop Team",
   "main": "index.js",

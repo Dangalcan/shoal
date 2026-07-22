@@ -125,6 +125,94 @@ describe('PluginRegistry', () => {
     });
   });
 
+  // ── secret-flagged settings ─────────────────────────────────────────────────
+
+  describe('secret-flagged settings', () => {
+    const makeSecretPlugin = (id: string): Plugin =>
+      ({
+        manifest: {
+          id,
+          name: 'Secret Plugin',
+          version: '1.0.0',
+          license: { type: 'free' },
+          configuration: {
+            title: 'Settings',
+            properties: {
+              apiToken: { type: 'string', label: 'API Token', secret: true },
+              owner: { type: 'string', label: 'Owner' },
+            },
+          },
+        },
+      }) as unknown as Plugin;
+
+    it('encrypts secret values at rest and decrypts them on read', async () => {
+      const plugin = makeSecretPlugin('secret-plugin');
+      await registry.registerPlugin(plugin, { enabled: true, settings: {} });
+
+      await registry.updatePluginSettings('secret-plugin', {
+        apiToken: 'ghp_supersecret',
+        owner: 'daniel',
+      });
+
+      // Stored copy is encrypted with the sentinel prefix…
+      const writtenJson = vi
+        .mocked(fs.writeFile)
+        .mock.calls.at(-1)![1] as string;
+      const written = JSON.parse(writtenJson);
+      expect(written['secret-plugin'].settings.apiToken).toBe(
+        'enc::enc:ghp_supersecret'
+      );
+      // …non-secret keys stay plaintext…
+      expect(written['secret-plugin'].settings.owner).toBe('daniel');
+      // …and reads get the decrypted value back.
+      const settings = registry.getPluginSettings('secret-plugin');
+      expect(settings.apiToken).toBe('ghp_supersecret');
+      expect(settings.owner).toBe('daniel');
+    });
+
+    it('does not double-encrypt an already-encrypted value', async () => {
+      const plugin = makeSecretPlugin('secret-plugin');
+      await registry.registerPlugin(plugin, { enabled: true, settings: {} });
+
+      await registry.updatePluginSettings('secret-plugin', {
+        apiToken: 'tok',
+      });
+      // Merging an unrelated key must not re-encrypt the stored ciphertext
+      await registry.updatePluginSettings('secret-plugin', {
+        owner: 'daniel',
+      });
+
+      expect(registry.getPluginSettings('secret-plugin').apiToken).toBe('tok');
+    });
+
+    it('migrates plaintext secrets persisted by older builds on registration', async () => {
+      const plugin = makeSecretPlugin('secret-plugin');
+      await registry.registerPlugin(plugin, {
+        enabled: true,
+        settings: { apiToken: 'legacy-plaintext' },
+      });
+
+      const writtenJson = vi
+        .mocked(fs.writeFile)
+        .mock.calls.at(-1)![1] as string;
+      const written = JSON.parse(writtenJson);
+      expect(written['secret-plugin'].settings.apiToken).toBe(
+        'enc::enc:legacy-plaintext'
+      );
+      expect(registry.getPluginSettings('secret-plugin').apiToken).toBe(
+        'legacy-plaintext'
+      );
+    });
+
+    it('leaves empty and non-string secret values untouched', async () => {
+      const plugin = makeSecretPlugin('secret-plugin');
+      await registry.registerPlugin(plugin, { enabled: true, settings: {} });
+
+      await registry.updatePluginSettings('secret-plugin', { apiToken: '' });
+      expect(registry.getPluginSettings('secret-plugin').apiToken).toBe('');
+    });
+  });
+
   // ── registerPlugin ──────────────────────────────────────────────────────────
 
   describe('registerPlugin', () => {

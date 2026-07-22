@@ -45,6 +45,7 @@ export const METHOD_TABLE: Record<string, MethodSpec> = {
   'kubernetes.getPods': { permission: 'kubernetes' },
   'kubernetes.getNamespaces': { permission: 'kubernetes' },
   'kubernetes.getLogs': { permission: 'kubernetes' },
+  'kubernetes.getPodMetrics': { permission: 'kubernetes' },
   'kubernetes.describeResource': { permission: 'kubernetes' },
   'kubernetes.getResourceYaml': { permission: 'kubernetes' },
   'kubernetes.deleteResource': { permission: 'kubernetes' },
@@ -54,6 +55,14 @@ export const METHOD_TABLE: Record<string, MethodSpec> = {
   // Manifests — treated as cluster mutation, require `kubernetes`.
   'manifests.apply': { permission: 'kubernetes' },
   'manifests.save': { permission: 'kubernetes' },
+
+  // Helm — cluster mutation via the validated helm service, require `kubernetes`.
+  'helm.install': { permission: 'kubernetes' },
+  'helm.upgrade': { permission: 'kubernetes' },
+  'helm.rollback': { permission: 'kubernetes' },
+  'helm.uninstall': { permission: 'kubernetes' },
+  'helm.repoAdd': { permission: 'kubernetes' },
+  'helm.repoList': { permission: 'kubernetes' },
 
   // Settings — the plugin's OWN settings only; pluginId is injected by the
   // host so a plugin cannot read or write another plugin's settings.

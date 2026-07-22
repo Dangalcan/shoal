@@ -33,6 +33,8 @@ vi.mock('../services/plugins/plugin-loader', () => ({
     getPluginPath: vi.fn(),
     loadPluginCode: vi.fn(),
     unloadPluginCode: vi.fn(),
+    acquireModuleHandle: vi.fn(),
+    releaseModuleHandle: vi.fn(),
     registerPlugin: vi.fn(),
     unregisterPlugin: vi.fn(),
     updatePluginState: vi.fn(),
@@ -155,6 +157,7 @@ vi.mock('fs', async (importOriginal) => {
 });
 
 import { marketplaceService } from '../services/marketplace/marketplace-service';
+import { LocalPluginModule } from '../services/plugins/host/module-handle';
 import { createPluginContext } from '../services/plugins/plugin-context';
 import { getAllPluginExtensions } from '../services/plugins/plugin-extensions';
 import { dependencyResolver } from '../services/plugins/dependency-resolver';
@@ -171,6 +174,14 @@ describe('PluginManager', () => {
     vi.mocked(licenseManager.checkLicense).mockReturnValue({ valid: true });
     vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
     vi.mocked(pluginLoader.loadPluginCode).mockResolvedValue({});
+    // Route module handles through loadPluginCode so per-test module mocks
+    // keep driving the hooks exactly as before the handle abstraction.
+    vi.mocked(pluginLoader.acquireModuleHandle).mockImplementation(
+      async (pluginId: string, pluginPath: string) =>
+        new LocalPluginModule(
+          await pluginLoader.loadPluginCode(pluginId, pluginPath)
+        )
+    );
     vi.mocked(dependencyResolver.validateDependencies).mockReturnValue({
       valid: true,
     } as any);

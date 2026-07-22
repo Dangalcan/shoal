@@ -1,7 +1,7 @@
 {
   "id": "resource-monitor",
   "name": "Resource Monitor",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Monitors Pod resources within namespaces. Depends on Namespace Watcher.",
   "author": "K8s Desktop Team",
   "main": "index.js",

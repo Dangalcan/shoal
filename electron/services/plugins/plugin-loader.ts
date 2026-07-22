@@ -13,10 +13,14 @@ import type {
   PluginManifest,
   Plugin,
   PluginState,
+  PluginContext,
 } from '../../types/plugin-types';
 import { signatureService } from '../security/signature-service';
 import { validateManifest, createErrorPlugin } from './plugin-validator';
 import { executeInSandbox } from './plugin-sandbox';
+import { LocalPluginModule } from './host/module-handle';
+import type { PluginModuleHandle } from './host/module-handle';
+import { pluginHostManager } from './host/plugin-host-manager';
 import { getErrorMessage } from '../../utils/error-utils';
 import log from '../../logger';
 
@@ -25,6 +29,8 @@ export class PluginLoader {
   private loadedPlugins: Map<string, Plugin> = new Map();
   /** Per-plugin module cache used by the sandboxed require. */
   private sandboxCaches: Map<string, Map<string, unknown>> = new Map();
+  /** Live handles for plugins running in isolated utility processes. */
+  private remoteHandles: Map<string, PluginModuleHandle> = new Map();
 
   constructor() {
     this.pluginDirectories = pathService.getDiscoveryDirectories();
@@ -178,6 +184,79 @@ export class PluginLoader {
         getErrorMessage(error)
       );
     }
+  }
+
+  /**
+   * Whether a plugin should run in an isolated utility process.
+   * Default policy: user-installed (untrusted) plugins are isolated; bundled
+   * in-tree plugins stay in-process. Override with PLUGIN_ISOLATION=all|off.
+   */
+  shouldIsolatePlugin(pluginPath: string): boolean {
+    const mode = process.env.PLUGIN_ISOLATION;
+    if (mode === 'off') return false;
+    if (!pluginHostManager.isSupported()) return false;
+    if (mode === 'all') return true;
+
+    try {
+      const userDir = path.resolve(pathService.getUserPluginsDir());
+      const relative = path.relative(userDir, path.resolve(pluginPath));
+      return !relative.startsWith('..') && !path.isAbsolute(relative);
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Get a callable handle to the plugin module. Isolated plugins reuse their
+   * running utility process; in-process plugins re-execute the vm sandbox
+   * (same semantics as loadPluginCode).
+   */
+  async acquireModuleHandle(
+    pluginId: string,
+    pluginPath: string,
+    context?: PluginContext
+  ): Promise<PluginModuleHandle> {
+    const existing = this.remoteHandles.get(pluginId);
+    if (existing && pluginHostManager.isRunning(pluginId)) {
+      return existing;
+    }
+    this.remoteHandles.delete(pluginId);
+
+    if (this.shouldIsolatePlugin(pluginPath)) {
+      if (!context) {
+        throw new Error(
+          `Plugin ${pluginId} is isolated and requires a context to load`
+        );
+      }
+      const plugin = this.loadedPlugins.get(pluginId);
+      if (!plugin) throw new Error(`Plugin ${pluginId} not found`);
+      const mainFile = path.join(
+        pluginPath,
+        plugin.manifest.main || 'index.js'
+      );
+      await fs.access(mainFile);
+
+      const handle = await pluginHostManager.spawn({
+        pluginId,
+        pluginPath,
+        mainFile,
+        permissions: plugin.manifest.permissions || [],
+        context,
+      });
+      this.remoteHandles.set(pluginId, handle);
+      return handle;
+    }
+
+    const moduleExports = await this.loadPluginCode(pluginId, pluginPath);
+    return new LocalPluginModule(moduleExports);
+  }
+
+  /** Dispose any isolated host process and clear caches for a plugin. */
+  releaseModuleHandle(pluginId: string): void {
+    const handle = this.remoteHandles.get(pluginId);
+    this.remoteHandles.delete(pluginId);
+    handle?.dispose();
+    pluginHostManager.disposePlugin(pluginId);
   }
 
   registerPlugin(plugin: Plugin): void {

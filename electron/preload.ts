@@ -5,6 +5,7 @@ import type {
   PluginModalData,
   PluginScaffoldOptions,
 } from './types/plugin-types';
+import type { MigrationImportArgs } from './types/migration-types';
 
 contextBridge.exposeInMainWorld('electron', {
   checkTool: (tool: string) => ipcRenderer.invoke('check-tool', tool),
@@ -29,7 +30,12 @@ contextBridge.exposeInMainWorld('electron', {
     podName: string;
     namespace: string;
     tailLines?: number;
+    container?: string;
+    timestamps?: boolean;
+    sinceSeconds?: number;
   }) => ipcRenderer.invoke('get-logs', args),
+  getPodMetrics: (args: { contextName: string; namespace: string }) =>
+    ipcRenderer.invoke('get-pod-metrics', args),
   describeResource: (args: {
     contextName: string;
     resourceType: string;
@@ -120,6 +126,39 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.invoke('reload-plugin', pluginId),
   importLocalPlugin: () => ipcRenderer.invoke('import-local-plugin'),
 
+  // Helm
+  helmInstall: (args: {
+    contextName: string;
+    namespace: string;
+    releaseName: string;
+    chart: string;
+    version?: string;
+    values?: string;
+    createNamespace?: boolean;
+  }) => ipcRenderer.invoke('helm:install', args),
+  helmUpgrade: (args: {
+    contextName: string;
+    namespace: string;
+    releaseName: string;
+    chart: string;
+    version?: string;
+    values?: string;
+  }) => ipcRenderer.invoke('helm:upgrade', args),
+  helmRollback: (args: {
+    contextName: string;
+    namespace: string;
+    releaseName: string;
+    revision: number;
+  }) => ipcRenderer.invoke('helm:rollback', args),
+  helmUninstall: (args: {
+    contextName: string;
+    namespace: string;
+    releaseName: string;
+  }) => ipcRenderer.invoke('helm:uninstall', args),
+  helmRepoAdd: (args: { name: string; url: string }) =>
+    ipcRenderer.invoke('helm:repo-add', args),
+  helmRepoList: () => ipcRenderer.invoke('helm:repo-list'),
+
   // Manifests
   getManifests: (clusterContext?: string) =>
     ipcRenderer.invoke('get-manifests', clusterContext),
@@ -138,6 +177,15 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.invoke('move-manifest', id, folderId),
   moveManifestFolder: (id: number, parentId: number | null) =>
     ipcRenderer.invoke('move-manifest-folder', id, parentId),
+
+  // Migration (Docker Compose → Kubernetes)
+  migrationCheckKompose: () => ipcRenderer.invoke('migration:check-kompose'),
+  migrationSelectComposeFile: () =>
+    ipcRenderer.invoke('migration:select-compose-file'),
+  migrationConvertCompose: (filePath: string) =>
+    ipcRenderer.invoke('migration:convert', filePath),
+  migrationImportManifests: (args: MigrationImportArgs) =>
+    ipcRenderer.invoke('migration:import', args),
 
   // Terminal
   terminalCreate: (args: {

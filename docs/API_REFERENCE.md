@@ -6,18 +6,19 @@ All `invoke` methods return a `Promise<Result<T>>`. See the [Types](#types) sect
 
 ## Diagnostics
 
-### `runCommand(command)`
-
-Runs an arbitrary shell command (restricted to safe Kubernetes tooling).
-
-- **Parameters**: `command`: `string`
-- **Returns**: `Promise<Result<{ stdout: string, stderr: string }>>`
-
 ### `checkTool(tool)`
 
 Checks whether a required CLI tool (e.g., `kubectl`, `kind`, `minikube`) is available on the system.
 
 - **Parameters**: `tool`: `string`
+- **Returns**: `Promise<Result<boolean>>`
+
+### `openExternal(url)`
+
+Opens a URL in the system's default browser (used e.g. to open the
+marketplace checkout page).
+
+- **Parameters**: `url`: `string`
 - **Returns**: `Promise<Result<boolean>>`
 
 ---
@@ -347,6 +348,44 @@ Downloads and installs a plugin from the marketplace.
 - **Parameters**: `pluginId`: `string`
 - **Returns**: `Promise<Result<void>>`
 
+### `createCheckout(pluginId)`
+
+Starts a purchase for a paid plugin. Returns a checkout URL the user opens
+in the browser to pay (see `openExternal`), plus a `sessionId` to poll with
+`getCheckoutStatus`.
+
+- **Parameters**: `pluginId`: `string`
+- **Returns**: `Promise<Result<{ sessionId: string; url: string }>>`
+
+### `getCheckoutStatus(sessionId)`
+
+Polls a checkout session. Once `status` is `'paid'`, `licenseKey` holds the
+purchased key to activate and install the plugin with.
+
+- **Parameters**: `sessionId`: `string`
+- **Returns**: `Promise<Result<{ status: 'pending' | 'paid'; licenseKey?: string }>>`
+
+---
+
+## App Updates
+
+In-app auto-update via `electron-updater` and GitHub Releases. Update
+progress is pushed from the main process on the `update-status` channel
+(see `onUpdateStatus`).
+
+### `checkForAppUpdates()`
+
+Triggers a manual update check. Forced even in development so the button
+always gives feedback.
+
+- **Returns**: `Promise<Result<boolean>>`
+
+### `installAppUpdate()`
+
+Quits the app and installs a previously downloaded update.
+
+- **Returns**: `Promise<Result<boolean>>`
+
 ---
 
 ## Terminal API
@@ -447,6 +486,55 @@ Lists active tunnels.
 
 ---
 
+## Migration API
+
+Converts a docker-compose file into Kubernetes manifests using the
+[kompose](https://kompose.io) CLI (Apache 2.0). The binary must be on
+PATH; conversion never writes to disk (`--stdout`), and the result is
+imported into the manifest library for review before applying.
+
+### `migrationCheckKompose()`
+
+Probes for the kompose binary. Absence is a valid state, not an error.
+
+- **Returns**: `Promise<Result<KomposeStatus>>`
+  - `KomposeStatus`: `{ available: boolean; version?: string }`
+
+### `migrationSelectComposeFile()`
+
+Opens a native file picker filtered to `.yml`/`.yaml` files.
+
+- **Returns**: `Promise<Result<string | null>>` — `null` when cancelled
+
+### `migrationConvertCompose(filePath)`
+
+Runs `kompose convert` on the given compose file. The file must exist,
+have a `.yml`/`.yaml` extension, and be at most 1 MiB.
+
+- **Parameters**: `filePath`: `string`
+- **Returns**: `Promise<Result<ComposeConversion>>`
+  - `ComposeConversion`:
+    - `manifests`: `ConvertedManifest[]` — one entry per Kubernetes resource
+      (`{ fileName, kind, name, content }`)
+    - `warnings`: `string[]` — kompose warnings for keys it could not convert
+    - `locallyBuiltImages`: `string[]` — images from `build:` sections that a
+      cluster cannot pull (load into kind/minikube or push to a registry
+      first)
+
+### `migrationImportManifests(args)`
+
+Saves the converted manifests into the manifest library as a new folder.
+
+- **Arguments** (`MigrationImportArgs`):
+  - `projectName`: `string` (folder name, max 100 chars)
+  - `contextName`: `string` (validated context name)
+  - `manifests`: `{ name: string; content: string }[]` (non-empty, each
+    manifest at most 1 MiB)
+- **Returns**: `Promise<Result<MigrationImportResult>>`
+  - `MigrationImportResult`: `{ folderId: number; manifestIds: number[] }`
+
+---
+
 ## Events (Listen)
 
 All event listeners return an **unsubscribe function** `() => void`.
@@ -481,6 +569,22 @@ Fires when an established port-forward dies on its own (pod deleted,
 connection lost). Not fired for user-requested stops.
 
 - **Callback**: `(info: PortForwardInfo, error?: string) => void`
+
+### `onUpdateStatus(callback)`
+
+Fires as an app update check/download progresses.
+
+- **Callback**: `(status: UpdateStatus) => void`
+
+```typescript
+type UpdateStatus =
+  | { state: 'checking' }
+  | { state: 'available'; version: string }
+  | { state: 'not-available' }
+  | { state: 'downloading'; percent: number }
+  | { state: 'downloaded'; version: string }
+  | { state: 'error'; message: string };
+```
 
 ---
 

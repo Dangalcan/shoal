@@ -497,3 +497,35 @@
   color: var(--color-secondary, #94a3b8);
   text-align: center;
 }
+
+/* --- v1.1: quotas & limit ranges in detail row --- */
+
+.nw-governance {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.nw-quota-block {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.nw-quota-name {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+  margin-bottom: 0.25rem;
+}
+
+.nw-quota-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.72rem;
+  padding: 0.1rem 0;
+}

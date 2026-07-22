@@ -34,43 +34,43 @@ function unwrap(res: unknown): unknown {
 export function createElectronInvoker(
   electron: ElectronAPI
 ): (method: string, args: unknown[]) => Promise<unknown> {
+  const routes: Record<string, (args: unknown[]) => Promise<unknown>> = {
+    'kubernetes.getResources': (a) => electron.getResources(a[0] as never),
+    'kubernetes.getPods': (a) => electron.getPods(a[0] as string),
+    'kubernetes.getNamespaces': (a) => electron.getNamespaces(a[0] as string),
+    'kubernetes.getLogs': (a) => electron.getLogs(a[0] as never),
+    'kubernetes.getPodMetrics': (a) => electron.getPodMetrics(a[0] as never),
+    'kubernetes.describeResource': (a) =>
+      electron.describeResource(a[0] as never),
+    'kubernetes.getResourceYaml': (a) =>
+      electron.getResourceYaml(a[0] as never),
+    'kubernetes.deleteResource': (a) => electron.deleteResource(a[0] as never),
+    'kubernetes.getCurrentContext': () => electron.getCurrentContext(),
+    'kubernetes.getClusters': () => electron.getClusters(),
+    'manifests.apply': (a) => electron.applyManifest(a[0] as number),
+    'manifests.save': (a) => electron.saveManifest(a[0] as never),
+    'helm.install': (a) => electron.helmInstall(a[0] as never),
+    'helm.upgrade': (a) => electron.helmUpgrade(a[0] as never),
+    'helm.rollback': (a) => electron.helmRollback(a[0] as never),
+    'helm.uninstall': (a) => electron.helmUninstall(a[0] as never),
+    'helm.repoAdd': (a) => electron.helmRepoAdd(a[0] as never),
+    'helm.repoList': () => electron.helmRepoList(),
+    'settings.get': (a) => electron.getPluginSettings(a[0] as string),
+    'settings.set': (a) =>
+      electron.setPluginSettings(
+        a[0] as string,
+        a[1] as Record<string, unknown>
+      ),
+    'ui.openExternal': (a) => electron.openExternal(a[0] as string),
+  };
+
   return async (method: string, args: unknown[]): Promise<unknown> => {
-    switch (method) {
-      case 'kubernetes.getResources':
-        return unwrap(await electron.getResources(args[0] as never));
-      case 'kubernetes.getPods':
-        return unwrap(await electron.getPods(args[0] as string));
-      case 'kubernetes.getNamespaces':
-        return unwrap(await electron.getNamespaces(args[0] as string));
-      case 'kubernetes.getLogs':
-        return unwrap(await electron.getLogs(args[0] as never));
-      case 'kubernetes.describeResource':
-        return unwrap(await electron.describeResource(args[0] as never));
-      case 'kubernetes.getResourceYaml':
-        return unwrap(await electron.getResourceYaml(args[0] as never));
-      case 'kubernetes.deleteResource':
-        return unwrap(await electron.deleteResource(args[0] as never));
-      case 'kubernetes.getCurrentContext':
-        return unwrap(await electron.getCurrentContext());
-      case 'kubernetes.getClusters':
-        return unwrap(await electron.getClusters());
-      case 'manifests.apply':
-        return unwrap(await electron.applyManifest(args[0] as number));
-      case 'manifests.save':
-        return unwrap(await electron.saveManifest(args[0] as never));
-      case 'settings.get':
-        return unwrap(await electron.getPluginSettings(args[0] as string));
-      case 'settings.set':
-        return unwrap(
-          await electron.setPluginSettings(
-            args[0] as string,
-            args[1] as Record<string, unknown>
-          )
-        );
-      case 'ui.openExternal':
-        return unwrap(await electron.openExternal(args[0] as string));
-      default:
-        throw new Error(`Unrouted plugin method: "${method}"`);
+    const route = Object.prototype.hasOwnProperty.call(routes, method)
+      ? routes[method]
+      : undefined;
+    if (!route) {
+      throw new Error(`Unrouted plugin method: "${method}"`);
     }
+    return unwrap(await route(args));
   };
 }

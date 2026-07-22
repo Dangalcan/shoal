@@ -70,6 +70,8 @@ export function makeElectronShim(sdk: K8sPluginSdk): Record<string, unknown> {
     getPods: (c: string) => wrapResult(sdk.kubernetes.getPods(c)),
     getNamespaces: (c: string) => wrapResult(sdk.kubernetes.getNamespaces(c)),
     getLogs: (a: unknown) => wrapResult(sdk.kubernetes.getLogs(a as never)),
+    getPodMetrics: (a: unknown) =>
+      wrapResult(sdk.kubernetes.getPodMetrics(a as never)),
     describeResource: (a: unknown) =>
       wrapResult(sdk.kubernetes.describeResource(a)),
     getResourceYaml: (a: unknown) =>
@@ -81,6 +83,12 @@ export function makeElectronShim(sdk: K8sPluginSdk): Record<string, unknown> {
     applyManifest: (id: number) => wrapResult(sdk.manifests.apply(id)),
     saveManifest: (m: Record<string, unknown>) =>
       wrapResult(sdk.manifests.save(m)),
+    helmInstall: (a: unknown) => wrapResult(sdk.helm.install(a as never)),
+    helmUpgrade: (a: unknown) => wrapResult(sdk.helm.upgrade(a as never)),
+    helmRollback: (a: unknown) => wrapResult(sdk.helm.rollback(a as never)),
+    helmUninstall: (a: unknown) => wrapResult(sdk.helm.uninstall(a as never)),
+    helmRepoAdd: (a: unknown) => wrapResult(sdk.helm.repoAdd(a as never)),
+    helmRepoList: () => wrapResult(sdk.helm.repoList()),
     // Settings are scoped host-side; the plugin's own id is injected there, so
     // the id the plugin passes here is ignored on purpose.
     getPluginSettings: () => wrapResult(sdk.settings.get()),

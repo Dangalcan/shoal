@@ -4,9 +4,28 @@
  * Monitors pod restart counts per namespace and alerts when restarts exceed
  * the configured threshold since the last scan. Stores last-scan data in
  * plugin storage so spurious alerts don't fire after plugin reload.
+ *
+ * When metrics-server is available, also monitors real CPU usage and alerts
+ * when a pod exceeds the configured percentage of its CPU limit.
  */
 
 let interval;
+
+/** "250m" → 250 millicores; "1" → 1000; undefined → 0. */
+function cpuLimitToMillicores(v) {
+  if (!v) return 0;
+  if (String(v).endsWith('m')) return parseInt(v, 10) || 0;
+  const cores = parseFloat(v);
+  return Number.isFinite(cores) ? Math.round(cores * 1000) : 0;
+}
+
+/** Sum of container CPU limits for a pod, in millicores (0 = no limits). */
+function podCpuLimitMillicores(pod) {
+  return (pod.spec?.containers ?? []).reduce(
+    (sum, c) => sum + cpuLimitToMillicores(c.resources?.limits?.cpu),
+    0
+  );
+}
 
 /**
  * Build a map of { "namespace/podName": restartCount } from a pods list.
@@ -43,7 +62,14 @@ module.exports = {
       settings.excludedNamespaces || ['kube-system', 'kube-public']
     );
     const restartThreshold = settings.restartThreshold ?? 3;
+    const cpuAlertThreshold = settings.alertThreshold ?? 80;
     const notifyOnAlert = settings.notifyOnAlert !== false;
+
+    // Deduped notification helper (falls back on older app builds)
+    const notifyOnce =
+      typeof context.ui.notifyOnce === 'function'
+        ? context.ui.notifyOnce.bind(context.ui)
+        : (_key, msg, level) => context.ui.showNotification(msg, level);
 
     context.logger.info(
       `Refresh: ${refreshRate}ms | Excluded NS: ${[...excludedNS].join(', ')} | Restart threshold: ${restartThreshold}`
@@ -117,6 +143,42 @@ module.exports = {
             `High restart count detected: ${summary}`,
             'warning'
           );
+        }
+
+        // Real CPU usage vs limits (metrics-server; [] when unavailable)
+        if (typeof context.kubernetes.getPodMetrics === 'function') {
+          try {
+            const metrics = await context.kubernetes.getPodMetrics('all');
+            const limitByKey = {};
+            for (const pod of filtered) {
+              const limit = podCpuLimitMillicores(pod);
+              if (limit > 0) {
+                const ns = pod.metadata?.namespace ?? 'default';
+                limitByKey[`${ns}/${pod.metadata?.name}`] = limit;
+              }
+            }
+            for (const m of metrics) {
+              const key = `${m.namespace}/${m.name}`;
+              const limit = limitByKey[key];
+              if (!limit) continue; // no CPU limit → percentage is undefined
+              const pct = Math.round((m.cpuMillicores / limit) * 100);
+              if (pct >= cpuAlertThreshold) {
+                context.logger.warn(
+                  `Pod ${key} at ${pct}% of its CPU limit (${m.cpuMillicores}m / ${limit}m)`
+                );
+                if (notifyOnAlert) {
+                  notifyOnce(
+                    `cpu:${key}`,
+                    `High CPU: ${m.name} (${m.namespace}) at ${pct}% of its limit`,
+                    'warning',
+                    15 * 60 * 1000
+                  );
+                }
+              }
+            }
+          } catch (err) {
+            context.logger.warn('CPU metrics check failed:', err.message);
+          }
         }
 
         // Group by namespace for summary log

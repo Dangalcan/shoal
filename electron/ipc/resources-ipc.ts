@@ -11,6 +11,7 @@
 import { ipcMain } from 'electron';
 import { safeExec } from '../utils/safe-exec';
 import { kubernetesService } from '../services/kubernetes/kubernetes-service';
+import { resourceReadCache } from '../services/kubernetes/resource-read-cache';
 import {
   wrapIpcHandler,
   assertContext,
@@ -39,17 +40,9 @@ export function registerResourcesIpcHandlers(): void {
     'get-pods',
     wrapIpcHandler('get-pods', async (_event, contextName) => {
       assertContext(contextName);
-      const { stdout } = await safeExec('kubectl', [
-        'get',
-        'pods',
-        '--context',
-        contextName,
-        '-A',
-        '-o',
-        'json',
-      ]);
-      const data = JSON.parse(stdout);
-      return data.items || [];
+      // Routed through the service so identical plugin/widget polls hit the
+      // shared short-TTL read cache instead of spawning kubectl each time.
+      return await kubernetesService.getResources('pods', 'all', contextName);
     })
   );
 
@@ -80,17 +73,24 @@ export function registerResourcesIpcHandlers(): void {
       async (_event, { contextName, resourceType, namespace }) => {
         assertContext(contextName);
         assertResourceType(resourceType);
-        const { stdout } = await safeExec('kubectl', [
-          'get',
+        if (namespace !== 'all') assertNamespace(namespace);
+        return await kubernetesService.getResources(
           resourceType,
-          '--context',
-          contextName,
-          ...namespaceArgs(namespace),
-          '-o',
-          'json',
-        ]);
-        const data = JSON.parse(stdout);
-        return data.items || [];
+          namespace,
+          contextName
+        );
+      }
+    )
+  );
+
+  ipcMain.handle(
+    'get-pod-metrics',
+    wrapIpcHandler(
+      'get-pod-metrics',
+      async (_event, { contextName, namespace }) => {
+        assertContext(contextName);
+        if (namespace !== 'all') assertNamespace(namespace);
+        return await kubernetesService.getPodMetrics(namespace, contextName);
       }
     )
   );
@@ -99,13 +99,29 @@ export function registerResourcesIpcHandlers(): void {
     'get-logs',
     wrapIpcHandler(
       'get-logs',
-      async (_event, { contextName, podName, namespace, tailLines }) => {
+      async (
+        _event,
+        {
+          contextName,
+          podName,
+          namespace,
+          tailLines,
+          container,
+          timestamps,
+          sinceSeconds,
+        }
+      ) => {
         assertContext(contextName);
         assertResourceName(podName);
+        if (container !== undefined) assertResourceName(container);
         const tail =
           Number.isInteger(tailLines) && tailLines > 0
             ? tailLines
             : DEFAULT_LOG_TAIL_LINES;
+        const since =
+          Number.isInteger(sinceSeconds) && sinceSeconds > 0
+            ? sinceSeconds
+            : null;
         const { stdout } = await safeExec('kubectl', [
           'logs',
           podName,
@@ -113,6 +129,9 @@ export function registerResourcesIpcHandlers(): void {
           contextName,
           ...optionalNamespaceArgs(namespace),
           `--tail=${tail}`,
+          ...(container ? ['-c', container] : []),
+          ...(timestamps === true ? ['--timestamps'] : []),
+          ...(since ? [`--since=${since}s`] : []),
         ]);
         return stdout;
       }
@@ -188,6 +207,7 @@ export function registerResourcesIpcHandlers(): void {
           contextName,
           ...optionalNamespaceArgs(namespace),
         ]);
+        resourceReadCache.clear();
       }
     )
   );

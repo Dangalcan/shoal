@@ -18,6 +18,9 @@ import { encrypt, decrypt } from '../security/encryption-utils';
 import { getErrorMessage } from '../../utils/error-utils';
 import log from '../../logger';
 
+/** Sentinel marking a settings value as encrypted at rest. */
+const ENC_PREFIX = 'enc::';
+
 export class PluginRegistry {
   private registry: Map<string, PluginRegistryEntry> = new Map();
   private configCache: Record<string, PluginConfig> = {};
@@ -150,6 +153,13 @@ export class PluginRegistry {
     };
 
     this.registry.set(pluginId, entry);
+
+    // Migrate any plaintext secret-flagged values persisted by older builds
+    entry.config.settings = this.encryptSecretValues(
+      pluginId,
+      entry.config.settings ?? {}
+    );
+
     await this.saveConfiguration();
 
     log.info(
@@ -246,6 +256,41 @@ export class PluginRegistry {
   }
 
   /**
+   * Keys of manifest configuration properties flagged `secret: true`.
+   * Their values are encrypted at rest (memory + plugin-config.json).
+   */
+  private secretSettingKeys(pluginId: string): Set<string> {
+    const props =
+      this.registry.get(pluginId)?.plugin.manifest.configuration?.properties ??
+      {};
+    return new Set(Object.keys(props).filter((k) => props[k]?.secret === true));
+  }
+
+  /**
+   * Encrypt secret-flagged string values in place. Already-encrypted values
+   * (marked with the ENC_PREFIX sentinel) pass through untouched.
+   */
+  private encryptSecretValues(
+    pluginId: string,
+    settings: Record<string, unknown>
+  ): Record<string, unknown> {
+    const secretKeys = this.secretSettingKeys(pluginId);
+    if (secretKeys.size === 0) return settings;
+    const out: Record<string, unknown> = { ...settings };
+    for (const key of secretKeys) {
+      const value = out[key];
+      if (
+        typeof value === 'string' &&
+        value !== '' &&
+        !value.startsWith(ENC_PREFIX)
+      ) {
+        out[key] = ENC_PREFIX + encrypt(value);
+      }
+    }
+    return out;
+  }
+
+  /**
    * Update plugin settings
    */
   async updatePluginSettings(
@@ -257,21 +302,33 @@ export class PluginRegistry {
       throw new Error(`Plugin ${pluginId} not found in registry`);
     }
 
-    entry.config.settings = {
+    entry.config.settings = this.encryptSecretValues(pluginId, {
       ...entry.config.settings,
       ...settings,
-    };
+    });
 
     await this.saveConfiguration();
     log.info(`[PluginRegistry] Updated settings for ${pluginId}`);
   }
 
   /**
-   * Get plugin settings
+   * Get plugin settings. Secret-flagged values are decrypted for the caller;
+   * the stored copy stays encrypted.
    */
   getPluginSettings(pluginId: string): Record<string, unknown> {
     const entry = this.registry.get(pluginId);
-    return entry?.config.settings || {};
+    const stored = entry?.config.settings || {};
+    const secretKeys = this.secretSettingKeys(pluginId);
+    if (secretKeys.size === 0) return stored;
+
+    const out: Record<string, unknown> = { ...stored };
+    for (const key of secretKeys) {
+      const value = out[key];
+      if (typeof value === 'string' && value.startsWith(ENC_PREFIX)) {
+        out[key] = decrypt(value.slice(ENC_PREFIX.length));
+      }
+    }
+    return out;
   }
 
   /**
