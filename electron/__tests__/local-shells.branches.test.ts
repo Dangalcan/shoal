@@ -51,9 +51,13 @@ describe('local-shells (mocked environment branches)', () => {
     });
 
     it('inserts pwsh after powershell when found in PATH', () => {
-      vi.stubEnv('PATH', 'C:\\tools');
+      // A delimiter-free dir: 'C:\\tools' contains ':', which is the POSIX
+      // path.delimiter, so it splits into two entries on Linux CI runners and
+      // the pwsh candidate is never matched.
+      const dir = 'toolsdir';
+      vi.stubEnv('PATH', dir);
       mockExistsSync.mockImplementation(
-        (p) => p === path.join('C:\\tools', 'pwsh.exe')
+        (p) => p === path.join(dir, 'pwsh.exe')
       );
 
       const ids = getLocalShells().map((s) => s.id);
