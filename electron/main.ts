@@ -2,6 +2,7 @@ import { app, BrowserWindow, Menu, protocol, net } from 'electron';
 import path from 'path';
 import { pathToFileURL } from 'url';
 import { pluginManager } from './services/plugins/plugin-manager';
+import { pluginHostManager } from './services/plugins/host/plugin-host-manager';
 import { pluginEventBus } from './services/plugins/plugin-events';
 import { manifestDb } from './database';
 import { getErrorMessage } from './utils/error-utils';
@@ -96,6 +97,11 @@ app.on('window-all-closed', () => {
     app.quit();
     win = null;
   }
+});
+
+// Tear down plugin utility processes cleanly before Electron force-kills them
+app.on('before-quit', () => {
+  pluginHostManager.disposeAll();
 });
 
 app.on('activate', () => {
