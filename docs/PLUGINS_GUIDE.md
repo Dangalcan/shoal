@@ -105,6 +105,7 @@ The `plugin.json` file defines the identity and capabilities of your plugin.
 - **dependencies**: A map of plugin IDs and semver version constraints. Required plugins will be auto-enabled or requested.
 - **data**: An array of file paths (relative to plugin root) to be automatically loaded into `context.storage` on activation. Accessible via `context.storage.get('data:filepath')`.
 - **configuration**: Defines a schema for settings. The UI is automatically generated with validation. Supported types: `string`, `number`, `boolean`, `select`.
+- **`secret: true` settings are encrypted at rest.** String properties flagged `secret` (like the `apiKey` above) are stored AES-256-GCM encrypted with a machine-bound key, both in memory snapshots and in `plugin-config.json`. The plugin still reads/writes them transparently via `settings.get`/`set`; the settings UI masks them.
 
 ---
 
@@ -144,6 +145,21 @@ module.exports = {
       id: 'my-item',
       label: 'Stats',
       route: '/plugin/my-plugin',
+    });
+
+    // Pod metrics (requires a metrics server in the cluster)
+    const metrics = await context.kubernetes.getPodMetrics('default');
+
+    // Deduped notification: same key fires at most once per cooldown window
+    context.ui.notifyOnce(
+      'high-restarts',
+      'Pod restarts above threshold',
+      'warning'
+    );
+
+    // Watch resources; returns an unsubscribe function — call it in deactivate
+    const stop = context.kubernetes.watchResources('pods', (event) => {
+      /* ... */
     });
   },
 
@@ -226,13 +242,13 @@ The following globals are injected into the renderer context:
 `window.electron` and no access to the host DOM. The following globals are
 injected; all host access goes through `window.k8sPlugin` (see API reference).
 
-| Global                    | Description                                                                |
-| ------------------------- | -------------------------------------------------------------------------- |
-| `window.React`            | React 19                                                                   |
-| `window.LucideIcons`      | All Lucide icon components                                                 |
-| `window.K8sUI`            | Core UI components (`Button`, `Badge`, `Card`, `Spinner`)                  |
-| `window.k8sPlugin`        | The permission-gated host API (kubernetes, settings, ui, events)           |
-| `window.pluginUIRegistry` | Register the components for your page/widgets/modals/actions (object form) |
+| Global                    | Description                                                                       |
+| ------------------------- | --------------------------------------------------------------------------------- |
+| `window.React`            | React 19                                                                          |
+| `window.LucideIcons`      | All Lucide icon components                                                        |
+| `window.K8sUI`            | Core UI components (`Button`, `Badge`, `Card`, `Spinner`)                         |
+| `window.k8sPlugin`        | The permission-gated host API (kubernetes, helm, manifests, settings, ui, events) |
+| `window.pluginUIRegistry` | Register the components for your page/widgets/modals/actions (object form)        |
 
 The host mounts exactly one contribution per frame (the page, one widget, or one
 modal), so register components by id and let the host pick which to show.
@@ -310,24 +326,26 @@ Passed to `activate(context)`.
 
 #### context.kubernetes
 
-| Method                                 | Description     | Returns               |
-| -------------------------------------- | --------------- | --------------------- |
-| `getResources(type, namespace?)`       | Fetch resources | `Promise<Resource[]>` |
-| `createResource(manifest)`             | Create resource | `Promise<Result>`     |
-| `updateResource(type, name, manifest)` | Update resource | `Promise<Result>`     |
-| `deleteResource(type, name, ns)`       | Delete resource | `Promise<Result>`     |
-| `executeCommand(pod, cmd)`             | Run cmd in pod  | `Promise<string>`     |
-| `watchResources(type, cb)`             | Watch resources | `UnsubscribeFn`       |
+| Method                                 | Description                           | Returns                 |
+| -------------------------------------- | ------------------------------------- | ----------------------- |
+| `getResources(type, namespace?)`       | Fetch resources                       | `Promise<Resource[]>`   |
+| `createResource(manifest)`             | Create resource                       | `Promise<Result>`       |
+| `updateResource(type, name, manifest)` | Update resource                       | `Promise<Result>`       |
+| `deleteResource(type, name, ns)`       | Delete resource                       | `Promise<Result>`       |
+| `executeCommand(pod, cmd)`             | Run cmd in pod                        | `Promise<string>`       |
+| `getPodMetrics(namespace)`             | CPU/memory per pod via metrics server | `Promise<PodMetrics[]>` |
+| `watchResources(type, cb)`             | Watch resources                       | `UnsubscribeFn`         |
 
 #### context.ui
 
-| Method                              | Description                                                     |
-| ----------------------------------- | --------------------------------------------------------------- |
-| `registerSidebarItem(item)`         | Add entry to left navigation                                    |
-| `registerPage(route, comp)`         | Register custom React page at a `/plugin/*` route               |
-| `registerResourceAction(type, act)` | Add button to resource rows in Cluster Details                  |
-| `registerDashboardWidget(widget)`   | Add widget tile to the Dashboard page                           |
-| `showNotification(msg, type)`       | Show Sonner toast (type: `success`, `error`, `info`, `warning`) |
+| Method                                    | Description                                                                                                                  |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `registerSidebarItem(item)`               | Add entry to left navigation                                                                                                 |
+| `registerPage(route, comp)`               | Register custom React page at a `/plugin/*` route                                                                            |
+| `registerResourceAction(type, act)`       | Add button to resource rows in Cluster Details                                                                               |
+| `registerDashboardWidget(widget)`         | Add widget tile to the Dashboard page                                                                                        |
+| `showNotification(msg, type)`             | Show Sonner toast (type: `success`, `error`, `info`, `warning`)                                                              |
+| `notifyOnce(key, msg, type, cooldownMs?)` | Like `showNotification`, but deduped: the same `key` fires at most once per cooldown window (ledger resets on plugin reload) |
 
 > **Note:** This table is the **main-process** `context` (passed to
 > `activate(context)` in `index.js`). All **UI** — pages, widgets, modals, and
@@ -364,6 +382,21 @@ The `EventsAPI` provides a global event bus for the application.
 #### context.logger
 
 - `info(msg)`, `warn(msg)`, `error(msg)`, `debug(msg)`
+
+### `window.k8sPlugin` (renderer)
+
+The sandboxed-iframe surface, gated per method by `METHOD_TABLE`
+(`src/features/plugins/sandbox/protocol.ts`) against the plugin's declared
+permissions:
+
+- `kubernetes.{getResources, getPods, getNamespaces, getLogs, getPodMetrics, describeResource, getResourceYaml, deleteResource, getCurrentContext, getClusters}` — `kubernetes` permission
+- `helm.{install, upgrade, rollback, uninstall, repoAdd, repoList}` — `kubernetes` permission
+- `manifests.{apply, save}` — `kubernetes` permission
+- `settings.{get, set}` — own settings only; the host injects the plugin id
+- `ui.{openExternal, showNotification, setHeight, setTitle, showModal, closeModal}` — `ui` permission
+- `events.on(name, cb)`, `ready()`
+
+Every call returns a Promise; anything outside the table is rejected.
 
 ## Publishing & Security
 

@@ -97,7 +97,21 @@ Retrieves logs for a specific pod.
   - `podName`: `string`
   - `namespace`: `string`
   - `tailLines`: `number` (optional, default: 200)
+  - `container`: `string` (optional — a specific container in the pod)
+  - `timestamps`: `boolean` (optional — prefix each line with its timestamp)
+  - `sinceSeconds`: `number` (optional — only logs newer than this)
 - **Returns**: `Promise<Result<string>>`
+
+### `getPodMetrics(args)`
+
+Returns CPU and memory usage for the pods in a namespace via the cluster's
+metrics server (`kubectl top pods`). Fails with a descriptive error when the
+metrics server is not installed.
+
+- **Arguments**:
+  - `contextName`: `string`
+  - `namespace`: `string` (use 'all' for all namespaces)
+- **Returns**: `Promise<Result<Array<{ namespace: string; name: string; cpuMillicores: number; memoryMi: number }>>>`
 
 ### `describeResource(args)`
 
@@ -483,6 +497,64 @@ Stops a tunnel. Resolves `false` if the id is unknown.
 Lists active tunnels.
 
 - **Returns**: `Promise<Result<PortForwardInfo[]>>`
+
+---
+
+## Helm API
+
+Wraps the `helm` CLI through the Helm operations service
+(`electron/services/helm/helm-service.ts`). The binary must be on PATH. All
+inputs are validated (context, namespace, release/chart/repo names) before any
+command runs. These methods back the plugin sandbox's `helm.*` SDK group and
+require the `kubernetes` plugin permission when called from a plugin.
+
+### `helmInstall(args)`
+
+Installs a chart as a new release.
+
+- **Arguments**:
+  - `contextName`: `string`
+  - `namespace`: `string`
+  - `releaseName`: `string`
+  - `chart`: `string` (e.g., 'bitnami/nginx')
+  - `version`: `string` (optional — chart version)
+  - `values`: `string` (optional — YAML values passed via a temp file)
+  - `createNamespace`: `boolean` (optional)
+- **Returns**: `Promise<Result<string>>` — helm CLI output
+
+### `helmUpgrade(args)`
+
+Upgrades an existing release.
+
+- **Arguments**: `contextName`, `namespace`, `releaseName`, `chart`, `version?`, `values?`
+- **Returns**: `Promise<Result<string>>`
+
+### `helmRollback(args)`
+
+Rolls a release back to a previous revision.
+
+- **Arguments**: `contextName`, `namespace`, `releaseName`, `revision`: `number`
+- **Returns**: `Promise<Result<string>>`
+
+### `helmUninstall(args)`
+
+Uninstalls a release.
+
+- **Arguments**: `contextName`, `namespace`, `releaseName`
+- **Returns**: `Promise<Result<string>>`
+
+### `helmRepoAdd(args)`
+
+Adds a chart repository.
+
+- **Arguments**: `name`: `string`, `url`: `string`
+- **Returns**: `Promise<Result<string>>`
+
+### `helmRepoList()`
+
+Lists configured chart repositories.
+
+- **Returns**: `Promise<Result<Array<{ name: string; url: string }>>>`
 
 ---
 

@@ -4,7 +4,7 @@ This guide covers building and distributing Kubernetes Desktop for production en
 
 ## Prerequisites
 
-- **Node.js**: v18+
+- **Node.js**: v20+ (CI builds on Node 20; local development uses Node 22)
 - **npm**: v9+
 - Platform-specific build tools (see below)
 
@@ -92,9 +92,9 @@ Official releases are generated in the `release/` directory.
 
 ### Output Formats
 
-- **Windows**: `.exe` (NSIS Installer)
-- **macOS**: `.dmg` (Disk Image) and `.app` (Application)
-- **Linux**: `.AppImage`, `.deb`, `.rpm`
+- **Windows**: `.exe` (NSIS installer) and portable `.exe`
+- **Linux**: `.AppImage`, `.deb`
+- **macOS**: not configured yet (requires a manual `electron-builder --mac` run with signing set up)
 
 ### Auto-Update
 

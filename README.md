@@ -143,7 +143,7 @@ Kubernetes-Desktop/
 │   ├── App.tsx            # React Router setup
 │   └── main.tsx           # React entry point
 ├── marketplace-backend/    # 🛒 Dev-only mock of the marketplace API (production uses kdMarket)
-├── plugins/               # 🔌 Bundled example plugins (8 plugins)
+├── plugins/               # 🔌 Bundled example plugins (namespace-watcher, resource-monitor); the 6 marketplace plugins live in their own repos
 ├── styles/                # 🎨 SCSS stylesheets (variables, animations, components)
 ├── e2e/                   # 🎭 Playwright end-to-end tests
 ├── scripts/               # 🔧 Build and utility scripts

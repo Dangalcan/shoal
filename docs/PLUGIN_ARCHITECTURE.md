@@ -239,29 +239,29 @@ This is **not** a production marketplace. A full marketplace backend (payment pr
 
 ### Phase 5 Feature Status
 
-| Feature                                                   | Status                                             |
-| --------------------------------------------------------- | -------------------------------------------------- |
-| Hot reloading (`reloadPlugin` IPC)                        | ✅ Implemented                                     |
-| Dependency resolution (activation order, cascade disable) | ✅ Implemented                                     |
-| Plugin scaffolding (`generatePlugin` IPC)                 | ✅ Implemented                                     |
-| Import unpacked plugin (`importLocalPlugin` IPC)          | ✅ Implemented                                     |
-| `watchResources` API                                      | ❌ Not yet implemented (TODO in plugin-context.ts) |
-| Plugin modals (sandboxed)                                 | ✅ Implemented (`ui.showModal` → overlay frame)    |
-| Resource-table actions (sandboxed)                        | ✅ Implemented (manifest `resourceActions`)        |
-| Structured plugin storage (SQLite per plugin)             | ❌ Future (currently file-per-key JSON)            |
-| Cross-plugin event communication                          | ❌ Future                                          |
-| Granular network/filesystem permissions                   | ❌ Future                                          |
-| Advanced sandboxing (worker_threads / isolated-vm)        | ❌ Future                                          |
-| Remote plugins (npm / URL)                                | ❌ Future                                          |
+| Feature                                                   | Status                                          |
+| --------------------------------------------------------- | ----------------------------------------------- |
+| Hot reloading (`reloadPlugin` IPC)                        | ✅ Implemented                                  |
+| Dependency resolution (activation order, cascade disable) | ✅ Implemented                                  |
+| Plugin scaffolding (`generatePlugin` IPC)                 | ✅ Implemented                                  |
+| Import unpacked plugin (`importLocalPlugin` IPC)          | ✅ Implemented                                  |
+| `watchResources` API                                      | ✅ (kubectl --watch, returns unsubscribe fn)    |
+| Plugin modals (sandboxed)                                 | ✅ Implemented (`ui.showModal` → overlay frame) |
+| Resource-table actions (sandboxed)                        | ✅ Implemented (manifest `resourceActions`)     |
+| Structured plugin storage (SQLite per plugin)             | ❌ Future (currently file-per-key JSON)         |
+| Cross-plugin event communication                          | ❌ Future                                       |
+| Granular network/filesystem permissions                   | ❌ Future                                       |
+| Advanced sandboxing (worker_threads / isolated-vm)        | ❌ Future                                       |
+| Remote plugins (npm / URL)                                | ❌ Future                                       |
 
 ---
 
 ## Known Limitations
 
-See [plugin_system_analysis.md](./plugin_system_analysis.md) for a detailed analysis of current limitations and proposed improvements.
+See [plugin_system_analysis.md](./plugin_system_analysis.md) for the historical (March 2026) analysis that motivated the sandbox rework; several of its findings (isolation, `watchResources`, modals) have since been addressed.
 
 **Summary:**
 
-1. **Renderer UI is fully sandboxed**; **main-process code is not a hard boundary**. Plugin `renderer.js` (all UI: pages, widgets, modals, actions) runs in an opaque-origin iframe with only the permission-gated `window.k8sPlugin`. Plugin `index.js` (main process) runs in a `vm` sandbox with a built-in allowlist — this limits casual access but is **not** a security boundary against a determined plugin; run only signed/trusted `index.js`. Hardening it into a `utilityProcess` is future work.
+1. **Renderer UI is fully sandboxed**; **bundled main-process code is not a hard boundary**. Plugin `renderer.js` (all UI: pages, widgets, modals, actions) runs in an opaque-origin iframe with only the permission-gated `window.k8sPlugin`. **User-installed** plugins run their `index.js` in an Electron `utilityProcess` with an RPC-proxied context (see "Main-Process Isolation" above). **Bundled** plugins still run in-process in a `vm` sandbox with a built-in allowlist — that limits casual access but is **not** a security boundary against a determined plugin; run only signed/trusted bundled `index.js` (`PLUGIN_ISOLATION=all` forces isolation for everything).
 2. **Simple storage**: `StorageAPI` uses one JSON file per key. No concurrent write protection or structured queries.
-3. **`watchResources` not implemented**: Real-time resource watching via the plugin context API is not yet connected.
+3. **`watchResources` is basic**: it spawns `kubectl get <type> --watch` per subscription (no shared informer, no reconnect on failure) and is available to the Node context only, not the renderer SDK.
