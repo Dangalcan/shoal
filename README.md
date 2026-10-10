@@ -7,6 +7,8 @@
 
 A modern, desktop-based management tool for Kubernetes clusters and container runtimes, inspired by Docker Desktop. Built with Electron, React, TypeScript, and Vite.
 
+> **Public beta (0.9).** Windows and Linux only; macOS arrives with 1.0. Installers are not code-signed yet, so Windows SmartScreen shows "Windows protected your PC": choose **More info → Run anyway**. The plugin marketplace and paid plugins also arrive with 1.0. Please report problems on [GitHub Issues](https://github.com/Dangalcan/shoal/issues).
+
 ## Table of Contents
 
 - [Features](#-features)
@@ -28,7 +30,7 @@ A modern, desktop-based management tool for Kubernetes clusters and container ru
 
 ### Cluster Management
 
-- 🚀 Create clusters using kind, minikube, or k3d
+- 🚀 Create local clusters with kind or k3d
 - 📋 List and manage multiple clusters
 - 🔄 Switch between kubeconfig contexts
 - 🗑️ Delete clusters safely
@@ -59,7 +61,7 @@ A modern, desktop-based management tool for Kubernetes clusters and container ru
 
 ### Terminal
 
-- 💻 Local shell sessions with a shell picker (PowerShell, PowerShell 7, Git Bash, WSL on Windows; bash, zsh, sh on macOS/Linux)
+- 💻 Local shell sessions with a shell picker (PowerShell, PowerShell 7, Git Bash, WSL on Windows; bash, zsh, sh on Linux)
 - 🐚 Pod exec (`kubectl exec`) sessions inside any running container
 - 📐 Resizable terminal with interrupt support
 
@@ -177,31 +179,24 @@ shoal/
 
 ### Prerequisites
 
-- **Node.js** v22.12+ ([Download](https://nodejs.org/))
+To use Shoal:
+
+- **Windows 10 or later**, or **Linux** (Ubuntu 20.04+ or equivalent, X11 or Wayland)
+- **kubectl** on your `PATH` (required for anything cluster-related; Shoal tells you when it is missing)
+- **kind** or **k3d**, plus **Docker** running, to create local clusters
+- **helm** and **kompose** (optional, for Helm features and Docker Compose migration)
+
+To develop Shoal:
+
+- **Node.js** v22.12+ ([Download](https://nodejs.org/)), see `.nvmrc`
 - **npm** v9+ (comes with Node.js)
-- **Docker** or **Podman** (optional, for container runtime features)
-- **kubectl** (optional, for Kubernetes cluster management)
-- **kind**, **minikube**, or **k3d** (optional, for local cluster creation)
-
-#### Platform-Specific Requirements
-
-**Windows:**
-
-- Windows 10 or later
-- PowerShell 5.1 or later
-
-**macOS:**
-
-- macOS 10.13 or later
-
-**Linux:**
-
-- Ubuntu 20.04+ or equivalent
-- X11 or Wayland display server
 
 ### Installation
 
-Download the latest release for your platform from [Releases](https://github.com/Dangalcan/shoal/releases).
+Download the latest release from [Releases](https://github.com/Dangalcan/shoal/releases):
+
+- **Windows:** `Shoal-Setup-<version>.exe` (installs per user and updates itself) or `Shoal-<version>-portable.exe` (no install, no auto-update).
+- **Linux:** `Shoal-<version>.AppImage` (`chmod +x` it, then run it; updates itself) or the `.deb` package.
 
 ### Development
 
@@ -211,10 +206,13 @@ Download the latest release for your platform from [Releases](https://github.com
     npm install
     ```
 
-2.  Run the development server (starts React, Electron, and Marketplace Backend):
+2.  Run the development server (starts React and Electron; the marketplace uses bundled sample data):
+
     ```bash
     npm run dev
     ```
+
+    Maintainers with the private `kdMarket` repository checked out next to this one can run `npm run dev:full` to start the real marketplace backend as well.
 
 ### Production Build
 
@@ -296,7 +294,7 @@ The plugin ecosystem is powered by **kdMarket**, a standalone, contract-first ma
 - Admin endpoints for managing license keys and catalog entries
 - Rate limiting and Helmet security middleware
 
-The marketplace is off unless the app runs with `MARKETPLACE_ENABLED=true` (the 0.9 beta ships without it; `npm run dev` turns it on). The app selects the backend via the `MARKETPLACE_BACKEND_URL` environment variable (e.g. `http://localhost:3001/v1` for a local kdMarket).
+The marketplace is off unless the app runs with `MARKETPLACE_ENABLED=true` (the 0.9 beta ships without it; `npm run dev` turns it on and falls back to bundled sample data when no backend is running). The app selects the backend via the `MARKETPLACE_BACKEND_URL` environment variable (e.g. `http://localhost:3001/v1` for a local kdMarket).
 
 ### In-repo mock backend
 
@@ -327,7 +325,7 @@ Shoal maintains high test coverage standards:
 npm run test
 
 # Watch mode
-npm run test:watch
+npx vitest
 
 # Coverage report
 npm run test:coverage
@@ -356,22 +354,20 @@ This creates:
 
 ```bash
 # Windows
-npm run build -- --win
-
-# macOS
-npm run build -- --mac
+npm run build:win
 
 # Linux
-npm run build -- --linux
+npm run build:linux
 ```
 
 ### Distribution
 
 The build process creates platform-specific installers:
 
-- **Windows:** `.exe` installer
-- **macOS:** `.dmg` disk image
-- **Linux:** `.AppImage`, `.deb`, and `.rpm` packages
+- **Windows:** NSIS installer and portable `.exe`
+- **Linux:** `.AppImage` and `.deb`
+
+Releases are built and published by CI from `v*` tags; see [docs/RELEASE.md](docs/RELEASE.md).
 
 ## 🤝 Contributing
 
@@ -422,7 +418,7 @@ npm run dev
 
 **Issue: kubectl commands fail**
 
-- Ensure kubectl is installed and in PATH
+- Ensure kubectl is installed and in PATH (the Dashboard shows a notice when Shoal cannot find it; on Windows restart Shoal after installing it)
 - Verify kubeconfig is properly configured: `kubectl config view`
 - Check cluster connectivity: `kubectl cluster-info`
 
@@ -430,7 +426,9 @@ npm run dev
 
 - Check plugin manifest (`plugin.json`) is valid
 - Verify plugin permissions
-- Check Developer Console (Ctrl+Shift+I or Cmd+Option+I) for errors
+- Open **Settings → About & Support → Open logs folder** and check `main.log`
+- In development builds (`npm run dev`), open DevTools with Ctrl+Shift+I
+- Packaged builds only load signed plugins
 - Try disabling and re-enabling the plugin
 
 **Issue: Tests failing**
@@ -441,7 +439,7 @@ rm -rf node_modules/.vite
 npm run test
 ```
 
-**Issue: Marketplace backend won't start**
+**Issue: The in-repo mock marketplace backend won't start**
 
 ```bash
 cd marketplace-backend
@@ -460,4 +458,6 @@ npm run dev
 
 ## License
 
-LGPL License - see [LICENSE](LICENSE) for details.
+LGPL-3.0-or-later. See [LICENSE](LICENSE) and [COPYRIGHT](COPYRIGHT).
+
+Kubernetes is a registered trademark of The Linux Foundation. Shoal is an independent project, not affiliated with or endorsed by The Linux Foundation or the CNCF.

@@ -21,11 +21,12 @@ Welcome to **Shoal**, your modern cockpit for Kubernetes management. This guide 
 
 ### Installation
 
-1. Download the latest installer for your operating system from the [Releases page](https://github.com/Dangalcan/shoal/releases).
+Shoal 0.9 is a public beta for **Windows** and **Linux** (macOS arrives with 1.0).
+
+1. Download the latest release from the [Releases page](https://github.com/Dangalcan/shoal/releases).
 2. Install the application:
-   - **Windows**: Run the `.exe` installer.
-   - **macOS**: Drag the app to your `Applications` folder.
-   - **Linux**: Use the `.deb/.rpm` package or run the `.AppImage`.
+   - **Windows**: Run `Shoal-Setup-<version>.exe`. The installer is not code-signed yet, so SmartScreen may show "Windows protected your PC": choose **More info → Run anyway**. Prefer no install? Use `Shoal-<version>-portable.exe` (it does not update itself).
+   - **Linux**: Make the `.AppImage` executable (`chmod +x Shoal-<version>.AppImage`) and run it, or install the `.deb` package.
 
 ### Requirements
 
@@ -142,7 +143,7 @@ The **Terminal** page provides direct shell access — either a local shell on y
 
 1. Click **"Terminal"** in the left sidebar.
 2. A local shell session opens automatically using your default shell.
-3. Use the **shell picker** to switch to any other shell detected on your machine — PowerShell, PowerShell 7, Git Bash, or WSL on Windows; `bash`, `zsh`, or `sh` on macOS/Linux.
+3. Use the **shell picker** to switch to any other shell detected on your machine — PowerShell, PowerShell 7, Git Bash, or WSL on Windows; `bash`, `zsh`, or `sh` on Linux.
 4. Type commands as normal. Press **Ctrl+C** to interrupt a running process.
 5. Close the session with the **Kill** button or by typing `exit`.
 
@@ -155,7 +156,7 @@ The **Terminal** page provides direct shell access — either a local shell on y
 
 ### Notes
 
-- Terminal resize is supported on macOS and Linux (PTY). On Windows, resize is a no-op for piped processes.
+- Sessions run without a pseudo-terminal (PTY): resizing the window does not resize the shell, and full-screen programs such as `vim` or `top` may not display correctly.
 - Each session is independent; multiple sessions are not currently supported from a single Terminal page visit.
 
 ---

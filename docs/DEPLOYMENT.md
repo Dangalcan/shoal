@@ -21,7 +21,7 @@ This guide covers building and distributing Shoal for production environments.
 ### Linux
 
 - **Standard build tools** (`build-essential` on Ubuntu/Debian)
-- `fakeroot`, `rpm` (for .deb and .rpm packages)
+- `fakeroot` (for the .deb package)
 
 ---
 

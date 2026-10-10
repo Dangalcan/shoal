@@ -35,7 +35,7 @@ When creating a bug report, please include:
 - **Expected behavior** vs actual behavior
 - **Screenshots** (if applicable)
 - **Environment details:**
-  - OS and version (e.g., Windows 11, macOS 14, Ubuntu 22.04)
+  - OS and version (e.g., Windows 11, Ubuntu 24.04)
   - Application version
   - Node.js version
   - Relevant logs from Developer Console (Ctrl+Shift+I or Cmd+Option+I)

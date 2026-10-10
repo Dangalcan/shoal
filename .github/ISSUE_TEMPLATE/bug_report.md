@@ -25,9 +25,9 @@ If applicable, add screenshots to help explain your problem.
 
 **Environment (please complete the following information):**
 
-- OS: [e.g. Windows 11, macOS Sonoma]
-- App Version: [e.g. 1.0.0]
-- Node.js Version: [e.g. 18.17.0]
+- OS: [e.g. Windows 11, Ubuntu 24.04]
+- App Version: [Settings → About & Support, e.g. v0.9.0]
+- Installer: [Windows installer, Windows portable, AppImage, .deb, or built from source]
 
 **Additional context**
-Add any other context about the problem here (e.g., logs from the Developer Console).
+Add any other context about the problem here. Relevant lines from `main.log` help a lot (Settings → About & Support → Open logs folder); remove anything you do not want to share.

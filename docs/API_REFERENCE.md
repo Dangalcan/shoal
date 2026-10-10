@@ -44,7 +44,7 @@ Creates a new Kubernetes cluster using the specified provider.
 
 - **Parameters**:
   - `name`: `string`
-  - `provider`: `string` ('kind', 'minikube', 'k3d')
+  - `provider`: `string` ('kind', 'k3d')
 - **Returns**: `Promise<Result<void>>`
 
 ### `deleteCluster(name)`

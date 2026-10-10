@@ -14,14 +14,14 @@ Shoal uses a **Hybrid Plugin Architecture**.
 Before developing plugins, ensure you have:
 
 - **Shoal** installed and running
-- **Node.js v18+** installed
+- **Shoal running from source** (`git clone`, `npm install`, `npm run dev`; Node.js v22.12+). Only development builds load unsigned plugins
 - **TypeScript** knowledge (recommended)
 - **React** knowledge (for UI extensions)
 - Basic understanding of Kubernetes concepts
 
 ## Development Setup
 
-1.  **Enable Developer Mode**: Open Shoal Settings and toggle "Developer Mode".
+1.  **Run Shoal from source** with `npm run dev`. Development builds load unsigned plugins (`ALLOW_UNSIGNED_PLUGINS=true`); installed releases only load plugins signed with the Shoal key.
 2.  **Create Plugin Directory**:
     - Windows: `%APPDATA%\Shoal\plugins\my-plugin\`
     - macOS: `~/Library/Application Support/Shoal/plugins/my-plugin/`
@@ -191,8 +191,8 @@ module.exports = {
 
 ### Manual Testing
 
-1.  Ensure **Developer Mode** is enabled in Settings.
-2.  Click **"Load Unpacked Plugin"** and select your plugin directory.
+1.  Run Shoal from source (`npm run dev`).
+2.  On the **Plugins** page, click **"Load Unpacked Plugin"** and select your plugin directory.
 3.  The app will watch your files and automatically reload the plugin on changes.
 
 ### Debugging
@@ -405,7 +405,7 @@ Every call returns a Promise; anything outside the table is rejected.
 
 1. **Validate manifest**: Ensure all required fields in `plugin.json` are present and correct.
 2. **Permissions**: Request only the permissions your plugin actually uses.
-3. **Test locally**: Use **"Load Unpacked Plugin"** in Developer Mode to verify behavior before packaging.
+3. **Test locally**: Use **"Load Unpacked Plugin"** in a development build (`npm run dev`) to verify behavior before packaging.
 
 ### Self-Distribution
 
