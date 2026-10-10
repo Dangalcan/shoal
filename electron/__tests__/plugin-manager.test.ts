@@ -51,6 +51,7 @@ vi.mock('../services/plugins/plugin-registry', () => ({
     getAllPlugins: vi.fn(() => []),
     getEnabledPlugins: vi.fn(() => []),
     registerPlugin: vi.fn(),
+    getPluginConfig: vi.fn(async () => null),
     unregisterPlugin: vi.fn(),
     updatePluginState: vi.fn(),
     updatePluginConfig: vi.fn(),
@@ -439,7 +440,62 @@ describe('PluginManager', () => {
 
       expect(pluginLoader.registerPlugin).toHaveBeenCalledWith(mockPlugins[0]);
       expect(pluginRegistry.registerPlugin).toHaveBeenCalledWith(
-        mockPlugins[0]
+        mockPlugins[0],
+        undefined
+      );
+    });
+
+    it('initialize should enable a bundled example plugin on first run', async () => {
+      vi.mocked(pluginRegistry.initialize).mockResolvedValue(undefined);
+      const bundled = {
+        manifest: { id: 'resource-monitor' },
+        state: 'disabled',
+      } as any;
+      vi.mocked(pluginLoader.discoverPlugins).mockResolvedValue([bundled]);
+      vi.mocked(pluginRegistry.getPluginConfig).mockResolvedValue(null);
+
+      await pluginManager.initialize();
+
+      expect(pluginRegistry.registerPlugin).toHaveBeenCalledWith(bundled, {
+        enabled: true,
+        settings: {},
+      });
+    });
+
+    it('initialize should keep the saved config of a bundled plugin', async () => {
+      vi.mocked(pluginRegistry.initialize).mockResolvedValue(undefined);
+      const bundled = {
+        manifest: { id: 'namespace-watcher' },
+        state: 'disabled',
+      } as any;
+      vi.mocked(pluginLoader.discoverPlugins).mockResolvedValue([bundled]);
+      vi.mocked(pluginRegistry.getPluginConfig).mockResolvedValue({
+        enabled: false,
+        settings: {},
+      });
+
+      await pluginManager.initialize();
+
+      expect(pluginRegistry.registerPlugin).toHaveBeenCalledWith(
+        bundled,
+        undefined
+      );
+    });
+
+    it('initialize should not enable a bundled plugin that failed to load', async () => {
+      vi.mocked(pluginRegistry.initialize).mockResolvedValue(undefined);
+      const broken = {
+        manifest: { id: 'resource-monitor' },
+        state: 'error',
+      } as any;
+      vi.mocked(pluginLoader.discoverPlugins).mockResolvedValue([broken]);
+
+      await pluginManager.initialize();
+
+      expect(pluginRegistry.getPluginConfig).not.toHaveBeenCalled();
+      expect(pluginRegistry.registerPlugin).toHaveBeenCalledWith(
+        broken,
+        undefined
       );
     });
 

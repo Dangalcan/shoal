@@ -38,6 +38,27 @@ describe('PathService', () => {
     expect(dir).toBe(path.join('/mock/app/path', 'plugins'));
   });
 
+  it('should read bundled plugins from resourcesPath when packaged', () => {
+    const appMock = app as unknown as { isPackaged?: boolean };
+    const originalResourcesPath = process.resourcesPath;
+    appMock.isPackaged = true;
+    Object.defineProperty(process, 'resourcesPath', {
+      value: '/mock/resources',
+      configurable: true,
+    });
+    try {
+      expect(pathService.getBundledPluginsDir()).toBe(
+        path.join('/mock/resources', 'plugins')
+      );
+    } finally {
+      appMock.isPackaged = undefined;
+      Object.defineProperty(process, 'resourcesPath', {
+        value: originalResourcesPath,
+        configurable: true,
+      });
+    }
+  });
+
   it('should return discovery directories', () => {
     const dirs = pathService.getDiscoveryDirectories();
     expect(dirs).toContain(path.join('/mock/user/data', 'plugins'));

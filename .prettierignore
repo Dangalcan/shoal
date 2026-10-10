@@ -1,0 +1,2 @@
+# Signed byte for byte by scripts/sign-plugin.js; format before signing, never after.
+plugins/*/plugin.json

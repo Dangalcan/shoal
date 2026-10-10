@@ -415,7 +415,7 @@ Package your plugin as a `.zip` archive containing `plugin.json`, `index.js`, an
 - **macOS**: `~/Library/Application Support/Shoal/plugins/`
 - **Linux**: `~/.config/Shoal/plugins/`
 
-A security warning is shown for plugins without a valid RSA signature.
+Packaged builds only load plugins whose `plugin.json` carries a valid `plugin.json.sig`, an RSA-SHA256 signature made with the Shoal signing key. Unsigned plugins load only in development (`npm run dev`, which sets `ALLOW_UNSIGNED_PLUGINS=true`). During the 0.9 beta there is no way to get a third-party plugin signed yet; signing through the marketplace arrives with 1.0.
 
 ### Paid Plugins & Licensing
 

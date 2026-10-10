@@ -22,17 +22,18 @@ import { app } from 'electron';
 import log from '../../logger';
 
 export class SignatureService {
-  // RSA-2048 public key — generated 2026-03-10.
-  // Replace both this key AND the private key in your secrets manager if you
-  // need to rotate. After rotation, all plugins must be re-signed.
+  // RSA-2048 public key — generated 2026-10-10 (rotated; the 2026-03-10 key's
+  // private half was lost). Replace both this key AND the private key in your
+  // secrets manager if you need to rotate. After rotation, all plugins must be
+  // re-signed. kdMarket signs with the same key pair.
   private readonly PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmCJdMe7FyOkBUF/6Vd76
-z0h5lXidoSEBGAMCUpx+Ths5ZJl5aXniwiDRPB8S6qhS+jR4hAVMOmCG6CY/riit
-Qx0GcNu03xObqMjQjNdIuAwhOLaliyMq4aCISvNptMwXzauFxc4aLmUHT5i9iNTs
-lqGJvUSXKXqTQAQBPsAqdATCWZQfjT/i3wURmghITuZ1IKwEdgy5PczAPoKSa04z
-aSXYMYpjU88CAH8KUUb4Dv5K641pgaGD0xBWSCh+Cw8PkkWwGyQh84ChAJnE5i/B
-vPm0Dr5z8tb65FQXZZDcqLo1ZeVO9SP3fiNTs4S1C+VpLu/JJ1Mnr5uDCrhCI+D+
-swIDAQAB
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyrPH0qaxd66sPXUtKC8U
+EH35T5TXkRffe8VxTTyCqNKloQcAzOTF5ELbSfsloCcD77iNG7JetpLtRaBm+qa2
+vIaeCVVRrIbyqJVq9rLLxb7SiF1i1RJQ/sYBwaYFyZPjD041RxR3JM9WMaWt8A2N
+aYOH3TWOxuItDpamx6ZIC+UJw8Wl2M1Ss0OTMajjdgUKacOMwzCcZUn0liYVKUNW
+nA49YMyymkdshW+kPmfC2Y5a7QMvCGppZX5R84/JoAftVviowdlhv1G7RheckPx2
+mTG4NWftfh6O1ZzUYCIoRqSP04p+X/t1PXuFh0IM7YCvOmzLq60UIX2ALjzymiRz
+9wIDAQAB
 -----END PUBLIC KEY-----`;
 
   /**

@@ -123,6 +123,22 @@
       "!node_modules/better-sqlite3/src/**"
     ],
     "npmRebuild": false,
+    "extraResources": [
+      {
+        "from": "plugins/namespace-watcher",
+        "to": "plugins/namespace-watcher",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "plugins/resource-monitor",
+        "to": "plugins/resource-monitor",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
     "publish": [
       {
         "provider": "github",

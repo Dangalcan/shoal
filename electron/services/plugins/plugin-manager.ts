@@ -5,7 +5,11 @@
  * Coordinates between loader, registry, and context.
  */
 
-import type { Plugin, PluginContext } from '../../types/plugin-types';
+import type {
+  Plugin,
+  PluginConfig,
+  PluginContext,
+} from '../../types/plugin-types';
 import type { PluginModuleHandle } from './host/module-handle';
 
 interface PluginUpdateInfo {
@@ -31,6 +35,7 @@ import { pluginEventBus } from './plugin-events';
 import { pluginWatcher } from './plugin-watcher';
 import { pathService } from './path-service';
 import { assertValidPluginId } from './plugin-validator';
+import { BUNDLED_DEFAULT_ENABLED } from '../../constants';
 import fs from 'fs';
 import path from 'path';
 
@@ -77,7 +82,10 @@ export class PluginManager {
       // Register discovered plugins
       for (const plugin of discoveredPlugins) {
         pluginLoader.registerPlugin(plugin);
-        await pluginRegistry.registerPlugin(plugin);
+        await pluginRegistry.registerPlugin(
+          plugin,
+          await this.getFirstRunConfig(plugin)
+        );
       }
 
       // Auto-enable plugins that were previously enabled
@@ -106,6 +114,20 @@ export class PluginManager {
       );
       throw error;
     }
+  }
+
+  /**
+   * Bundled example plugins start enabled the first time they are seen.
+   * Returns undefined (keep the saved or default config) in every other case.
+   */
+  private async getFirstRunConfig(
+    plugin: Plugin
+  ): Promise<PluginConfig | undefined> {
+    const pluginId = plugin.manifest.id;
+    if (!BUNDLED_DEFAULT_ENABLED.includes(pluginId)) return undefined;
+    if (plugin.state === 'error') return undefined;
+    if (await pluginRegistry.getPluginConfig(pluginId)) return undefined;
+    return { enabled: true, settings: {} };
   }
 
   /**

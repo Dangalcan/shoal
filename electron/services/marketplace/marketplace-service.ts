@@ -21,6 +21,7 @@ import { getErrorMessage } from '../../utils/error-utils';
 import { isProduction } from '../../utils/env-utils';
 import { pluginManager } from '../plugins/plugin-manager';
 import { assertValidPluginId } from '../plugins/plugin-validator';
+import { pathService } from '../plugins/path-service';
 import { machineIdSync } from 'node-machine-id';
 import log from '../../logger';
 
@@ -216,7 +217,10 @@ export class MarketplaceService {
 
       if (plugin.downloadUrl.startsWith('local://')) {
         // Bundled plugin shipped with the app
-        const sourcePath = path.join(app.getAppPath(), 'plugins', pluginId);
+        const sourcePath = path.join(
+          pathService.getBundledPluginsDir(),
+          pluginId
+        );
         log.info(
           `[MarketplaceService] Installing "${pluginId}" from bundled source: ${sourcePath}`
         );

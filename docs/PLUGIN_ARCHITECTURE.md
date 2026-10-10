@@ -49,7 +49,10 @@ is trusted. `plugin-loader.shouldIsolatePlugin()` decides per plugin:
   by the real, permission-enforcing context in main. Crashes, hangs, or vm
   escapes are confined to the disposable child process.
 - **Bundled plugins** (shipped in-tree) keep the original in-process `vm`
-  execution.
+  execution. Packaged builds ship them as electron-builder `extraResources`
+  under `resources/plugins/` (outside `app.asar`), they must carry a valid
+  `plugin.json.sig`, and the ids in `BUNDLED_DEFAULT_ENABLED`
+  (`electron/constants.ts`) are enabled on first run.
 - `PLUGIN_ISOLATION=all` forces isolation for every plugin;
   `PLUGIN_ISOLATION=off` disables it (useful for debugging).
 

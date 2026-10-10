@@ -11,7 +11,11 @@
  * Store it in a secrets manager (e.g. GitHub Actions secrets, Vault, 1Password).
  *
  * Set the PLUGIN_SIGNING_KEY env var to the PEM private key, or place the key
- * at the path defined by PLUGIN_SIGNING_KEY_PATH (default: ~/.kd-signing-key.pem).
+ * at the path defined by PLUGIN_SIGNING_KEY_PATH (default: ~/.shoal-signing-key.pem).
+ *
+ * The signature covers the exact bytes of plugin.json. Format the manifest
+ * (Prettier) BEFORE signing and keep it LF-only (see .gitattributes), or the
+ * signature will no longer match.
  */
 
 const crypto = require('crypto');
@@ -38,7 +42,7 @@ if (process.env.PLUGIN_SIGNING_KEY) {
 } else {
   const keyPath =
     process.env.PLUGIN_SIGNING_KEY_PATH ||
-    path.join(os.homedir(), '.kd-signing-key.pem');
+    path.join(os.homedir(), '.shoal-signing-key.pem');
   if (!fs.existsSync(keyPath)) {
     console.error(
       `Private key not found. Set PLUGIN_SIGNING_KEY env var or place it at: ${keyPath}`

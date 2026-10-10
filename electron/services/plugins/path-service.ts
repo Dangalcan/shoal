@@ -18,10 +18,13 @@ export class PathService {
   }
 
   /**
-   * Get the directory where bundled plugins are located
+   * Get the directory where bundled plugins are located. Packaged builds ship
+   * them as extraResources (outside app.asar); dev runs read them from the repo.
    */
   getBundledPluginsDir(): string {
-    return path.join(app.getAppPath(), 'plugins');
+    return app.isPackaged
+      ? path.join(process.resourcesPath, 'plugins')
+      : path.join(app.getAppPath(), 'plugins');
   }
 
   /**

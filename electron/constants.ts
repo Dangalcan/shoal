@@ -4,3 +4,13 @@ export const LICENSE = {
   REVERIFICATION_INTERVAL_HOURS: 24,
   OFFLINE_TOKEN_PREFIX: 'OFFLINE-ACTIVATED-',
 } as const;
+
+/**
+ * Example plugins shipped with the app (package.json build.extraResources).
+ * They are enabled on first run; afterwards the user's choice in
+ * plugin-config.json wins.
+ */
+export const BUNDLED_DEFAULT_ENABLED: readonly string[] = [
+  'namespace-watcher',
+  'resource-monitor',
+];
