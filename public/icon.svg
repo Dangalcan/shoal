@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="1024" height="1024">
+  <title>Shoal</title>
+  <rect width="180" height="180" rx="40" fill="#0B2233"/>
+  <g transform="translate(90 90)">
+    <path fill="#2DD4BF" transform="rotate(0) translate(46 0) rotate(90) scale(.95)" d="M18 0C10-10-6-10-14 0L-24-8L-21 0L-24 8L-14 0C-6 10 10 10 18 0Z"/>
+    <path fill="#2DD4BF" transform="rotate(60) translate(46 0) rotate(90) scale(.95)" d="M18 0C10-10-6-10-14 0L-24-8L-21 0L-24 8L-14 0C-6 10 10 10 18 0Z"/>
+    <path fill="#2DD4BF" transform="rotate(120) translate(46 0) rotate(90) scale(.95)" d="M18 0C10-10-6-10-14 0L-24-8L-21 0L-24 8L-14 0C-6 10 10 10 18 0Z"/>
+    <path fill="#2DD4BF" transform="rotate(180) translate(46 0) rotate(90) scale(.95)" d="M18 0C10-10-6-10-14 0L-24-8L-21 0L-24 8L-14 0C-6 10 10 10 18 0Z"/>
+    <path fill="#2DD4BF" transform="rotate(240) translate(46 0) rotate(90) scale(.95)" d="M18 0C10-10-6-10-14 0L-24-8L-21 0L-24 8L-14 0C-6 10 10 10 18 0Z"/>
+    <path fill="#FCD34D" transform="rotate(300) translate(46 0) rotate(90) scale(.95)" d="M18 0C10-10-6-10-14 0L-24-8L-21 0L-24 8L-14 0C-6 10 10 10 18 0Z"/>
+  </g>
+</svg>

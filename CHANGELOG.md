@@ -26,7 +26,7 @@ yet, so Windows SmartScreen shows a warning on first launch.
 ### Changed
 
 - Renamed from Kubernetes Desktop to Shoal (Linux Foundation trademark
-  guidelines).
+  guidelines), with a new app icon.
 - Electron 44 and Node 22 toolchain.
 - The app version shown in the sidebar now always comes from `package.json`.
 

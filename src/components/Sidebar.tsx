@@ -7,6 +7,7 @@ import { useApi } from '../services/api-context'
 import { usePlugins, usePluginExtensions } from '../features/plugins/PluginProvider'
 import type { SidebarExtension } from '../../electron/types/plugin-types'
 import { ContextSwitcher } from './common/ContextSwitcher'
+import { ShoalLogo } from './common/ShoalLogo'
 import { ExternalLink } from 'lucide-react'
 
 
@@ -49,7 +50,7 @@ export function Sidebar() {
         <aside className="sidebar">
             <div className="sidebar-header">
                 <h1 className="sidebar-title">
-                    <Server size={24} />
+                    <ShoalLogo size={24} />
                     <span>Shoal</span>
                 </h1>
                 <div className="sidebar-context">
