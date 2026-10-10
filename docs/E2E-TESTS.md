@@ -39,11 +39,12 @@ A special interactive test that opens the app and pauses execution. Intended for
 
 ## Prerequisites
 
-| Requirement | Notes                                                                               |
-| ----------- | ----------------------------------------------------------------------------------- |
-| `kubectl`   | Must be in PATH                                                                     |
-| `kind`      | Used as the cluster provider in tests                                               |
-| Built app   | `npm run build:react && npm run build:electron` (done automatically by the scripts) |
+| Requirement | Notes                                                                                                                     |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `kubectl`   | Must be in PATH                                                                                                           |
+| `kind`      | Used as the cluster provider in tests                                                                                     |
+| Built app   | `npm run build:react && npm run build:electron` (done automatically by the scripts)                                       |
+| Electron    | Since Electron 42 the binary is not downloaded on install. Run `npx install-electron` once (CI does it before Playwright) |
 
 > Tests **do not** require the Vite dev server. The app loads `dist/index.html` directly.
 

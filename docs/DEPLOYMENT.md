@@ -4,7 +4,7 @@ This guide covers building and distributing Shoal for production environments.
 
 ## Prerequisites
 
-- **Node.js**: v20+ (CI builds on Node 20; local development uses Node 22)
+- **Node.js**: v22.12+ (CI and local development use Node 22, see `.nvmrc`)
 - **npm**: v9+
 - Platform-specific build tools (see below)
 

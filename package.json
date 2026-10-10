@@ -28,7 +28,6 @@
     "lint:eslint": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:prettier": "prettier --check '**/*.{cjs,js,ts,css,scss,md}'",
     "lint:fix": "npm run lint:eslint -- --fix && prettier --write '**/*.{cjs,js,ts,css,scss,md}'",
-    "rebuild": "electron-rebuild -f -w better-sqlite3",
     "prepare": "husky"
   },
   "repository": {
@@ -46,6 +45,9 @@
     "email": "megamagolas@gmail.com"
   },
   "license": "LGPL-3.0-or-later",
+  "engines": {
+    "node": ">=22.12"
+  },
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/Dangalcan/shoal/issues"
@@ -55,7 +57,7 @@
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
     "adm-zip": "^0.5.16",
-    "better-sqlite3": "^12.6.2",
+    "better-sqlite3": "^13.0.3",
     "clsx": "^2.1.1",
     "electron-log": "^5.4.3",
     "electron-updater": "^6.8.9",
@@ -70,7 +72,6 @@
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
-    "@electron/rebuild": "^4.0.3",
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.1.18",
     "@testing-library/jest-dom": "^6.9.1",
@@ -90,8 +91,8 @@
     "autoprefixer": "^10.4.23",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
-    "electron": "^39.2.7",
-    "electron-builder": "^26.4.0",
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
     "eslint": "^9.39.2",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
@@ -117,8 +118,11 @@
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
-      "package.json"
+      "package.json",
+      "!node_modules/better-sqlite3/deps/**",
+      "!node_modules/better-sqlite3/src/**"
     ],
+    "npmRebuild": false,
     "publish": [
       {
         "provider": "github",
@@ -141,6 +145,9 @@
             "x64"
           ]
         }
+      ],
+      "files": [
+        "!node_modules/better-sqlite3/prebuilds/{darwin-*,linux-*,linuxmusl-*,win32-arm64}.node"
       ]
     },
     "linux": {
@@ -149,7 +156,10 @@
         "AppImage",
         "deb"
       ],
-      "category": "Development"
+      "category": "Development",
+      "files": [
+        "!node_modules/better-sqlite3/prebuilds/{darwin-*,win32-*,linux-arm64,linuxmusl-*}.node"
+      ]
     }
   }
 }

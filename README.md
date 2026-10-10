@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-LGPL-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](.version)
-[![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)](https://electronjs.org)
+[![Electron](https://img.shields.io/badge/electron-44.7.0-blue.svg)](https://electronjs.org)
 [![React](https://img.shields.io/badge/react-19.2.3-blue.svg)](https://react.dev)
 
 A modern, desktop-based management tool for Kubernetes clusters and container runtimes, inspired by Docker Desktop. Built with Electron, React, TypeScript, and Vite.
@@ -177,7 +177,7 @@ shoal/
 
 ### Prerequisites
 
-- **Node.js** v18+ ([Download](https://nodejs.org/))
+- **Node.js** v22.12+ ([Download](https://nodejs.org/))
 - **npm** v9+ (comes with Node.js)
 - **Docker** or **Podman** (optional, for container runtime features)
 - **kubectl** (optional, for Kubernetes cluster management)

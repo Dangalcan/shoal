@@ -59,7 +59,7 @@ When creating a bug report, please include:
 
 - OS: Windows 11
 - App Version: 1.0.0
-- Node.js: v18.17.0
+- Node.js: v22.18.0
 
 **Logs:**
 ```
@@ -137,7 +137,7 @@ Before submitting, make sure:
 
 ### Prerequisites
 
-- Node.js v18+
+- Node.js v22.12+
 - npm v9+
 - Git
 
