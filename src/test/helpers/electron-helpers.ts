@@ -35,21 +35,36 @@ export const mockClusterState = (
 };
 
 /**
- * Configure mock tool status (Docker, Podman, etc.)
+ * Configure mock tool status (kubectl, Docker, Podman, etc.)
  *
- * @param tools - Object mapping tool names to availability status
+ * @param tools - Tool name to `true` (installed and running), `false` (not
+ *   installed) or `'stopped'` (installed, daemon not running). Tools that are
+ *   not listed are reported as installed and running.
  *
  * @example
  * ```typescript
- * mockToolStatus({ docker: true, podman: false })
+ * mockToolStatus({ docker: true, podman: false, kubectl: 'stopped' })
  * ```
  */
 export const mockToolStatus = (
-  tools: Record<string, boolean>,
+  tools: Record<string, boolean | 'stopped'>,
   mockApi: any
 ) => {
+  const state = (tool: string) => tools[tool] ?? true;
   mockApi.checkTool = vi.fn().mockImplementation(async (tool: string) => {
-    return { success: true, data: tools[tool] ?? false };
+    return { success: true, data: state(tool) !== false };
+  });
+  mockApi.getToolStatus = vi.fn().mockImplementation(async (tool: string) => {
+    const value = state(tool);
+    return {
+      success: true,
+      data: {
+        tool,
+        installed: value !== false,
+        version: value === false ? undefined : 'test',
+        running: value === true,
+      },
+    };
   });
 };
 

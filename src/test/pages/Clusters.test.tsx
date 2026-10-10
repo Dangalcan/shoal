@@ -41,6 +41,15 @@ describe('Clusters Page', () => {
         })
     })
 
+    it('should explain how to install kubectl when it is missing', async () => {
+        mockApi.getToolStatus = vi.fn().mockResolvedValue({
+            success: true,
+            data: { tool: 'kubectl', installed: false },
+        })
+        renderClustersPage()
+        expect(await screen.findByText('kubectl not found')).toBeInTheDocument()
+    })
+
     it('should fetch clusters and handle empty state', async () => {
         renderClustersPage()
         await waitFor(() => {

@@ -6,6 +6,7 @@ import { pluginEventBus } from './services/plugins/plugin-events';
 import { manifestDb } from './database';
 import { getErrorMessage } from './utils/error-utils';
 import { registerClusterIpcHandlers } from './ipc/cluster-ipc';
+import { registerToolIpcHandlers } from './ipc/tool-ipc';
 import { registerResourcesIpcHandlers } from './ipc/resources-ipc';
 import { registerPluginsIpcHandlers } from './ipc/plugins-ipc';
 import { registerMarketplaceIpcHandlers } from './ipc/marketplace-ipc';
@@ -18,7 +19,16 @@ import { registerUpdateIpcHandlers } from './ipc/update-ipc';
 import { updateService } from './services/update';
 import { handlePluginFileRequest } from './services/plugins/plugin-file-protocol';
 import { openExternalSafe } from './utils/url-utils';
+import { applyDesktopToolPath } from './utils/path-env';
+import {
+  appSettings,
+  applySavedKubeconfig,
+} from './services/settings/app-settings';
 import log from './logger';
+
+// Desktop launchers do not read the shell profile: add the usual tool
+// directories (kubectl, kind, helm...) before any child process starts.
+applyDesktopToolPath();
 
 const DEFAULT_WINDOW_WIDTH = 1200;
 const DEFAULT_WINDOW_HEIGHT = 800;
@@ -78,6 +88,7 @@ protocol.registerSchemesAsPrivileged([
 
 function registerIpcHandlers(): void {
   registerClusterIpcHandlers();
+  registerToolIpcHandlers();
   registerResourcesIpcHandlers();
   registerPluginsIpcHandlers();
   registerMarketplaceIpcHandlers();
@@ -157,11 +168,18 @@ app.whenReady().then(async () => {
     );
   }
 
-  // 2. Register IPC handlers ONCE
+  // 2. Apply saved settings (kubeconfig path) before any kubectl call
+  try {
+    applySavedKubeconfig(await appSettings.load());
+  } catch (error: unknown) {
+    log.error('[Main] Failed to load app settings:', getErrorMessage(error));
+  }
+
+  // 3. Register IPC handlers ONCE
   log.info('[Main] Registering IPC handlers...');
   registerIpcHandlers();
 
-  // 3. Initialize plugin system (async)
+  // 4. Initialize plugin system (async)
   try {
     log.info('[Main] Initializing plugin system...');
     await pluginManager.initialize();
@@ -173,12 +191,12 @@ app.whenReady().then(async () => {
     );
   }
 
-  // 4. Hide menu in production
+  // 5. Hide menu in production
   if (app.isPackaged) {
     Menu.setApplicationMenu(null);
   }
 
-  // 5. Create main window
+  // 6. Create main window
   createWindow();
 });
 

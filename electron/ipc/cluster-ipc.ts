@@ -1,8 +1,8 @@
 /**
  * Cluster & Tooling IPC Handlers
  *
- * Covers: check-tool, cluster CRUD, context switching,
- * app version, and kubeconfig path management.
+ * Covers: cluster CRUD, context switching, feature flags, app version, and
+ * kubeconfig path management. Tool detection lives in tool-ipc.ts.
  *
  * The former generic `run-command` handler was removed on purpose: a
  * marketplace app must not expose arbitrary command execution to the
@@ -11,7 +11,11 @@
  */
 
 import { ipcMain, app } from 'electron';
-import { safeExec, ALLOWED_TOOLS } from '../utils/safe-exec';
+import { safeExec } from '../utils/safe-exec';
+import {
+  appSettings,
+  assertKubeconfigPath,
+} from '../services/settings/app-settings';
 import { clusterManagementService } from '../services/cluster/cluster-management-service';
 import { wrapIpcHandler, assertContext } from './ipc-utils';
 import { isMarketplaceEnabled } from '../utils/env-utils';
@@ -22,17 +26,6 @@ export function registerClusterIpcHandlers(): void {
     'open-external',
     wrapIpcHandler('open-external', async (_event, url: string) => {
       await openExternalSafe(url);
-      return true;
-    })
-  );
-
-  ipcMain.handle(
-    'check-tool',
-    wrapIpcHandler('check-tool', async (_event, tool) => {
-      if (!ALLOWED_TOOLS.has(String(tool))) {
-        throw new Error(`Tool not allowed: "${tool}"`);
-      }
-      await safeExec(String(tool), ['--version']);
       return true;
     })
   );
@@ -107,11 +100,16 @@ export function registerClusterIpcHandlers(): void {
 
   ipcMain.handle(
     'set-kubeconfig-path',
-    wrapIpcHandler('set-kubeconfig-path', async (_event, pathStr: string) => {
-      if (pathStr) {
-        process.env.KUBECONFIG = pathStr;
+    // Validated and saved to app-settings.json, so it survives restarts.
+    wrapIpcHandler('set-kubeconfig-path', async (_event, pathStr: unknown) => {
+      const value = typeof pathStr === 'string' ? pathStr.trim() : '';
+      if (value) {
+        await assertKubeconfigPath(value);
+        process.env.KUBECONFIG = value;
+        await appSettings.update({ kubeconfigPath: value });
       } else {
         delete process.env.KUBECONFIG;
+        await appSettings.update({ kubeconfigPath: undefined });
       }
       return true;
     })

@@ -13,8 +13,10 @@ import type {
   MigrationImportArgs,
   MigrationImportResult,
 } from '../electron/types/migration-types';
+import type { ToolStatus } from '../electron/types/tool-types';
 
 export type { PluginNotificationData, PluginModalData, PluginScaffoldOptions };
+export type { ToolStatus };
 export type {
   KomposeStatus,
   ComposeConversion,
@@ -71,6 +73,7 @@ export interface FeatureFlags {
 
 export interface ElectronAPI {
   checkTool: (tool: string) => Promise<Result<boolean>>;
+  getToolStatus: (tool: string) => Promise<Result<ToolStatus>>;
   openExternal: (url: string) => Promise<Result<boolean>>;
   createCluster: (name: string, provider: string) => Promise<Result<void>>;
   getClusters: () => Promise<Result<string[]>>;
@@ -284,7 +287,6 @@ export interface ElectronAPI {
   onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
 
   // Listeners
-  onSetKubeconfigPath: (callback: (value: boolean) => void) => void;
   onPluginNotification: (
     callback: (data: PluginNotificationData) => void
   ) => () => void;

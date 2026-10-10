@@ -5,6 +5,8 @@ import { toast } from 'sonner'
 import { handleError } from '../lib/error-handler'
 import { useApi } from '../services/api-context'
 import { useClusterContext } from '../features/clusters/ClusterContext'
+import { ToolMissingPanel } from '../components/common/ToolMissingPanel'
+import { useToolStatus, TOOL_INSTALL_URLS } from '../hooks/useToolStatus'
 
 export function CreateCluster() {
     const navigate = useNavigate()
@@ -14,6 +16,18 @@ export function CreateCluster() {
     const [provider, setProvider] = useState('kind')
 
     const [isCreating, setIsCreating] = useState(false)
+
+    // kind and k3d need their own CLI plus a running Docker engine.
+    const providerTool = useToolStatus(provider)
+    const docker = useToolStatus('docker')
+    const dockerUnavailable =
+        !docker.checking &&
+        docker.status !== null &&
+        !(docker.status.installed && docker.status.running)
+    const openInstallDocs = (tool: string) => {
+        const url = TOOL_INSTALL_URLS[tool]
+        if (url) void api.openExternal(url)
+    }
 
     const handleCreate = async (e: FormEvent) => {
         e.preventDefault()
@@ -89,6 +103,37 @@ export function CreateCluster() {
                     </div>
                 </div>
 
+                {providerTool.missing && (
+                    <ToolMissingPanel
+                        compact
+                        title={`${provider} not found`}
+                        description={
+                            <p>
+                                Creating a {provider} cluster needs the <code>{provider}</code> CLI on your PATH.
+                            </p>
+                        }
+                        onOpenInstallDocs={() => openInstallDocs(provider)}
+                        onRecheck={providerTool.recheck}
+                    />
+                )}
+
+                {dockerUnavailable && (
+                    <ToolMissingPanel
+                        compact
+                        title={docker.status?.installed ? 'Docker is not running' : 'Docker not found'}
+                        description={
+                            <p>
+                                {provider} runs the cluster nodes as Docker containers.{' '}
+                                {docker.status?.installed
+                                    ? 'Start Docker Desktop (or the Docker service) and check again.'
+                                    : 'Install Docker and make sure it is running.'}
+                            </p>
+                        }
+                        onOpenInstallDocs={() => openInstallDocs('docker')}
+                        onRecheck={docker.recheck}
+                    />
+                )}
+
                 <div className="form-actions">
                     <button 
                         type="button" 
@@ -100,7 +145,8 @@ export function CreateCluster() {
                     <button 
                         type="submit" 
                         className="submit-button"
-                        disabled={isCreating}
+                        disabled={isCreating || providerTool.missing}
+                        title={providerTool.missing ? `Install ${provider} first` : undefined}
                     >
                         {isCreating ? 'Creating...' : 'Create Cluster'}
                     </button>

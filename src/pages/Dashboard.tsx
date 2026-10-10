@@ -15,8 +15,11 @@ import { useClusterContext } from '../features/clusters/ClusterContext';
 import { Button, Badge, Card, Animate } from '../components/ui';
 import { useApi } from '../services/api-context';
 import { isSuccess } from '../types/result';
+import type { Result } from '../types/result';
 import { cn } from '../lib/utils';
 import { DashboardWidgets } from '../features/plugins/DashboardWidgets';
+import { KubectlMissingNotice } from '../features/clusters/KubectlMissingNotice';
+import type { ToolStatus } from '../types.d';
 
 interface StatCardProps {
   label: string;
@@ -64,12 +67,24 @@ function StatCard({ label, value, icon: Icon, color, status }: StatCardProps) {
   );
 }
 
+/** Stat card text for a container engine (docker/podman) probe. */
+function engineLabel(status: ToolStatus | null): string {
+  if (status === null) return 'Checking...';
+  if (!status.installed) return 'Not installed';
+  return status.running ? 'Running' : 'Stopped';
+}
+
+function engineState(status: ToolStatus | null): 'running' | 'stopped' | undefined {
+  if (status === null) return undefined;
+  return status.installed && status.running ? 'running' : 'stopped';
+}
+
 export function Dashboard() {
   const navigate = useNavigate();
   const api = useApi();
   const { clusters, currentContext, fetchClusters, loading: clustersLoading } = useClusterContext();
-  const [dockerStatus, setDockerStatus] = useState<boolean | null>(null);
-  const [podmanStatus, setPodmanStatus] = useState<boolean | null>(null);
+  const [dockerStatus, setDockerStatus] = useState<ToolStatus | null>(null);
+  const [podmanStatus, setPodmanStatus] = useState<ToolStatus | null>(null);
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -77,12 +92,13 @@ export function Dashboard() {
   const refreshData = useCallback(async () => {
     setLoading(true);
     try {
-      const [dockerRes, podmanRes] = await Promise.all([
-        api.checkTool('docker').catch(err => ({ success: false as const, error: String(err) })),
-        api.checkTool('podman').catch(err => ({ success: false as const, error: String(err) }))
-      ]);
-      setDockerStatus(isSuccess(dockerRes) ? dockerRes.data : false);
-      setPodmanStatus(isSuccess(podmanRes) ? podmanRes.data : false);
+      const probe = (tool: string): Promise<Result<ToolStatus>> =>
+        api
+          .getToolStatus(tool)
+          .catch((err) => ({ success: false as const, error: String(err) }));
+      const [dockerRes, podmanRes] = await Promise.all([probe('docker'), probe('podman')]);
+      setDockerStatus(isSuccess(dockerRes) ? dockerRes.data : { tool: 'docker', installed: false });
+      setPodmanStatus(isSuccess(podmanRes) ? podmanRes.data : { tool: 'podman', installed: false });
       await fetchClusters();
     } finally {
       setLoading(false);
@@ -107,23 +123,25 @@ export function Dashboard() {
         </header>
       </Animate>
 
+      <KubectlMissingNotice onRecheck={fetchClusters} />
+
       <div className="stats-grid">
         <Animate type="slide-up" delay={0}>
           <StatCard
             label="Docker Status"
-            value={dockerStatus === null ? 'Checking...' : dockerStatus ? 'Running' : 'Unavailable'}
+            value={engineLabel(dockerStatus)}
             icon={Container}
-            color={dockerStatus === null ? 'blue' : dockerStatus ? 'blue' : 'red'}
-            status={dockerStatus === null ? undefined : dockerStatus ? 'running' : 'stopped'}
+            color={engineState(dockerStatus) === 'stopped' ? 'red' : 'blue'}
+            status={engineState(dockerStatus)}
           />
         </Animate>
         <Animate type="slide-up" delay={100}>
           <StatCard
             label="Podman Status"
-            value={podmanStatus === null ? 'Checking...' : podmanStatus ? 'Running' : 'Unavailable'}
+            value={engineLabel(podmanStatus)}
             icon={Layers}
-            color={podmanStatus === null ? 'purple' : podmanStatus ? 'purple' : 'orange'}
-            status={podmanStatus === null ? undefined : podmanStatus ? 'running' : 'stopped'}
+            color={engineState(podmanStatus) === 'stopped' ? 'orange' : 'purple'}
+            status={engineState(podmanStatus)}
           />
         </Animate>
         <Animate type="slide-up" delay={200}>

@@ -228,11 +228,9 @@ describe('mockApi', () => {
   });
 
   it('should have listener methods defined', () => {
-    expect(typeof mockApi.onSetKubeconfigPath).toBe('function');
     expect(typeof mockApi.onPluginNotification).toBe('function');
 
     // Call them to cover the empty function bodies (and the returned unsub fn)
-    mockApi.onSetKubeconfigPath(() => {});
     mockApi.onPluginNotification(() => {})();
   });
 

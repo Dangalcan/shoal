@@ -17,6 +17,10 @@ export const mockApi: ElectronAPI = {
     console.log('[MockAPI] checkTool:', tool);
     return { success: true, data: true };
   },
+  getToolStatus: async (tool: string) => ({
+    success: true,
+    data: { tool, installed: true, version: 'mock', running: true },
+  }),
   openExternal: async (url: string) => {
     console.log('[MockAPI] openExternal:', url);
     return { success: true, data: true };
@@ -269,7 +273,6 @@ export const mockApi: ElectronAPI = {
   }),
 
   // Listeners
-  onSetKubeconfigPath: (_callback: (value: boolean) => void) => {},
   onPluginNotification:
     (_callback: (data: PluginNotificationData) => void) => () => {},
   onPluginModal: (_callback: (data: PluginModalData) => void) => () => {},

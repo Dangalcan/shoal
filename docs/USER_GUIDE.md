@@ -27,6 +27,16 @@ Welcome to **Shoal**, your modern cockpit for Kubernetes management. This guide 
    - **macOS**: Drag the app to your `Applications` folder.
    - **Linux**: Use the `.deb/.rpm` package or run the `.AppImage`.
 
+### Requirements
+
+Shoal drives your clusters through the usual command-line tools, which you install separately:
+
+- **kubectl** (required for everything cluster-related). If it is missing, the Dashboard and Clusters pages say so and link to the install guide.
+- **kind** or **k3d**, plus **Docker** running, to create local clusters. Create Cluster checks both and tells you what is missing.
+- **helm** (Helm features) and **kompose** (Docker Compose migration), optional.
+
+After installing a tool, press **Check again**. On Linux and macOS Shoal also looks in the usual install locations (`/usr/local/bin`, `~/.local/bin`, `/snap/bin`, Homebrew...) even when it is started from the desktop menu. On Windows, restart Shoal after installing a tool so it sees the updated `PATH`.
+
 ### The Dashboard
 
 Upon launching, you will be greeted by the **Dashboard**. This view provides a high-level overview of your connected clusters and the current health of your local environment.
@@ -40,9 +50,9 @@ Upon launching, you will be greeted by the **Dashboard**. This view provides a h
 Shoal makes it easy to spin up local development clusters.
 
 1. Click on **"Create Cluster"** in the left sidebar.
-2. Select your preferred provider (**kind**, **minikube**, or **k3d**).
-3. Give your cluster a name and configure the number of nodes.
-4. Click **"Create"**. The application will handle the setup in the background.
+2. Select your preferred provider (**kind** or **k3d**). If its CLI is missing, or Docker is not running, a notice explains what to install or start.
+3. Give your cluster a name.
+4. Click **"Create Cluster"**. The application will handle the setup in the background.
 
 ### Switching Contexts
 
@@ -205,7 +215,7 @@ For paid or trial plugins:
 Click on **"Settings"** in the sidebar to customize your experience:
 
 - **Theme**: Switch between Dark and Light mode.
-- **Kubeconfig Path**: Update the path to your `.kube/config` if it's stored in a non-standard location.
+- **Kubeconfig Path**: Point Shoal at a kubeconfig stored in a non-standard location (several files can be joined with the OS path separator). The file must exist; the path is saved and restored when Shoal starts.
 - **Refresh Interval**: Adjust how often the UI polls for resource changes.
 - **Developer Mode**: Enable this to load unpacked plugins from your local machine (for developers).
 

@@ -13,6 +13,7 @@ import { PodViewerModal } from '../components/modals/PodViewerModal';
 import { ConfirmModal } from '../components/modals/ConfirmModal';
 import { useClusterContext } from '../features/clusters/ClusterContext';
 import { Button, Badge, Spinner, Animate } from '../components/ui';
+import { KubectlMissingNotice } from '../features/clusters/KubectlMissingNotice';
 
 export function Clusters() {
   const navigate = useNavigate();
@@ -64,6 +65,8 @@ export function Clusters() {
           </div>
         </header>
       </Animate>
+
+      <KubectlMissingNotice onRecheck={fetchClusters} />
 
       {loading && clusters.length === 0 ? (
         <Animate type="fade">

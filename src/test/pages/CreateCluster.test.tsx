@@ -218,4 +218,29 @@ describe('CreateCluster Page', () => {
         expect(backButton).toBeInTheDocument()
         unmount()
     })
+
+    it('should block creation and explain when the provider CLI is missing', async () => {
+        mockApi.getToolStatus = vi.fn().mockImplementation(async (tool: string) => ({
+            success: true,
+            data: { tool, installed: tool !== 'kind', running: true },
+        }))
+
+        render(<CreateCluster />, { api: mockApi })
+
+        expect(await screen.findByText('kind not found')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /create cluster/i })).toBeDisabled()
+    })
+
+    it('should warn when Docker is installed but not running', async () => {
+        mockApi.getToolStatus = vi.fn().mockImplementation(async (tool: string) => ({
+            success: true,
+            data: { tool, installed: true, running: tool !== 'docker' },
+        }))
+
+        render(<CreateCluster />, { api: mockApi })
+
+        expect(await screen.findByText('Docker is not running')).toBeInTheDocument()
+        // A warning only: kind could still use another engine.
+        expect(screen.getByRole('button', { name: /create cluster/i })).not.toBeDisabled()
+    })
 })

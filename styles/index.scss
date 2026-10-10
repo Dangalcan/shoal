@@ -14,6 +14,7 @@
 @use 'components/ContextSwitcher';
 @use 'components/ExampleTemplatesModal';
 @use 'components/common/ErrorBoundary';
+@use 'components/common/ToolMissingPanel';
 @use 'components/cluster/DetailsHeader';
 @use 'components/cluster/NamespaceSelector';
 @use 'components/cluster/ResourceTabs';

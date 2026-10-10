@@ -1,0 +1,98 @@
+// Missing CLI tool panel (kubectl, kind, k3d, docker, kompose...)
+
+.tool-missing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 24px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  text-align: center;
+
+  &--compact {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 8px 12px;
+    padding: 12px 16px;
+    text-align: left;
+  }
+}
+
+.tool-missing__icon {
+  color: var(--color-warning, #d97706);
+  flex-shrink: 0;
+}
+
+.tool-missing__title {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tool-missing__description {
+  margin: 0;
+  max-width: 520px;
+  font-size: var(--font-size-sm);
+
+  code {
+    font-family: var(--font-mono, monospace);
+    color: var(--text-primary);
+  }
+
+  .tool-missing--compact & {
+    flex-basis: 100%;
+    max-width: none;
+  }
+}
+
+.tool-missing__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.tool-missing__link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.tool-missing__primary-btn,
+.tool-missing__secondary-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.tool-missing__primary-btn {
+  border: none;
+  background: var(--color-primary);
+  color: #fff;
+
+  &:hover {
+    background: var(--color-primary-hover);
+  }
+}
+
+.tool-missing__secondary-btn {
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+
+  &:hover {
+    background: var(--bg-primary);
+  }
+}

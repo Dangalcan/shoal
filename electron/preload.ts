@@ -9,6 +9,7 @@ import type { MigrationImportArgs } from './types/migration-types';
 
 contextBridge.exposeInMainWorld('electron', {
   checkTool: (tool: string) => ipcRenderer.invoke('check-tool', tool),
+  getToolStatus: (tool: string) => ipcRenderer.invoke('get-tool-status', tool),
   openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
   createCluster: (name: string, provider: string) =>
     ipcRenderer.invoke('create-cluster', { name, provider }),
@@ -72,12 +73,6 @@ contextBridge.exposeInMainWorld('electron', {
   getKubeconfigPath: () => ipcRenderer.invoke('get-kubeconfig-path'),
   setKubeconfigPath: (path: string) =>
     ipcRenderer.invoke('set-kubeconfig-path', path),
-  onSetKubeconfigPath: (callback: (value: boolean) => void) => {
-    const handler = (_event: IpcRendererEvent, value: boolean) =>
-      callback(value);
-    ipcRenderer.on('set-kubeconfig-path', handler);
-    return () => ipcRenderer.off('set-kubeconfig-path', handler);
-  },
   onPluginNotification: (callback: (data: PluginNotificationData) => void) => {
     const handler = (_event: IpcRendererEvent, value: PluginNotificationData) =>
       callback(value);

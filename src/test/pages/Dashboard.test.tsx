@@ -17,7 +17,7 @@ describe('Dashboard Page', () => {
         vi.clearAllMocks();
         // Default happy path
         mockClusterState([], 'None', mockApi);
-        mockApi.checkTool = vi.fn().mockResolvedValue({ success: true, data: true });
+        mockToolStatus({}, mockApi);
     });
 
     it('should render dashboard header', async () => {
@@ -35,9 +35,38 @@ describe('Dashboard Page', () => {
 
         await waitFor(() => {
             expect(screen.getByText('Docker Status')).toBeInTheDocument();
-            expect(mockApi.checkTool).toHaveBeenCalledWith('docker');
-            expect(mockApi.checkTool).toHaveBeenCalledWith('podman');
+            expect(mockApi.getToolStatus).toHaveBeenCalledWith('docker');
+            expect(mockApi.getToolStatus).toHaveBeenCalledWith('podman');
+            expect(screen.getByText('Running')).toBeInTheDocument();
+            expect(screen.getByText('Not installed')).toBeInTheDocument();
         });
+    });
+
+    it('should say Stopped when the engine is installed but its daemon is down', async () => {
+        mockToolStatus({ docker: 'stopped', podman: false }, mockApi);
+
+        render(<Dashboard />, { api: mockApi });
+
+        expect(await screen.findByText('Stopped')).toBeInTheDocument();
+    });
+
+    it('should explain how to install kubectl when it is missing', async () => {
+        mockToolStatus({ kubectl: false }, mockApi);
+
+        render(<Dashboard />, { api: mockApi });
+
+        expect(await screen.findByText('kubectl not found')).toBeInTheDocument();
+        fireEvent.click(screen.getByText('Install instructions'));
+        expect(mockApi.openExternal).toHaveBeenCalledWith(
+            'https://kubernetes.io/docs/tasks/tools/'
+        );
+    });
+
+    it('should not show the kubectl notice when kubectl is installed', async () => {
+        render(<Dashboard />, { api: mockApi });
+
+        await waitFor(() => expect(mockApi.getToolStatus).toHaveBeenCalledWith('kubectl'));
+        expect(screen.queryByText('kubectl not found')).toBeNull();
     });
 
     it('should fetch and display cluster stats', async () => {
@@ -117,8 +146,10 @@ describe('Dashboard Page', () => {
     });
 
     it('should handle tool status check failure (graceful degradation)', async () => {
-         mockApi.checkTool = vi.fn().mockRejectedValue(new Error('Tool check failed'));
+         mockApi.getToolStatus = vi.fn().mockRejectedValue(new Error('Tool check failed'));
          
          render(<Dashboard />, { api: mockApi });
+
+         expect(await screen.findAllByText('Not installed')).toHaveLength(2);
     });
 });

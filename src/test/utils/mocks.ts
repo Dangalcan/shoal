@@ -23,6 +23,10 @@ export function createMockElectronAPI(
 ): vi.Mocked<ElectronAPI> {
   return {
     checkTool: vi.fn().mockResolvedValue(true),
+    getToolStatus: vi.fn().mockImplementation(async (tool: string) => ({
+      success: true,
+      data: { tool, installed: true, version: 'test', running: true },
+    })),
     openExternal: vi.fn().mockResolvedValue({ success: true, data: true }),
     createCluster: vi
       .fn()
@@ -159,7 +163,6 @@ export function createMockElectronAPI(
       .fn()
       .mockResolvedValue({ success: true, data: true }),
 
-    onSetKubeconfigPath: vi.fn(),
     onPluginNotification: vi.fn().mockReturnValue(() => {}),
     onPluginModal: vi.fn().mockReturnValue(() => {}),
 

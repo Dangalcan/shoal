@@ -157,7 +157,7 @@ export function Settings() {
           ) : (
             <>
               <RefreshCw size={12} />
-              Settings are saved automatically to local storage.
+              Settings are saved automatically.
             </>
           )}
         </div>
