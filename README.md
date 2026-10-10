@@ -11,6 +11,12 @@ A modern, desktop-based management tool for Kubernetes clusters and container ru
 
 > **Public beta (0.9).** Windows and Linux only; macOS arrives with 1.0. Installers are not code-signed yet, so Windows SmartScreen shows "Windows protected your PC": choose **More info → Run anyway**. The plugin marketplace and paid plugins also arrive with 1.0. Please report problems on [GitHub Issues](https://github.com/Dangalcan/shoal/issues).
 
+![Shoal dashboard](docs/images/dashboard-light.png)
+
+| Cluster resources                                                | Bundled plugins                                |
+| ---------------------------------------------------------------- | ---------------------------------------------- |
+| ![Pods of a kind cluster](docs/images/cluster-details-light.png) | ![Plugins page](docs/images/plugins-light.png) |
+
 ## Table of Contents
 
 - [Features](#-features)
@@ -149,7 +155,7 @@ shoal/
 ├── marketplace-backend/    # 🛒 Dev-only mock of the marketplace API (production uses kdMarket)
 ├── plugins/               # 🔌 Bundled example plugins (namespace-watcher, resource-monitor); the 6 marketplace plugins live in their own repos
 ├── styles/                # 🎨 SCSS stylesheets (variables, animations, components)
-├── e2e/                   # 🎭 Playwright end-to-end tests
+├── e2e/                   # 🎭 Playwright end-to-end tests and the screenshot capture (npm run screenshots)
 ├── scripts/               # 🔧 Build and utility scripts
 ├── dist-electron/          # 📦 Compiled Main Process (output)
 ├── dist/                   # 📦 Compiled Renderer (output)

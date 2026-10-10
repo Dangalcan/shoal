@@ -162,7 +162,11 @@ export default function Plugins() {
       <div className="plugins__header-container">
         <div className="plugins-header-main">
            <h1 className="plugins__title">Plugins</h1>
-           <p className="plugins__subtitle">Manage your installed plugins or discover new ones.</p>
+           <p className="plugins__subtitle">
+             {flags.marketplace
+               ? 'Manage your installed plugins or discover new ones.'
+               : 'Manage your installed plugins.'}
+           </p>
         </div>
 
         <div className="plugins-actions">

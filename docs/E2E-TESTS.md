@@ -28,6 +28,10 @@ e2e/
 │   ├── terminal.spec.ts          # Local shell sessions
 │   ├── sandbox-theme.spec.ts     # Plugin iframe follows host theme toggles
 │   └── sandbox-widget.spec.ts    # Plugin dashboard widget + page frame stability
+├── screenshots/
+│   ├── capture.spec.ts           # README and landing page screenshots (not auto-run)
+│   └── demo-workload.yaml        # Demo namespace shown in the screenshots
+├── screenshots.config.ts         # Playwright config for `npm run screenshots`
 └── explore.spec.ts               # Interactive exploration tool (not auto-run)
 ```
 
@@ -100,6 +104,34 @@ On Linux CI the AppImage runs under `xvfb-run -a` with
 `APPIMAGE_EXTRACT_AND_RUN=1` (no libfuse2 on the runners). The Windows smoke
 job skips the two cluster specs because the runner cannot run Linux containers.
 
+### Screenshots
+
+`npm run screenshots` regenerates `docs/images/*.png` (Dashboard, Clusters,
+cluster details, Manifests and Plugins, light and dark, 1280×720 logical
+pixels). The landing page uses WebP copies of the same files. It is not part
+of `test:e2e` and needs some setup so the images show exactly what users get
+and nothing from your own machine (Git Bash):
+
+```bash
+# 1. Packaged build: a dev run also lists every plugin checked out under plugins/.
+#    Stop Docker Desktop while packaging if memory is tight.
+npm run build:react && npm run build:electron
+npx electron-builder --win --dir --publish never
+
+# 2. A kubeconfig that only holds the demo cluster, so no other context shows up.
+export KUBECONFIG="$(mktemp)"
+kind create cluster --name shoal-demo
+kubectl apply -f e2e/screenshots/demo-workload.yaml
+kubectl -n demo rollout status deploy/web
+
+# 3. Capture, then clean up.
+SHOAL_E2E_EXECUTABLE="$PWD/release/win-unpacked/Shoal.exe" npm run screenshots
+kind delete cluster --name shoal-demo
+```
+
+Check every image by hand before committing: no personal contexts, paths or
+hostnames.
+
 ---
 
 ## Configuration
@@ -109,7 +141,7 @@ job skips the two cluster specs because the runner cannot run Linux containers.
 ```ts
 {
   testDir: './e2e',
-  testIgnore: ['**/explore.spec.ts'],   // excluded from automated runs
+  testIgnore: ['**/explore.spec.ts', '**/screenshots/**'], // excluded from automated runs
   timeout: 120_000,                      // 2 min per test (kubectl calls are slow)
   retries: 0,
   workers: 1,                            // sequential — parallel runs cause kubectl conflicts

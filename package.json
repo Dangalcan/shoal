@@ -27,6 +27,7 @@
     "test:e2e": "npm run build:react && npm run build:electron && playwright test",
     "test:e2e:interactive": "npm run build:react && npm run build:electron && playwright test e2e/explore.spec.ts --headed --debug",
     "test:e2e:report": "playwright show-report e2e-report",
+    "screenshots": "playwright test -c e2e/screenshots.config.ts",
     "lint": "npm run lint:eslint && npm run lint:prettier",
     "lint:eslint": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:prettier": "prettier --check '**/*.{cjs,js,ts,css,scss,md}'",

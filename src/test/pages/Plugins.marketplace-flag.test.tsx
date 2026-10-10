@@ -45,6 +45,9 @@ describe('Plugins page marketplace flag', () => {
     expect(
       screen.getByText('The plugin marketplace arrives with Shoal 1.0.')
     ).toBeInTheDocument();
+    expect(
+      screen.getByText('Manage your installed plugins.')
+    ).toBeInTheDocument();
   });
 
   it('shows the Marketplace tab when the marketplace is enabled', async () => {
@@ -61,6 +64,9 @@ describe('Plugins page marketplace flag', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText('Check out the Marketplace to find plugins!')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Manage your installed plugins or discover new ones.')
     ).toBeInTheDocument();
   });
 });
