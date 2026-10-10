@@ -107,6 +107,17 @@ publish:
   repo: shoal
 ```
 
+The installed app checks for updates on startup (NSIS installer and AppImage
+only; the Windows portable build never self-updates). Pre-release versions
+such as `0.9.0-rc.1` also receive pre-releases, stable versions only stable
+releases.
+
+### Cutting a release
+
+Releases are built and uploaded by `.github/workflows/build.yml` when a `v*`
+tag is pushed. The full process, including how to publish the draft and how
+to roll back, is in [RELEASE.md](RELEASE.md).
+
 ---
 
 ## Troubleshooting

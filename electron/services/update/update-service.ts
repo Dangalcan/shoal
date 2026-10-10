@@ -66,9 +66,17 @@ export class UpdateService {
 
   /**
    * Check for updates. Skipped (returns false) outside packaged builds unless
-   * forced, because electron-updater cannot run against a dev build.
+   * forced, because electron-updater cannot run against a dev build. Always
+   * skipped in the Windows portable build: it cannot replace itself, and the
+   * updater would install a separate NSIS copy instead.
    */
   async checkForUpdates(force = false): Promise<boolean> {
+    if (process.env.PORTABLE_EXECUTABLE_DIR) {
+      log.info(
+        '[UpdateService] Skipping update check (portable build cannot self-update)'
+      );
+      return false;
+    }
     if (!isProduction() && !force) {
       log.info('[UpdateService] Skipping update check (not a packaged build)');
       return false;

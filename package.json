@@ -1,7 +1,8 @@
 {
   "name": "shoal",
-  "version": "1.0.0",
+  "version": "0.9.0-rc.1",
   "description": "Desktop application for managing Kubernetes clusters, with a plugin marketplace.",
+  "desktopName": "shoal.desktop",
   "main": "dist-electron/main.js",
   "scripts": {
     "start": "npm run dev",
@@ -118,9 +119,11 @@
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
+      "!dist-electron/__tests__/**",
       "package.json",
       "!node_modules/better-sqlite3/deps/**",
-      "!node_modules/better-sqlite3/src/**"
+      "!node_modules/better-sqlite3/src/**",
+      "!node_modules/better-sqlite3/prebuilds/{darwin-*,linuxmusl-*,linux-arm64,win32-arm64}.node"
     ],
     "npmRebuild": false,
     "extraResources": [
@@ -161,9 +164,6 @@
             "x64"
           ]
         }
-      ],
-      "files": [
-        "!node_modules/better-sqlite3/prebuilds/{darwin-*,linux-*,linuxmusl-*,win32-arm64}.node"
       ]
     },
     "linux": {
@@ -172,10 +172,13 @@
         "AppImage",
         "deb"
       ],
-      "category": "Development",
-      "files": [
-        "!node_modules/better-sqlite3/prebuilds/{darwin-*,win32-*,linux-arm64,linuxmusl-*}.node"
-      ]
+      "category": "Development"
+    },
+    "nsis": {
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
     }
   }
 }

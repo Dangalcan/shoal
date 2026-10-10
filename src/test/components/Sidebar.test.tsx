@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '../utils'
+import { render, screen, fireEvent, waitFor } from '../utils'
 import { Sidebar } from '../../components/Sidebar'
 import { useTheme } from '../../hooks'
 import { usePluginExtensions, usePlugins } from '../../features/plugins/PluginProvider'
@@ -59,8 +59,13 @@ describe('Sidebar', () => {
     })
     
     it('should show version in footer', async () => {
+        vi.mocked(window.electron.getAppVersion).mockResolvedValue({
+            success: true,
+            data: 'v0.9.0'
+        });
+
         render(<Sidebar />)
-        expect(await screen.findByText(/v0.1.0/)).toBeInTheDocument()
+        expect(await screen.findByText('v0.9.0')).toBeInTheDocument()
     })
 
     it('renders plugin extensions when present', () => {
@@ -104,14 +109,16 @@ describe('Sidebar', () => {
         expect(screen.getByText('Light Mode')).toBeInTheDocument()
     })
 
-    it('uses default version if getAppVersion fails', async () => {
+    it('shows no version if getAppVersion fails', async () => {
         vi.mocked(window.electron.getAppVersion).mockResolvedValue({
             success: false,
             error: 'Failed'
         });
 
-        render(<Sidebar />)
-        // Should still show v0.1.0 (default state)
-        expect(await screen.findByText(/v0.1.0/)).toBeInTheDocument()
+        const { container } = render(<Sidebar />)
+        await waitFor(() =>
+            expect(window.electron.getAppVersion).toHaveBeenCalled()
+        )
+        expect(container.querySelector('.sidebar-version')).toHaveTextContent(/^$/)
     })
 })

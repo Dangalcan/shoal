@@ -13,7 +13,7 @@ import { ExternalLink } from 'lucide-react'
 export function Sidebar() {
     const api = useApi();
     const { theme, toggleTheme } = useTheme();
-    const [version, setVersion] = useState<string>('v0.1.0');
+    const [version, setVersion] = useState<string>('');
     const { plugins } = usePlugins();
     const allExtensions = usePluginExtensions('sidebar');
 

@@ -12,6 +12,10 @@ on:
       - 'v*'
   workflow_dispatch:
 
+# Publishing to GitHub Releases needs write access to the repo contents.
+permissions:
+  contents: write
+
 jobs:
   release:
     # Gate on CI success when triggered by workflow_run; tag pushes and
@@ -20,8 +24,16 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest]
+
+    env:
+      # Tag pushes (v*) upload the installers and update feeds to a DRAFT
+      # GitHub release, which a maintainer publishes after the smoke test
+      # (see docs/RELEASE.md). Every other run only builds and keeps the
+      # installers as workflow artifacts.
+      PUBLISH_MODE: ${{ startsWith(github.ref, 'refs/tags/v') && 'always' || 'never' }}
 
     steps:
       - name: Check out git repository
@@ -39,7 +51,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build and Release
+      - name: Build renderer and main process
+        run: npm run build:react && npm run build:electron
+
+      - name: Package installers (publish on tags)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run build
+        run: npx electron-builder --publish ${{ env.PUBLISH_MODE }}
+
+      - name: Upload installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: shoal-${{ matrix.os }}
+          path: |
+            release/*.exe
+            release/*.AppImage
+            release/*.deb
+            release/latest*.yml
+          if-no-files-found: error
+          retention-days: 14

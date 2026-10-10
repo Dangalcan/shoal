@@ -11,8 +11,6 @@
  */
 
 import { ipcMain, app, shell } from 'electron';
-import fs from 'fs/promises';
-import path from 'path';
 import { safeExec, ALLOWED_TOOLS } from '../utils/safe-exec';
 import { clusterManagementService } from '../services/cluster/cluster-management-service';
 import { wrapIpcHandler, assertContext } from './ipc-utils';
@@ -104,15 +102,9 @@ export function registerClusterIpcHandlers(): void {
 
   ipcMain.handle(
     'get-app-version',
-    wrapIpcHandler('get-app-version', async () => {
-      try {
-        const versionPath = path.join(app.getAppPath(), '.version');
-        const version = await fs.readFile(versionPath, 'utf-8');
-        return version.trim();
-      } catch {
-        return app.getVersion() || 'unknown';
-      }
-    })
+    // package.json is the single source of truth (electron-updater compares
+    // against it too); dev and packaged builds report the same value.
+    wrapIpcHandler('get-app-version', async () => `v${app.getVersion()}`)
   );
 
   ipcMain.handle(

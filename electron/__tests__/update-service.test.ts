@@ -78,6 +78,20 @@ describe('UpdateService', () => {
     expect(updater.checkForUpdates).toHaveBeenCalledTimes(1);
   });
 
+  it('never checks in the Windows portable build, even when forced', async () => {
+    vi.mocked(isProduction).mockReturnValue(true);
+    vi.stubEnv('PORTABLE_EXECUTABLE_DIR', 'C:\Users\me\Downloads');
+    try {
+      const updater = makeUpdater();
+      const svc = new UpdateService(updater);
+      expect(await svc.checkForUpdates()).toBe(false);
+      expect(await svc.checkForUpdates(true)).toBe(false);
+      expect(updater.checkForUpdates).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('runs the check in packaged builds', async () => {
     vi.mocked(isProduction).mockReturnValue(true);
     const updater = makeUpdater();
