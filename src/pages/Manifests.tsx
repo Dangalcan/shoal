@@ -64,7 +64,10 @@ export function Manifests() {
   const [deleteFolderTarget, setDeleteFolderTarget] = useState<ManifestFolder | null>(null);
   const [moveTarget, setMoveTarget] = useState<MoveTarget>(null);
   const [isExamplesOpen, setIsExamplesOpen] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Field focused when the editor opens. Uses autoFocus on mount: a delayed
+  // focus() call could fire after the user (or a slow machine) had already
+  // moved to the other field and steal the typing.
+  const [focusField, setFocusField] = useState<'name' | 'content'>('name');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -124,25 +127,22 @@ export function Manifests() {
   const handleEdit = (manifest: Manifest) => {
     setFormData({ name: manifest.name, content: manifest.content });
     setEditingId(manifest.id);
+    setFocusField('content');
     setIsModalOpen(true);
-    setTimeout(() => textareaRef.current?.focus(), 100);
   };
 
   const handleAddNew = () => {
     setFormData({ name: '', content: '' });
     setEditingId(null);
+    setFocusField('name');
     setIsModalOpen(true);
-    setTimeout(() => {
-      const input = document.getElementById('manifest-name');
-      input?.focus();
-    }, 100);
   };
 
   const handleExampleSelect = (template: ExampleTemplate) => {
     setFormData({ name: template.name, content: template.content });
     setEditingId(null);
+    setFocusField('content');
     setIsModalOpen(true);
-    setTimeout(() => textareaRef.current?.focus(), 100);
   };
 
   const handleFileRead = (file: File): Promise<{name: string, content: string}> => {
@@ -384,6 +384,7 @@ export function Manifests() {
             <input
               id="manifest-name"
               type="text"
+              autoFocus={focusField === 'name'}
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="e.g., Nginx Deployment"
@@ -394,7 +395,7 @@ export function Manifests() {
             <div className="textarea-wrapper">
               <textarea
                 id="manifest-content"
-                ref={textareaRef}
+                autoFocus={focusField === 'content'}
                 value={formData.content}
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                 placeholder={`apiVersion: v1\nkind: Service\nmetadata:\n  name: my-service`}
