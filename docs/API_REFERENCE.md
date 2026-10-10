@@ -165,6 +165,25 @@ count must be an integer between 0 and 1000.
 
 - **Returns**: `Promise<Result<string>>`
 
+### `getAppInfo()`
+
+Version and runtime facts for the About card and bug reports.
+
+- **Returns**: `Promise<Result<AppInfo>>` where `AppInfo` is `{ version: string; platform: string; arch: string; electron: string; logsPath: string }` (`version` is `v` + package.json version, `logsPath` the folder holding `main.log`)
+
+### `openLogsFolder()`
+
+Opens the logs folder in the system file manager. Fails with the file manager's message when it cannot be opened.
+
+- **Returns**: `Promise<Result<boolean>>`
+
+### `logRendererError(report)`
+
+Writes a renderer error to the main log file (`[Renderer:<source>] message` plus the stack, each field clipped to 4000 characters). Used by the ErrorBoundary and the global `error`/`unhandledrejection` listeners; nothing leaves the machine.
+
+- **Parameters**: `report`: `{ source: string; message: string; stack?: string }`
+- **Returns**: `Promise<Result<boolean>>`
+
 ### `getFeatureFlags()`
 
 Runtime feature switches decided by the main process.

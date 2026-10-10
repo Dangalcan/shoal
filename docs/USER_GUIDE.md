@@ -217,7 +217,7 @@ Click on **"Settings"** in the sidebar to customize your experience:
 - **Theme**: Switch between Dark and Light mode.
 - **Kubeconfig Path**: Point Shoal at a kubeconfig stored in a non-standard location (several files can be joined with the OS path separator). The file must exist; the path is saved and restored when Shoal starts.
 - **Refresh Interval**: Adjust how often the UI polls for resource changes.
-- **Developer Mode**: Enable this to load unpacked plugins from your local machine (for developers).
+- **About & Support**: Shows your Shoal version and platform, and lets you check for updates, open the logs folder, or report a problem.
 
 ---
 
@@ -227,11 +227,13 @@ Shoal updates itself automatically from GitHub Releases:
 
 - When a new version is found, a toast tells you it is downloading in the background.
 - Once downloaded, a persistent **"Restart"** prompt appears — click it to install the update and relaunch. You can also keep working and the update installs on the next app restart.
+- To check right away, use **Settings → About & Support → Check for updates**. The portable Windows version cannot update itself: download the new release instead.
 
 ---
 
 ## Support & Feedback
 
-- **Report a Bug**: Open an issue on [GitHub](https://github.com/Dangalcan/shoal/issues).
+- **Report a Bug**: Use **Settings → About & Support → Report a problem** (also offered on the error screen). It opens a GitHub issue prefilled with your version and OS; nothing is sent until you submit it.
+- **Logs**: Errors are written to a local `main.log` (Windows `%APPDATA%\Shoal\logs`, Linux `~/.config/Shoal/logs`). **Open logs folder** takes you there; attach the file to your issue if you are comfortable sharing it. Shoal sends no telemetry or crash reports.
 - **Propose a Feature**: Use our feature request template on GitHub.
 - **Discussions**: Join the community in [GitHub Discussions](https://github.com/Dangalcan/shoal/discussions).

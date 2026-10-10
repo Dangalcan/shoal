@@ -14,9 +14,10 @@ import type {
   MigrationImportResult,
 } from '../electron/types/migration-types';
 import type { ToolStatus } from '../electron/types/tool-types';
+import type { AppInfo, RendererErrorReport } from '../electron/types/app-types';
 
 export type { PluginNotificationData, PluginModalData, PluginScaffoldOptions };
-export type { ToolStatus };
+export type { ToolStatus, AppInfo, RendererErrorReport };
 export type {
   KomposeStatus,
   ComposeConversion,
@@ -139,6 +140,9 @@ export interface ElectronAPI {
   }) => Promise<Result<void>>;
   getAppVersion: () => Promise<Result<string>>;
   getFeatureFlags: () => Promise<Result<FeatureFlags>>;
+  getAppInfo: () => Promise<Result<AppInfo>>;
+  openLogsFolder: () => Promise<Result<boolean>>;
+  logRendererError: (report: RendererErrorReport) => Promise<Result<boolean>>;
   getKubeconfigPath: () => Promise<Result<string>>;
   setKubeconfigPath: (path: string) => Promise<Result<boolean>>;
 

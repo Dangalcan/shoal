@@ -1,7 +1,10 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertCircle, RefreshCcw, Home } from 'lucide-react';
+import { AlertCircle, RefreshCcw, Home, Bug } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
+import { electronService } from '../../services/electronService';
+import { isSuccess } from '../../types/result';
+import { buildIssueUrl, reportRendererError } from '../../lib/error-reporting';
 
 
 
@@ -28,6 +31,11 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
+    reportRendererError(
+      error,
+      'error-boundary',
+      errorInfo.componentStack ?? undefined
+    );
   }
 
   private handleReset = () => {
@@ -40,7 +48,17 @@ export class ErrorBoundary extends Component<Props, State> {
 
   private handleGoHome = () => {
     this.setState({ hasError: false, error: null });
-    window.location.href = '/';
+    // HashRouter: changing href to "/" would load file:/// in packaged builds.
+    window.location.hash = '#/';
+  };
+
+  private handleReport = async () => {
+    const info = await electronService.getAppInfo().catch(() => null);
+    const url = buildIssueUrl(
+      info && isSuccess(info) ? info.data : null,
+      this.state.error?.toString()
+    );
+    await electronService.openExternal(url).catch(() => undefined);
   };
 
   public render() {
@@ -55,7 +73,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
             <h1 className="error-title">Something went wrong</h1>
             <p className="error-message">
-              The application encountered an unexpected error. We've been notified and are working on a fix.
+              The application encountered an unexpected error. It was written to the log file; you can report it on GitHub.
             </p>
             <div className="error-actions">
               <Button 
@@ -72,6 +90,13 @@ export class ErrorBoundary extends Component<Props, State> {
                 icon={<Home size={18} />}
               >
                 Back to Dashboard
+              </Button>
+              <Button
+                variant="outline"
+                onClick={this.handleReport}
+                icon={<Bug size={18} />}
+              >
+                Report a problem
               </Button>
             </div>
             {process.env.NODE_ENV === 'development' && this.state.error && (

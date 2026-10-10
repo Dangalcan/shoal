@@ -6,6 +6,7 @@ import type {
   PluginScaffoldOptions,
 } from './types/plugin-types';
 import type { MigrationImportArgs } from './types/migration-types';
+import type { RendererErrorReport } from './types/app-types';
 
 contextBridge.exposeInMainWorld('electron', {
   checkTool: (tool: string) => ipcRenderer.invoke('check-tool', tool),
@@ -70,6 +71,10 @@ contextBridge.exposeInMainWorld('electron', {
   }) => ipcRenderer.invoke('scale-resource', args),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   getFeatureFlags: () => ipcRenderer.invoke('get-feature-flags'),
+  getAppInfo: () => ipcRenderer.invoke('get-app-info'),
+  openLogsFolder: () => ipcRenderer.invoke('open-logs-folder'),
+  logRendererError: (report: RendererErrorReport) =>
+    ipcRenderer.invoke('log-renderer-error', report),
   getKubeconfigPath: () => ipcRenderer.invoke('get-kubeconfig-path'),
   setKubeconfigPath: (path: string) =>
     ipcRenderer.invoke('set-kubeconfig-path', path),

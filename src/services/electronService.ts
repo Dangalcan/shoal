@@ -1,5 +1,10 @@
 import type { Result } from '../types/result';
-import type { Manifest, PluginScaffoldOptions } from '../types.d';
+import type {
+  AppInfo,
+  Manifest,
+  PluginScaffoldOptions,
+  RendererErrorReport,
+} from '../types.d';
 import type { K8sResource } from '../types/k8s-types';
 import type { Plugin } from '../../electron/types/plugin-types';
 
@@ -17,6 +22,22 @@ export class ElectronService {
 
   async checkTool(tool: string): Promise<Result<boolean>> {
     return window.electron.checkTool(tool);
+  }
+
+  /**
+   * Used outside the ApiProvider (ErrorBoundary, global error listeners), so
+   * it must not throw when the preload bridge is missing.
+   */
+  async logRendererError(report: RendererErrorReport): Promise<void> {
+    await window.electron?.logRendererError?.(report);
+  }
+
+  async getAppInfo(): Promise<Result<AppInfo>> {
+    return window.electron.getAppInfo();
+  }
+
+  async openExternal(url: string): Promise<Result<boolean>> {
+    return window.electron.openExternal(url);
   }
 
   async createCluster(name: string, provider: string): Promise<Result<void>> {

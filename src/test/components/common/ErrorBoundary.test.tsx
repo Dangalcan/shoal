@@ -16,7 +16,7 @@ describe('ErrorBoundary', () => {
   beforeEach(() => {
     // Suppress console.error in tests because ErrorBoundary logs it
     console.error = vi.fn();
-    vi.stubGlobal('location', { reload: vi.fn(), href: '' });
+    vi.stubGlobal('location', { reload: vi.fn(), href: '', hash: '' });
   });
 
   afterEach(() => {
@@ -71,8 +71,58 @@ describe('ErrorBoundary', () => {
     // Our beforeEach stubs 'location' with an object.
     
     fireEvent.click(screen.getByText('Back to Dashboard'));
-    
-    expect(window.location.href).toBe('/');
+
+    // HashRouter: going "home" must not navigate the window to file:///.
+    expect(window.location.hash).toBe('#/');
+    expect(window.location.href).toBe('');
+  });
+
+  it('writes the error to the main log', () => {
+    const logRendererError = vi.mocked(window.electron.logRendererError);
+    logRendererError.mockClear();
+
+    render(
+      <ErrorBoundary>
+        <ThrowError shouldThrow={true} />
+      </ErrorBoundary>
+    );
+
+    expect(logRendererError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: 'error-boundary',
+        message: 'Error: Test Error',
+      })
+    );
+  });
+
+  it('opens a prefilled GitHub issue from "Report a problem"', async () => {
+    const openExternal = vi.mocked(window.electron.openExternal);
+    openExternal.mockClear();
+    vi.mocked(window.electron.getAppInfo).mockResolvedValueOnce({
+      success: true,
+      data: {
+        version: 'v0.9.0',
+        platform: 'win32',
+        arch: 'x64',
+        electron: '44.7.0',
+        logsPath: 'C:/logs',
+      },
+    });
+
+    render(
+      <ErrorBoundary>
+        <ThrowError shouldThrow={true} />
+      </ErrorBoundary>
+    );
+    fireEvent.click(screen.getByText('Report a problem'));
+
+    await vi.waitFor(() => expect(openExternal).toHaveBeenCalled());
+    const url = new URL(String(openExternal.mock.calls[0]?.[0]));
+    expect(url.origin + url.pathname).toBe(
+      'https://github.com/Dangalcan/shoal/issues/new'
+    );
+    expect(url.searchParams.get('body')).toContain('Shoal: v0.9.0');
+    expect(url.searchParams.get('body')).toContain('Error: Test Error');
   });
 
   it('should show error details in development mode', () => {

@@ -100,6 +100,18 @@ export const mockApi: ElectronAPI = {
     success: true,
     data: { marketplace: true },
   }),
+  getAppInfo: async () => ({
+    success: true,
+    data: {
+      version: 'v0.1.0-mock',
+      platform: 'mock',
+      arch: 'x64',
+      electron: 'mock',
+      logsPath: '/mock/logs',
+    },
+  }),
+  openLogsFolder: async () => ({ success: true, data: true }),
+  logRendererError: async () => ({ success: true, data: true }),
   getAppVersion: async () => {
     console.log('[MockAPI] getAppVersion');
     return { success: true, data: 'v0.1.0-mock' };

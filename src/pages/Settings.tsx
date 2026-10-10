@@ -2,6 +2,7 @@ import { Card, Button, Animate } from '../components/ui';
 import { useSettings } from '../features/settings';
 import { useNamespaces } from '../hooks';
 import { useClusterContext } from '../features/clusters/ClusterContext';
+import { AboutCard } from '../features/settings/AboutCard';
 import { Globe, FolderOpen, Activity, RefreshCw, Check } from 'lucide-react';
 
 export function Settings() {
@@ -144,6 +145,10 @@ export function Settings() {
               </div>
             </div>
           </Card>
+        </Animate>
+
+        <Animate type="slide-up" delay={200}>
+          <AboutCard />
         </Animate>
       </div>
 

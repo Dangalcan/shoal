@@ -57,6 +57,18 @@ export function createMockElectronAPI(
     getFeatureFlags: vi
       .fn()
       .mockResolvedValue({ success: true, data: { marketplace: true } }),
+    getAppInfo: vi.fn().mockResolvedValue({
+      success: true,
+      data: {
+        version: 'v1.0.0-test',
+        platform: 'linux',
+        arch: 'x64',
+        electron: '44.7.0',
+        logsPath: '/tmp/shoal/logs',
+      },
+    }),
+    openLogsFolder: vi.fn().mockResolvedValue({ success: true, data: true }),
+    logRendererError: vi.fn().mockResolvedValue({ success: true, data: true }),
     getAppVersion: vi
       .fn()
       .mockResolvedValue({ success: true, data: '1.0.0-test' }),

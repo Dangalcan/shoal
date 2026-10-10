@@ -8,6 +8,10 @@ import '../styles/tailwind.css'
 import '../styles/index.scss'
 import { PluginProvider } from './features/plugins/PluginProvider';
 import { PluginNotifications } from './features/plugins/PluginNotifications';
+import { installGlobalErrorHandlers } from './lib/error-reporting';
+
+// Uncaught errors and unhandled rejections go to the main log file.
+installGlobalErrorHandlers();
 
 // Plugin UIs run in sandboxed iframes (see features/plugins/sandbox); the host
 // realm no longer exposes React/UI globals or executes plugin renderer code.

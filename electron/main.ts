@@ -7,6 +7,7 @@ import { manifestDb } from './database';
 import { getErrorMessage } from './utils/error-utils';
 import { registerClusterIpcHandlers } from './ipc/cluster-ipc';
 import { registerToolIpcHandlers } from './ipc/tool-ipc';
+import { registerAppIpcHandlers } from './ipc/app-ipc';
 import { registerResourcesIpcHandlers } from './ipc/resources-ipc';
 import { registerPluginsIpcHandlers } from './ipc/plugins-ipc';
 import { registerMarketplaceIpcHandlers } from './ipc/marketplace-ipc';
@@ -89,6 +90,7 @@ protocol.registerSchemesAsPrivileged([
 function registerIpcHandlers(): void {
   registerClusterIpcHandlers();
   registerToolIpcHandlers();
+  registerAppIpcHandlers();
   registerResourcesIpcHandlers();
   registerPluginsIpcHandlers();
   registerMarketplaceIpcHandlers();
