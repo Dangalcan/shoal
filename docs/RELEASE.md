@@ -49,8 +49,9 @@ add them.
 
 ## Publishing the draft
 
-1. Wait for both matrix jobs (and the packaged smoke tests, once they run in
-   CI) to pass.
+1. Wait for both `release` jobs and both `smoke` jobs to pass. The smoke jobs
+   install the new package on clean Windows and Linux runners and run the E2E
+   suite against it (Linux also creates kind clusters).
 2. Download the installer of at least one platform from the draft and start it.
 3. On GitHub, edit the draft:
    - Paste the `CHANGELOG.md` section as release notes.

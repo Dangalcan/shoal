@@ -2,6 +2,14 @@
 
 End-to-end tests for Shoal use [Playwright](https://playwright.dev/) with its native Electron support. Tests run against a real built app, a real `kubectl` CLI, and a real local Kubernetes cluster — no mocks.
 
+The same specs run in two modes:
+
+- **Dev build** (default): the app compiled in this repo (`dist-electron/main.js`).
+- **Packaged app**: set `SHOAL_E2E_EXECUTABLE` to an installed or packaged
+  executable (`Shoal.exe`, the AppImage, `release/win-unpacked/Shoal.exe`).
+  Packaged builds only load signed plugins, exactly as for users. CI uses this
+  mode as the installer smoke test (`smoke` job in `.github/workflows/build.yml`).
+
 ---
 
 ## Folder Structure
@@ -9,10 +17,15 @@ End-to-end tests for Shoal use [Playwright](https://playwright.dev/) with its na
 ```
 e2e/
 ├── fixtures/
+│   ├── launch.ts                 # launchApp() + mainWindow(): dev build or packaged app
 │   └── app.fixture.ts            # Shared Electron launch fixture (app + window)
 ├── features/
+│   ├── navigation.spec.ts        # Sidebar navigation and theme toggle
 │   ├── cluster-lifecycle.spec.ts # Create and delete a cluster end-to-end
 │   ├── cluster-details.spec.ts   # Cluster details UI: tabs, sorting, filters, settings
+│   ├── manifests.spec.ts         # Manifest library: create, edit, templates, folders
+│   ├── plugins.spec.ts           # Bundled plugins: list, enable/disable, plugin page
+│   ├── terminal.spec.ts          # Local shell sessions
 │   ├── sandbox-theme.spec.ts     # Plugin iframe follows host theme toggles
 │   └── sandbox-widget.spec.ts    # Plugin dashboard widget + page frame stability
 └── explore.spec.ts               # Interactive exploration tool (not auto-run)
@@ -20,10 +33,23 @@ e2e/
 
 ### `fixtures/`
 
-Contains shared test setup. `app.fixture.ts` exposes two Playwright fixtures:
+Contains shared test setup. Always launch the app through `launch.ts`:
+
+- **`launchApp({ userDataDir? })`** starts the dev build, or the executable in
+  `SHOAL_E2E_EXECUTABLE`. Every launch gets a fresh temporary user data
+  directory unless one is passed, so each test starts from a clean first run
+  (bundled example plugins enabled, empty databases). On Linux the packaged app
+  gets `--no-sandbox` (Ubuntu 24.04 blocks Chromium's sandbox in CI).
+- **`mainWindow(app)`** returns the main window once the app shell
+  (`aside.sidebar`) is visible. Do not stop at `domcontentloaded`: the window
+  commits a second navigation right after the first load, and a
+  `page.evaluate` issued in between fails with "Execution context was
+  destroyed".
+
+`app.fixture.ts` wraps both as two Playwright fixtures:
 
 - **`app`** — a launched `ElectronApplication` instance
-- **`window`** — the app's first `BrowserWindow` as a Playwright `Page`
+- **`window`** — the app's main window as a Playwright `Page`
 
 Tests that use the fixture get a fresh app per test. Tests that need shared state across multiple assertions (like `cluster-details`) manage the `app` and `window` directly with `beforeAll`/`afterAll`.
 
@@ -62,6 +88,17 @@ npm run test:e2e:interactive
 # Open the HTML report from the last run
 npm run test:e2e:report
 ```
+
+Against a packaged app instead of the dev build (Git Bash; build it first with
+`npx electron-builder --win --dir --publish never`):
+
+```bash
+SHOAL_E2E_EXECUTABLE="$PWD/release/win-unpacked/Shoal.exe" npx playwright test
+```
+
+On Linux CI the AppImage runs under `xvfb-run -a` with
+`APPIMAGE_EXTRACT_AND_RUN=1` (no libfuse2 on the runners). The Windows smoke
+job skips the two cluster specs because the runner cannot run Linux containers.
 
 ---
 

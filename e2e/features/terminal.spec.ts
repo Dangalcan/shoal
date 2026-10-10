@@ -1,6 +1,6 @@
-import { test, expect, _electron as electron } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import type { ElectronApplication, Page } from '@playwright/test';
-import path from 'path';
+import { launchApp, mainWindow } from '../fixtures/launch';
 
 /**
  * Local terminal: session startup, shell picker, command round-trip through
@@ -14,12 +14,8 @@ let app: ElectronApplication;
 let window: Page;
 
 test.beforeAll(async () => {
-  app = await electron.launch({
-    args: [path.resolve(__dirname, '../..')],
-    env: { ...process.env, ALLOW_UNSIGNED_PLUGINS: 'true', NODE_ENV: 'test' },
-  });
-  window = await app.firstWindow();
-  await window.waitForLoadState('domcontentloaded');
+  app = await launchApp();
+  window = await mainWindow(app);
 
   await window.getByRole('link', { name: 'Terminal' }).click();
   await expect(window.locator('.terminal-page__title-text')).toBeVisible();

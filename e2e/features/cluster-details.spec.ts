@@ -1,6 +1,6 @@
-import { test, expect, _electron as electron } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import type { ElectronApplication, Page } from '@playwright/test';
-import path from 'path';
+import { launchApp, mainWindow } from '../fixtures/launch';
 
 const CLUSTER_NAME = 'details-test-cluster';
 
@@ -12,12 +12,8 @@ let window: Page;
 // ─────────────────────────────────────────────────────────────────────────────
 
 test.beforeAll(async () => {
-  app = await electron.launch({
-    args: [path.resolve(__dirname, '../..')],
-    env: { ...process.env, ALLOW_UNSIGNED_PLUGINS: 'true', NODE_ENV: 'test' },
-  });
-  window = await app.firstWindow();
-  await window.waitForLoadState('domcontentloaded');
+  app = await launchApp();
+  window = await mainWindow(app);
 
   // ── Create the cluster ───────────────────────────────────────────────────
   await window.getByRole('link', { name: 'Clusters' }).click();
@@ -171,16 +167,21 @@ test('settings dropdown toggles a resource tab on and off', async () => {
     .filter({ hasText: /^Jobs$/ });
   const jobsToggle = jobsItem.locator('.settings-toggle');
 
-  // Verify initial state is ON
-  await expect(jobsToggle).toHaveClass(/settings-toggle-on/);
+  // Jobs is hidden by default (defaultHidden in resource-configs), but a
+  // reused profile may have it on: assert the flip, not a fixed start state.
+  const startsOn = /settings-toggle-on/.test(
+    (await jobsToggle.getAttribute('class')) ?? ''
+  );
+  const initial = startsOn ? /settings-toggle-on/ : /settings-toggle-off/;
+  const flipped = startsOn ? /settings-toggle-off/ : /settings-toggle-on/;
 
-  // Toggle off → CSS class on the switch changes immediately (direct, reliable)
+  // Toggle → CSS class on the switch changes immediately (direct, reliable)
   await jobsItem.click();
-  await expect(jobsToggle).toHaveClass(/settings-toggle-off/);
+  await expect(jobsToggle).toHaveClass(flipped);
 
-  // Toggle back on
+  // Toggle back to the starting state
   await jobsItem.click();
-  await expect(jobsToggle).toHaveClass(/settings-toggle-on/);
+  await expect(jobsToggle).toHaveClass(initial);
 
   await window.locator('button[title="Close Settings"]').click();
 });

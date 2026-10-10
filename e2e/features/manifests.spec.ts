@@ -1,5 +1,6 @@
-import { test, expect, _electron as electron } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import type { ElectronApplication, Page } from '@playwright/test';
+import { launchApp, mainWindow } from '../fixtures/launch';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
@@ -33,13 +34,9 @@ let app: ElectronApplication;
 let window: Page;
 
 test.beforeAll(async () => {
-  userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kd-e2e-manifests-'));
-  app = await electron.launch({
-    args: [`--user-data-dir=${userDataDir}`, path.resolve(__dirname, '../..')],
-    env: { ...process.env, ALLOW_UNSIGNED_PLUGINS: 'true', NODE_ENV: 'test' },
-  });
-  window = await app.firstWindow();
-  await window.waitForLoadState('domcontentloaded');
+  userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'shoal-e2e-manifests-'));
+  app = await launchApp({ userDataDir });
+  window = await mainWindow(app);
 
   await window.getByRole('link', { name: 'Manifests' }).click();
   await expect(
