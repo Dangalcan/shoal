@@ -63,6 +63,12 @@ export interface PortForwardInfo extends PortForwardArgs {
   startedAt: string;
 }
 
+/** Runtime feature switches decided by the main process. */
+export interface FeatureFlags {
+  /** Plugin marketplace (catalog, installs, checkout, licenses). */
+  marketplace: boolean;
+}
+
 export interface ElectronAPI {
   checkTool: (tool: string) => Promise<Result<boolean>>;
   openExternal: (url: string) => Promise<Result<boolean>>;
@@ -129,6 +135,7 @@ export interface ElectronAPI {
     replicas: number;
   }) => Promise<Result<void>>;
   getAppVersion: () => Promise<Result<string>>;
+  getFeatureFlags: () => Promise<Result<FeatureFlags>>;
   getKubeconfigPath: () => Promise<Result<string>>;
   setKubeconfigPath: (path: string) => Promise<Result<boolean>>;
 

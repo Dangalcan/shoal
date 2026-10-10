@@ -50,6 +50,9 @@ export function createMockElectronAPI(
     scaleResource: vi
       .fn()
       .mockResolvedValue({ success: true, data: undefined }),
+    getFeatureFlags: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: { marketplace: true } }),
     getAppVersion: vi
       .fn()
       .mockResolvedValue({ success: true, data: '1.0.0-test' }),

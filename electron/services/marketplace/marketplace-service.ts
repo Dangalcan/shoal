@@ -179,7 +179,7 @@ export class MarketplaceService {
         const latest = fallback.data.find((p) => p.id === installed.id);
         if (latest && this.isNewer(latest.version, installed.version)) {
           updates.push({
-            id: installed.id,
+            pluginId: installed.id,
             latestVersion: latest.version,
             hasUpdate: true,
           });

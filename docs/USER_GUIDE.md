@@ -170,6 +170,12 @@ Click **"Port Forwards"** in the sidebar to see every active tunnel, with its lo
 
 Plugins allow you to extend the functionality of Shoal.
 
+### Included Plugins
+
+Shoal ships with two example plugins, **Namespace Watcher** and **Resource Monitor**. They are enabled the first time you start the app; you can disable them from the **"Plugins"** section in the sidebar.
+
+> **Beta note:** the plugin marketplace, paid plugins and licenses arrive with Shoal 1.0. In the 0.9 beta the Marketplace tab is hidden and the sections below do not apply yet.
+
 ### Installing Plugins
 
 1. Go to the **"Plugins"** section in the sidebar.

@@ -36,6 +36,7 @@ import { pluginWatcher } from './plugin-watcher';
 import { pathService } from './path-service';
 import { assertValidPluginId } from './plugin-validator';
 import { BUNDLED_DEFAULT_ENABLED } from '../../constants';
+import { isMarketplaceEnabled } from '../../utils/env-utils';
 import fs from 'fs';
 import path from 'path';
 
@@ -146,9 +147,11 @@ export class PluginManager {
   }
 
   /**
-   * Check for updates for all installed plugins
+   * Check for updates for all installed plugins. A no-op while the
+   * marketplace is disabled, so no request leaves the app.
    */
   async checkForUpdates(): Promise<void> {
+    if (!isMarketplaceEnabled()) return;
     const installedPlugins = this.getPlugins();
     const pluginList = installedPlugins.map((p) => ({
       id: p.manifest.id,

@@ -68,6 +68,7 @@ contextBridge.exposeInMainWorld('electron', {
     replicas: number;
   }) => ipcRenderer.invoke('scale-resource', args),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  getFeatureFlags: () => ipcRenderer.invoke('get-feature-flags'),
   getKubeconfigPath: () => ipcRenderer.invoke('get-kubeconfig-path'),
   setKubeconfigPath: (path: string) =>
     ipcRenderer.invoke('set-kubeconfig-path', path),

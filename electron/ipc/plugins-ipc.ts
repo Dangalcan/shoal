@@ -13,6 +13,7 @@ import { templateService } from '../services/plugins/template-service';
 import { licenseManager } from '../services/security/license-manager';
 import type { PluginScaffoldOptions } from '../types/plugin-types';
 import { wrapIpcHandler } from './ipc-utils';
+import { assertMarketplaceEnabled } from '../utils/env-utils';
 
 export function registerPluginsIpcHandlers(): void {
   ipcMain.handle(
@@ -123,6 +124,7 @@ export function registerPluginsIpcHandlers(): void {
     wrapIpcHandler(
       'activate-plugin-license',
       async (_event, { pluginId, licenseKey }) => {
+        assertMarketplaceEnabled();
         return await licenseManager.activateLicense(pluginId, licenseKey);
       }
     )
@@ -131,6 +133,7 @@ export function registerPluginsIpcHandlers(): void {
   ipcMain.handle(
     'start-plugin-trial',
     wrapIpcHandler('start-plugin-trial', async (_event, pluginId: string) => {
+      assertMarketplaceEnabled();
       return await licenseManager.startTrial(pluginId);
     })
   );

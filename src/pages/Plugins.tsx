@@ -11,6 +11,7 @@ import { useItemModal } from '../hooks/useItemModal';
 import { PluginCard } from '../features/plugins/PluginCard';
 import { LicenseActivationModal } from '../features/plugins/LicenseActivationModal';
 import { MarketplaceList } from '../features/marketplace/MarketplaceList';
+import { useFeatureFlags } from '../features/plugins/useFeatureFlags';
 import { PluginSettingsModal } from '../features/plugins/PluginSettingsModal';
 import { ConfirmModal } from '../components/modals/ConfirmModal';
 import { Package, Download, Upload, Loader2 } from 'lucide-react';
@@ -32,6 +33,8 @@ export default function Plugins() {
   } = usePlugins();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'installed' | 'marketplace'>('installed');
+  const { flags } = useFeatureFlags();
+  const showMarketplace = flags.marketplace && activeTab === 'marketplace';
   const [importing, setImporting] = useState(false);
   const licenseModal = useItemModal<Plugin>();
   const settingsModal = useItemModal<Plugin>();
@@ -178,26 +181,28 @@ export default function Plugins() {
         </div>
       </div>
 
-      <div className="plugins-tabs-row">
-        <div className="plugins-tabs">
-          <button
-            className={`tab-btn ${activeTab === 'installed' ? 'active' : ''}`}
-            onClick={() => setActiveTab('installed')}
-          >
-            <Package size={18} />
-            Installed
-          </button>
-          <button
-            className={`tab-btn ${activeTab === 'marketplace' ? 'active' : ''}`}
-            onClick={() => setActiveTab('marketplace')}
-          >
-            <Download size={18} />
-            Marketplace
-          </button>
+      {flags.marketplace && (
+        <div className="plugins-tabs-row">
+          <div className="plugins-tabs">
+            <button
+              className={`tab-btn ${activeTab === 'installed' ? 'active' : ''}`}
+              onClick={() => setActiveTab('installed')}
+            >
+              <Package size={18} />
+              Installed
+            </button>
+            <button
+              className={`tab-btn ${activeTab === 'marketplace' ? 'active' : ''}`}
+              onClick={() => setActiveTab('marketplace')}
+            >
+              <Download size={18} />
+              Marketplace
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {activeTab === 'marketplace' ? (
+      {showMarketplace ? (
         <MarketplaceList />
       ) : (
         <>
@@ -205,7 +210,9 @@ export default function Plugins() {
             <div className="plugins__empty">
               <p>No plugins installed.</p>
               <p className="plugins__empty-hint">
-                Check out the Marketplace to find plugins!
+                {flags.marketplace
+                  ? 'Check out the Marketplace to find plugins!'
+                  : 'The plugin marketplace arrives with Shoal 1.0.'}
               </p>
             </div>
           ) : (

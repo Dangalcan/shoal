@@ -158,6 +158,18 @@ count must be an integer between 0 and 1000.
 
 - **Returns**: `Promise<Result<string>>`
 
+### `getFeatureFlags()`
+
+Runtime feature switches decided by the main process.
+
+- **Returns**: `Promise<Result<{ marketplace: boolean }>>`
+- `marketplace` is `true` only when the app runs with `MARKETPLACE_ENABLED=true`
+  (`npm run dev` sets it). While it is `false`, `getMarketplacePlugins`,
+  `installPlugin`, `createCheckout`, `getCheckoutStatus`,
+  `activatePluginLicense` and `startPluginTrial` return
+  `{ success: false, error: 'The marketplace is not available in this version' }`,
+  and `checkForPluginUpdates` succeeds without contacting any server.
+
 ### `getKubeconfigPath()`
 
 - **Returns**: `Promise<Result<string>>`

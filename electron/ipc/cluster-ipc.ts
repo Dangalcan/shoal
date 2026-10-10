@@ -16,6 +16,7 @@ import path from 'path';
 import { safeExec, ALLOWED_TOOLS } from '../utils/safe-exec';
 import { clusterManagementService } from '../services/cluster/cluster-management-service';
 import { wrapIpcHandler, assertContext } from './ipc-utils';
+import { isMarketplaceEnabled } from '../utils/env-utils';
 
 export function registerClusterIpcHandlers(): void {
   ipcMain.handle(
@@ -92,6 +93,13 @@ export function registerClusterIpcHandlers(): void {
       await safeExec('kubectl', ['config', 'use-context', contextName]);
       return true;
     })
+  );
+
+  ipcMain.handle(
+    'get-feature-flags',
+    wrapIpcHandler('get-feature-flags', async () => ({
+      marketplace: isMarketplaceEnabled(),
+    }))
   );
 
   ipcMain.handle(

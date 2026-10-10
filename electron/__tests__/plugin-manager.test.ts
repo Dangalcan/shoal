@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { PluginManager } from '../services/plugins/plugin-manager';
 import { pluginLoader } from '../services/plugins/plugin-loader';
 import { pluginRegistry } from '../services/plugins/plugin-registry';
@@ -248,6 +248,22 @@ describe('PluginManager', () => {
   });
 
   describe('checkForUpdates', () => {
+    beforeEach(() => {
+      vi.stubEnv('MARKETPLACE_ENABLED', 'true');
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('should not contact the marketplace when it is disabled', async () => {
+      vi.stubEnv('MARKETPLACE_ENABLED', '');
+
+      await pluginManager.checkForUpdates();
+
+      expect(marketplaceService.checkForUpdates).not.toHaveBeenCalled();
+    });
+
     it('should check and apply updates', async () => {
       const mockPlugins = [{ manifest: { id: 'p1', version: '1.0.0' } } as any];
       vi.mocked(pluginRegistry.getAllPlugins).mockReturnValue(mockPlugins);

@@ -296,7 +296,7 @@ The plugin ecosystem is powered by **kdMarket**, a standalone, contract-first ma
 - Admin endpoints for managing license keys and catalog entries
 - Rate limiting and Helmet security middleware
 
-The app selects the backend via the `MARKETPLACE_BACKEND_URL` environment variable (e.g. `http://localhost:3001/v1` for a local kdMarket).
+The marketplace is off unless the app runs with `MARKETPLACE_ENABLED=true` (the 0.9 beta ships without it; `npm run dev` turns it on). The app selects the backend via the `MARKETPLACE_BACKEND_URL` environment variable (e.g. `http://localhost:3001/v1` for a local kdMarket).
 
 ### In-repo mock backend
 

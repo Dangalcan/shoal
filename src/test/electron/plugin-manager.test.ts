@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { LocalPluginModule } from '../../../electron/services/plugins/host/module-handle';
 
 vi.mock('electron', () => ({
@@ -315,6 +315,22 @@ describe('PluginManager', () => {
   });
 
   describe('checkForUpdates', () => {
+    beforeEach(() => {
+      vi.stubEnv('MARKETPLACE_ENABLED', 'true');
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('does nothing while the marketplace is disabled', async () => {
+      vi.stubEnv('MARKETPLACE_ENABLED', '');
+
+      await manager.checkForUpdates();
+
+      expect(mocks.marketplace.checkForUpdates).not.toHaveBeenCalled();
+    });
+
     it('returns early with no plugins installed', async () => {
       mocks.registry.getAllPlugins.mockReturnValue([]);
 

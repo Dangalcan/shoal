@@ -91,6 +91,11 @@ export const mockApi: ElectronAPI = {
     console.log('[MockAPI] scaleResource:', args);
     return { success: true, data: undefined };
   },
+  // Browser mock keeps the marketplace visible for UI development
+  getFeatureFlags: async () => ({
+    success: true,
+    data: { marketplace: true },
+  }),
   getAppVersion: async () => {
     console.log('[MockAPI] getAppVersion');
     return { success: true, data: 'v0.1.0-mock' };
