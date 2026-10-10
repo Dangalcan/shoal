@@ -3,7 +3,7 @@
   "name": "Namespace Watcher",
   "version": "1.1.0",
   "description": "Monitors Kubernetes namespaces and provides quick stats.",
-  "author": "K8s Desktop Team",
+  "author": "Shoal Team",
   "main": "index.js",
   "renderer": "renderer.js",
   "styles": ["styles.css"],

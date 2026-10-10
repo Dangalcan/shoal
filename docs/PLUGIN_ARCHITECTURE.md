@@ -1,6 +1,6 @@
 # Plugin System Architecture
 
-A hybrid plugin architecture with marketplace and licensing support that extends Kubernetes Desktop functionality through free and paid third-party extensions.
+A hybrid plugin architecture with marketplace and licensing support that extends Shoal functionality through free and paid third-party extensions.
 
 > **Note:** This document was originally written as an implementation plan. The core plugin system (Phases 1–3) is now fully implemented. Sections below reflect the current architecture.
 
@@ -10,7 +10,7 @@ A hybrid plugin architecture with marketplace and licensing support that extends
 
 ### Hybrid Plugin Model
 
-Kubernetes Desktop uses a **hybrid plugin architecture**:
+Shoal uses a **hybrid plugin architecture**:
 
 - **Main Process plugins** (`index.js`): Node.js code running in the Electron main process. Executed inside a `vm` sandbox with a built-in allowlist (`electron/services/plugins/plugin-sandbox.ts`) and a permission-gated `PluginContext`.
 - **Renderer plugins** (`renderer.js`): the plugin's UI, run inside an **isolated sandboxed iframe** (`sandbox="allow-scripts"`, opaque origin). The iframe has **no access** to `window.electron`, the host DOM, cookies, or other plugins. Its entire capability surface is `window.k8sPlugin`, a promise-based, permission-gated API delivered over a `MessageChannel` (see below).
@@ -118,22 +118,22 @@ Plugins own their rendering stack (plain DOM, React, etc.) and mount into
 
 ### Core Plugin Infrastructure (`electron/services/plugins/`)
 
-| File                          | Description                                                                                                                                                          |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `plugin-manager.ts`           | Central orchestrator. Wires together loader, registry, context, and dependency resolver.                                                                             |
-| `plugin-loader.ts`            | Discovers plugins from disk, validates manifests, requires entry point. Decides in-process vs utility-process execution and hands out module handles.                |
-| `host/plugin-host.ts`         | Utility-process entry: runs the plugin's `index.js` in a vm sandbox with an RPC-proxied `PluginContext`.                                                             |
-| `host/plugin-host-manager.ts` | Main-process side: spawns/kills plugin utility processes and routes context RPC to the real permission-enforcing context.                                            |
-| `host/module-handle.ts`       | `PluginModuleHandle` abstraction — `LocalPluginModule` (in-process vm) and `RemotePluginModule` (utility process) behind one interface.                              |
-| `host/host-protocol.ts`       | Typed message contract between main and plugin host processes.                                                                                                       |
-| `plugin-registry.ts`          | Persists plugin state and settings in `plugin-config.json`.                                                                                                          |
-| `plugin-context.ts`           | Creates the scoped API surface (`kubernetes`, `ui`, `storage`, `logger`, `events`) injected into each plugin.                                                        |
-| `plugin-events.ts`            | Global event bus used by `context.events`. Supports `on`, `once`, `off`, `emit` and app-level events.                                                                |
-| `dependency-resolver.ts`      | Topological sort for activation order; detects circular dependencies; cascades disable to dependents.                                                                |
-| `path-service.ts`             | Platform-aware path resolution for the plugins directory (`~/.kubernetes-desktop/plugins/` on macOS/Linux, `%USERPROFILE%\.kubernetes-desktop\plugins\` on Windows). |
-| `storage-service.ts`          | File-per-key JSON storage scoped per plugin.                                                                                                                         |
-| `data-loader.ts`              | Auto-loads files declared in the `data` manifest field into `context.storage`.                                                                                       |
-| `template-service.ts`         | Scaffolds new plugin directories from a built-in template.                                                                                                           |
+| File                          | Description                                                                                                                                                                                                                 |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugin-manager.ts`           | Central orchestrator. Wires together loader, registry, context, and dependency resolver.                                                                                                                                    |
+| `plugin-loader.ts`            | Discovers plugins from disk, validates manifests, requires entry point. Decides in-process vs utility-process execution and hands out module handles.                                                                       |
+| `host/plugin-host.ts`         | Utility-process entry: runs the plugin's `index.js` in a vm sandbox with an RPC-proxied `PluginContext`.                                                                                                                    |
+| `host/plugin-host-manager.ts` | Main-process side: spawns/kills plugin utility processes and routes context RPC to the real permission-enforcing context.                                                                                                   |
+| `host/module-handle.ts`       | `PluginModuleHandle` abstraction — `LocalPluginModule` (in-process vm) and `RemotePluginModule` (utility process) behind one interface.                                                                                     |
+| `host/host-protocol.ts`       | Typed message contract between main and plugin host processes.                                                                                                                                                              |
+| `plugin-registry.ts`          | Persists plugin state and settings in `plugin-config.json`.                                                                                                                                                                 |
+| `plugin-context.ts`           | Creates the scoped API surface (`kubernetes`, `ui`, `storage`, `logger`, `events`) injected into each plugin.                                                                                                               |
+| `plugin-events.ts`            | Global event bus used by `context.events`. Supports `on`, `once`, `off`, `emit` and app-level events.                                                                                                                       |
+| `dependency-resolver.ts`      | Topological sort for activation order; detects circular dependencies; cascades disable to dependents.                                                                                                                       |
+| `path-service.ts`             | Platform-aware path resolution for the plugins directory (`<userData>/plugins/`, i.e. `%APPDATA%\Shoal\plugins\` on Windows, `~/.config/Shoal/plugins/` on Linux, `~/Library/Application Support/Shoal/plugins/` on macOS). |
+| `storage-service.ts`          | File-per-key JSON storage scoped per plugin.                                                                                                                                                                                |
+| `data-loader.ts`              | Auto-loads files declared in the `data` manifest field into `context.storage`.                                                                                                                                              |
+| `template-service.ts`         | Scaffolds new plugin directories from a built-in template.                                                                                                                                                                  |
 
 ### Security (`electron/services/security/`)
 
@@ -207,7 +207,7 @@ without executing the plugin; the plugin registers the matching component in its
 ## Plugin Structure
 
 ```
-~/.kubernetes-desktop/plugins/my-plugin/
+<userData>/plugins/my-plugin/
 ├── plugin.json        # Manifest (required)
 ├── index.js           # Entry point (required)
 ├── assets/

@@ -14,7 +14,7 @@ import { test, expect } from './fixtures/app.fixture';
  */
 test('explore the app interactively', async ({ window }) => {
   // Waits for the app to finish loading
-  await expect(window).toHaveTitle(/Kubernetes Desktop/i);
+  await expect(window).toHaveTitle(/Shoal/i);
 
   // ↓ This opens Playwright Inspector and freezes here.
   //   Click around in the app. The Inspector shows you the locator

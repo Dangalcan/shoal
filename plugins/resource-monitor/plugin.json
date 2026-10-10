@@ -3,7 +3,7 @@
   "name": "Resource Monitor",
   "version": "1.1.0",
   "description": "Monitors Pod resources within namespaces. Depends on Namespace Watcher.",
-  "author": "K8s Desktop Team",
+  "author": "Shoal Team",
   "main": "index.js",
   "renderer": "renderer.js",
   "styles": ["styles.css"],

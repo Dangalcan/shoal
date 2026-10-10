@@ -2,20 +2,20 @@
 
 ## Supported Versions
 
-The following versions of Kubernetes Desktop are currently supported with security updates:
+The following versions of Shoal are currently supported with security updates:
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
-| < 1.0   | :x:                |
+| Version        | Supported          |
+| -------------- | ------------------ |
+| Latest release | :white_check_mark: |
+| Older releases | :x:                |
 
 ## Reporting a Vulnerability
 
-We take the security of Kubernetes Desktop seriously. If you believe you have found a security vulnerability, please report it to us responsibly.
+We take the security of Shoal seriously. If you believe you have found a security vulnerability, please report it to us responsibly.
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Instead, please report them via email to **security@kubernetes-desktop.com**.
+Instead, please report them privately through [GitHub private vulnerability reporting](https://github.com/Dangalcan/shoal/security/advisories/new).
 
 ### What to include in your report
 
@@ -31,7 +31,7 @@ Please include the following information in your report:
 
 ### Our Process
 
-1. **Acknowledgement:** You should receive a response within 48 hours. If for some reason you do not, please follow up via email to ensure we received your original message.
+1. **Acknowledgement:** You should receive a response within 48 hours. If for some reason you do not, please follow up on the advisory thread to ensure we received your original message.
 2. **Investigation:** We will investigate the issue and may ask for additional information.
 3. **Resolution:** If a vulnerability is confirmed, we will work on a fix.
 4. **Public Disclosure:** Once a fix is available and tested, we will release a new version. We will coordinate the public disclosure with you to give credit where it's due.
@@ -40,7 +40,7 @@ Please include the following information in your report:
 
 ### For Users
 
-- **Keep Kubernetes Desktop up to date:** Always use the latest version to ensure you have the latest security patches.
+- **Keep Shoal up to date:** Always use the latest version to ensure you have the latest security patches.
 - **Only install plugins from trusted sources:** Plugins have significant access to your system and clusters.
 - **Review plugin permissions:** Check what a plugin asks for before installing it.
 - **Kubeconfig Safety:** Your `.kube/config` file contains sensitive credentials. Ensure it's stored securely and not shared.
@@ -53,11 +53,11 @@ Please include the following information in your report:
 - **Secure Communication:** Use HTTPS for any network requests.
 - **Dependency Management:** Keep your plugin's dependencies updated to avoid known vulnerabilities.
 
-## Secure Coding at Kubernetes Desktop
+## Secure Coding at Shoal
 
 The core application follows several security principles:
 
 - **Context Isolation:** The renderer process is sandboxed and isolated from Node.js APIs.
 - **Secure IPC:** All communication between processes happens over a secure IPC bridge with pre-defined handlers.
 - **Command Sanitization:** All shell commands are carefully constructed to prevent injection attacks.
-- **Code Signing:** Official releases are signed to ensure authenticity and integrity.
+- **Release Integrity:** Releases are not code-signed yet. Download installers only from this repository's GitHub Releases page.

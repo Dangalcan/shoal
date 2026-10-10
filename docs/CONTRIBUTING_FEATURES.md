@@ -1,6 +1,6 @@
 # Contributing: Adding New Features 🚀
 
-This guide explains how to add new features to the Kubernetes Desktop application following our architectural patterns. Features typically span both the **Backend (Electron Main Process)** and the **Frontend (React Renderer Process)**.
+This guide explains how to add new features to the Shoal application following our architectural patterns. Features typically span both the **Backend (Electron Main Process)** and the **Frontend (React Renderer Process)**.
 
 ---
 

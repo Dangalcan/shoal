@@ -121,7 +121,7 @@ async function stageValuesFile(
   }
   const file = path.join(
     os.tmpdir(),
-    `k8s-desktop-helm-values-${crypto.randomBytes(8).toString('hex')}.yaml`
+    `shoal-helm-values-${crypto.randomBytes(8).toString('hex')}.yaml`
   );
   await fs.writeFile(file, values, { encoding: 'utf8', mode: 0o600 });
   return {

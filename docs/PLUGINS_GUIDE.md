@@ -1,10 +1,10 @@
-# Kubernetes Desktop Plugin Developer Guide 🚀
+# Shoal Plugin Developer Guide 🚀
 
-This guide explains how to build, test, and distribute plugins for Kubernetes Desktop.
+This guide explains how to build, test, and distribute plugins for Shoal.
 
 ## Overview
 
-Kubernetes Desktop uses a **Hybrid Plugin Architecture**.
+Shoal uses a **Hybrid Plugin Architecture**.
 
 - **Main Process**: Handle system-level tasks via Node.js.
 - **Renderer Process**: Extend the UI with React components.
@@ -13,7 +13,7 @@ Kubernetes Desktop uses a **Hybrid Plugin Architecture**.
 
 Before developing plugins, ensure you have:
 
-- **Kubernetes Desktop** installed and running
+- **Shoal** installed and running
 - **Node.js v18+** installed
 - **TypeScript** knowledge (recommended)
 - **React** knowledge (for UI extensions)
@@ -21,10 +21,11 @@ Before developing plugins, ensure you have:
 
 ## Development Setup
 
-1.  **Enable Developer Mode**: Open Kubernetes Desktop Settings and toggle "Developer Mode".
+1.  **Enable Developer Mode**: Open Shoal Settings and toggle "Developer Mode".
 2.  **Create Plugin Directory**:
-    - Windows: `%USERPROFILE%\.kubernetes-desktop\plugins\my-plugin\`
-    - macOS/Linux: `~/.kubernetes-desktop/plugins/my-plugin/`
+    - Windows: `%APPDATA%\Shoal\plugins\my-plugin\`
+    - macOS: `~/Library/Application Support/Shoal/plugins/my-plugin/`
+    - Linux: `~/.config/Shoal/plugins/my-plugin/`
 3.  **Initialize Project**:
     ```bash
     mkdir my-plugin
@@ -52,7 +53,7 @@ The `plugin.json` file defines the identity and capabilities of your plugin.
   "id": "my-cool-plugin",
   "name": "My Cool Plugin",
   "version": "1.0.0",
-  "description": "Adds awesome features to K8s Desktop",
+  "description": "Adds awesome features to Shoal",
   "author": "Your Name",
   "main": "index.js",
   "renderer": "renderer.js",
@@ -228,7 +229,7 @@ describe('My Plugin', () => {
 
 ## UI Renderer (Frontend Extensions)
 
-Plugins can extend the Kubernetes Desktop UI by providing a **renderer script** — a JavaScript module loaded in the renderer process via the `plugin-file://` custom protocol.
+Plugins can extend the Shoal UI by providing a **renderer script** — a JavaScript module loaded in the renderer process via the `plugin-file://` custom protocol.
 
 ### Setup
 
@@ -410,8 +411,9 @@ Every call returns a Promise; anything outside the table is rejected.
 
 Package your plugin as a `.zip` archive containing `plugin.json`, `index.js`, and any other files. Users install it via **"Load Unpacked Plugin"** (directory picker) or by placing the unzipped folder in the plugins directory:
 
-- **Windows**: `%USERPROFILE%\.kubernetes-desktop\plugins\`
-- **macOS/Linux**: `~/.kubernetes-desktop/plugins/`
+- **Windows**: `%APPDATA%\Shoal\plugins\`
+- **macOS**: `~/Library/Application Support/Shoal/plugins/`
+- **Linux**: `~/.config/Shoal/plugins/`
 
 A security warning is shown for plugins without a valid RSA signature.
 

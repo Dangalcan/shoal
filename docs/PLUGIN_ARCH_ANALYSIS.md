@@ -3,18 +3,18 @@
 > [!WARNING]
 > **Historical document (February 2026).** Written before the plugin UI was moved into sandboxed iframes with a permission-gated bridge (July 2026). Architecture details below may no longer match the code — see [PLUGIN_ARCHITECTURE.md](./PLUGIN_ARCHITECTURE.md) for the current model.
 
-## Kubernetes Desktop vs Odoo Module System
+## Shoal vs Odoo Module System
 
 > [!NOTE]
 > **Analysis Purpose**
 >
-> This document provides a comprehensive deep-dive analysis of the Kubernetes Desktop plugin system architecture and compares it with Odoo's renowned module system to identify architectural patterns, similarities, and opportunities for enhancement.
+> This document provides a comprehensive deep-dive analysis of the Shoal plugin system architecture and compares it with Odoo's renowned module system to identify architectural patterns, similarities, and opportunities for enhancement.
 
 ---
 
 ## Executive Summary
 
-The Kubernetes Desktop project implements a **sophisticated hybrid plugin architecture** inspired by Odoo's modular design philosophy. Both systems share core principles:
+The Shoal project implements a **sophisticated hybrid plugin architecture** inspired by Odoo's modular design philosophy. Both systems share core principles:
 
 - **Modular extensibility** - Self-contained packages that extend core functionality
 - **Manifest-based metadata** - Declarative configuration files defining plugin/module capabilities
@@ -51,10 +51,10 @@ odoo-module/
 - **Module inheritance**: Modules can inherit and extend other modules
 - **Manifest file**: `__manifest__.py` with metadata (name, version, depends, data, etc.)
 
-#### Kubernetes Desktop Plugin System
+#### Shoal Plugin System
 
 ```
-k8s-desktop-plugin/
+shoal-plugin/
 ├── plugin.json              # Plugin manifest (metadata)
 ├── index.js                 # Main entry point (Node.js)
 ├── ui/                      # React components
@@ -99,7 +99,7 @@ k8s-desktop-plugin/
 }
 ```
 
-#### Kubernetes Desktop `plugin.json`
+#### Shoal `plugin.json`
 
 ```json
 {
@@ -144,7 +144,7 @@ k8s-desktop-plugin/
 
 **Comparison:**
 
-| Feature           | Odoo                   | Kubernetes Desktop            |
+| Feature           | Odoo                   | Shoal                         |
 | ----------------- | ---------------------- | ----------------------------- |
 | **Format**        | Python dict            | JSON                          |
 | **Dependencies**  | `depends` array        | Not yet implemented (planned) |
@@ -175,7 +175,7 @@ k8s-desktop-plugin/
 - `uninstall_hook()` - Before uninstallation
 - `post_load()` - After module loading
 
-### Kubernetes Desktop Plugin Lifecycle
+### Shoal Plugin Lifecycle
 
 ```
 [Discovered] → [Loaded] → [Enabled] → [Activated] → [Running]
@@ -207,7 +207,7 @@ k8s-desktop-plugin/
 
 ## 4. Core System Components
 
-### Kubernetes Desktop Plugin System Architecture
+### Shoal Plugin System Architecture
 
 ```mermaid
 graph TB
@@ -303,7 +303,7 @@ uninstallPlugin(pluginId: string): Promise<void>
 
 **Responsibilities:**
 
-- Scan plugin directories (`~/.kubernetes-desktop/plugins/`, bundled plugins)
+- Scan plugin directories (`<userData>/plugins/`, bundled plugins)
 - Read and validate `plugin.json` manifests
 - Load plugin code (Node.js modules)
 - Verify plugin signatures (security)
@@ -455,7 +455,7 @@ context.events.emit(event, ...args);
 
 ## 5. Extension Points & APIs
 
-### Kubernetes Desktop Extension Points
+### Shoal Extension Points
 
 | Extension Point      | Description                        | Example Use Case          |
 | -------------------- | ---------------------------------- | ------------------------- |
@@ -481,13 +481,13 @@ context.events.emit(event, ...args);
 | **Scheduled Actions** | Cron jobs                            | Daily email digest        |
 | **Workflows**         | Business process automation          | Order approval flow       |
 
-**Key Difference:** Odoo has deeper integration with database and business logic, while Kubernetes Desktop focuses on UI extensions and Kubernetes API interactions.
+**Key Difference:** Odoo has deeper integration with database and business logic, while Shoal focuses on UI extensions and Kubernetes API interactions.
 
 ---
 
 ## 6. Security & Permissions
 
-### Kubernetes Desktop Permission System
+### Shoal Permission System
 
 **Permission Types:**
 
@@ -520,13 +520,13 @@ context.events.emit(event, ...args);
 - `ir.model.access.csv` - Model access rights
 - `security.xml` - Groups and record rules
 
-**Key Difference:** Odoo has more granular, database-centric security, while Kubernetes Desktop focuses on API-level permissions.
+**Key Difference:** Odoo has more granular, database-centric security, while Shoal focuses on API-level permissions.
 
 ---
 
 ## 7. Licensing & Monetization
 
-### Kubernetes Desktop Licensing
+### Shoal Licensing
 
 **License Types:**
 
@@ -572,7 +572,7 @@ context.events.emit(event, ...args);
 
 ## 8. Marketplace Architecture
 
-### Kubernetes Desktop Marketplace
+### Shoal Marketplace
 
 **Frontend (Desktop App):**
 
@@ -624,12 +624,12 @@ context.events.emit(event, ...args);
 
 ## 9. Developer Experience
 
-### Kubernetes Desktop Plugin Development
+### Shoal Plugin Development
 
 **Getting Started:**
 
 1. Enable Developer Mode in settings
-2. Create plugin directory: `~/.kubernetes-desktop/plugins/my-plugin/`
+2. Create plugin directory: `<userData>/plugins/my-plugin/`
 3. Create `plugin.json` manifest
 4. Create `index.js` with `activate()` and `deactivate()` functions
 5. Reload app to load plugin
@@ -680,7 +680,7 @@ context.events.emit(event, ...args);
 
 ### Shared Patterns
 
-| Pattern                     | Kubernetes Desktop         | Odoo                       |
+| Pattern                     | Shoal                      | Odoo                       |
 | --------------------------- | -------------------------- | -------------------------- |
 | **Modular Architecture**    | ✅ Self-contained plugins  | ✅ Self-contained modules  |
 | **Manifest-based Metadata** | ✅ `plugin.json`           | ✅ `__manifest__.py`       |
@@ -693,7 +693,7 @@ context.events.emit(event, ...args);
 | **Hot Reload**              | ✅ File watcher            | ✅ Developer mode          |
 | **Versioning**              | ✅ Semantic versioning     | ✅ Version strings         |
 
-### Unique to Kubernetes Desktop
+### Unique to Shoal
 
 - **Hybrid Architecture** - Electron (Node.js + React)
 - **IPC Communication** - Main ↔ Renderer process
@@ -716,7 +716,7 @@ context.events.emit(event, ...args);
 
 ## 11. Recommendations for Enhancement
 
-Based on Odoo's proven architecture, here are recommendations to enhance the Kubernetes Desktop plugin system:
+Based on Odoo's proven architecture, here are recommendations to enhance the Shoal plugin system:
 
 ### 1. **Implement Plugin Dependencies**
 
@@ -935,7 +935,7 @@ context.i18n.t('plugin.message.welcome'); // "Welcome to the plugin"
 
 ```typescript
 // tests/plugin.test.ts
-import { createMockContext } from '@k8s-desktop/plugin-testing';
+import { createMockContext } from '@shoal/plugin-testing';
 
 describe('My Plugin', () => {
   it('should register sidebar item', async () => {
@@ -1030,7 +1030,7 @@ context.analytics.track('feature_used', {
 
 ## 13. Conclusion
 
-The Kubernetes Desktop plugin system is **architecturally sound** and shares many proven patterns with Odoo's module system:
+The Shoal plugin system is **architecturally sound** and shares many proven patterns with Odoo's module system:
 
 ### Strengths
 
@@ -1052,7 +1052,7 @@ The Kubernetes Desktop plugin system is **architecturally sound** and shares man
 
 ### Final Assessment
 
-The Kubernetes Desktop plugin system is **well-designed and production-ready** for its current scope. By adopting additional patterns from Odoo (dependencies, inheritance, data loading, scheduled tasks), it can evolve into an even more powerful and flexible ecosystem.
+The Shoal plugin system is **well-designed and production-ready** for its current scope. By adopting additional patterns from Odoo (dependencies, inheritance, data loading, scheduled tasks), it can evolve into an even more powerful and flexible ecosystem.
 
 The architecture demonstrates:
 

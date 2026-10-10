@@ -1,5 +1,5 @@
 {
-  "name": "kubernetes-desktop",
+  "name": "shoal",
   "version": "1.0.0",
   "description": "Desktop application for managing Kubernetes clusters, with a plugin marketplace.",
   "main": "dist-electron/main.js",
@@ -33,7 +33,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Dangalcan/Kubernetes-Desktop.git"
+    "url": "git+https://github.com/Dangalcan/shoal.git"
   },
   "lint-staged": {
     "*.{js,ts,json,css,scss,md}": [
@@ -48,9 +48,9 @@
   "license": "LGPL-3.0-or-later",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/Dangalcan/Kubernetes-Desktop/issues"
+    "url": "https://github.com/Dangalcan/shoal/issues"
   },
-  "homepage": "https://github.com/Dangalcan/Kubernetes-Desktop#readme",
+  "homepage": "https://github.com/Dangalcan/shoal#readme",
   "dependencies": {
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
@@ -109,8 +109,8 @@
     "wait-on": "^9.0.3"
   },
   "build": {
-    "appId": "com.dangalcan.kubernetes-desktop",
-    "productName": "Kubernetes Desktop",
+    "appId": "com.dangalcan.shoal",
+    "productName": "Shoal",
     "directories": {
       "output": "release"
     },
@@ -123,7 +123,7 @@
       {
         "provider": "github",
         "owner": "Dangalcan",
-        "repo": "Kubernetes-Desktop"
+        "repo": "shoal"
       }
     ],
     "win": {

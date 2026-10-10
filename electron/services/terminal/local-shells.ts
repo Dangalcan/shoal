@@ -177,7 +177,7 @@ export function resolveLocalShell(shellId?: string): ResolvedLocalShell {
  * stray commands can't touch application files.
  */
 export function getTerminalCwd(): string {
-  const dir = path.join(os.tmpdir(), 'kubernetes-desktop-terminal');
+  const dir = path.join(os.tmpdir(), 'shoal-terminal');
   try {
     mkdirSync(dir, { recursive: true });
     return dir;

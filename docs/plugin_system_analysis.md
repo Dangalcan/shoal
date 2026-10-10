@@ -1,4 +1,4 @@
-# Plugin System Analysis: Kubernetes Desktop
+# Plugin System Analysis: Shoal
 
 > [!WARNING]
 > **Historical document (March 2026).** Written before the sandboxed-iframe plugin UI rework (July 2026). See [PLUGIN_ARCHITECTURE.md](./PLUGIN_ARCHITECTURE.md) for the current architecture.

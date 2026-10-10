@@ -163,7 +163,7 @@ export class KubernetesService {
   async createResource(manifest: unknown, contextName?: string): Promise<void> {
     const tempFile = path.join(
       app.getPath('temp'),
-      `k8s-desktop-create-${Date.now()}.json`
+      `shoal-create-${Date.now()}.json`
     );
     try {
       await fs.writeFile(tempFile, JSON.stringify(manifest), 'utf-8');
@@ -197,7 +197,7 @@ export class KubernetesService {
   ): Promise<void> {
     const tempFile = path.join(
       app.getPath('temp'),
-      `k8s-desktop-update-${Date.now()}.json`
+      `shoal-update-${Date.now()}.json`
     );
     try {
       await fs.writeFile(tempFile, JSON.stringify(manifest), 'utf-8');

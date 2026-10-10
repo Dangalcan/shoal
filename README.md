@@ -1,4 +1,4 @@
-# Kubernetes Desktop
+# Shoal
 
 [![License](https://img.shields.io/badge/license-LGPL-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](.version)
@@ -89,7 +89,7 @@ A modern, desktop-based management tool for Kubernetes clusters and container ru
 
 ## 🏗 Architecture
 
-**Kubernetes Desktop** follows a secure, multi-process architecture typical of Electron applications:
+**Shoal** follows a secure, multi-process architecture typical of Electron applications:
 
 1.  **Main Process** (`electron/`):
     - Runs the application lifecycle (window creation, app events).
@@ -113,7 +113,7 @@ This is routed securely:
 ## 📂 Project Structure
 
 ```bash
-Kubernetes-Desktop/
+shoal/
 ├── electron/               # ⚡ Main Process Source
 │   ├── main.ts            # Entry point, window setup
 │   ├── preload.ts         # ContextBridge — secure IPC surface
@@ -201,7 +201,7 @@ Kubernetes-Desktop/
 
 ### Installation
 
-Download the latest release for your platform from [Releases](https://github.com/Dangalcan/Kubernetes-Desktop/releases).
+Download the latest release for your platform from [Releases](https://github.com/Dangalcan/shoal/releases).
 
 ### Development
 
@@ -228,7 +228,7 @@ This produces the distribution files in `dist/` and `dist-electron/`.
 
 ## 🔌 Plugin System
 
-Kubernetes Desktop features a powerful plugin system that allows developers to extend functionality.
+Shoal features a powerful plugin system that allows developers to extend functionality.
 
 ### Plugin Types
 
@@ -311,7 +311,7 @@ npm run dev
 
 ## 🧪 Testing
 
-Kubernetes Desktop maintains high test coverage standards:
+Shoal maintains high test coverage standards:
 
 | Metric     | Minimum Threshold |
 | ---------- | ----------------- |
@@ -385,7 +385,7 @@ We welcome contributions! Please see our contribution guides:
 ### Quick Start for Contributors
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/Kubernetes-Desktop.git`
+2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/shoal.git`
 3. Install dependencies: `npm install`
 4. Create a branch: `git checkout -b feature/your-feature`
 5. Make your changes
@@ -455,8 +455,8 @@ npm run dev
 ### Getting Help
 
 - 📖 Check the [documentation](docs/)
-- 🐛 Report bugs via [GitHub Issues](https://github.com/Dangalcan/Kubernetes-Desktop/issues)
-- 💬 Ask questions in [Discussions](https://github.com/Dangalcan/Kubernetes-Desktop/discussions)
+- 🐛 Report bugs via [GitHub Issues](https://github.com/Dangalcan/shoal/issues)
+- 💬 Ask questions in [Discussions](https://github.com/Dangalcan/shoal/discussions)
 
 ## License
 

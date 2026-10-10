@@ -50,7 +50,7 @@ export function Sidebar() {
             <div className="sidebar-header">
                 <h1 className="sidebar-title">
                     <Server size={24} />
-                    <span>K8s Desktop</span>
+                    <span>Shoal</span>
                 </h1>
                 <div className="sidebar-context">
                     <ContextSwitcher />

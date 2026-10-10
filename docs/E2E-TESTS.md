@@ -1,6 +1,6 @@
 # E2E Testing Guide
 
-End-to-end tests for Kubernetes Desktop use [Playwright](https://playwright.dev/) with its native Electron support. Tests run against a real built app, a real `kubectl` CLI, and a real local Kubernetes cluster — no mocks.
+End-to-end tests for Shoal use [Playwright](https://playwright.dev/) with its native Electron support. Tests run against a real built app, a real `kubectl` CLI, and a real local Kubernetes cluster — no mocks.
 
 ---
 

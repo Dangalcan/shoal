@@ -1,6 +1,6 @@
 # Contributing: Writing Tests 🧪
 
-This guide explains how to write effective tests for the Kubernetes Desktop application. We use **Vitest** for unit/integration tests and **Playwright** for E2E testing.
+This guide explains how to write effective tests for the Shoal application. We use **Vitest** for unit/integration tests and **Playwright** for E2E testing.
 
 ---
 

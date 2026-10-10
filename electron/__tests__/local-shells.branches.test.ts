@@ -158,9 +158,7 @@ describe('local-shells (mocked environment branches)', () => {
   describe('getTerminalCwd', () => {
     it('returns the dedicated dir when mkdir succeeds', () => {
       mockMkdirSync.mockReturnValue(undefined);
-      expect(getTerminalCwd()).toBe(
-        path.join(os.tmpdir(), 'kubernetes-desktop-terminal')
-      );
+      expect(getTerminalCwd()).toBe(path.join(os.tmpdir(), 'shoal-terminal'));
     });
 
     it('falls back to the OS temp dir when mkdir fails', () => {

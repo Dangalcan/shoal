@@ -1,6 +1,6 @@
 # Contributing: Styling Guide 🎨
 
-This guide explains the CSS architecture and styling conventions for the Kubernetes Desktop application. We use a combination of **Sass (SCSS)** and **Tailwind CSS**.
+This guide explains the CSS architecture and styling conventions for the Shoal application. We use a combination of **Sass (SCSS)** and **Tailwind CSS**.
 
 ---
 

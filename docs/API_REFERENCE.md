@@ -409,7 +409,7 @@ The Terminal API allows creating and interacting with shell sessions (local or p
 ### `terminalCreate(args)`
 
 Creates a new terminal session. Local sessions start in a dedicated temp
-directory (`<os-tmpdir>/kubernetes-desktop-terminal`) rather than the app
+directory (`<os-tmpdir>/shoal-terminal`) rather than the app
 installation directory.
 
 - **Arguments**:

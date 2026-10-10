@@ -1,6 +1,6 @@
 # Deployment Guide 📦
 
-This guide covers building and distributing Kubernetes Desktop for production environments.
+This guide covers building and distributing Shoal for production environments.
 
 ## Prerequisites
 
@@ -98,13 +98,13 @@ Official releases are generated in the `release/` directory.
 
 ### Auto-Update
 
-Kubernetes Desktop supports auto-updates via GitHub Releases. Configuration in `package.json` or `electron-builder.yml`:
+Shoal supports auto-updates via GitHub Releases. Configuration in `package.json` or `electron-builder.yml`:
 
 ```yaml
 publish:
   provider: github
   owner: Dangalcan
-  repo: Kubernetes-Desktop
+  repo: shoal
 ```
 
 ---
@@ -129,8 +129,8 @@ npm install --global windows-build-tools
 If the AppImage doesn't launch:
 
 ```bash
-chmod +x Kubernetes-Desktop.AppImage
-./Kubernetes-Desktop.AppImage
+chmod +x Shoal.AppImage
+./Shoal.AppImage
 ```
 
 Note: Some modern Linux distros (like Ubuntu 23.04+) may require `libfuse2` to run AppImages: `sudo apt install libfuse2`.

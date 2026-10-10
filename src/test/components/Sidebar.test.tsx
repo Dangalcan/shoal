@@ -26,7 +26,7 @@ vi.mock('../../features/plugins/PluginProvider', () => ({
 describe('Sidebar', () => {
     it('should render application title', () => {
         render(<Sidebar />)
-        expect(screen.getByText('K8s Desktop')).toBeInTheDocument()
+        expect(screen.getByText('Shoal')).toBeInTheDocument()
     })
 
     it('renders navigation links', () => {

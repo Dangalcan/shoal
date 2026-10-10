@@ -1,6 +1,6 @@
-# Contributing to Kubernetes Desktop
+# Contributing to Shoal
 
-Thank you for your interest in contributing to Kubernetes Desktop! This document provides guidelines for contributing to the project.
+Thank you for your interest in contributing to Shoal! This document provides guidelines for contributing to the project.
 
 ## Table of Contents
 
@@ -25,7 +25,7 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md). We are committ
 
 Before creating a bug report:
 
-1. Check the [existing issues](https://github.com/Dangalcan/Kubernetes-Desktop/issues) to see if the bug has already been reported
+1. Check the [existing issues](https://github.com/Dangalcan/shoal/issues) to see if the bug has already been reported
 2. Make sure you're using the latest version of the application
 
 When creating a bug report, please include:
@@ -75,7 +75,7 @@ at Process.ChildProcess.\_handle.onexit
 
 We welcome feature suggestions! Before creating a feature request:
 
-1. Check [existing issues](https://github.com/Dangalcan/Kubernetes-Desktop/issues) to see if it's already been suggested
+1. Check [existing issues](https://github.com/Dangalcan/shoal/issues) to see if it's already been suggested
 2. Review the [planned features](IGNOREME.md) to see if it's already on the roadmap
 
 When creating a feature request, please include:
@@ -146,8 +146,8 @@ Before submitting, make sure:
 1. **Fork and clone the repository:**
 
    ```bash
-   git clone https://github.com/YOUR_USERNAME/Kubernetes-Desktop.git
-   cd Kubernetes-Desktop
+   git clone https://github.com/YOUR_USERNAME/shoal.git
+   cd shoal
    ```
 
 2. **Install dependencies:**
@@ -334,13 +334,13 @@ Plugins must update their activate() function signature.
 If you need help with your contribution:
 
 - 📖 Read the [documentation](docs/)
-- 💬 Ask in [GitHub Discussions](https://github.com/Dangalcan/Kubernetes-Desktop/discussions)
-- 🐛 Check [existing issues](https://github.com/Dangalcan/Kubernetes-Desktop/issues)
+- 💬 Ask in [GitHub Discussions](https://github.com/Dangalcan/shoal/discussions)
+- 🐛 Check [existing issues](https://github.com/Dangalcan/shoal/issues)
 
 ## Recognition
 
-All contributors will be recognized in our release notes and README. Thank you for making Kubernetes Desktop better!
+All contributors will be recognized in our release notes and README. Thank you for making Shoal better!
 
 ## License
 
-By contributing to Kubernetes Desktop, you agree that your contributions will be licensed under the LGPL-3.0-or-later License.
+By contributing to Shoal, you agree that your contributions will be licensed under the LGPL-3.0-or-later License.

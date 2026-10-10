@@ -1,6 +1,6 @@
 # User Guide 📖
 
-Welcome to **Kubernetes Desktop**, your modern cockpit for Kubernetes management. This guide covers everything you need to know to get started.
+Welcome to **Shoal**, your modern cockpit for Kubernetes management. This guide covers everything you need to know to get started.
 
 ## Table of Contents
 
@@ -21,7 +21,7 @@ Welcome to **Kubernetes Desktop**, your modern cockpit for Kubernetes management
 
 ### Installation
 
-1. Download the latest installer for your operating system from the [Releases page](https://github.com/Dangalcan/Kubernetes-Desktop/releases).
+1. Download the latest installer for your operating system from the [Releases page](https://github.com/Dangalcan/shoal/releases).
 2. Install the application:
    - **Windows**: Run the `.exe` installer.
    - **macOS**: Drag the app to your `Applications` folder.
@@ -37,7 +37,7 @@ Upon launching, you will be greeted by the **Dashboard**. This view provides a h
 
 ### Creating a New Cluster
 
-Kubernetes Desktop makes it easy to spin up local development clusters.
+Shoal makes it easy to spin up local development clusters.
 
 1. Click on **"Create Cluster"** in the left sidebar.
 2. Select your preferred provider (**kind**, **minikube**, or **k3d**).
@@ -168,7 +168,7 @@ Click **"Port Forwards"** in the sidebar to see every active tunnel, with its lo
 
 ## Using Plugins
 
-Plugins allow you to extend the functionality of Kubernetes Desktop.
+Plugins allow you to extend the functionality of Shoal.
 
 ### Installing Plugins
 
@@ -207,7 +207,7 @@ Click on **"Settings"** in the sidebar to customize your experience:
 
 ## App Updates
 
-Kubernetes Desktop updates itself automatically from GitHub Releases:
+Shoal updates itself automatically from GitHub Releases:
 
 - When a new version is found, a toast tells you it is downloading in the background.
 - Once downloaded, a persistent **"Restart"** prompt appears — click it to install the update and relaunch. You can also keep working and the update installs on the next app restart.
@@ -216,6 +216,6 @@ Kubernetes Desktop updates itself automatically from GitHub Releases:
 
 ## Support & Feedback
 
-- **Report a Bug**: Open an issue on [GitHub](https://github.com/Dangalcan/Kubernetes-Desktop/issues).
+- **Report a Bug**: Open an issue on [GitHub](https://github.com/Dangalcan/shoal/issues).
 - **Propose a Feature**: Use our feature request template on GitHub.
-- **Discussions**: Join the community in [GitHub Discussions](https://github.com/Dangalcan/Kubernetes-Desktop/discussions).
+- **Discussions**: Join the community in [GitHub Discussions](https://github.com/Dangalcan/shoal/discussions).

@@ -57,7 +57,7 @@ vi.mock('../services/terminal/local-shells', () => ({
           args: ['-NoLogo'],
         };
   }),
-  getTerminalCwd: vi.fn(() => '/tmp/kubernetes-desktop-terminal'),
+  getTerminalCwd: vi.fn(() => '/tmp/shoal-terminal'),
 }));
 
 type IpcHandler = (
@@ -113,7 +113,7 @@ describe('terminal-ipc', () => {
       expect(spawn).toHaveBeenCalledWith(
         'powershell.exe',
         ['-NoLogo'],
-        expect.objectContaining({ cwd: '/tmp/kubernetes-desktop-terminal' })
+        expect.objectContaining({ cwd: '/tmp/shoal-terminal' })
       );
     });
 
@@ -128,7 +128,7 @@ describe('terminal-ipc', () => {
       expect(spawn).toHaveBeenCalledWith(
         'cmd.exe',
         [],
-        expect.objectContaining({ cwd: '/tmp/kubernetes-desktop-terminal' })
+        expect.objectContaining({ cwd: '/tmp/shoal-terminal' })
       );
     });
 

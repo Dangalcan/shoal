@@ -69,7 +69,7 @@ export function LicenseActivationModal({ plugin, onClose }: LicenseActivationMod
   const footer = (
     <p className="license-modal__footer-text">
       Don't have a license?{' '}
-      <a href={plugin.manifest.homepage ?? 'https://k8s-desktop.app/plugins'} target="_blank" rel="noopener noreferrer">
+      <a href={plugin.manifest.homepage ?? 'https://shoal.dangalcan.com'} target="_blank" rel="noopener noreferrer">
         Purchase one here
       </a>
     </p>

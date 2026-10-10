@@ -4,7 +4,7 @@
     "name": "Resource Monitor",
     "version": "1.0.0",
     "description": "Visualizes pod resource usage.",
-    "author": "Kubernetes Desktop",
+    "author": "Shoal",
     "category": "Monitoring",
     "price": 0,
     "icon": "",
@@ -17,7 +17,7 @@
       "name": "Resource Monitor",
       "version": "1.0.0",
       "description": "Visualizes pod resource usage.",
-      "author": "Kubernetes Desktop",
+      "author": "Shoal",
       "license": {
         "type": "free",
         "spdx": "MIT"
@@ -33,7 +33,7 @@
     "name": "Namespace Watcher",
     "version": "1.0.0",
     "description": "Notifications for namespace changes.",
-    "author": "Kubernetes Desktop",
+    "author": "Shoal",
     "category": "Monitoring",
     "price": 0,
     "icon": "",
@@ -46,7 +46,7 @@
       "name": "Namespace Watcher",
       "version": "1.0.0",
       "description": "Notifications for namespace changes.",
-      "author": "Kubernetes Desktop",
+      "author": "Shoal",
       "license": {
         "type": "free",
         "spdx": "MIT"
