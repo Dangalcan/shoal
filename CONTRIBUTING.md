@@ -76,7 +76,7 @@ at Process.ChildProcess.\_handle.onexit
 We welcome feature suggestions! Before creating a feature request:
 
 1. Check [existing issues](https://github.com/Dangalcan/shoal/issues) to see if it's already been suggested
-2. Review the [planned features](IGNOREME.md) to see if it's already on the roadmap
+2. Review [docs/PENDING_WORK.md](docs/PENDING_WORK.md) to see if it's already planned
 
 When creating a feature request, please include:
 

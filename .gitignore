@@ -23,3 +23,11 @@ plugins/ingress-inspector/
 plugins/log-aggregator/
 plugins/rbac-visualizer/
 plugins/secret-manager/
+
+# Stray compiler output in the dev mock backend (its build goes to dist/)
+marketplace-backend/src/**/*.js
+marketplace-backend/src/**/*.d.ts
+marketplace-backend/src/**/*.map
+
+# MSYS2/Git Bash crash dumps
+*.stackdump
