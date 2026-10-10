@@ -60,4 +60,6 @@ The core application follows several security principles:
 - **Context Isolation:** The renderer process is sandboxed and isolated from Node.js APIs.
 - **Secure IPC:** All communication between processes happens over a secure IPC bridge with pre-defined handlers.
 - **Command Sanitization:** All shell commands are carefully constructed to prevent injection attacks.
+- **Sandboxed Plugin UI:** Plugin interfaces run in opaque-origin iframes with a strict Content Security Policy and no network access; their files are served only from plugin directories.
+- **Navigation Guards:** The app window cannot open new windows or navigate away from the app; web links open in the system browser, and only one instance runs per profile.
 - **Release Integrity:** Releases are not code-signed yet. Download installers only from this repository's GitHub Releases page.

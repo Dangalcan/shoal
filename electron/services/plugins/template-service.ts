@@ -7,6 +7,12 @@
 import fs from 'fs/promises';
 import path from 'path';
 
+// Text that is safe inside a generated block comment: one line, and no
+// comment terminator.
+function commentText(value: string): string {
+  return value.replace(/\*\//g, '* /').replace(/[\r\n]+/g, ' ');
+}
+
 export class TemplateService {
   /**
    * Create a new plugin from a template.
@@ -21,6 +27,11 @@ export class TemplateService {
     }
   ): Promise<void> {
     await fs.mkdir(targetDir, { recursive: true });
+
+    // User-supplied text only reaches the generated code as JSON string
+    // literals or sanitized comments, never spliced into code or HTML.
+    const nameLiteral = JSON.stringify(options.name);
+    const nameComment = commentText(options.name);
 
     // 1. Create plugin.json
     const manifest = {
@@ -66,18 +77,20 @@ export class TemplateService {
     // 2. Create index.js
     const indexJs = `
 /**
- * ${options.name} - Plugin Entry Point
+ * ${nameComment} - Plugin Entry Point
  */
+
+const PLUGIN_NAME = ${nameLiteral};
 
 module.exports = {
   /**
    * Called when the plugin is enabled or the app starts.
    */
   activate: (context) => {
-    context.logger.info('${options.name} activated');
-    
+    context.logger.info(PLUGIN_NAME + ' activated');
+
     // Register a notification
-    context.ui.showNotification('${options.name} is ready!', 'info');
+    context.ui.showNotification(PLUGIN_NAME + ' is ready!', 'info');
     
     // Example: Watch for pods (if permitted)
     // context.kubernetes.watchResources('pods', (event) => {
@@ -90,7 +103,7 @@ module.exports = {
    * Clean up timers, event listeners, or watchers here.
    */
   deactivate: () => {
-    console.log('${options.name} deactivated');
+    console.log(PLUGIN_NAME + ' deactivated');
   }
 };
 `.trim();
@@ -105,7 +118,7 @@ module.exports = {
     // mount into #root with any framework, or plain DOM as shown here.
     const rendererJs = `
 /**
- * ${options.name} - Renderer (sandboxed UI)
+ * ${nameComment} - Renderer (sandboxed UI)
  *
  * Runs in an isolated iframe. Use window.k8sPlugin for all host access:
  *   - k8sPlugin.kubernetes.*   (requires "kubernetes" permission)
@@ -115,23 +128,35 @@ module.exports = {
  *       register the modal component by id in your renderer first)
  *   - k8sPlugin.ui.setTitle / setHeight
  *   - k8sPlugin.ready()  (call once mounted)
+ *
+ * Build the DOM with textContent (never innerHTML) for anything that comes
+ * from the cluster or the user.
  */
 (async function () {
   const api = window.k8sPlugin;
   const root = document.getElementById('root');
+  const PLUGIN_NAME = ${nameLiteral};
 
-  api.ui.setTitle('${options.name}');
+  const el = (tag, text) => {
+    const node = document.createElement(tag);
+    if (text !== undefined) node.textContent = text;
+    return node;
+  };
+
+  api.ui.setTitle(PLUGIN_NAME);
 
   try {
     const context = await api.kubernetes.getCurrentContext();
-    root.innerHTML =
-      '<h1>${options.name}</h1>' +
-      '<p>Current context: <strong>' + (context || 'none') + '</strong></p>' +
-      '<button id="refresh">Refresh pods</button>' +
-      '<pre id="out"></pre>';
+    const button = el('button', 'Refresh pods');
+    const out = el('pre');
+    root.replaceChildren(
+      el('h1', PLUGIN_NAME),
+      el('p', 'Current context: ' + (context || 'none')),
+      button,
+      out
+    );
 
-    document.getElementById('refresh').addEventListener('click', async () => {
-      const out = document.getElementById('out');
+    button.addEventListener('click', async () => {
       out.textContent = 'Loading...';
       try {
         const pods = await api.kubernetes.getPods(context);
@@ -141,7 +166,7 @@ module.exports = {
       }
     });
   } catch (err) {
-    root.innerHTML = '<p>Failed to initialise: ' + err.message + '</p>';
+    root.replaceChildren(el('p', 'Failed to initialise: ' + err.message));
   }
 
   api.ready();

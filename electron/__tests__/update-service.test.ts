@@ -80,7 +80,7 @@ describe('UpdateService', () => {
 
   it('never checks in the Windows portable build, even when forced', async () => {
     vi.mocked(isProduction).mockReturnValue(true);
-    vi.stubEnv('PORTABLE_EXECUTABLE_DIR', 'C:\Users\me\Downloads');
+    vi.stubEnv('PORTABLE_EXECUTABLE_DIR', 'C:\\Users\\me\\Downloads');
     try {
       const updater = makeUpdater();
       const svc = new UpdateService(updater);

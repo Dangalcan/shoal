@@ -22,6 +22,8 @@ import { LocalPluginModule } from './host/module-handle';
 import type { PluginModuleHandle } from './host/module-handle';
 import { pluginHostManager } from './host/plugin-host-manager';
 import { getErrorMessage } from '../../utils/error-utils';
+import { isPathInside } from '../../utils/fs-utils';
+import { isProduction } from '../../utils/env-utils';
 import log from '../../logger';
 
 export class PluginLoader {
@@ -96,6 +98,12 @@ export class PluginLoader {
 
       if (manifest.renderer) {
         const rendererPath = path.resolve(pluginPath, manifest.renderer);
+        if (!isPathInside(pluginPath, rendererPath)) {
+          return createErrorPlugin(
+            manifest,
+            `Renderer entry escapes the plugin directory: ${manifest.renderer}`
+          );
+        }
         try {
           await fs.access(rendererPath);
           plugin.rendererEntry = rendererPath;
@@ -110,6 +118,12 @@ export class PluginLoader {
         plugin.rendererStyles = [];
         for (const stylePath of manifest.styles) {
           const fullStylePath = path.resolve(pluginPath, stylePath);
+          if (!isPathInside(pluginPath, fullStylePath)) {
+            return createErrorPlugin(
+              manifest,
+              `Stylesheet escapes the plugin directory: ${stylePath}`
+            );
+          }
           try {
             await fs.access(fullStylePath);
             plugin.rendererStyles.push(fullStylePath);
@@ -189,11 +203,21 @@ export class PluginLoader {
   /**
    * Whether a plugin should run in an isolated utility process.
    * Default policy: user-installed (untrusted) plugins are isolated; bundled
-   * in-tree plugins stay in-process. Override with PLUGIN_ISOLATION=all|off.
+   * in-tree plugins stay in-process. Override with PLUGIN_ISOLATION=all|off
+   * (`off` only outside packaged builds).
    */
   shouldIsolatePlugin(pluginPath: string): boolean {
     const mode = process.env.PLUGIN_ISOLATION;
-    if (mode === 'off') return false;
+    if (mode === 'off') {
+      // A debugging switch; it must never lower isolation for real users.
+      if (isProduction()) {
+        log.warn(
+          '[PluginLoader] PLUGIN_ISOLATION=off is ignored in packaged builds'
+        );
+      } else {
+        return false;
+      }
+    }
     if (!pluginHostManager.isSupported()) return false;
     if (mode === 'all') return true;
 

@@ -82,4 +82,10 @@ test('enabled plugin page renders its sandboxed frame', async () => {
   await expect(window.locator('iframe').first()).toBeVisible({
     timeout: 15_000,
   });
+
+  // The frame must actually run the plugin. Builds loaded from file: used to
+  // mount an empty frame because the sandbox could not load its bootstrap.
+  await expect(
+    window.frameLocator('iframe').first().getByText('Cluster Details')
+  ).toBeVisible({ timeout: 15_000 });
 });

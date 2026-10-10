@@ -77,6 +77,30 @@ Plugin UI never runs in the host realm. Each plugin page is hosted by
 Inside the iframe, `public/plugin-host/bootstrap.js` adopts the port, exposes
 `window.k8sPlugin`, and loads the plugin's `renderer.js` into `#root`.
 
+**Loading assets: the `plugin-file:` protocol.** The frame has an opaque
+origin, and Chromium does not let opaque-origin documents load `file:`
+resources. So the plugin's `renderer.js` and styles, and in packaged builds
+(which load the app from `file:`) also the host document, `bootstrap.js` and
+the app stylesheets, are served through the privileged `plugin-file:` scheme:
+
+- URL format `plugin-file://local/<absolute path, percent-encoded segments>`,
+  built by `toPluginFileUrl()` / `toFrameSafeUrl()` in
+  `electron/shared/plugin-file-url.ts` (Node-free, shared by main and
+  renderer).
+- `electron/services/plugins/plugin-file-protocol.ts` answers a request only
+  when the file, after `realpath`, is inside a plugin discovery directory or
+  the app's `dist/` (`pathService.getAppDistDir()`); anything else is a 403.
+- The plugin loader rejects a manifest whose `renderer` or `styles` point
+  outside the plugin directory.
+
+**Content Security Policy of the frame** (`public/plugin-host/index.html`):
+scripts and styles only from the host document and `plugin-file:`, images
+and fonts also from `data:`/`blob:`, and `connect-src 'none'`. Plugin
+renderers cannot reach the network on their own; everything goes through
+`window.k8sPlugin`. (A permission-gated network call in the SDK is planned
+for 1.0; the ci-pipeline-view, helm-manager and secret-manager marketplace
+plugins still call `fetch` directly and need it.)
+
 The complete method allowlist lives in
 `src/features/plugins/sandbox/protocol.ts` (`METHOD_TABLE`). To grant a new
 capability, add it there deliberately. Notable rules:

@@ -11,6 +11,15 @@
       the MessagePort handed in by the host, exposes window.k8sPlugin, and loads
       the plugin's own renderer bundle into #root.
     -->
+    <!--
+      Plugin code may load its own renderer bundle and styles (plugin-file:)
+      and the host stylesheets, nothing else: no network (use the
+      window.k8sPlugin SDK), no plugins, no nested frames, no form posts.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self' plugin-file:; style-src 'self' 'unsafe-inline' plugin-file:; img-src 'self' data: blob: plugin-file:; font-src 'self' data: plugin-file:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'"
+    />
     <title>Plugin</title>
     <style>
       html,

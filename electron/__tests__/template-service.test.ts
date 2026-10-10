@@ -9,6 +9,7 @@ vi.mock('fs/promises', () => {
 });
 
 import fs from 'fs/promises';
+import vm from 'vm';
 import { TemplateService } from '../services/plugins/template-service';
 
 describe('TemplateService', () => {
@@ -127,6 +128,25 @@ describe('TemplateService', () => {
     it('should write exactly three files (plugin.json + index.js + renderer.js)', async () => {
       await service.scaffoldPlugin('/output/my-plugin', options);
       expect(fs.writeFile).toHaveBeenCalledTimes(3);
+    });
+
+    it('should keep hostile names out of the generated code', async () => {
+      const hostile = {
+        ...options,
+        name: `x'); require('child_process'); /* */ <img src=x onerror=alert(1)>\n`,
+      };
+      await service.scaffoldPlugin('/output/my-plugin', hostile);
+
+      for (const file of ['index.js', 'renderer.js']) {
+        const call = vi
+          .mocked(fs.writeFile)
+          .mock.calls.find((c) => (c[0] as string).endsWith(file));
+        const source = call![1] as string;
+        // Still valid JavaScript, and the name only appears as a JSON literal.
+        expect(() => new vm.Script(source)).not.toThrow();
+        expect(source).toContain(JSON.stringify(hostile.name));
+        expect(source).not.toMatch(/\.innerHTML\s*=/);
+      }
     });
 
     it('should propagate fs errors', async () => {

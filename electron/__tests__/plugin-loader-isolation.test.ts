@@ -104,6 +104,20 @@ describe('PluginLoader isolation', () => {
       ).toBe(false);
     });
 
+    it('ignores PLUGIN_ISOLATION=off in packaged builds', async () => {
+      const { app } = await import('electron');
+      const appMock = app as unknown as { isPackaged?: boolean };
+      process.env.PLUGIN_ISOLATION = 'off';
+      appMock.isPackaged = true;
+      try {
+        expect(
+          loader.shouldIsolatePlugin('/mock/user/data/plugins/some-plugin')
+        ).toBe(true);
+      } finally {
+        appMock.isPackaged = undefined;
+      }
+    });
+
     it('respects PLUGIN_ISOLATION=all', () => {
       process.env.PLUGIN_ISOLATION = 'all';
       expect(

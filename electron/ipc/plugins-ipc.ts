@@ -5,11 +5,14 @@
  * settings, extensions, actions, and license management.
  */
 
-import { ipcMain, app, dialog } from 'electron';
+import { ipcMain, dialog } from 'electron';
+import fs from 'fs';
 import path from 'path';
 import { pluginManager } from '../services/plugins/plugin-manager';
 import { pluginEventBus } from '../services/plugins/plugin-events';
 import { templateService } from '../services/plugins/template-service';
+import { pathService } from '../services/plugins/path-service';
+import { assertValidPluginId } from '../services/plugins/plugin-validator';
 import { licenseManager } from '../services/security/license-manager';
 import type { PluginScaffoldOptions } from '../types/plugin-types';
 import { wrapIpcHandler } from './ipc-utils';
@@ -60,11 +63,19 @@ export function registerPluginsIpcHandlers(): void {
     wrapIpcHandler(
       'generate-plugin',
       async (_event, options: PluginScaffoldOptions) => {
+        assertValidPluginId(options?.id);
+        for (const field of ['name', 'author', 'description'] as const) {
+          if (typeof options[field] !== 'string') {
+            throw new Error(`Invalid plugin ${field}`);
+          }
+        }
         const pluginDir = path.join(
-          app.getPath('userData'),
-          'plugins',
+          pathService.getUserPluginsDir(),
           options.id
         );
+        if (fs.existsSync(pluginDir)) {
+          throw new Error(`A plugin with id "${options.id}" already exists`);
+        }
         await templateService.scaffoldPlugin(pluginDir, options);
         return true;
       }

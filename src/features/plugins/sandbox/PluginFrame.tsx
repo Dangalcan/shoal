@@ -21,6 +21,7 @@ import { useApi } from '../../../services/api-context';
 import { PluginHostBridge, type PortLike } from './host-bridge';
 import { createElectronInvoker } from './electron-invoker';
 import type { PluginPermission } from './protocol';
+import { toFrameSafeUrl } from '../../../../electron/shared/plugin-file-url';
 
 /** postMessage tag used to hand the SDK port to the iframe. */
 export const PLUGIN_PORT_INIT = 'k8s-plugin-port-init';
@@ -29,7 +30,9 @@ export const PLUGIN_PORT_INIT = 'k8s-plugin-port-init';
  * Snapshot the host document's stylesheets so the sandboxed iframe (which is a
  * separate document with none of the app's CSS) can reproduce the app's look.
  * In dev, Vite injects <style> tags (copied by text); in prod, hashed <link>
- * stylesheets (copied by href). The plugin's own styles are added separately.
+ * stylesheets (copied by href, rewritten from file: to plugin-file: because
+ * the frame cannot load file: resources). The plugin's own styles are added
+ * separately.
  */
 function collectHostStyles(): { texts: string[]; hrefs: string[] } {
   const texts: string[] = [];
@@ -41,7 +44,7 @@ function collectHostStyles(): { texts: string[]; hrefs: string[] } {
     .querySelectorAll('link[rel="stylesheet"]')
     .forEach((l) => {
       const href = (l as HTMLLinkElement).href;
-      if (href) hrefs.push(href);
+      if (href) hrefs.push(toFrameSafeUrl(href));
     });
   return { texts, hrefs };
 }

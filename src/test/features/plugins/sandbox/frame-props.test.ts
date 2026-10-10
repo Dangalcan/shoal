@@ -60,8 +60,10 @@ describe('buildPluginFrameUrls', () => {
     const urls = buildPluginFrameUrls(makePlugin());
     expect(urls).not.toBeNull();
     expect(urls!.hostDocumentUrl).toContain('plugin-host/index.html');
-    expect(urls!.entryUrl).toBe('plugin-file:////plugins/demo/renderer.js');
-    expect(urls!.styleUrls).toEqual(['plugin-file:////plugins/demo/style.css']);
+    expect(urls!.entryUrl).toBe('plugin-file://local/plugins/demo/renderer.js');
+    expect(urls!.styleUrls).toEqual([
+      'plugin-file://local/plugins/demo/style.css',
+    ]);
     expect(urls!.permissions).toEqual(['kubernetes', 'ui']);
   });
 

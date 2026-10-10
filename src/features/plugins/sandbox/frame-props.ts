@@ -6,6 +6,10 @@
 
 import type { Plugin } from '../../../../electron/types/plugin-types';
 import type { PluginPermission } from './protocol';
+import {
+  toFrameSafeUrl,
+  toPluginFileUrl,
+} from '../../../../electron/shared/plugin-file-url';
 
 const SANDBOX_PERMISSIONS: PluginPermission[] = ['kubernetes', 'ui', 'storage'];
 
@@ -25,9 +29,15 @@ export interface PluginFrameUrls {
   permissions: PluginPermission[];
 }
 
-/** Build the sandbox host-document URL shared by all plugin frames. */
+/**
+ * Build the sandbox host-document URL shared by all plugin frames. Packaged
+ * builds load the app from file:, which an opaque-origin frame may not use,
+ * so the host document is served through plugin-file: there.
+ */
 export function pluginHostDocumentUrl(): string {
-  return new URL('plugin-host/index.html', document.baseURI).href;
+  return toFrameSafeUrl(
+    new URL('plugin-host/index.html', document.baseURI).href
+  );
 }
 
 /**
@@ -38,8 +48,8 @@ export function buildPluginFrameUrls(plugin: Plugin): PluginFrameUrls | null {
   if (!plugin.rendererEntry) return null;
   return {
     hostDocumentUrl: pluginHostDocumentUrl(),
-    entryUrl: `plugin-file:///${plugin.rendererEntry}`,
-    styleUrls: (plugin.rendererStyles ?? []).map((s) => `plugin-file:///${s}`),
+    entryUrl: toPluginFileUrl(plugin.rendererEntry),
+    styleUrls: (plugin.rendererStyles ?? []).map(toPluginFileUrl),
     permissions: toSandboxPermissions(plugin.manifest.permissions),
   };
 }

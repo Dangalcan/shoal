@@ -20,6 +20,34 @@ export {
   assertResourceName,
 } from '../utils/k8s-validate';
 
+/** Object keys whose values never reach the logs (licenses, tokens, helm values...). */
+const SENSITIVE_KEY = /key|token|secret|password|credential|license|values/i;
+const MAX_LOGGED_STRING = 200;
+const MAX_LOGGED_DEPTH = 4;
+
+/**
+ * Copy of IPC arguments that is safe to log: values under sensitive keys are
+ * replaced, long strings truncated and deep structures cut off.
+ */
+export function redactForLog(value: unknown, depth = 0): unknown {
+  if (depth > MAX_LOGGED_DEPTH) return '[...]';
+  if (Array.isArray(value)) {
+    return value.map((item) => redactForLog(item, depth + 1));
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [
+        key,
+        SENSITIVE_KEY.test(key) ? '[redacted]' : redactForLog(item, depth + 1),
+      ])
+    );
+  }
+  if (typeof value === 'string' && value.length > MAX_LOGGED_STRING) {
+    return `${value.slice(0, MAX_LOGGED_STRING)}... (${value.length} chars)`;
+  }
+  return value;
+}
+
 export const wrapIpcHandler = <T>(
   name: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27,7 +55,10 @@ export const wrapIpcHandler = <T>(
 ) => {
   return async (event: IpcMainInvokeEvent, ...args: unknown[]) => {
     const timestamp = new Date().toISOString();
-    log.debug(`[${timestamp}] [IPC] [${name}] REQUEST:`, JSON.stringify(args));
+    log.debug(
+      `[${timestamp}] [IPC] [${name}] REQUEST:`,
+      JSON.stringify(redactForLog(args))
+    );
 
     try {
       const result = await handler(event, ...args);

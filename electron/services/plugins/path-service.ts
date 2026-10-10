@@ -28,6 +28,15 @@ export class PathService {
   }
 
   /**
+   * The app's built renderer (index.html, assets/, plugin-host/). Plugin
+   * frames load the sandbox host document and the app stylesheets from here
+   * through the plugin-file: protocol.
+   */
+  getAppDistDir(): string {
+    return path.join(app.getAppPath(), 'dist');
+  }
+
+  /**
    * Get all plugin discovery directories
    */
   getDiscoveryDirectories(): string[] {

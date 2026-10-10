@@ -249,6 +249,33 @@ describe('PluginLoader', () => {
       expect(p?.rendererStyles).toHaveLength(1);
       expect(fixPath(p?.rendererStyles![0] || '')).toContain('s1.css');
     });
+
+    it.each([
+      ['renderer', { renderer: '../../home/user/.kube/config' }],
+      ['styles', { styles: ['ok.css', '../outside.css'] }],
+    ])(
+      'should refuse a %s path that escapes the plugin directory',
+      async (_field, extra) => {
+        const manifest = {
+          id: 'p1',
+          name: 'P1',
+          version: '1.0.0',
+          description: 'D',
+          author: 'A',
+          main: 'index.js',
+          permissions: ['ui'],
+          license: { type: 'free', spdx: 'MIT' },
+          ...extra,
+        };
+        vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(manifest));
+        vi.mocked(fs.access).mockResolvedValue(undefined);
+
+        const p = await loader.loadPluginFromDirectory('/p');
+        expect(p?.state).toBe('error');
+        expect(p?.error).toContain('escapes the plugin directory');
+        expect(p?.rendererEntry).toBeUndefined();
+      }
+    );
   });
 
   describe('Lifecycle methods', () => {

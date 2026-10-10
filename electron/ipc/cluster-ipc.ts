@@ -10,27 +10,18 @@
  * invocation is needed.
  */
 
-import { ipcMain, app, shell } from 'electron';
+import { ipcMain, app } from 'electron';
 import { safeExec, ALLOWED_TOOLS } from '../utils/safe-exec';
 import { clusterManagementService } from '../services/cluster/cluster-management-service';
 import { wrapIpcHandler, assertContext } from './ipc-utils';
 import { isMarketplaceEnabled } from '../utils/env-utils';
+import { openExternalSafe } from '../utils/url-utils';
 
 export function registerClusterIpcHandlers(): void {
   ipcMain.handle(
     'open-external',
     wrapIpcHandler('open-external', async (_event, url: string) => {
-      // Only http(s) — never file:, javascript:, or arbitrary schemes.
-      let parsed: URL;
-      try {
-        parsed = new URL(String(url));
-      } catch {
-        throw new Error(`Invalid URL: "${url}"`);
-      }
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        throw new Error(`Refusing to open non-http(s) URL: "${url}"`);
-      }
-      await shell.openExternal(parsed.toString());
+      await openExternalSafe(url);
       return true;
     })
   );

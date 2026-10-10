@@ -1,6 +1,5 @@
-import { app, BrowserWindow, Menu, protocol, net } from 'electron';
+import { app, BrowserWindow, Menu, protocol } from 'electron';
 import path from 'path';
-import { pathToFileURL } from 'url';
 import { pluginManager } from './services/plugins/plugin-manager';
 import { pluginHostManager } from './services/plugins/host/plugin-host-manager';
 import { pluginEventBus } from './services/plugins/plugin-events';
@@ -17,6 +16,8 @@ import { registerTerminalIpcHandlers } from './ipc/terminal-ipc';
 import { registerPortForwardIpcHandlers } from './ipc/portforward-ipc';
 import { registerUpdateIpcHandlers } from './ipc/update-ipc';
 import { updateService } from './services/update';
+import { handlePluginFileRequest } from './services/plugins/plugin-file-protocol';
+import { openExternalSafe } from './utils/url-utils';
 import log from './logger';
 
 const DEFAULT_WINDOW_WIDTH = 1200;
@@ -29,6 +30,37 @@ process.env.VITE_PUBLIC = app.isPackaged
 
 export let win: BrowserWindow | null;
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
+
+// One running instance per user data directory: a second launch focuses the
+// existing window instead of opening a second app on the same databases.
+const isPrimaryInstance = app.requestSingleInstanceLock();
+if (!isPrimaryInstance) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (!win) return;
+    if (win.isMinimized()) win.restore();
+    win.focus();
+  });
+}
+
+// No window may open inside the app and the main document may not navigate
+// away from itself (reloads and hash routes are fine). http(s) links go to the
+// system browser.
+app.on('web-contents-created', (_event, contents) => {
+  contents.setWindowOpenHandler(({ url }) => {
+    openExternalSafe(url).catch((error: unknown) =>
+      log.warn('[Main] Blocked window.open:', getErrorMessage(error))
+    );
+    return { action: 'deny' };
+  });
+  contents.on('will-navigate', (event, url) => {
+    if (url !== contents.getURL()) {
+      log.warn(`[Main] Blocked navigation to ${url}`);
+      event.preventDefault();
+    }
+  });
+});
 
 // Register custom protocol as privileged — must be called before app.whenReady()
 protocol.registerSchemesAsPrivileged([
@@ -111,6 +143,8 @@ app.on('activate', () => {
 });
 
 app.whenReady().then(async () => {
+  if (!isPrimaryInstance) return;
+
   // 1. Initialize manifest database FIRST (synchronous, critical)
   try {
     log.info('[Main] Initializing manifest database...');
@@ -150,19 +184,10 @@ app.whenReady().then(async () => {
 
 // Register custom protocol for local plugin assets
 app.whenReady().then(() => {
+  // Only files inside the plugin directories are served (403 otherwise).
   protocol.handle('plugin-file', async (request) => {
     try {
-      const url = new URL(request.url);
-
-      // On Windows the pathname is /C:/Users/... — strip the leading slash
-      let fullPath = decodeURIComponent(url.pathname);
-      if (fullPath.startsWith('/') && /^\/[a-zA-Z]:/.test(fullPath)) {
-        fullPath = fullPath.slice(1);
-      }
-
-      const normalizedPath = path.normalize(fullPath);
-      const fileUrl = pathToFileURL(normalizedPath).toString();
-      return await net.fetch(fileUrl);
+      return await handlePluginFileRequest(request);
     } catch (e: unknown) {
       const msg = getErrorMessage(e);
       log.error('[Protocol] Failed to handle plugin-file request:', msg);
