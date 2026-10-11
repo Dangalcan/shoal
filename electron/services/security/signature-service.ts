@@ -1,7 +1,9 @@
 /**
  * Signature Service
  *
- * Handles signing and verification of plugin manifests using RSA-SHA256.
+ * Verifies plugin signatures (RSA-SHA256). A signature covers every file in
+ * the plugin directory, code included, through the file list described in
+ * plugin-integrity.ts.
  *
  * Key management:
  *  - The public key is embedded in this file (safe to commit).
@@ -20,6 +22,14 @@ import fs from 'fs/promises';
 import path from 'path';
 import { app } from 'electron';
 import log from '../../logger';
+import { getErrorMessage } from '../../utils/error-utils';
+import {
+  SIGNATURE_FILE,
+  canonicalPayload,
+  compareFiles,
+  hashPluginFiles,
+  parseSignatureFile,
+} from './plugin-integrity';
 
 export class SignatureService {
   // RSA-2048 public key — generated 2026-10-10 (rotated; the 2026-03-10 key's
@@ -37,49 +47,69 @@ mTG4NWftfh6O1ZzUYCIoRqSP04p+X/t1PXuFh0IM7YCvOmzLq60UIX2ALjzymiRz
 -----END PUBLIC KEY-----`;
 
   /**
-   * Verify a plugin's manifest signature.
+   * Verify a plugin directory against its `plugin.json.sig` (format 2): the
+   * signature over the file list must be valid and the directory must hold
+   * exactly the signed files with the signed contents.
    *
-   * Returns true only when:
-   *  - A valid signature file exists and matches the manifest, OR
-   *  - ALLOW_UNSIGNED_PLUGINS=true is set (development only).
-   *
-   * Returns false (plugin will not load) when the signature is missing or invalid.
+   * Development builds with ALLOW_UNSIGNED_PLUGINS=true still load a plugin
+   * whose signature is missing or out of date (edited sources), with a
+   * warning. Packaged builds ignore that flag.
    */
   async verifyPlugin(pluginPath: string): Promise<boolean> {
-    try {
-      const manifestPath = path.join(pluginPath, 'plugin.json');
-      const signaturePath = path.join(pluginPath, 'plugin.json.sig');
+    const problem = await this.findProblem(pluginPath);
+    if (!problem) return true;
 
-      const manifestContent = await fs.readFile(manifestPath, 'utf-8');
-
-      try {
-        const signature = await fs.readFile(signaturePath, 'utf-8');
-        return this.verifySignature(manifestContent, signature);
-      } catch {
-        // Signature file is missing.
-        if (process.env.ALLOW_UNSIGNED_PLUGINS === 'true') {
-          if (app?.isPackaged) {
-            log.error(
-              `[SignatureService] ALLOW_UNSIGNED_PLUGINS=true is ignored in packaged builds. ` +
-                `Plugin at "${pluginPath}" will not load.`
-            );
-            return false;
-          }
-          log.warn(
-            `[SignatureService] Plugin at "${pluginPath}" is unsigned. ` +
-              'Loading anyway because ALLOW_UNSIGNED_PLUGINS=true (development only).'
-          );
-          return true;
-        }
+    if (process.env.ALLOW_UNSIGNED_PLUGINS === 'true') {
+      if (app?.isPackaged) {
         log.error(
-          `[SignatureService] Plugin at "${pluginPath}" has no signature file. ` +
-            'Sign it with: node scripts/sign-plugin.js <plugin-directory>'
+          `[SignatureService] ALLOW_UNSIGNED_PLUGINS=true is ignored in packaged builds. ` +
+            `Plugin at "${pluginPath}" will not load: ${problem}.`
         );
         return false;
       }
+      log.warn(
+        `[SignatureService] Plugin at "${pluginPath}": ${problem}. ` +
+          'Loading anyway because ALLOW_UNSIGNED_PLUGINS=true (development only).'
+      );
+      return true;
+    }
+
+    log.error(
+      `[SignatureService] Plugin at "${pluginPath}" failed verification: ${problem}. ` +
+        'Sign it with: node scripts/sign-plugin.js <plugin-directory>'
+    );
+    return false;
+  }
+
+  /** Why the plugin does not verify, or null when it does. */
+  private async findProblem(pluginPath: string): Promise<string | null> {
+    let content: string;
+    try {
+      content = await fs.readFile(
+        path.join(pluginPath, SIGNATURE_FILE),
+        'utf-8'
+      );
+    } catch {
+      return 'no signature file';
+    }
+
+    try {
+      const signed = parseSignatureFile(content);
+      if (
+        !this.verifySignature(canonicalPayload(signed.files), signed.signature)
+      ) {
+        return 'invalid signature';
+      }
+      const differences = compareFiles(
+        signed.files,
+        await hashPluginFiles(pluginPath)
+      );
+      if (differences.length > 0) {
+        return `files do not match the signature (${differences.slice(0, 5).join(', ')})`;
+      }
+      return null;
     } catch (error) {
-      log.error('[SignatureService] Verification failed:', error);
-      return false;
+      return getErrorMessage(error);
     }
   }
 

@@ -676,6 +676,11 @@ export class PluginManager {
       }
       // Guard against path traversal via a crafted id before building paths.
       assertValidPluginId(manifest.id);
+      if (await pathService.isBundledPluginId(manifest.id)) {
+        throw new Error(
+          `Plugin id "${manifest.id}" belongs to a plugin bundled with Shoal`
+        );
+      }
 
       // Determine install path (usually userData/plugins)
       const targetPath = path.join(

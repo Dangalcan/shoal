@@ -1,5 +1,8 @@
-# Plugin manifests are signed byte for byte (scripts/sign-plugin.js). Keep
-# them LF on every platform so a Windows checkout does not break the
-# signature, and never let git touch the signature files.
+# Bundled plugins are signed over the exact bytes of every file
+# (scripts/sign-plugin.js). Keep their text files LF on every platform so a
+# Windows checkout does not break the signature, and never let git touch the
+# signature files.
+plugins/namespace-watcher/** text=auto eol=lf
+plugins/resource-monitor/** text=auto eol=lf
 plugins/*/plugin.json text eol=lf
 plugins/*/plugin.json.sig -text

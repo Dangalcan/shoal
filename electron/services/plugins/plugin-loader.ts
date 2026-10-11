@@ -39,9 +39,14 @@ export class PluginLoader {
     log.info('[PluginLoader] Plugin directories:', this.pluginDirectories);
   }
 
-  /** Discover all plugins from configured directories. */
+  /**
+   * Discover all plugins from configured directories. The first directory
+   * (bundled plugins) wins: a later plugin reusing an id is skipped, so a
+   * user-installed copy cannot replace a bundled plugin.
+   */
   async discoverPlugins(): Promise<Plugin[]> {
     const discovered: Plugin[] = [];
+    const seenIds = new Set<string>();
 
     for (const directory of this.pluginDirectories) {
       try {
@@ -52,7 +57,15 @@ export class PluginLoader {
           if (entry.isDirectory()) {
             const pluginPath = path.join(directory, entry.name);
             const plugin = await this.loadPluginFromDirectory(pluginPath);
-            if (plugin) discovered.push(plugin);
+            if (!plugin) continue;
+            if (seenIds.has(plugin.manifest.id)) {
+              log.warn(
+                `[PluginLoader] Skipping ${pluginPath}: plugin id "${plugin.manifest.id}" is already taken`
+              );
+              continue;
+            }
+            seenIds.add(plugin.manifest.id);
+            discovered.push(plugin);
           }
         }
       } catch {

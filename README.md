@@ -436,7 +436,7 @@ npm run dev
 - Verify plugin permissions
 - Open **Settings → About & Support → Open logs folder** and check `main.log`
 - In development builds (`npm run dev`), open DevTools with Ctrl+Shift+I
-- Packaged builds only load signed plugins
+- Packaged builds only load signed plugins whose files still match the signature (re-sign after any change with `node scripts/sign-plugin.js <dir>`)
 - Try disabling and re-enabling the plugin
 
 **Issue: Tests failing**

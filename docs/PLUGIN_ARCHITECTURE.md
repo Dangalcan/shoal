@@ -26,7 +26,7 @@ Inspired by Odoo's App Store:
 
 ### Security Model
 
-- Plugin signing via RSA (`electron/services/security/signature-service.ts`)
+- Plugin signing via RSA over the SHA-256 of every plugin file (`electron/services/security/signature-service.ts`, `plugin-integrity.ts`)
 - Manifest-based permission declarations (`kubernetes`, `ui`, `storage`)
 - Renderer UI runs in a sandboxed iframe with a permission-gated bridge (see below)
 - Node entry (`index.js`) of user-installed plugins runs in an isolated
@@ -51,7 +51,9 @@ is trusted. `plugin-loader.shouldIsolatePlugin()` decides per plugin:
 - **Bundled plugins** (shipped in-tree) keep the original in-process `vm`
   execution. Packaged builds ship them as electron-builder `extraResources`
   under `resources/plugins/` (outside `app.asar`), they must carry a valid
-  `plugin.json.sig`, and the ids in `BUNDLED_DEFAULT_ENABLED`
+  `plugin.json.sig` covering all their files, their ids are reserved (the
+  bundled directory is searched first and import refuses them), and the ids in
+  `BUNDLED_DEFAULT_ENABLED`
   (`electron/constants.ts`) are enabled on first run.
 - `PLUGIN_ISOLATION=all` forces isolation for every plugin;
   `PLUGIN_ISOLATION=off` disables it (useful for debugging).
@@ -167,7 +169,7 @@ Plugins own their rendering stack (plain DOM, React, etc.) and mount into
 | File                   | Description                                                                                 |
 | ---------------------- | ------------------------------------------------------------------------------------------- |
 | `license-manager.ts`   | Validates and activates license keys; manages trial periods; encrypts license data locally. |
-| `signature-service.ts` | RSA plugin signing and verification.                                                        |
+| `signature-service.ts` | RSA verification of the signed file list (manifest and code) of each plugin.                |
 | `encryption-utils.ts`  | AES encryption helpers used by the license manager.                                         |
 
 ### Marketplace Client (`electron/services/marketplace/`)
@@ -202,7 +204,7 @@ All plugin-related IPC methods are exposed on `window.electron`. See [API_REFERE
 1. PathService resolves plugin directories
 2. PluginLoader scans directories for plugin.json manifests
 3. Manifests validated against schema (id, name, version, main, permissions)
-4. SignatureService verifies plugin signature (skipped in dev with ALLOW_UNSIGNED_PLUGINS)
+4. SignatureService verifies the signature and that every plugin file still matches its signed hash (a failure only warns in dev with ALLOW_UNSIGNED_PLUGINS)
 5. DependencyResolver sorts plugins by dependency graph
 6. PluginRegistry checks enabled/disabled state from plugin-config.json
 7. For enabled plugins: PluginContext created → plugin.beforeActivate() → plugin.activate()

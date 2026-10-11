@@ -73,7 +73,10 @@ export function registerPluginsIpcHandlers(): void {
           pathService.getUserPluginsDir(),
           options.id
         );
-        if (fs.existsSync(pluginDir)) {
+        if (
+          fs.existsSync(pluginDir) ||
+          (await pathService.isBundledPluginId(options.id))
+        ) {
           throw new Error(`A plugin with id "${options.id}" already exists`);
         }
         await templateService.scaffoldPlugin(pluginDir, options);

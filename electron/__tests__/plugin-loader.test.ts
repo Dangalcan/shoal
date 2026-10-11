@@ -82,6 +82,29 @@ describe('PluginLoader', () => {
       expect(plugins[0].manifest.id).toBe('p1');
     });
 
+    it('should keep the first plugin when two directories share an id', async () => {
+      vi.mocked(fs.readdir).mockResolvedValue([
+        { isDirectory: () => true, name: 'same' },
+      ] as any);
+      vi.mocked(fs.readFile).mockResolvedValue(
+        JSON.stringify({
+          id: 'same',
+          name: 'Same',
+          version: '1.0.0',
+          description: 'D',
+          author: 'A',
+          main: 'index.js',
+          permissions: ['ui'],
+          license: { type: 'free', spdx: 'MIT' },
+        })
+      );
+
+      const plugins = await loader.discoverPlugins();
+
+      expect(plugins).toHaveLength(1);
+      expect(plugins[0].manifest.id).toBe('same');
+    });
+
     it('should handle directory access failures', async () => {
       vi.mocked(fs.access).mockRejectedValue(new Error('ENOENT'));
       const plugins = await loader.discoverPlugins();

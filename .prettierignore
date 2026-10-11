@@ -1,2 +1,5 @@
-# Signed byte for byte by scripts/sign-plugin.js; format before signing, never after.
+# Bundled plugins are signed byte for byte, every file (scripts/sign-plugin.js).
+# Format before signing, never after: lint-staged must not touch them.
+plugins/namespace-watcher/
+plugins/resource-monitor/
 plugins/*/plugin.json

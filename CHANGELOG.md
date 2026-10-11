@@ -48,6 +48,9 @@ yet, so Windows SmartScreen shows a warning on first launch.
 
 ### Security
 
+- Plugin signatures cover every file of the plugin, code included, not only
+  `plugin.json`. A signed manifest can no longer vouch for swapped code, and an
+  imported plugin can no longer take the id of a plugin bundled with Shoal.
 - The `plugin-file:` protocol only serves files inside the plugin folders and
   the app bundle.
 - Stricter Content Security Policy for the app and the plugin frames, a single

@@ -115,8 +115,9 @@ vi.mock('../services/plugins/path-service', () => ({
     getUserPluginsDir: vi.fn().mockReturnValue('/mock/user/plugins'),
     getDiscoveryDirectories: vi
       .fn()
-      .mockReturnValue(['/mock/user/plugins', '/mock/app/plugins']),
+      .mockReturnValue(['/mock/app/plugins', '/mock/user/plugins']),
     resolvePluginPath: vi.fn(),
+    isBundledPluginId: vi.fn().mockResolvedValue(false),
   },
 }));
 
@@ -686,6 +687,21 @@ describe('PluginManager', () => {
 
       expect(result).toBe('imported');
       expect(fs.promises.cp).toHaveBeenCalled();
+    });
+
+    it('importPlugin should refuse the id of a bundled plugin', async () => {
+      vi.mocked(fs.promises.stat).mockResolvedValue({
+        isDirectory: () => true,
+      } as any);
+      vi.mocked(fs.promises.readFile).mockResolvedValue(
+        JSON.stringify({ id: 'resource-monitor' })
+      );
+      vi.mocked(pathService.isBundledPluginId).mockResolvedValueOnce(true);
+
+      await expect(pluginManager.importPlugin('/src/plugin')).rejects.toThrow(
+        'belongs to a plugin bundled with Shoal'
+      );
+      expect(fs.promises.cp).not.toHaveBeenCalled();
     });
 
     it('importPlugin should throw if source is not a directory', async () => {

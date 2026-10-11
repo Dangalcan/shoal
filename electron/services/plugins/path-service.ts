@@ -37,10 +37,21 @@ export class PathService {
   }
 
   /**
-   * Get all plugin discovery directories
+   * Get all plugin discovery directories. Bundled plugins come first: their
+   * ids are reserved, so a user-installed copy can never shadow one.
    */
   getDiscoveryDirectories(): string[] {
-    return [this.getUserPluginsDir(), this.getBundledPluginsDir()];
+    return [this.getBundledPluginsDir(), this.getUserPluginsDir()];
+  }
+
+  /** True when `pluginId` belongs to a plugin bundled with the app. */
+  async isBundledPluginId(pluginId: string): Promise<boolean> {
+    try {
+      await fs.access(path.join(this.getBundledPluginsDir(), pluginId));
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -88,7 +99,7 @@ export class PathService {
   }
 
   /**
-   * Resolve the full path to an installed plugin
+   * Resolve the full path to an installed plugin (bundled directory first).
    */
   async resolvePluginPath(pluginId: string): Promise<string | null> {
     for (const dir of this.getDiscoveryDirectories()) {

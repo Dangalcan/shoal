@@ -3,7 +3,8 @@
  * public key embedded in SignatureService, with real crypto and real files.
  *
  * This pins the embedded key (a rotation without re-signing fails here) and
- * catches any change to a signed plugin.json, including line-ending drift.
+ * catches any change to a signed plugin file (manifest or code), including
+ * line-ending drift.
  */
 import { describe, it, expect } from 'vitest';
 import path from 'path';
@@ -16,7 +17,7 @@ describe('bundled plugin signatures', () => {
   const service = new SignatureService();
 
   it.each(BUNDLED_DEFAULT_ENABLED)(
-    '%s plugin.json matches its committed signature',
+    '%s files match their committed signature',
     async (pluginId) => {
       const verified = await service.verifyPlugin(
         path.join(PLUGINS_DIR, pluginId)

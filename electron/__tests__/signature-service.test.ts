@@ -1,145 +1,159 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+/**
+ * SignatureService with real crypto and real plugin directories: a test key
+ * pair stands in for the Shoal key through the MARKETPLACE_PUBLIC_KEY
+ * override, and plugins are signed with scripts/sign-plugin.js itself, so the
+ * script and the verifier cannot drift apart unnoticed.
+ */
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeAll,
+  beforeEach,
+  afterEach,
+} from 'vitest';
+import { createRequire } from 'module';
+import crypto from 'crypto';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 
-vi.mock('fs/promises', () => {
-  const m = { readFile: vi.fn() };
-  return { ...m, default: m };
-});
+const electronMock = vi.hoisted(() => ({ app: { isPackaged: false } }));
+vi.mock('electron', () => electronMock);
 
-vi.mock('crypto', async (importOriginal) => {
-  const actual = (await importOriginal()) as any;
-  const mocked = {
-    ...actual,
-    // Cast to any to avoid TypeScript overload conflict (verify has void callback overload)
-    verify: vi.fn().mockReturnValue(false) as any,
-    createVerify: vi.fn().mockReturnValue({ update: vi.fn(), end: vi.fn() }),
-  };
-  // Include default export so `import crypto from 'crypto'` resolves correctly
-  return { ...mocked, default: mocked };
-});
-
-import fs from 'fs/promises';
-import * as cryptoNs from 'crypto';
 import { SignatureService } from '../services/security/signature-service';
 
-// Typed helper: avoids TypeScript overload conflict on crypto.verify
-const getVerifyMock = () =>
-  vi.mocked(cryptoNs.verify as (...args: any[]) => boolean);
+interface SignScript {
+  signPlugin: (dir: string, privateKeyPem: string) => unknown;
+}
+const { signPlugin } = createRequire(__filename)(
+  '../../scripts/sign-plugin.js'
+) as SignScript;
+
+let privateKey: string;
+let publicKeyEscaped: string;
+
+beforeAll(() => {
+  const pair = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+  privateKey = pair.privateKey
+    .export({ type: 'pkcs8', format: 'pem' })
+    .toString();
+  publicKeyEscaped = pair.publicKey
+    .export({ type: 'spki', format: 'pem' })
+    .toString()
+    .replace(/\n/g, '\\n');
+});
 
 describe('SignatureService', () => {
-  let service: SignatureService;
+  let dir: string;
+  const service = new SignatureService();
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    // Re-establish default false return (clearAllMocks only clears call history)
-    getVerifyMock().mockReturnValue(false);
-    service = new SignatureService();
+    electronMock.app.isPackaged = false;
+    vi.stubEnv('MARKETPLACE_PUBLIC_KEY', publicKeyEscaped);
+    vi.stubEnv('ALLOW_UNSIGNED_PLUGINS', '');
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'shoal-sig-'));
+    fs.writeFileSync(path.join(dir, 'plugin.json'), '{"id":"demo"}\n');
+    fs.writeFileSync(path.join(dir, 'index.js'), 'module.exports = {};\n');
+    fs.mkdirSync(path.join(dir, 'data'));
+    fs.writeFileSync(path.join(dir, 'data', 'config.json'), '{}\n');
   });
 
-  describe('verifyPlugin', () => {
-    it('should return false when manifest file cannot be read', async () => {
-      vi.mocked(fs.readFile).mockRejectedValueOnce(
-        Object.assign(new Error('ENOENT'), { code: 'ENOENT' })
-      );
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
 
-      const result = await service.verifyPlugin('/fake/plugin/path');
-      expect(result).toBe(false);
-    });
+  const write = (rel: string, text: string) =>
+    fs.writeFileSync(path.join(dir, rel), text);
 
-    it('should return false for an unsigned plugin (no signature file) by default', async () => {
-      vi.mocked(fs.readFile)
-        .mockResolvedValueOnce('{"id":"test-plugin","version":"1.0.0"}')
-        .mockRejectedValueOnce(
-          Object.assign(new Error('ENOENT'), { code: 'ENOENT' })
-        );
+  it('accepts a plugin signed by the script', async () => {
+    signPlugin(dir, privateKey);
+    expect(await service.verifyPlugin(dir)).toBe(true);
+  });
 
-      const result = await service.verifyPlugin('/fake/plugin/path');
-      expect(result).toBe(false);
-    });
+  it('rejects a plugin whose code changed after signing', async () => {
+    signPlugin(dir, privateKey);
+    write('index.js', 'require("child_process").exec("evil");\n');
+    expect(await service.verifyPlugin(dir)).toBe(false);
+  });
 
-    it('should return true for an unsigned plugin when ALLOW_UNSIGNED_PLUGINS=true', async () => {
-      vi.stubEnv('ALLOW_UNSIGNED_PLUGINS', 'true');
+  it('rejects a plugin with an extra file', async () => {
+    signPlugin(dir, privateKey);
+    write('extra.js', '1;\n');
+    expect(await service.verifyPlugin(dir)).toBe(false);
+  });
 
-      vi.mocked(fs.readFile)
-        .mockResolvedValueOnce('{"id":"test-plugin","version":"1.0.0"}')
-        .mockRejectedValueOnce(
-          Object.assign(new Error('ENOENT'), { code: 'ENOENT' })
-        );
+  it('rejects a plugin with a missing file', async () => {
+    signPlugin(dir, privateKey);
+    fs.rmSync(path.join(dir, 'data', 'config.json'));
+    expect(await service.verifyPlugin(dir)).toBe(false);
+  });
 
-      const result = await service.verifyPlugin('/fake/plugin/path');
-      expect(result).toBe(true);
+  it('rejects a file list signed with another key', async () => {
+    const other = crypto
+      .generateKeyPairSync('rsa', { modulusLength: 2048 })
+      .privateKey.export({ type: 'pkcs8', format: 'pem' })
+      .toString();
+    signPlugin(dir, other);
+    expect(await service.verifyPlugin(dir)).toBe(false);
+  });
 
-      vi.unstubAllEnvs();
-    });
+  it('rejects a tampered file list even when the files match it', async () => {
+    signPlugin(dir, privateKey);
+    write('index.js', 'evil();\n');
+    const sigPath = path.join(dir, 'plugin.json.sig');
+    const sig = JSON.parse(fs.readFileSync(sigPath, 'utf8'));
+    sig.files['index.js'] = crypto
+      .createHash('sha256')
+      .update('evil();\n')
+      .digest('hex');
+    fs.writeFileSync(sigPath, JSON.stringify(sig));
+    expect(await service.verifyPlugin(dir)).toBe(false);
+  });
 
-    it('should return false when signature verification fails', async () => {
-      vi.mocked(fs.readFile)
-        .mockResolvedValueOnce('{"id":"test-plugin"}')
-        .mockResolvedValueOnce('deadsig0000');
+  it('rejects a plugin containing a symbolic link', async (ctx) => {
+    try {
+      fs.symlinkSync(os.homedir(), path.join(dir, 'link'), 'junction');
+    } catch {
+      ctx.skip(); // no symlink rights on this machine
+    }
+    expect(await service.verifyPlugin(dir)).toBe(false);
+  });
 
-      getVerifyMock().mockReturnValue(false);
+  it('rejects the old manifest-only signature format', async () => {
+    const manifest = fs.readFileSync(path.join(dir, 'plugin.json'));
+    write(
+      'plugin.json.sig',
+      crypto.sign('sha256', manifest, privateKey).toString('hex')
+    );
+    expect(await service.verifyPlugin(dir)).toBe(false);
+  });
 
-      const result = await service.verifyPlugin('/fake/plugin/path');
-      expect(result).toBe(false);
-    });
+  it('rejects an unsigned plugin by default', async () => {
+    expect(await service.verifyPlugin(dir)).toBe(false);
+  });
 
-    it('should return true when signature verification succeeds', async () => {
-      vi.mocked(fs.readFile)
-        .mockResolvedValueOnce('{"id":"test-plugin"}')
-        .mockResolvedValueOnce('validsig1234');
+  it('loads unsigned or edited plugins in development with ALLOW_UNSIGNED_PLUGINS', async () => {
+    vi.stubEnv('ALLOW_UNSIGNED_PLUGINS', 'true');
+    expect(await service.verifyPlugin(dir)).toBe(true);
 
-      getVerifyMock().mockReturnValue(true);
+    signPlugin(dir, privateKey);
+    write('index.js', 'edited();\n');
+    expect(await service.verifyPlugin(dir)).toBe(true);
+  });
 
-      const result = await service.verifyPlugin('/fake/plugin/path');
-      expect(result).toBe(true);
-    });
+  it('ignores ALLOW_UNSIGNED_PLUGINS in packaged builds', async () => {
+    vi.stubEnv('ALLOW_UNSIGNED_PLUGINS', 'true');
+    electronMock.app.isPackaged = true;
+    expect(await service.verifyPlugin(dir)).toBe(false);
+  });
 
-    it('verifies against MARKETPLACE_PUBLIC_KEY when set (rotation)', async () => {
-      const overridePem =
-        '-----BEGIN PUBLIC KEY-----\\nMARKETPLACEKEY\\n-----END PUBLIC KEY-----';
-      vi.stubEnv('MARKETPLACE_PUBLIC_KEY', overridePem);
-      vi.mocked(fs.readFile)
-        .mockResolvedValueOnce('{"id":"test-plugin"}')
-        .mockResolvedValueOnce('somesig');
-      getVerifyMock().mockReturnValue(true);
-
-      const result = await service.verifyPlugin('/fake/plugin/path');
-      expect(result).toBe(true);
-
-      // The override key (with real newlines, not escaped) is used for verify.
-      const keyArg = String(getVerifyMock().mock.calls[0][2]);
-      expect(keyArg).toContain('MARKETPLACEKEY');
-      expect(keyArg).toContain('\n');
-      expect(keyArg).not.toContain('\\n');
-
-      vi.unstubAllEnvs();
-    });
-
-    it('ignores a malformed MARKETPLACE_PUBLIC_KEY and uses the embedded key', async () => {
-      vi.stubEnv('MARKETPLACE_PUBLIC_KEY', 'not-a-pem');
-      vi.mocked(fs.readFile)
-        .mockResolvedValueOnce('{"id":"test-plugin"}')
-        .mockResolvedValueOnce('somesig');
-      getVerifyMock().mockReturnValue(true);
-
-      await service.verifyPlugin('/fake/plugin/path');
-      const keyArg = String(getVerifyMock().mock.calls[0][2]);
-      expect(keyArg).toContain('BEGIN PUBLIC KEY');
-      expect(keyArg).not.toContain('not-a-pem');
-
-      vi.unstubAllEnvs();
-    });
-
-    it('should return false when crypto.verify throws (e.g. bad key)', async () => {
-      vi.mocked(fs.readFile)
-        .mockResolvedValueOnce('{"id":"test-plugin"}')
-        .mockResolvedValueOnce('badsig');
-
-      getVerifyMock().mockImplementation(() => {
-        throw new Error('invalid key format');
-      });
-
-      const result = await service.verifyPlugin('/fake/plugin/path');
-      expect(result).toBe(false);
-    });
+  it('falls back to the embedded key when MARKETPLACE_PUBLIC_KEY is not a PEM', async () => {
+    vi.stubEnv('MARKETPLACE_PUBLIC_KEY', 'not-a-pem');
+    signPlugin(dir, privateKey);
+    // Signed with the test key, checked against the embedded Shoal key.
+    expect(await service.verifyPlugin(dir)).toBe(false);
   });
 });
