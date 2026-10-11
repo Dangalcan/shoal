@@ -6,12 +6,14 @@ This guide covers building and distributing Shoal for production environments.
 
 - **Node.js**: v22.12+ (CI and local development use Node 22, see `.nvmrc`)
 - **npm**: v9+
-- Platform-specific build tools (see below)
+- No C++ toolchain. The only native module, better-sqlite3, ships prebuilt
+  binaries, and the project `.npmrc` turns dependency install scripts off so
+  npm does not try to compile it (npm/cli#9837).
+- Platform-specific tools (see below)
 
 ### Windows
 
 - **Windows 10/11 SDK**
-- **Visual Studio Build Tools** (including C++ desktop development)
 
 ### macOS
 
@@ -20,7 +22,6 @@ This guide covers building and distributing Shoal for production environments.
 
 ### Linux
 
-- **Standard build tools** (`build-essential` on Ubuntu/Debian)
 - `fakeroot` (for the .deb package)
 
 ---
@@ -124,12 +125,14 @@ to roll back, is in [RELEASE.md](RELEASE.md).
 
 ## Troubleshooting
 
-### Build fails on Windows
+### npm tries to run node-gyp
 
-If you see errors related to `node-gyp` or native modules:
+`npm ci` or `npm install` should never compile anything. If you see
+`node-gyp rebuild` errors, check that `.npmrc` (with `ignore-scripts=true`) is
+in the repository root and that you run npm from there, then reinstall:
 
 ```bash
-npm install --global windows-build-tools
+npm ci
 ```
 
 ### macOS Notarization fails

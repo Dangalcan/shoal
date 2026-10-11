@@ -208,11 +208,16 @@ Download the latest release from [Releases](https://github.com/Dangalcan/shoal/r
 
 ### Development
 
-1.  Install dependencies:
+1.  Install dependencies, then set up the git hooks once:
 
     ```bash
     npm install
+    npm run prepare
     ```
+
+    No C++ toolchain is needed. The project `.npmrc` turns dependency install
+    scripts off (better-sqlite3 ships prebuilt binaries), so npm does not run
+    the `prepare` hook by itself.
 
 2.  Run the development server (starts React and Electron; the marketplace uses bundled sample data):
 
@@ -390,7 +395,7 @@ We welcome contributions! Please see our contribution guides:
 
 1. Fork the repository
 2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/shoal.git`
-3. Install dependencies: `npm install`
+3. Install dependencies and the git hooks: `npm install && npm run prepare`
 4. Create a branch: `git checkout -b feature/your-feature`
 5. Make your changes
 6. Run tests: `npm run test`

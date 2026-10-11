@@ -150,11 +150,19 @@ Before submitting, make sure:
    cd shoal
    ```
 
-2. **Install dependencies:**
+2. **Install dependencies and the git hooks:**
 
    ```bash
    npm install
+   npm run prepare
    ```
+
+   The project `.npmrc` turns dependency install scripts off: npm would
+   otherwise try to compile better-sqlite3 (npm/cli#9837) although it ships
+   prebuilt binaries, which fails without a C++ toolchain. The same setting
+   skips `prepare`, so `npm run prepare` installs the husky pre-commit hook.
+   If a dependency you add needs its install script, run
+   `npm rebuild <package>` and mention it in your PR.
 
 3. **Install marketplace backend dependencies:**
 
