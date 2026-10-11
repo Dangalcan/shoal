@@ -287,6 +287,23 @@ describe('Plugin Context', () => {
       expect(watchProcessMock.kill).toHaveBeenCalled();
     });
 
+    it('watchResources should refuse a type that looks like a kubectl flag', () => {
+      vi.mocked(child_process.spawn).mockReturnValue({
+        stdout: { on: vi.fn() },
+        stderr: { on: vi.fn() },
+        kill: vi.fn(),
+      } as any);
+
+      for (const bad of ['--kubeconfig', '-f/etc/passwd', 'pods --raw']) {
+        expect(() => context.kubernetes.watchResources(bad, () => {})).toThrow(
+          'Invalid resource type'
+        );
+      }
+      expect(() =>
+        context.kubernetes.watchResources('my-crds.example.com', () => {})
+      ).not.toThrow();
+    });
+
     it('watchResources should handle JSON parse errors and stderr', () => {
       let stdoutCallback: any;
       let stderrCallback: any;

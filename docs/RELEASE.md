@@ -53,6 +53,11 @@ entries in the electron-builder config replace the top-level list, so never
 add them. Next to `app.asar`, `resources` must hold `LICENSE.txt`,
 `COPYRIGHT.txt`, `THIRD_PARTY_NOTICES.txt` (written by the `beforePack` hook,
 `scripts/third-party-notices.js`) and the two example plugins.
+`npx @electron/fuses read --app release/win-unpacked/Shoal.exe` must show
+RunAsNode and EnableNodeOptionsEnvironmentVariable disabled and
+EnableEmbeddedAsarIntegrityValidation and OnlyLoadAppFromAsar enabled
+(`build.electronFuses`). EnableNodeCliInspectArguments stays enabled because
+Playwright needs `--inspect` for the smoke tests.
 
 ## Publishing the draft
 

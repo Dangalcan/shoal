@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, protocol } from 'electron';
+import { app, BrowserWindow, Menu, protocol, session } from 'electron';
 import path from 'path';
 import { pluginManager } from './services/plugins/plugin-manager';
 import { pluginHostManager } from './services/plugins/host/plugin-host-manager';
@@ -72,6 +72,24 @@ app.on('web-contents-created', (_event, contents) => {
     }
   });
 });
+
+// Electron grants every web permission request by default. Deny them all
+// (camera, microphone, geolocation, notifications, ...) except clipboard
+// writes, which the UI uses to copy YAML.
+const ALLOWED_PERMISSIONS = new Set(['clipboard-sanitized-write']);
+
+function restrictPermissions(): void {
+  session.defaultSession.setPermissionRequestHandler(
+    (_contents, permission, callback) => {
+      const allowed = ALLOWED_PERMISSIONS.has(permission);
+      if (!allowed) log.warn(`[Main] Denied permission request: ${permission}`);
+      callback(allowed);
+    }
+  );
+  session.defaultSession.setPermissionCheckHandler((_contents, permission) =>
+    ALLOWED_PERMISSIONS.has(permission)
+  );
+}
 
 // Register custom protocol as privileged — must be called before app.whenReady()
 protocol.registerSchemesAsPrivileged([
@@ -157,6 +175,8 @@ app.on('activate', () => {
 
 app.whenReady().then(async () => {
   if (!isPrimaryInstance) return;
+
+  restrictPermissions();
 
   // 1. Initialize manifest database FIRST (synchronous, critical)
   try {

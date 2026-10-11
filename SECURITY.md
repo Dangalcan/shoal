@@ -62,4 +62,7 @@ The core application follows several security principles:
 - **Command Sanitization:** All shell commands are carefully constructed to prevent injection attacks.
 - **Sandboxed Plugin UI:** Plugin interfaces run in opaque-origin iframes with a strict Content Security Policy and no network access; their files are served only from plugin directories.
 - **Navigation Guards:** The app window cannot open new windows or navigate away from the app; web links open in the system browser, and only one instance runs per profile.
+- **Permissions:** Web permission requests (camera, microphone, location, notifications and so on) are denied; only clipboard writes are allowed.
+- **Hardened Binary:** Electron fuses disable running the executable as plain Node.js and `NODE_OPTIONS`, and the app only loads from its integrity-checked `app.asar`.
+- **Signed Plugins:** Installed builds only load plugins whose signature covers every file of the plugin, code included. The ids of the bundled plugins cannot be reused by imported plugins.
 - **Release Integrity:** Releases are not code-signed yet. Download installers only from this repository's GitHub Releases page.

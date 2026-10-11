@@ -128,6 +128,13 @@
       "!node_modules/better-sqlite3/prebuilds/{darwin-*,linuxmusl-*,linux-arm64,win32-arm64}.node"
     ],
     "npmRebuild": false,
+    "electronFuses": {
+      "runAsNode": false,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": true,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true
+    },
     "beforePack": "scripts/third-party-notices.js",
     "extraResources": [
       {

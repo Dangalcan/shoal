@@ -51,6 +51,11 @@ yet, so Windows SmartScreen shows a warning on first launch.
 - Plugin signatures cover every file of the plugin, code included, not only
   `plugin.json`. A signed manifest can no longer vouch for swapped code, and an
   imported plugin can no longer take the id of a plugin bundled with Shoal.
+- Electron fuses: the executable no longer runs as plain Node.js
+  (`ELECTRON_RUN_AS_NODE`), ignores `NODE_OPTIONS`, and only loads its
+  integrity-checked `app.asar`.
+- Web permission requests are denied except clipboard writes.
+- Plugins cannot pass a kubectl flag as the resource type of a watch.
 - The `plugin-file:` protocol only serves files inside the plugin folders and
   the app bundle.
 - Stricter Content Security Policy for the app and the plugin frames, a single

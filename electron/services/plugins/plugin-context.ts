@@ -82,8 +82,9 @@ export function createPluginContext(
           ),
 
         watchResources: (type: string, callback: (event: unknown) => void) => {
-          // Validate resource type to prevent command injection
-          if (!/^[a-zA-Z0-9.\-/]+$/.test(type)) {
+          // Validate resource type: no spaces or shell syntax, and no leading
+          // "-" so a plugin cannot slip a kubectl flag in as the type.
+          if (!/^[a-zA-Z0-9][a-zA-Z0-9.\-/]*$/.test(type)) {
             throw new Error(`Invalid resource type: "${type}"`);
           }
 
