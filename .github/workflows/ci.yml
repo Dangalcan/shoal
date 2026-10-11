@@ -38,7 +38,9 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Unit & integration tests
-        run: npm test
+        # With coverage: the job fails if a threshold in vitest.config.ts
+        # (90 lines/statements/functions, 80 branches) drops.
+        run: npm run test:coverage
         # Note: marketplace-backend/** is EXCLUDED from the root vitest run
         # (legacy dev-only mock; see vitest.config.ts). The real backend is
         # kdMarket, a separate repo that owns its own build/test pipeline.

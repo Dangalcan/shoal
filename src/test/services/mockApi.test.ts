@@ -275,4 +275,71 @@ describe('mockApi', () => {
     mockApi.onTerminalOutput(() => {})();
     mockApi.onTerminalExited(() => {})();
   });
+
+  it('answers app info, tool, metrics and update calls with canned data', async () => {
+    expect((await mockApi.getToolStatus('kubectl')).data).toMatchObject({
+      tool: 'kubectl',
+      installed: true,
+    });
+    expect((await mockApi.getFeatureFlags()).data).toEqual({
+      marketplace: true,
+    });
+    expect((await mockApi.getAppInfo()).data?.logsPath).toBe('/mock/logs');
+    expect((await mockApi.openLogsFolder()).success).toBe(true);
+    expect((await mockApi.logRendererError({} as never)).success).toBe(true);
+    expect(
+      (
+        await mockApi.getPodMetrics({
+          contextName: 'ctx',
+          namespace: 'default',
+        })
+      ).data
+    ).toEqual([]);
+    expect((await mockApi.checkForAppUpdates()).data).toBe(false);
+    expect((await mockApi.installAppUpdate()).success).toBe(true);
+    mockApi.onUpdateStatus(() => {})();
+  });
+
+  it('answers Helm calls with canned output', async () => {
+    expect((await mockApi.helmInstall({} as never)).data).toBe(
+      'Mock install success'
+    );
+    expect((await mockApi.helmUpgrade({} as never)).data).toBe(
+      'Mock upgrade success'
+    );
+    expect((await mockApi.helmRollback({} as never)).data).toBe(
+      'Mock rollback success'
+    );
+    expect((await mockApi.helmUninstall({} as never)).data).toBe(
+      'Mock uninstall success'
+    );
+    expect(
+      (await mockApi.helmRepoAdd({ name: 'a', url: 'https://a' })).data
+    ).toBe('Mock repo added');
+    expect((await mockApi.helmRepoList()).data).toEqual([]);
+  });
+
+  it('walks through a migration', async () => {
+    expect((await mockApi.migrationCheckKompose()).data?.available).toBe(true);
+    const file = await mockApi.migrationSelectComposeFile();
+    expect(file.data).toBe('/mock/docker-compose.yml');
+
+    const conversion = await mockApi.migrationConvertCompose(
+      file.data as string
+    );
+    expect(conversion.data?.manifests.map((m) => m.kind)).toEqual([
+      'Deployment',
+      'Service',
+    ]);
+
+    const imported = await mockApi.migrationImportManifests({
+      projectName: 'web',
+      contextName: 'kind-dev',
+      manifests: (conversion.data?.manifests ?? []).map((m) => ({
+        name: m.name,
+        content: m.content,
+      })) as never,
+    });
+    expect(imported.data).toEqual({ folderId: 1, manifestIds: [1, 2] });
+  });
 });

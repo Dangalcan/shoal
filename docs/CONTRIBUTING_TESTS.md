@@ -138,12 +138,18 @@ npm run test:e2e:interactive
 
 ## Coverage Requirements
 
-We maintain high standards for core logic (enforced in `vitest.config.ts`):
+We maintain high standards for core logic. The thresholds live in
+`vitest.config.ts`, and CI runs `npm run test:coverage`, so a pull request
+that drops below any of them fails:
 
 - **Lines**: 90%
 - **Statements**: 90%
 - **Functions**: 90%
 - **Branches**: 80%
+
+Only files some test imports are counted, so a new page or IPC handler with no
+test drags the totals down as soon as another test loads it. Page tests should
+click through the actions, not only render the empty state.
 
 Run coverage report:
 
