@@ -375,7 +375,7 @@ The build process creates platform-specific installers:
 - **Windows:** NSIS installer and portable `.exe`
 - **Linux:** `.AppImage` and `.deb`
 
-Releases are built and published by CI from `v*` tags; see [docs/RELEASE.md](docs/RELEASE.md).
+Releases are built and published by CI from `v*` tags; see [docs/RELEASE.md](docs/RELEASE.md). Repository settings (branch protection, security features, Pages) are recorded in [docs/GOING_PUBLIC.md](docs/GOING_PUBLIC.md).
 
 ## 🤝 Contributing
 
