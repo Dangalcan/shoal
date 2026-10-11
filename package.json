@@ -1,6 +1,6 @@
 {
   "name": "shoal",
-  "version": "0.9.0-rc.1",
+  "version": "0.9.0-rc.2",
   "description": "Desktop application for managing Kubernetes clusters, with a plugin marketplace.",
   "desktopName": "shoal.desktop",
   "main": "dist-electron/main.js",

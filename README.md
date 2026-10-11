@@ -3,7 +3,7 @@
 <img src="public/icon.svg" alt="Shoal icon" width="96" height="96">
 
 [![License](https://img.shields.io/badge/license-LGPL-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.9.0--rc.1-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.9.0--rc.2-green.svg)](CHANGELOG.md)
 [![Electron](https://img.shields.io/badge/electron-44.7.0-blue.svg)](https://electronjs.org)
 [![React](https://img.shields.io/badge/react-19.2.3-blue.svg)](https://react.dev)
 
