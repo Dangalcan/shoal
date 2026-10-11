@@ -3,6 +3,8 @@ dist
 error.log
 **.log
 dist-electron
+# Generated at package time (scripts/third-party-notices.js)
+build/THIRD_PARTY_NOTICES.txt
 coverage
 prompts.txt
 .env

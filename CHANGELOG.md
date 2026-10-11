@@ -28,6 +28,8 @@ yet, so Windows SmartScreen shows a warning on first launch.
 - Local error log for the main process and the UI, and an About & Support
   card in Settings with the version, an update check, the logs folder and a
   prefilled GitHub issue. Nothing is sent anywhere.
+- Installers ship `LICENSE.txt`, `COPYRIGHT.txt` and `THIRD_PARTY_NOTICES.txt`
+  with the license texts of every bundled open source package.
 
 ### Changed
 

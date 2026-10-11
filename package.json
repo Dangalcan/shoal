@@ -128,7 +128,20 @@
       "!node_modules/better-sqlite3/prebuilds/{darwin-*,linuxmusl-*,linux-arm64,win32-arm64}.node"
     ],
     "npmRebuild": false,
+    "beforePack": "scripts/third-party-notices.js",
     "extraResources": [
+      {
+        "from": "LICENSE",
+        "to": "LICENSE.txt"
+      },
+      {
+        "from": "COPYRIGHT",
+        "to": "COPYRIGHT.txt"
+      },
+      {
+        "from": "build/THIRD_PARTY_NOTICES.txt",
+        "to": "THIRD_PARTY_NOTICES.txt"
+      },
       {
         "from": "plugins/namespace-watcher",
         "to": "plugins/namespace-watcher",

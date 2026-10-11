@@ -45,7 +45,9 @@ npm run build
 
 - Runs `vite build` (frontend)
 - Runs `tsc` on the `electron/` directory
-- Executes `electron-builder`
+- Executes `electron-builder`, whose `beforePack` hook
+  (`scripts/third-party-notices.js`) writes `build/THIRD_PARTY_NOTICES.txt`;
+  it ships in `resources` with `LICENSE.txt` and `COPYRIGHT.txt`
 
 ### 3. Platform-Specific Commands
 

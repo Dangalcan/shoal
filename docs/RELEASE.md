@@ -50,7 +50,9 @@ Before publishing, check what went into the package: `npx asar list
 release/win-unpacked/resources/app.asar` must only show `dist`, `dist-electron`
 (no `__tests__`), `node_modules` and `package.json`. Platform-level `files`
 entries in the electron-builder config replace the top-level list, so never
-add them.
+add them. Next to `app.asar`, `resources` must hold `LICENSE.txt`,
+`COPYRIGHT.txt`, `THIRD_PARTY_NOTICES.txt` (written by the `beforePack` hook,
+`scripts/third-party-notices.js`) and the two example plugins.
 
 ## Publishing the draft
 

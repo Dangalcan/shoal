@@ -12,8 +12,9 @@ FOR A PARTICULAR PURPOSE.
 
 Third-party components keep their own licenses. Packaged builds include
 Electron and Chromium (LICENSE.electron.txt and LICENSES.chromium.html next
-to the executable) and the npm dependencies listed in package-lock.json,
-each under the license stated in its package.
+to the executable) and the npm packages listed, with their license texts, in
+THIRD_PARTY_NOTICES.txt next to this file. scripts/third-party-notices.js
+generates that list from the production dependencies at package time.
 
 Kubernetes is a registered trademark of The Linux Foundation. Shoal is an
 independent project and is not affiliated with or endorsed by The Linux

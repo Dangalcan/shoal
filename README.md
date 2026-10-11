@@ -468,4 +468,6 @@ npm run dev
 
 LGPL-3.0-or-later. See [LICENSE](LICENSE) and [COPYRIGHT](COPYRIGHT).
 
+Installers also ship `LICENSE.txt`, `COPYRIGHT.txt` and `THIRD_PARTY_NOTICES.txt` in the app's `resources` folder. The notices list every bundled npm package with its license text and are generated at package time by `scripts/third-party-notices.js`.
+
 Kubernetes is a registered trademark of The Linux Foundation. Shoal is an independent project, not affiliated with or endorsed by The Linux Foundation or the CNCF.

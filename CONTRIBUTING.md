@@ -344,3 +344,5 @@ All contributors will be recognized in our release notes and README. Thank you f
 ## License
 
 By contributing to Shoal, you agree that your contributions will be licensed under the LGPL-3.0-or-later License.
+
+New runtime dependencies must use a license compatible with LGPL-3.0 (MIT, ISC, BSD, Apache-2.0 and similar; no GPL or AGPL). Their notices are added to `THIRD_PARTY_NOTICES.txt` automatically when the app is packaged (`scripts/third-party-notices.js`).
