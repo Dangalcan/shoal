@@ -13,7 +13,7 @@ import type {
   StorageAPI,
 } from '../../types/plugin-types';
 
-import yaml from 'js-yaml';
+import { load, YAML11_SCHEMA } from 'js-yaml';
 import { getErrorMessage } from '../../utils/error-utils';
 import log from '../../logger';
 
@@ -41,7 +41,11 @@ export class DataLoader {
         if (extension === '.json') {
           parsed = JSON.parse(content);
         } else if (extension === '.yaml' || extension === '.yml') {
-          parsed = yaml.load(content);
+          // Same YAML 1.1 semantics js-yaml 4 had by default; an empty file
+          // stays undefined (js-yaml 5 would throw).
+          parsed = content.trim()
+            ? load(content, { schema: YAML11_SCHEMA })
+            : undefined;
         } else {
           log.warn(`[DataLoader] Unsupported data file format: ${extension}`);
           continue;

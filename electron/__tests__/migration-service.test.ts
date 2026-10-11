@@ -176,6 +176,36 @@ describe('MigrationService', () => {
       expect(result.locallyBuiltImages).toEqual(['myco/api:1.0']);
     });
 
+    it('follows YAML merge keys when looking for locally built services', async () => {
+      mockFileOk();
+      vi.mocked(fs.readFile).mockResolvedValue(
+        'x-api: &api\n  build: ./api\n  restart: always\n' +
+          'services:\n  web:\n    image: nginx:latest\n' +
+          '  worker:\n    <<: *api\n    command: work\n'
+      );
+      vi.mocked(safeExec).mockResolvedValue({
+        stdout: KOMPOSE_STDOUT,
+        stderr: '',
+      });
+
+      const result = await service.convertComposeFile(COMPOSE_PATH);
+
+      expect(result.locallyBuiltImages).toEqual(['worker']);
+    });
+
+    it('returns no local images for an empty compose file', async () => {
+      mockFileOk();
+      vi.mocked(fs.readFile).mockResolvedValue('  \n');
+      vi.mocked(safeExec).mockResolvedValue({
+        stdout: KOMPOSE_STDOUT,
+        stderr: '',
+      });
+
+      const result = await service.convertComposeFile(COMPOSE_PATH);
+
+      expect(result.locallyBuiltImages).toEqual([]);
+    });
+
     it('returns no local images when the compose file cannot be re-read', async () => {
       mockFileOk();
       vi.mocked(fs.readFile).mockRejectedValue(new Error('EACCES'));

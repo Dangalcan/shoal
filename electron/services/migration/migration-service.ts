@@ -12,7 +12,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import yaml from 'js-yaml';
+import { dump, load, loadAll, YAML11_SCHEMA } from 'js-yaml';
 import { safeExec } from '../../utils/safe-exec';
 import { getErrorMessage } from '../../utils/error-utils';
 import log from '../../logger';
@@ -121,7 +121,9 @@ export class MigrationService {
   private parseManifests(stdout: string): ConvertedManifest[] {
     let documents: unknown[];
     try {
-      documents = yaml.loadAll(stdout);
+      // YAML 1.1 schema: what js-yaml 4 used by default (merge keys,
+      // timestamps), so js-yaml 5 parses kompose output the same way.
+      documents = loadAll(stdout, { schema: YAML11_SCHEMA });
     } catch (error: unknown) {
       throw new Error(
         `Failed to parse kompose output as YAML: ${getErrorMessage(error)}`
@@ -156,7 +158,7 @@ export class MigrationService {
         fileName: `${name}-${kind.toLowerCase()}.yaml`,
         kind,
         name,
-        content: yaml.dump(resource, { noRefs: true }),
+        content: dump(resource, { noRefs: true }),
       };
     });
   }
@@ -190,7 +192,12 @@ export class MigrationService {
   private async findLocallyBuiltImages(filePath: string): Promise<string[]> {
     try {
       const raw = await fs.readFile(filePath, 'utf-8');
-      const compose = yaml.load(raw) as ComposeDocument | null;
+      // Compose files often reuse service settings with `<<: *anchor`; the
+      // YAML 1.1 schema keeps merge keys working. js-yaml 5 throws on an
+      // empty document instead of returning undefined.
+      const compose = raw.trim()
+        ? (load(raw, { schema: YAML11_SCHEMA }) as ComposeDocument | null)
+        : null;
       if (!compose?.services || typeof compose.services !== 'object') {
         return [];
       }

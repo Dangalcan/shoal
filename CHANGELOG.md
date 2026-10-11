@@ -39,6 +39,11 @@ yet, so Windows SmartScreen shows a warning on first launch.
 - The app version shown in the sidebar now always comes from `package.json`.
 - Cluster cards show the real provider (kind or k3d, from the context name)
   and no longer label every context as running.
+- Dependency updates before the beta. React 19.3, lucide-react 1.x (two
+  icons are redrawn), js-yaml 5 (still reads Compose files with the YAML 1.1
+  rules, so merge keys keep working) and semver 7.8, plus build and test
+  tooling (Vitest 5, Playwright 1.64, Tailwind CSS 4.3, Prettier 3.9).
+  The GitHub Actions workflows use the Node 24 releases of their actions.
 
 ### Fixed
 

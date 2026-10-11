@@ -17,18 +17,18 @@ vi.mock('../../components/modals/PodViewerModal', () => ({
     )
 }))
 
-describe('Clusters Page', () => {
-    // Mock toast
-    vi.mock('sonner', () => ({
-        Toaster: () => null,
-        toast: {
-            loading: vi.fn(),
-            success: vi.fn(),
-            error: vi.fn(),
-            dismiss: vi.fn()
-        }
-    }))
+// Mock toast
+vi.mock('sonner', () => ({
+    Toaster: () => null,
+    toast: {
+        loading: vi.fn(),
+        success: vi.fn(),
+        error: vi.fn(),
+        dismiss: vi.fn()
+    }
+}))
 
+describe('Clusters Page', () => {
     beforeEach(() => {
         vi.clearAllMocks()
         mockClusters([])

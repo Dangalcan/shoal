@@ -70,6 +70,14 @@ describe('DataLoader', () => {
     ]);
   });
 
+  it('loads an empty YAML file as undefined instead of failing', async () => {
+    const manifest = { ...mockManifest, data: ['data/empty.yaml'] };
+    (readFile as any).mockResolvedValueOnce('\n');
+
+    const result = await dataLoader.loadPluginData('/mock/path', manifest);
+    expect(result).toEqual([{ path: 'data/empty.yaml', content: undefined }]);
+  });
+
   it('throws a descriptive error when a data file cannot be read', async () => {
     const manifest = { ...mockManifest, data: ['data/missing.json'] };
     (readFile as any).mockRejectedValueOnce(new Error('ENOENT'));

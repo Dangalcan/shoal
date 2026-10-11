@@ -29,9 +29,11 @@ export default defineConfig({
         branches: 80,
       },
       exclude: [
+        // Glob patterns: Vitest 5 no longer treats a bare directory
+        // ('src/test/') as a prefix.
         'styles/**',
-        'node_modules/',
-        'src/test/',
+        'node_modules/**',
+        'src/test/**',
         '**/*.d.ts',
         '**/*.config.*',
         '**/dist/**',

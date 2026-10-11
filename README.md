@@ -180,7 +180,7 @@ shoal/
 - **Terminal**: [xterm.js](https://xtermjs.org/) frontend over spawned shell processes
 - **Auto-Update**: [electron-updater](https://github.com/electron-userland/electron-builder/tree/master/packages/electron-updater) (GitHub Releases)
 - **Notifications**: [Sonner](https://sonner.emilkowal.ski/) (toasts)
-- **Testing**: [Vitest 4](https://vitest.dev/) (unit) + [Playwright](https://playwright.dev/) (E2E)
+- **Testing**: [Vitest 5](https://vitest.dev/) (unit) + [Playwright](https://playwright.dev/) (E2E)
 - **Marketplace Backend**: [Express.js](https://expressjs.com/) + JWT
 
 ## 🚀 Getting Started
