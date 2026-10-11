@@ -106,9 +106,8 @@ job skips the two cluster specs because the runner cannot run Linux containers.
 
 ### Screenshots
 
-`npm run screenshots` regenerates `docs/images/*.png` (Dashboard, Clusters,
-cluster details, Manifests and Plugins, light and dark, 1280×720 logical
-pixels). The landing page uses WebP copies of the same files. It is not part
+`npm run screenshots` regenerates `docs/images/*.png` (Dashboard, cluster
+details, Manifests and Plugins, light and dark, 1280×720 logical pixels). The landing page uses WebP copies of the same files. It is not part
 of `test:e2e` and needs some setup so the images show exactly what users get
 and nothing from your own machine (Git Bash):
 

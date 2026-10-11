@@ -29,6 +29,8 @@ yet, so Windows SmartScreen shows a warning on first launch.
   guidelines), with a new app icon.
 - Electron 44 and Node 22 toolchain.
 - The app version shown in the sidebar now always comes from `package.json`.
+- Cluster cards show the real provider (kind or k3d, from the context name)
+  and no longer label every context as running.
 
 ### Not in this release
 

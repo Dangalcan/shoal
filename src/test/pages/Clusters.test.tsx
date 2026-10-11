@@ -66,6 +66,14 @@ describe('Clusters Page', () => {
         })
     })
 
+    it('should label each card with its real provider and no unverified status', async () => {
+        renderClustersPage(['kind-dev', 'k3d-staging', 'docker-desktop'])
+        expect(await screen.findByText('Provider: kind')).toBeInTheDocument()
+        expect(screen.getByText('Provider: k3d')).toBeInTheDocument()
+        expect(screen.getByText('kubeconfig context')).toBeInTheDocument()
+        expect(screen.queryByText('Running')).toBeNull()
+    })
+
     it('should handle load error gracefully', async () => {
         mockApi.getClusters = vi.fn().mockRejectedValue(new Error('Fetch failed'))
         renderClustersPage()

@@ -14,6 +14,7 @@ import { ConfirmModal } from '../components/modals/ConfirmModal';
 import { useClusterContext } from '../features/clusters/ClusterContext';
 import { Button, Badge, Spinner, Animate } from '../components/ui';
 import { KubectlMissingNotice } from '../features/clusters/KubectlMissingNotice';
+import { providerFromContext } from '../features/clusters/provider';
 
 export function Clusters() {
   const navigate = useNavigate();
@@ -79,7 +80,8 @@ export function Clusters() {
           {clusters.map((cluster, index) => {
             const isActive = cluster === currentContext;
             const isSwitching = switching === cluster;
-            
+            const provider = providerFromContext(cluster);
+
             return (
             <Animate 
               key={cluster} 
@@ -104,10 +106,9 @@ export function Clusters() {
                     )}
                   </div>
                   <div className="cluster-card-meta">
-                    <Badge variant="success" dot>
-                      Running
-                    </Badge>
-                    <span className="cluster-provider">Provider: Kind</span>
+                    <span className="cluster-provider">
+                      {provider ? `Provider: ${provider}` : 'kubeconfig context'}
+                    </span>
                   </div>
                 </div>
               </div>

@@ -65,7 +65,7 @@ If you have multiple clusters, you can switch between them using the context sel
 
 ### Exploring Pods, Services, and More
 
-Navigate to **"Clusters"** in the sidebar to see a list of your connected clusters. Click on any cluster to enter the **Cluster Details** view.
+Navigate to **"Clusters"** in the sidebar to see a list of your connected clusters. Each card shows the tool behind the context when its name tells (`kind-…` or `k3d-…`), or "kubeconfig context" for any other cluster. Click on any cluster to enter the **Cluster Details** view.
 
 - **Namespace Filter**: Use the dropdown at the top to filter resources by namespace (e.g., `default`, `kube-system`).
 - **Resource Tabs**: Quickly switch between Pods, Services, Deployments, and ConfigMaps.

@@ -100,7 +100,6 @@ for (const theme of ['light', 'dark'] as const) {
     await window.getByRole('link', { name: 'Clusters' }).click();
     const card = window.locator('.cluster-card', { hasText: CONTEXT });
     await expect(card).toBeVisible({ timeout: 30_000 });
-    await shoot('clusters', theme);
 
     await card.locator('.cluster-card-info').click();
     await expect(window.locator('.cluster-details-container')).toBeVisible();
