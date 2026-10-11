@@ -1,6 +1,7 @@
 import { Play, Edit2, FolderInput, Trash2 } from 'lucide-react';
 import type { Manifest } from '../../types.d';
 import { MANIFEST_DRAG_TYPE, setDragPayload } from './manifest-dnd';
+import { parseSqliteTimestamp } from '../../lib/utils';
 
 interface ManifestCardProps {
   manifest: Manifest;
@@ -68,7 +69,9 @@ export function ManifestCard({
       <div className="card-body">
         <div className="manifest-info">
           <span>Context: {m.cluster_context}</span>
-          <span>Updated: {new Date(m.updated_at).toLocaleDateString()}</span>
+          <span>
+            Updated: {parseSqliteTimestamp(m.updated_at).toLocaleDateString()}
+          </span>
         </div>
         <pre className="yaml-preview">
           {m.content.substring(0, 150)}

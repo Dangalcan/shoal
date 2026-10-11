@@ -32,6 +32,7 @@ e2e/
 │   ├── capture.spec.ts           # README and landing page screenshots (not auto-run)
 │   └── demo-workload.yaml        # Demo namespace shown in the screenshots
 ├── screenshots.config.ts         # Playwright config for `npm run screenshots`
+├── explore.config.ts             # Playwright config for `npm run test:e2e:interactive`
 └── explore.spec.ts               # Interactive exploration tool (not auto-run)
 ```
 
@@ -63,7 +64,7 @@ Each file tests one feature area. Tests within a file run sequentially and share
 
 ### `explore.spec.ts`
 
-A special interactive test that opens the app and pauses execution. Intended for manual exploration with the Playwright Inspector — not included in the automated `test:e2e` run.
+A special interactive test that opens the app and pauses execution. Intended for manual exploration with the Playwright Inspector — not included in the automated `test:e2e` run. The main config ignores it, so `npm run test:e2e:interactive` runs it through `e2e/explore.config.ts`.
 
 ---
 

@@ -6,6 +6,10 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
+      # react and react-dom must stay on the same version (a mismatch breaks
+      # every test), so they and their types always move together.
+      react:
+        patterns: ['react', 'react-dom', '@types/react', '@types/react-dom']
       # One PR for all dev tooling bumps instead of one per package.
       dev-dependencies:
         dependency-type: development

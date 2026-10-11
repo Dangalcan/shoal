@@ -42,6 +42,8 @@ yet, so Windows SmartScreen shows a warning on first launch.
 
 ### Fixed
 
+- Manifest cards showed the save date in UTC (one day off late in the
+  evening in Europe). SQLite timestamps are now read as UTC.
 - Plugin pages, widgets and modals render in installed builds. Sandboxed
   plugin frames could not load `file:` resources, so they stayed blank.
 - The manifest editor no longer steals focus from the other fields.

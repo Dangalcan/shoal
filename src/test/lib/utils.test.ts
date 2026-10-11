@@ -1,5 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { cn } from '../../lib/utils';
+import { cn, parseSqliteTimestamp } from '../../lib/utils';
+
+describe('parseSqliteTimestamp', () => {
+  it('reads SQLite CURRENT_TIMESTAMP values as UTC', () => {
+    expect(parseSqliteTimestamp('2026-10-10 22:30:00').toISOString()).toBe(
+      '2026-10-10T22:30:00.000Z'
+    );
+  });
+
+  it('leaves values that already carry a zone alone', () => {
+    expect(
+      parseSqliteTimestamp('2026-10-10T22:30:00+02:00').toISOString()
+    ).toBe('2026-10-10T20:30:00.000Z');
+  });
+});
 
 describe('cn utility function', () => {
   it('should merge class names correctly', () => {
