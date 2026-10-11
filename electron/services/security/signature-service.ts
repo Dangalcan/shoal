@@ -31,6 +31,31 @@ import {
   parseSignatureFile,
 } from './plugin-integrity';
 
+/** The problem reported when a plugin has no plugin.json.sig at all. */
+export const NO_SIGNATURE = 'no signature file';
+
+export type SignatureCheck = { ok: true } | { ok: false; problem: string };
+
+/**
+ * User-facing explanation for a refused plugin. An unsigned plugin is the
+ * normal case for anyone writing their own during the beta, so it must not
+ * read like tampering; files that no longer match a signature might be.
+ */
+export function describeSignatureProblem(problem: string): string {
+  if (problem === NO_SIGNATURE) {
+    return (
+      'This plugin is not signed. Installed builds of Shoal only load plugins ' +
+      'signed with the Shoal key, and third-party plugins cannot be signed ' +
+      'during the 0.9 beta. Develop and test your own plugins from source ' +
+      'with "npm run dev" (see the plugin guide).'
+    );
+  }
+  return (
+    `Signature check failed (${problem}). The plugin's files do not match ` +
+    'its signature, so it was not loaded. Reinstall it from a trusted source.'
+  );
+}
+
 export class SignatureService {
   // RSA-2048 public key — generated 2026-10-10 (rotated; the 2026-03-10 key's
   // private half was lost). Replace both this key AND the private key in your
@@ -56,8 +81,13 @@ mTG4NWftfh6O1ZzUYCIoRqSP04p+X/t1PXuFh0IM7YCvOmzLq60UIX2ALjzymiRz
    * warning. Packaged builds ignore that flag.
    */
   async verifyPlugin(pluginPath: string): Promise<boolean> {
+    return (await this.checkPlugin(pluginPath)).ok;
+  }
+
+  /** Same as verifyPlugin, plus why a plugin was refused. */
+  async checkPlugin(pluginPath: string): Promise<SignatureCheck> {
     const problem = await this.findProblem(pluginPath);
-    if (!problem) return true;
+    if (!problem) return { ok: true };
 
     if (process.env.ALLOW_UNSIGNED_PLUGINS === 'true') {
       if (app?.isPackaged) {
@@ -65,20 +95,20 @@ mTG4NWftfh6O1ZzUYCIoRqSP04p+X/t1PXuFh0IM7YCvOmzLq60UIX2ALjzymiRz
           `[SignatureService] ALLOW_UNSIGNED_PLUGINS=true is ignored in packaged builds. ` +
             `Plugin at "${pluginPath}" will not load: ${problem}.`
         );
-        return false;
+        return { ok: false, problem };
       }
       log.warn(
         `[SignatureService] Plugin at "${pluginPath}": ${problem}. ` +
           'Loading anyway because ALLOW_UNSIGNED_PLUGINS=true (development only).'
       );
-      return true;
+      return { ok: true };
     }
 
     log.error(
       `[SignatureService] Plugin at "${pluginPath}" failed verification: ${problem}. ` +
         'Sign it with: node scripts/sign-plugin.js <plugin-directory>'
     );
-    return false;
+    return { ok: false, problem };
   }
 
   /** Why the plugin does not verify, or null when it does. */
@@ -90,7 +120,7 @@ mTG4NWftfh6O1ZzUYCIoRqSP04p+X/t1PXuFh0IM7YCvOmzLq60UIX2ALjzymiRz
         'utf-8'
       );
     } catch {
-      return 'no signature file';
+      return NO_SIGNATURE;
     }
 
     try {

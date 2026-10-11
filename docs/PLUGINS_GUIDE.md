@@ -415,7 +415,7 @@ Package your plugin as a `.zip` archive containing `plugin.json`, `index.js`, an
 - **macOS**: `~/Library/Application Support/Shoal/plugins/`
 - **Linux**: `~/.config/Shoal/plugins/`
 
-Packaged builds only load plugins that carry a valid `plugin.json.sig`. The signature covers the whole plugin: the file lists the SHA-256 of every file in the plugin directory (manifest and code) and an RSA-SHA256 signature over that list, made with the Shoal signing key. Any file changed, added or removed after signing makes the plugin fail to load, so sign last. Plugin ids of the plugins bundled with Shoal are reserved and cannot be imported. Unsigned or out-of-date plugins load only in development (`npm run dev`, which sets `ALLOW_UNSIGNED_PLUGINS=true`). During the 0.9 beta there is no way to get a third-party plugin signed yet; signing through the marketplace arrives with 1.0.
+Packaged builds only load plugins that carry a valid `plugin.json.sig`. The signature covers the whole plugin: the file lists the SHA-256 of every file in the plugin directory (manifest and code) and an RSA-SHA256 signature over that list, made with the Shoal signing key. Any file changed, added or removed after signing makes the plugin fail to load, so sign last. Plugin ids of the plugins bundled with Shoal are reserved and cannot be imported. Unsigned or out-of-date plugins load only in development (`npm run dev`, which sets `ALLOW_UNSIGNED_PLUGINS=true`). In installed builds, **"Load Unpacked Plugin"** checks the signature before copying anything and refuses an unsigned plugin with an explanation. During the 0.9 beta there is no way to get a third-party plugin signed yet; signing through the marketplace arrives with 1.0.
 
 ### Paid Plugins & Licensing
 

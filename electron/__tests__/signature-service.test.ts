@@ -22,7 +22,11 @@ import path from 'path';
 const electronMock = vi.hoisted(() => ({ app: { isPackaged: false } }));
 vi.mock('electron', () => electronMock);
 
-import { SignatureService } from '../services/security/signature-service';
+import {
+  NO_SIGNATURE,
+  SignatureService,
+  describeSignatureProblem,
+} from '../services/security/signature-service';
 
 interface SignScript {
   signPlugin: (dir: string, privateKeyPem: string) => unknown;
@@ -129,6 +133,27 @@ describe('SignatureService', () => {
       crypto.sign('sha256', manifest, privateKey).toString('hex')
     );
     expect(await service.verifyPlugin(dir)).toBe(false);
+  });
+
+  it('says why a plugin was refused, without calling unsigned plugins tampered', async () => {
+    expect(await service.checkPlugin(dir)).toEqual({
+      ok: false,
+      problem: NO_SIGNATURE,
+    });
+    const unsigned = describeSignatureProblem(NO_SIGNATURE);
+    expect(unsigned).toContain('not signed');
+    expect(unsigned).toContain('npm run dev');
+
+    signPlugin(dir, privateKey);
+    write('index.js', 'changed();\n');
+    const changed = await service.checkPlugin(dir);
+    expect(changed.ok).toBe(false);
+    if (!changed.ok) {
+      expect(changed.problem).toContain('modified index.js');
+      expect(describeSignatureProblem(changed.problem)).toContain(
+        'do not match its signature'
+      );
+    }
   });
 
   it('rejects an unsigned plugin by default', async () => {

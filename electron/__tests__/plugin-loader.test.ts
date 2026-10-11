@@ -16,7 +16,9 @@ vi.mock('electron', () => ({
 vi.mock('../services/security/signature-service', () => ({
   signatureService: {
     verifyPlugin: vi.fn().mockResolvedValue(true),
+    checkPlugin: vi.fn().mockResolvedValue({ ok: true }),
   },
+  describeSignatureProblem: (problem: string) => `refused: ${problem}`,
 }));
 
 vi.mock('../services/plugins/path-service', () => ({
@@ -190,7 +192,10 @@ describe('PluginLoader', () => {
     it('should handle signature verification failure', async () => {
       const { signatureService } =
         await import('../services/security/signature-service');
-      vi.mocked(signatureService.verifyPlugin).mockResolvedValueOnce(false);
+      vi.mocked(signatureService.checkPlugin).mockResolvedValueOnce({
+        ok: false,
+        problem: 'no signature file',
+      });
 
       const manifest = {
         id: 'p1',
@@ -206,7 +211,7 @@ describe('PluginLoader', () => {
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(manifest));
       const p = await loader.loadPluginFromDirectory('/p');
       expect(p?.state).toBe('error');
-      expect(p?.error).toContain('Signature verification failed');
+      expect(p?.error).toBe('refused: no signature file');
     });
 
     it('should resolve existing renderer', async () => {

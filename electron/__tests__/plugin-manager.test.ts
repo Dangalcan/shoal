@@ -16,6 +16,7 @@ vi.mock('../logger', () => ({
 }));
 import { app } from 'electron';
 import { pathService } from '../services/plugins/path-service';
+import { signatureService } from '../services/security/signature-service';
 import path from 'path';
 
 // Mock dependencies
@@ -108,6 +109,13 @@ vi.mock('../services/plugins/data-loader', () => ({
     loadPluginData: vi.fn(() => []),
     applyDataToStorage: vi.fn(),
   },
+}));
+
+vi.mock('../services/security/signature-service', () => ({
+  signatureService: {
+    checkPlugin: vi.fn().mockResolvedValue({ ok: true }),
+  },
+  describeSignatureProblem: (problem: string) => `refused: ${problem}`,
 }));
 
 vi.mock('../services/plugins/path-service', () => ({
@@ -700,6 +708,24 @@ describe('PluginManager', () => {
 
       await expect(pluginManager.importPlugin('/src/plugin')).rejects.toThrow(
         'belongs to a plugin bundled with Shoal'
+      );
+      expect(fs.promises.cp).not.toHaveBeenCalled();
+    });
+
+    it('importPlugin should refuse an unsigned plugin before copying it', async () => {
+      vi.mocked(fs.promises.stat).mockResolvedValue({
+        isDirectory: () => true,
+      } as any);
+      vi.mocked(fs.promises.readFile).mockResolvedValue(
+        JSON.stringify({ id: 'unsigned' })
+      );
+      vi.mocked(signatureService.checkPlugin).mockResolvedValueOnce({
+        ok: false,
+        problem: 'no signature file',
+      });
+
+      await expect(pluginManager.importPlugin('/src/plugin')).rejects.toThrow(
+        'refused: no signature file'
       );
       expect(fs.promises.cp).not.toHaveBeenCalled();
     });

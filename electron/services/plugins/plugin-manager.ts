@@ -35,6 +35,10 @@ import { pluginEventBus } from './plugin-events';
 import { pluginWatcher } from './plugin-watcher';
 import { pathService } from './path-service';
 import { assertValidPluginId } from './plugin-validator';
+import {
+  describeSignatureProblem,
+  signatureService,
+} from '../security/signature-service';
 import { BUNDLED_DEFAULT_ENABLED } from '../../constants';
 import { isMarketplaceEnabled } from '../../utils/env-utils';
 import fs from 'fs';
@@ -680,6 +684,13 @@ export class PluginManager {
         throw new Error(
           `Plugin id "${manifest.id}" belongs to a plugin bundled with Shoal`
         );
+      }
+
+      // Refuse before copying: an unverifiable plugin would only sit in the
+      // plugins folder as an error card.
+      const verification = await signatureService.checkPlugin(sourcePath);
+      if (!verification.ok) {
+        throw new Error(describeSignatureProblem(verification.problem));
       }
 
       // Determine install path (usually userData/plugins)

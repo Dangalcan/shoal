@@ -42,6 +42,8 @@ yet, so Windows SmartScreen shows a warning on first launch.
 
 ### Fixed
 
+- "Load Unpacked Plugin" checks the signature before copying a plugin, and an
+  unsigned plugin is explained as unsigned instead of "may be tampered with".
 - Manifest cards showed the save date in UTC (one day off late in the
   evening in Europe). SQLite timestamps are now read as UTC.
 - Plugin pages, widgets and modals render in installed builds. Sandboxed

@@ -15,7 +15,10 @@ import type {
   PluginState,
   PluginContext,
 } from '../../types/plugin-types';
-import { signatureService } from '../security/signature-service';
+import {
+  describeSignatureProblem,
+  signatureService,
+} from '../security/signature-service';
 import { validateManifest, createErrorPlugin } from './plugin-validator';
 import { executeInSandbox } from './plugin-sandbox';
 import { LocalPluginModule } from './host/module-handle';
@@ -92,14 +95,14 @@ export class PluginLoader {
         return createErrorPlugin(manifest, validationError);
       }
 
-      const isVerified = await signatureService.verifyPlugin(pluginPath);
-      if (!isVerified) {
+      const verification = await signatureService.checkPlugin(pluginPath);
+      if (!verification.ok) {
         log.error(
           `[PluginLoader] Signature verification failed for ${pluginPath}`
         );
         return createErrorPlugin(
           manifest,
-          'Signature verification failed. Plugin may be tampered with.'
+          describeSignatureProblem(verification.problem)
         );
       }
 
