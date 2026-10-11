@@ -41,6 +41,11 @@ newest **non** pre-release.
 
    The same files are also kept as workflow artifacts for 14 days.
 
+   For a release candidate (a tag with a hyphen, such as `v0.9.0-rc.2`) the
+   workflow then flags the draft as a pre-release with `gh release edit`.
+   electron-builder can create a draft or a pre-release but not both, and the
+   draft must wait for the smoke test.
+
 Before publishing, check what went into the package: `npx asar list
 release/win-unpacked/resources/app.asar` must only show `dist`, `dist-electron`
 (no `__tests__`), `node_modules` and `package.json`. Platform-level `files`
@@ -55,7 +60,8 @@ add them.
 2. Download the installer of at least one platform from the draft and start it.
 3. On GitHub, edit the draft:
    - Paste the `CHANGELOG.md` section as release notes.
-   - Release candidates: tick **Set as a pre-release**.
+   - Release candidates: check that **Set as a pre-release** is ticked (the
+     workflow does it).
    - Stable releases: tick **Set as the latest release**.
 4. Publish. Auto-update only sees published, non-draft releases.
 
@@ -63,7 +69,9 @@ add them.
 
 Install the previous version, publish the new one, start the old app and wait
 for the "Update ready" toast, then restart. The sidebar must show the new
-version. During the beta this was done for `rc.1 → rc.2`.
+version. This only works once the repository is public: electron-updater
+cannot read the releases of a private repository without a token. During the
+beta it is checked for `rc.1 → rc.2` right after the repository goes public.
 
 ## Rollback
 

@@ -59,6 +59,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --publish ${{ env.PUBLISH_MODE }}
 
+      # electron-builder creates either a draft or a pre-release, never both.
+      # Release candidates (tags with a hyphen, e.g. v0.9.0-rc.2) stay drafts
+      # until the smoke test passes and are flagged as pre-releases here, so
+      # publishing them never makes them the latest release by mistake.
+      - name: Flag release candidate drafts as pre-releases
+        if: startsWith(github.ref, 'refs/tags/v') && contains(github.ref_name, '-')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --prerelease
+
       - name: Upload installers
         uses: actions/upload-artifact@v4
         with:
