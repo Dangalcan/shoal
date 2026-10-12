@@ -12,7 +12,14 @@ vi.mock('../utils/safe-exec', () => ({
   ]),
 }));
 
+// The Windows PATH refresh reads the registry; keep the suite pure on any
+// developer machine and assert its place in the probe instead.
+vi.mock('../utils/windows-path', () => ({
+  refreshWindowsPath: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { safeExec } from '../utils/safe-exec';
+import { refreshWindowsPath } from '../utils/windows-path';
 import { ToolService } from '../services/tools/tool-service';
 
 const ok = (stdout: string) => ({ stdout, stderr: '' });
@@ -21,6 +28,22 @@ describe('ToolService', () => {
   const service = new ToolService();
 
   beforeEach(() => vi.clearAllMocks());
+
+  it('refreshes the PATH before probing, so a tool installed after start-up is found', async () => {
+    const order: string[] = [];
+    const refresh = vi.fn(async () => {
+      order.push('refresh');
+    });
+    vi.mocked(safeExec).mockImplementation(async () => {
+      order.push('probe');
+      return ok('v1');
+    });
+
+    await new ToolService(refresh).getToolStatus('kind');
+
+    expect(order).toEqual(['refresh', 'probe']);
+    expect(refreshWindowsPath).toBeDefined();
+  });
 
   it('probes kubectl with "version --client" (kubectl rejects --version)', async () => {
     vi.mocked(safeExec).mockResolvedValueOnce(

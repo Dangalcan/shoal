@@ -15,7 +15,7 @@ Checks whether a CLI tool from the safe-exec allowlist (e.g. `kubectl`, `kind`, 
 
 ### `getToolStatus(tool)`
 
-Probes a CLI tool with the command it understands (`kubectl version --client`, `helm version --short`, `kind version`, `docker --version`, ...). Never fails for a missing tool: absence is reported as `installed: false`. For `docker` and `podman` a second probe (`info`) tells whether the daemon is running.
+Probes a CLI tool with the command it understands (`kubectl version --client`, `helm version --short`, `kind version`, `docker --version`, ...). Never fails for a missing tool: absence is reported as `installed: false`. For `docker` and `podman` a second probe (`info`) tells whether the daemon is running. On Windows the probe first re-reads the user and system `PATH` from the registry (at most once every 5 seconds) and appends new folders to the process `PATH`, so tools installed after start-up are found; child processes started afterwards inherit the updated `PATH`.
 
 - **Parameters**: `tool`: `string` (must be in the safe-exec allowlist)
 - **Returns**: `Promise<Result<ToolStatus>>` where `ToolStatus` is `{ tool: string; installed: boolean; version?: string; running?: boolean }` (`running` only for container engines)

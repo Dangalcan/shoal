@@ -421,7 +421,7 @@ npm run dev
 
 **Issue: kubectl commands fail**
 
-- Ensure kubectl is installed and in PATH (the Dashboard shows a notice when Shoal cannot find it; on Windows restart Shoal after installing it)
+- Ensure kubectl is installed and in PATH (the Dashboard shows a notice when Shoal cannot find it; after installing it, press **Check again**)
 - Verify kubeconfig is properly configured: `kubectl config view`
 - Check cluster connectivity: `kubectl cluster-info`
 

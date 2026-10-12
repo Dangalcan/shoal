@@ -36,7 +36,7 @@ Shoal drives your clusters through the usual command-line tools, which you insta
 - **kind** or **k3d**, plus **Docker** running, to create local clusters. Create Cluster checks both and tells you what is missing.
 - **helm** (Helm features) and **kompose** (Docker Compose migration), optional.
 
-After installing a tool, press **Check again**. On Linux and macOS Shoal also looks in the usual install locations (`/usr/local/bin`, `~/.local/bin`, `/snap/bin`, Homebrew...) even when it is started from the desktop menu. On Windows, restart Shoal after installing a tool so it sees the updated `PATH`.
+After installing a tool, press **Check again**. On Linux and macOS Shoal also looks in the usual install locations (`/usr/local/bin`, `~/.local/bin`, `/snap/bin`, Homebrew...) even when it is started from the desktop menu. On Windows, **Check again** re-reads the user and system `PATH` from the registry, so a tool installed while Shoal was running is found without a restart; terminals that were already open keep the old `PATH` until you open a new one.
 
 ### The Dashboard
 

@@ -23,7 +23,8 @@ yet, so Windows SmartScreen shows a warning on first launch.
   and Resource Monitor, enabled on first run.
 - Auto-update from GitHub Releases for the Windows installer and the AppImage.
 - Guidance when kubectl, kind, k3d or Docker is missing, with install links
-  and a re-check button.
+  and a re-check button. On Windows the re-check also picks up tools
+  installed while Shoal was running (it re-reads the registry `PATH`).
 - A custom kubeconfig path set in Settings is remembered across restarts.
 - Local error log for the main process and the UI, and an About & Support
   card in Settings with the version, an update check, the logs folder and a

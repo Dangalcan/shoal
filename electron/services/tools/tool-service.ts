@@ -7,6 +7,7 @@
  */
 
 import { safeExec, ALLOWED_TOOLS } from '../../utils/safe-exec';
+import { refreshWindowsPath } from '../../utils/windows-path';
 import type { ToolStatus } from '../../types/tool-types';
 
 const PROBE_TIMEOUT_MS = 10_000;
@@ -31,11 +32,18 @@ function firstLine(output: string): string {
 }
 
 export class ToolService {
+  constructor(
+    /** Picks up tools installed after Shoal started (Windows only). */
+    private readonly refreshPath: () => Promise<void> = refreshWindowsPath
+  ) {}
+
   /** Probe a tool. Throws only for tools outside the safe-exec allowlist. */
   async getToolStatus(tool: string): Promise<ToolStatus> {
     if (!ALLOWED_TOOLS.has(tool)) {
       throw new Error(`Tool not allowed: "${tool}"`);
     }
+
+    await this.refreshPath();
 
     let version: string;
     try {

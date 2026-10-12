@@ -6,7 +6,8 @@ import path from 'path';
  * Directories where kubectl, kind, helm and friends usually live but that
  * desktop launchers (AppImage, .desktop entries, Finder) leave out of PATH,
  * because they do not read the user's shell profile. Windows installers add
- * themselves to the user PATH, so nothing is added there.
+ * themselves to the registry PATH, so nothing is added here; a tool installed
+ * after start-up is picked up by windows-path.ts when a probe runs.
  */
 export function extraToolDirs(
   platform: NodeJS.Platform,
