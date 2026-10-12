@@ -194,6 +194,24 @@ export function isHorizontalPodAutoscaler(
 }
 
 /**
+ * True for plain objects (not null, not arrays), so unknown API fields can be
+ * read as `Record<string, unknown>` without a cast to `any`.
+ */
+export function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Reads a string field from an object of unknown shape (some list payloads
+ * flatten fields such as `type` or `ports` to the top level).
+ */
+export function stringField(value: unknown, key: string): string | undefined {
+  if (!isRecord(value)) return undefined;
+  const field = value[key];
+  return typeof field === 'string' ? field : undefined;
+}
+
+/**
  * Helper function to safely access nested properties
  */
 export function hasNestedProperty(obj: unknown, path: string): boolean {

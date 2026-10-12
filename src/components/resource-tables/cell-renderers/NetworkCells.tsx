@@ -3,7 +3,8 @@
  */
 
 import React from 'react';
-import type { Service, Ingress } from '../../../types/k8s-types';
+import type { K8sResource, Service, Ingress } from '../../../types/k8s-types';
+import { stringField } from '../../../lib/type-guards';
 import { TextCell } from '../ResourceCells';
 
 interface CellProps<T> {
@@ -19,7 +20,7 @@ export const ServiceTypeCell: React.FC<CellProps<Service>> = ({
   style,
 }) => {
   const spec = resource.spec || {};
-  const serviceType = spec.type || (resource as any).type || 'ClusterIP';
+  const serviceType = spec.type || stringField(resource, 'type') || 'ClusterIP';
   return <TextCell key="type" content={serviceType} style={style} />;
 };
 
@@ -67,7 +68,7 @@ export const ExternalIPCell: React.FC<CellProps<Service>> = ({
  * Renders service/ingress ports
  */
 export const PortsCell: React.FC<{
-  resource: any;
+  resource: K8sResource;
   resourceType: string;
   style: React.CSSProperties;
 }> = ({ resource, resourceType, style }) => {
@@ -77,7 +78,8 @@ export const PortsCell: React.FC<{
     const ports = [];
     if (spec.rules || spec.defaultBackend) ports.push('80');
     if (spec.tls) ports.push('443');
-    const ingressPorts = (resource as any).ports || ports.join(', ') || '80';
+    const ingressPorts =
+      stringField(resource, 'ports') || ports.join(', ') || '80';
     return <TextCell key="ports" content={ingressPorts} style={style} />;
   }
 

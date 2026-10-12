@@ -301,7 +301,7 @@ export function PluginDetailModal({ entry, onClose }: PluginDetailModalProps) {
         {/* Changelog */}
         {entry.changelog && (
           <div className="plugin-detail-modal__changelog">
-            <h3>What's New</h3>
+            <h3>What&apos;s New</h3>
             <pre>{entry.changelog}</pre>
           </div>
         )}

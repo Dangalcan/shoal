@@ -261,7 +261,9 @@ export class MarketplaceService {
           `${pluginId}-${plugin.version}.zip`
         );
         const fileStream = createWriteStream(zipPath);
-        await pipeline(response.body as any, fileStream);
+        // A web ReadableStream is async-iterable in Node, which is what
+        // pipeline() accepts as a source.
+        await pipeline(response.body, fileStream);
 
         try {
           // Verify archive integrity before touching it. A checksum is

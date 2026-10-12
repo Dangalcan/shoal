@@ -27,8 +27,8 @@ export interface BaseModalProps {
   width?: string | number;
   /** specific max-width for the modal */
   maxWidth?: string | number;
-  /** Allow for data attributes and other props */
-  [key: string]: any;
+  /** Data attributes forwarded to the container (`data-testid` and the like) */
+  [dataAttribute: `data-${string}`]: string | undefined;
 }
 
 /**

@@ -22,10 +22,12 @@ describe('cn utility function', () => {
   });
 
   it('should handle conditional classes', () => {
+    const shown = true as boolean;
+    const hidden = false as boolean;
     const result = cn(
       'base-class',
-      true && 'conditional-class',
-      false && 'hidden-class'
+      shown && 'conditional-class',
+      hidden && 'hidden-class'
     );
     expect(result).toBe('base-class conditional-class');
   });

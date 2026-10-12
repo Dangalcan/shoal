@@ -3,6 +3,7 @@ import { Box, Loader2, AlertCircle } from 'lucide-react';
 import { BaseModal } from './BaseModal';
 import { useApi } from '../../services/api-context';
 import { StatusBadge } from '../ui';
+import type { Pod } from '../../types/k8s-types';
 
 interface PodViewerModalProps {
   isOpen: boolean;
@@ -16,7 +17,7 @@ export function PodViewerModal({
   clusterName,
 }: PodViewerModalProps) {
   const api = useApi();
-  const [pods, setPods] = useState<any[]>([]);
+  const [pods, setPods] = useState<Pod[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +29,8 @@ export function PodViewerModal({
         .getPods(clusterName)
         .then((result) => {
           if (result.success) {
-            setPods(result.data || []);
+            // get-pods lists the pods kind only, so the rows are Pods.
+            setPods((result.data || []) as Pod[]);
           } else {
             const errorMessage = result.error;
             setError(errorMessage);
@@ -84,12 +86,12 @@ export function PodViewerModal({
             </thead>
             <tbody className="modal-table-body">
               {pods.map((pod, idx) => {
-                const status = pod.status.phase;
+                const status = pod.status?.phase ?? 'Unknown';
                 const isRunning = status === 'Running';
                 const readyCount =
-                  pod.status.containerStatuses?.filter((s: any) => s.ready)
+                  pod.status?.containerStatuses?.filter((s) => s.ready)
                     .length || 0;
-                const totalCount = pod.spec.containers.length;
+                const totalCount = pod.spec?.containers.length ?? 0;
                 return (
                   <tr key={idx} className="modal-table-row">
                     <td className="modal-mono-cell">

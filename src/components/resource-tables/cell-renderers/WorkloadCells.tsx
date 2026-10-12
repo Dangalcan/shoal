@@ -3,14 +3,41 @@
  */
 
 import React from 'react';
+import type { K8sResource } from '../../../types/k8s-types';
 import type { ResourceType } from '../../../lib/resources/resource-definitions';
 import { TextCell } from '../ResourceCells';
 
 interface CellProps {
-  resource: any;
+  resource: K8sResource;
   resourceType: ResourceType;
   style: React.CSSProperties;
 }
+
+/** Status counters of Deployments, ReplicaSets, StatefulSets, DaemonSets and Jobs. */
+interface WorkloadStatus {
+  replicas?: number;
+  readyReplicas?: number;
+  availableReplicas?: number;
+  updatedReplicas?: number;
+  numberReady?: number;
+  numberAvailable?: number;
+  desiredNumberScheduled?: number;
+  currentNumberScheduled?: number;
+  updatedNumberScheduled?: number;
+  succeeded?: number;
+  startTime?: string;
+  completionTime?: string;
+}
+
+interface WorkloadSpec {
+  replicas?: number;
+  completions?: number;
+}
+
+const workloadStatus = (resource: K8sResource): WorkloadStatus =>
+  (resource.status ?? {}) as WorkloadStatus;
+const workloadSpec = (resource: K8sResource): WorkloadSpec =>
+  (resource.spec ?? {}) as WorkloadSpec;
 
 /**
  * Renders the ready replicas count
@@ -20,7 +47,7 @@ export const ReadyCell: React.FC<CellProps> = ({
   resourceType,
   style,
 }) => {
-  const status = resource.status || {};
+  const status = workloadStatus(resource);
   let readyContent: string | number = 0;
 
   if (resourceType === 'replicasets') {
@@ -42,12 +69,10 @@ export const DesiredCell: React.FC<CellProps> = ({
   resourceType,
   style,
 }) => {
-  const spec = resource.spec || {};
-  const status = resource.status || {};
   const desired =
     resourceType === 'daemonsets'
-      ? status.desiredNumberScheduled || 0
-      : spec.replicas || 0;
+      ? workloadStatus(resource).desiredNumberScheduled || 0
+      : workloadSpec(resource).replicas || 0;
   return <TextCell key="desired" content={String(desired)} style={style} />;
 };
 
@@ -59,7 +84,7 @@ export const CurrentCell: React.FC<CellProps> = ({
   resourceType,
   style,
 }) => {
-  const status = resource.status || {};
+  const status = workloadStatus(resource);
   const current =
     resourceType === 'daemonsets'
       ? status.currentNumberScheduled || 0
@@ -75,7 +100,7 @@ export const UpdatedCell: React.FC<CellProps> = ({
   resourceType,
   style,
 }) => {
-  const status = resource.status || {};
+  const status = workloadStatus(resource);
   const updated =
     resourceType === 'daemonsets'
       ? status.updatedNumberScheduled || 0
@@ -91,7 +116,7 @@ export const AvailableCell: React.FC<CellProps> = ({
   resourceType,
   style,
 }) => {
-  const status = resource.status || {};
+  const status = workloadStatus(resource);
   const available =
     resourceType === 'daemonsets'
       ? status.numberAvailable || 0
@@ -106,8 +131,8 @@ export const CompletionsCell: React.FC<Omit<CellProps, 'resourceType'>> = ({
   resource,
   style,
 }) => {
-  const status = resource.status || {};
-  const spec = resource.spec || {};
+  const status = workloadStatus(resource);
+  const spec = workloadSpec(resource);
   const content = `${status.succeeded || 0} / ${spec.completions || 1}`;
   return <TextCell key="completions" content={content} style={style} />;
 };
@@ -119,14 +144,18 @@ export const DurationCell: React.FC<Omit<CellProps, 'resourceType'>> = ({
   resource,
   style,
 }) => {
-  const status = resource.status || {};
+  const status = workloadStatus(resource);
+  // A running Job shows the time elapsed so far, so the clock is read during
+  // render on purpose; the table re-renders on every refresh interval.
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
   let duration = '-';
 
   if (status.startTime) {
     const start = new Date(status.startTime).getTime();
     const end = status.completionTime
       ? new Date(status.completionTime).getTime()
-      : Date.now();
+      : now;
     const diff = Math.floor((end - start) / 1000);
     duration = `${diff}s`;
   }

@@ -17,7 +17,7 @@ interface CellProps {
 export const RestartsCell: React.FC<CellProps> = ({ resource, style }) => {
   const restarts =
     resource.status?.containerStatuses?.reduce(
-      (acc: number, c: any) => acc + (c.restartCount || 0),
+      (acc, c) => acc + (c.restartCount || 0),
       0
     ) || 0;
   return <TextCell key="restarts" content={String(restarts)} style={style} />;
@@ -71,8 +71,7 @@ export const ReadinessGatesCell: React.FC<CellProps> = ({
   style,
 }) => {
   const gates =
-    resource.spec?.readinessGates
-      ?.map((g: any) => g.conditionType)
-      .join(', ') || '<none>';
+    resource.spec?.readinessGates?.map((g) => g.conditionType).join(', ') ||
+    '<none>';
   return <TextCell key="readiness-gates" content={gates} style={style} />;
 };

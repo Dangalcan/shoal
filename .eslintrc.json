@@ -26,6 +26,11 @@
       "warn",
       { "argsIgnorePattern": "^_" }
     ],
+    "@typescript-eslint/no-empty-object-type": [
+      "error",
+      { "allowInterfaces": "with-single-extends" }
+    ],
+    "react-hooks/set-state-in-effect": "warn",
     "complexity": ["warn", 15],
     "max-lines-per-function": ["warn", 100],
     "max-lines": ["warn", 500]
@@ -41,6 +46,19 @@
       "parserOptions": { "sourceType": "script" },
       "rules": {
         "@typescript-eslint/no-require-imports": "off"
+      }
+    },
+    {
+      "files": ["src/test/**", "electron/__tests__/**", "e2e/**"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": ["e2e/**"],
+      "rules": {
+        "react-hooks/rules-of-hooks": "off",
+        "no-empty-pattern": "off"
       }
     }
   ]

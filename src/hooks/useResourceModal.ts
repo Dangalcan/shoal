@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { handleError } from '../lib/error-handler';
 
 interface UseResourceModalOptions {
@@ -31,32 +31,42 @@ export function useResourceModal({
   const [error, setError] = useState<string | null>(null);
   const contentRef = useRef<HTMLPreElement>(null);
 
+  // Callers pass `fetchFn` inline, so it changes on every render. Reading it
+  // through a ref keeps `load` stable and the effect below from refetching
+  // on each render.
+  const fetchFnRef = useRef(fetchFn);
+  const errorTitleRef = useRef(errorTitle);
   useEffect(() => {
-    if (isOpen && resourceName && clusterName) {
-      fetch();
-    }
-  }, [isOpen, resourceName, clusterName]);
+    fetchFnRef.current = fetchFn;
+    errorTitleRef.current = errorTitle;
+  });
 
-  const fetch = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await fetchFn();
+      const result = await fetchFnRef.current();
       if (result.success) {
         setContent(result.data ?? '');
       } else {
         const msg = result.error ?? 'Unknown error';
         setError(msg);
-        handleError(new Error(msg), errorTitle);
+        handleError(new Error(msg), errorTitleRef.current);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
       setError(msg);
-      handleError(err as Error, errorTitle);
+      handleError(err as Error, errorTitleRef.current);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && resourceName && clusterName) {
+      load();
+    }
+  }, [isOpen, resourceName, clusterName, load]);
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(content);

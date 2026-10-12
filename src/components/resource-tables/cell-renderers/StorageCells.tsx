@@ -8,48 +8,68 @@ import type {
   PersistentVolumeClaim,
   K8sResource,
 } from '../../../types/k8s-types';
+import { stringField } from '../../../lib/type-guards';
 import { TextCell } from '../ResourceCells';
 
-interface CellProps<T = K8sResource> {
-  resource: T;
+interface CellProps {
+  resource: K8sResource;
   style: React.CSSProperties;
 }
+
+/** The `spec` fields these cells read; PVs and PVCs share them. */
+interface StorageSpec {
+  capacity?: { storage?: string };
+  accessModes?: string[];
+  storageClassName?: string;
+  volumeMode?: string;
+  volumeAttributesClassName?: string;
+}
+
+interface StorageStatus {
+  capacity?: { storage?: string };
+}
+
+/** A StorageClass keeps its fields at the top level, not under `spec`. */
+interface StorageClassFields {
+  provisioner?: string;
+  volumeBindingMode?: string;
+  allowVolumeExpansion?: boolean;
+}
+
+const storageSpec = (resource: K8sResource): StorageSpec =>
+  (resource.spec ?? {}) as StorageSpec;
+const storageStatus = (resource: K8sResource): StorageStatus =>
+  (resource.status ?? {}) as StorageStatus;
+const storageClassFields = (resource: K8sResource): StorageClassFields =>
+  resource as unknown as StorageClassFields;
 
 /**
  * Renders storage capacity
  */
-export const CapacityCell: React.FC<CellProps<any>> = ({ resource, style }) => {
-  const status = resource.status || {};
-  const spec = resource.spec || {};
+export const CapacityCell: React.FC<CellProps> = ({ resource, style }) => {
   const capacity =
-    status.capacity?.storage || spec.capacity?.storage || '<none>';
+    storageStatus(resource).capacity?.storage ||
+    storageSpec(resource).capacity?.storage ||
+    '<none>';
   return <TextCell key="capacity" content={capacity} style={style} />;
 };
 
 /**
  * Renders access modes
  */
-export const AccessModesCell: React.FC<CellProps<any>> = ({
-  resource,
-  style,
-}) => {
-  const spec = resource.spec || {};
-  const modes = spec.accessModes?.join(', ') || '<none>';
+export const AccessModesCell: React.FC<CellProps> = ({ resource, style }) => {
+  const modes = storageSpec(resource).accessModes?.join(', ') || '<none>';
   return <TextCell key="access-modes" content={modes} style={style} />;
 };
 
 /**
  * Renders storage class name
  */
-export const StorageClassCell: React.FC<CellProps<any>> = ({
-  resource,
-  style,
-}) => {
-  const spec = resource.spec || {};
+export const StorageClassCell: React.FC<CellProps> = ({ resource, style }) => {
   return (
     <TextCell
       key="storageclass"
-      content={spec.storageClassName || '<none>'}
+      content={storageSpec(resource).storageClassName || '<none>'}
       style={style}
     />
   );
@@ -58,15 +78,11 @@ export const StorageClassCell: React.FC<CellProps<any>> = ({
 /**
  * Renders volume mode
  */
-export const VolumeModeCell: React.FC<CellProps<any>> = ({
-  resource,
-  style,
-}) => {
-  const spec = resource.spec || {};
+export const VolumeModeCell: React.FC<CellProps> = ({ resource, style }) => {
   return (
     <TextCell
       key="volumemode"
-      content={spec.volumeMode || 'Filesystem'}
+      content={storageSpec(resource).volumeMode || 'Filesystem'}
       style={style}
     />
   );
@@ -75,14 +91,10 @@ export const VolumeModeCell: React.FC<CellProps<any>> = ({
 /**
  * Renders reclaim policy
  */
-export const ReclaimPolicyCell: React.FC<CellProps<PersistentVolume>> = ({
-  resource,
-  style,
-}) => {
-  const spec = resource.spec || {};
+export const ReclaimPolicyCell: React.FC<CellProps> = ({ resource, style }) => {
   const reclaimPolicy =
-    spec.persistentVolumeReclaimPolicy ||
-    (resource as any).reclaimPolicy ||
+    (resource as PersistentVolume).spec?.persistentVolumeReclaimPolicy ||
+    stringField(resource, 'reclaimPolicy') ||
     'Delete';
   return (
     <TextCell key="reclaim-policy" content={reclaimPolicy} style={style} />
@@ -92,12 +104,8 @@ export const ReclaimPolicyCell: React.FC<CellProps<PersistentVolume>> = ({
 /**
  * Renders PV claim reference
  */
-export const ClaimCell: React.FC<CellProps<PersistentVolume>> = ({
-  resource,
-  style,
-}) => {
-  const spec = resource.spec || {};
-  const claimRef = spec.claimRef;
+export const ClaimCell: React.FC<CellProps> = ({ resource, style }) => {
+  const claimRef = (resource as PersistentVolume).spec?.claimRef;
   const claimContent = claimRef
     ? `${claimRef.namespace}/${claimRef.name}`
     : '<none>';
@@ -109,16 +117,12 @@ export const ClaimCell: React.FC<CellProps<PersistentVolume>> = ({
 /**
  * Renders volume name
  */
-export const VolumeCell: React.FC<CellProps<PersistentVolumeClaim>> = ({
-  resource,
-  style,
-}) => {
-  const spec = resource.spec || {};
+export const VolumeCell: React.FC<CellProps> = ({ resource, style }) => {
   return (
     <TextCell
       key="volume"
       variant="mono"
-      content={spec.volumeName || '<none>'}
+      content={(resource as PersistentVolumeClaim).spec?.volumeName || '<none>'}
       style={style}
     />
   );
@@ -127,22 +131,17 @@ export const VolumeCell: React.FC<CellProps<PersistentVolumeClaim>> = ({
 /**
  * Renders storage provisioner
  */
-export const ProvisionerCell: React.FC<CellProps<any>> = ({
-  resource,
-  style,
-}) => {
-  const provisioner = resource.provisioner || '<none>';
+export const ProvisionerCell: React.FC<CellProps> = ({ resource, style }) => {
+  const provisioner = storageClassFields(resource).provisioner || '<none>';
   return <TextCell key="provisioner" content={provisioner} style={style} />;
 };
 
 /**
  * Renders volume binding mode
  */
-export const BindingModeCell: React.FC<CellProps<any>> = ({
-  resource,
-  style,
-}) => {
-  const volumeBindingMode = resource.volumeBindingMode || '<none>';
+export const BindingModeCell: React.FC<CellProps> = ({ resource, style }) => {
+  const volumeBindingMode =
+    storageClassFields(resource).volumeBindingMode || '<none>';
   return (
     <TextCell key="binding-mode" content={volumeBindingMode} style={style} />
   );
@@ -151,11 +150,12 @@ export const BindingModeCell: React.FC<CellProps<any>> = ({
 /**
  * Renders allow volume expansion
  */
-export const AllowExpansionCell: React.FC<CellProps<any>> = ({
+export const AllowExpansionCell: React.FC<CellProps> = ({
   resource,
   style,
 }) => {
-  const allowExpansion = resource.allowVolumeExpansion ?? false;
+  const allowExpansion =
+    storageClassFields(resource).allowVolumeExpansion ?? false;
   return (
     <TextCell
       key="allow-expansion"
@@ -180,8 +180,7 @@ export const PVCSelectedNodeCell: React.FC<CellProps> = ({
 /**
  * Renders VolumeAttributesClass
  */
-export const VACCell: React.FC<CellProps<any>> = ({ resource, style }) => {
-  const spec = resource.spec || {};
-  const vac = spec.volumeAttributesClassName || '<none>';
+export const VACCell: React.FC<CellProps> = ({ resource, style }) => {
+  const vac = storageSpec(resource).volumeAttributesClassName || '<none>';
   return <TextCell key="vac" content={vac} style={style} />;
 };

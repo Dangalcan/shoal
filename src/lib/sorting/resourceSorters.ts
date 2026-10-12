@@ -19,7 +19,7 @@ import type {
 import type { ResourceType } from '../resources/resource-definitions';
 import type { SorterFunction } from './types';
 import { sortByString, sortByNumber, sortByDate } from './sortStrategies';
-import { isPod } from '../type-guards';
+import { isPod, isRecord } from '../type-guards';
 
 /**
  * Helper to safely extract the phase or condition status from a resource.
@@ -27,18 +27,23 @@ import { isPod } from '../type-guards';
  * @returns The phase string or first condition type, or empty string.
  */
 const getPhase = (r: AnyK8sResource): string => {
-  const status = r.status as any;
-  if (status && typeof status === 'object') {
-    if ('phase' in status) return status.phase || '';
-    if (
-      'conditions' in status &&
-      Array.isArray(status.conditions) &&
-      status.conditions.length > 0
-    ) {
-      return status.conditions[0].type || '';
-    }
+  const status: unknown = r.status;
+  if (!isRecord(status)) return '';
+  if ('phase' in status) {
+    return typeof status.phase === 'string' ? status.phase : '';
   }
-  return '';
+  const [first] = Array.isArray(status.conditions) ? status.conditions : [];
+  return isRecord(first) && typeof first.type === 'string' ? first.type : '';
+};
+
+/**
+ * Reads a numeric status counter (`readyReplicas`, `numberReady`, ...) from a
+ * resource whose exact kind is not known; missing or non-numeric is 0.
+ */
+const statusCounter = (status: unknown, key: string): number => {
+  if (!isRecord(status)) return 0;
+  const value = status[key];
+  return typeof value === 'number' ? value : 0;
 };
 
 // Common Metadata Sorters
@@ -82,7 +87,7 @@ export const sortByRestarts = sortByNumber((r) => {
 });
 
 export const sortByIP = sortByString((r) => {
-  if (r.status && 'podIP' in (r.status as any))
+  if (isRecord(r.status) && 'podIP' in r.status)
     return (r as Pod).status?.podIP || '';
   return '';
 });
@@ -99,27 +104,24 @@ export const sortByReplicas = sortByNumber((r) => {
   return res.status?.replicas || 0;
 });
 
-export const sortByReadyReplicas = sortByNumber((r) => {
-  const res = r as any;
-  const status = res.status || {};
-  if ('numberReady' in status) return status.numberReady || 0;
-  return status.readyReplicas || 0;
-});
+// DaemonSets count pods with `number*`, the other workloads with `*Replicas`.
+export const sortByReadyReplicas = sortByNumber((r) =>
+  isRecord(r.status) && 'numberReady' in r.status
+    ? statusCounter(r.status, 'numberReady')
+    : statusCounter(r.status, 'readyReplicas')
+);
 
-export const sortByUpdatedReplicas = sortByNumber((r) => {
-  const res = r as any;
-  const status = res.status || {};
-  if ('updatedNumberScheduled' in status)
-    return status.updatedNumberScheduled || 0;
-  return status.updatedReplicas || 0;
-});
+export const sortByUpdatedReplicas = sortByNumber((r) =>
+  isRecord(r.status) && 'updatedNumberScheduled' in r.status
+    ? statusCounter(r.status, 'updatedNumberScheduled')
+    : statusCounter(r.status, 'updatedReplicas')
+);
 
-export const sortByAvailableReplicas = sortByNumber((r) => {
-  const res = r as any;
-  const status = res.status || {};
-  if ('numberAvailable' in status) return status.numberAvailable || 0;
-  return status.availableReplicas || 0;
-});
+export const sortByAvailableReplicas = sortByNumber((r) =>
+  isRecord(r.status) && 'numberAvailable' in r.status
+    ? statusCounter(r.status, 'numberAvailable')
+    : statusCounter(r.status, 'availableReplicas')
+);
 
 // Data (ConfigMaps/Secrets)
 export const sortByDataCount = sortByNumber((r) => {

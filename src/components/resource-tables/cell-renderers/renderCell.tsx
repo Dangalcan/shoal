@@ -4,8 +4,14 @@
  */
 
 import React from 'react';
-import type { K8sResource } from '../../../types/k8s-types';
+import type {
+  Ingress,
+  K8sResource,
+  Pod,
+  Service,
+} from '../../../types/k8s-types';
 import type { ResourceType } from '../../../lib/resources/resource-definitions';
+import { isRecord } from '../../../lib/type-guards';
 import { TextCell } from '../ResourceCells';
 import * as Cells from './index';
 
@@ -32,34 +38,36 @@ export const renderCell = ({
   // Common cells used across all resource types
   switch (colId) {
     case 'namespace':
-      return <Cells.NamespaceCell {...(cellProps as any)} />;
+      return <Cells.NamespaceCell {...cellProps} />;
     case 'age':
-      return <Cells.AgeCell {...(cellProps as any)} />;
+      return <Cells.AgeCell {...cellProps} />;
     case 'status':
-      return <Cells.StatusCell {...(cellPropsWithType as any)} />;
+      return <Cells.StatusCell {...cellPropsWithType} />;
     case 'selector':
-      return <Cells.SelectorCell {...(cellProps as any)} />;
+      return <Cells.SelectorCell {...cellProps} />;
     case 'containers':
-      return <Cells.ContainersCell {...(cellProps as any)} />;
+      return <Cells.ContainersCell {...cellProps} />;
     case 'images':
-      return <Cells.ImagesCell {...(cellProps as any)} />;
+      return <Cells.ImagesCell {...cellProps} />;
     case 'data':
-      return <Cells.DataCountCell {...(cellProps as any)} />;
+      return <Cells.DataCountCell {...cellProps} />;
   }
 
-  // Pod-specific cells
+  // Pod-specific cells. The active tab decides the kind of every row, so the
+  // cast only states what `resourceType` already guarantees.
   if (resourceType === 'pods') {
+    const podProps = { resource: resource as Pod, style };
     switch (colId) {
       case 'restarts':
-        return <Cells.RestartsCell {...(cellProps as any)} />;
+        return <Cells.RestartsCell {...podProps} />;
       case 'ip':
-        return <Cells.PodIPCell {...(cellProps as any)} />;
+        return <Cells.PodIPCell {...podProps} />;
       case 'node':
-        return <Cells.NodeNameCell {...(cellProps as any)} />;
+        return <Cells.NodeNameCell {...podProps} />;
       case 'nominated-node':
-        return <Cells.NominatedNodeCell {...(cellProps as any)} />;
+        return <Cells.NominatedNodeCell {...podProps} />;
       case 'readiness-gates':
-        return <Cells.ReadinessGatesCell {...(cellProps as any)} />;
+        return <Cells.ReadinessGatesCell {...podProps} />;
     }
   }
 
@@ -67,19 +75,19 @@ export const renderCell = ({
   if (resourceType === 'nodes') {
     switch (colId) {
       case 'roles':
-        return <Cells.RolesCell {...(cellProps as any)} />;
+        return <Cells.RolesCell {...cellProps} />;
       case 'version':
-        return <Cells.VersionCell {...(cellProps as any)} />;
+        return <Cells.VersionCell {...cellProps} />;
       case 'internal-ip':
-        return <Cells.NodeInternalIPCell {...(cellProps as any)} />;
+        return <Cells.NodeInternalIPCell {...cellProps} />;
       case 'external-ip':
-        return <Cells.NodeExternalIPCell {...(cellProps as any)} />;
+        return <Cells.NodeExternalIPCell {...cellProps} />;
       case 'os-image':
-        return <Cells.OSImageCell {...(cellProps as any)} />;
+        return <Cells.OSImageCell {...cellProps} />;
       case 'kernel-version':
-        return <Cells.KernelVersionCell {...(cellProps as any)} />;
+        return <Cells.KernelVersionCell {...cellProps} />;
       case 'container-runtime':
-        return <Cells.ContainerRuntimeCell {...(cellProps as any)} />;
+        return <Cells.ContainerRuntimeCell {...cellProps} />;
     }
   }
 
@@ -87,15 +95,15 @@ export const renderCell = ({
   if (resourceType === 'hpa') {
     switch (colId) {
       case 'reference':
-        return <Cells.HPAReferenceCell {...(cellProps as any)} />;
+        return <Cells.HPAReferenceCell {...cellProps} />;
       case 'targets':
-        return <Cells.HPATargetsCell {...(cellProps as any)} />;
+        return <Cells.HPATargetsCell {...cellProps} />;
       case 'minpods':
-        return <Cells.MinPodsCell {...(cellProps as any)} />;
+        return <Cells.MinPodsCell {...cellProps} />;
       case 'maxpods':
-        return <Cells.MaxPodsCell {...(cellProps as any)} />;
+        return <Cells.MaxPodsCell {...cellProps} />;
       case 'replicas':
-        return <Cells.ReplicasCell {...(cellProps as any)} />;
+        return <Cells.ReplicasCell {...cellProps} />;
     }
   }
 
@@ -103,9 +111,9 @@ export const renderCell = ({
   if (resourceType === 'cronjobs') {
     switch (colId) {
       case 'schedule':
-        return <Cells.CronJobScheduleCell {...(cellProps as any)} />;
+        return <Cells.CronJobScheduleCell {...cellProps} />;
       case 'last-schedule':
-        return <Cells.CronJobLastScheduleCell {...(cellProps as any)} />;
+        return <Cells.CronJobLastScheduleCell {...cellProps} />;
     }
   }
 
@@ -113,7 +121,7 @@ export const renderCell = ({
   if (resourceType === 'secrets') {
     switch (colId) {
       case 'type':
-        return <Cells.SecretTypeCell {...(cellProps as any)} />;
+        return <Cells.SecretTypeCell {...cellProps} />;
     }
   }
 
@@ -128,15 +136,15 @@ export const renderCell = ({
   if (workloadTypes.includes(resourceType)) {
     switch (colId) {
       case 'ready':
-        return <Cells.ReadyCell {...(cellPropsWithType as any)} />;
+        return <Cells.ReadyCell {...cellPropsWithType} />;
       case 'desired':
-        return <Cells.DesiredCell {...(cellPropsWithType as any)} />;
+        return <Cells.DesiredCell {...cellPropsWithType} />;
       case 'current':
-        return <Cells.CurrentCell {...(cellPropsWithType as any)} />;
+        return <Cells.CurrentCell {...cellPropsWithType} />;
       case 'updated':
-        return <Cells.UpdatedCell {...(cellPropsWithType as any)} />;
+        return <Cells.UpdatedCell {...cellPropsWithType} />;
       case 'available':
-        return <Cells.AvailableCell {...(cellPropsWithType as any)} />;
+        return <Cells.AvailableCell {...cellPropsWithType} />;
     }
   }
 
@@ -144,21 +152,24 @@ export const renderCell = ({
   if (resourceType === 'jobs') {
     switch (colId) {
       case 'completions':
-        return <Cells.CompletionsCell {...(cellProps as any)} />;
+        return <Cells.CompletionsCell {...cellProps} />;
       case 'duration':
-        return <Cells.DurationCell {...(cellProps as any)} />;
+        return <Cells.DurationCell {...cellProps} />;
     }
   }
 
-  // Network cells (Services, Ingress)
+  // Network cells (Services, Ingress). The service cells read `spec.type`,
+  // `spec.clusterIP` and the load balancer status, which an Ingress simply
+  // does not have, so they fall back to their placeholders for that tab.
   if (resourceType === 'services' || resourceType === 'ingress') {
+    const serviceProps = { resource: resource as Service, style };
     switch (colId) {
       case 'type':
-        return <Cells.ServiceTypeCell {...(cellProps as any)} />;
+        return <Cells.ServiceTypeCell {...serviceProps} />;
       case 'cluster-ip':
-        return <Cells.ClusterIPCell {...(cellProps as any)} />;
+        return <Cells.ClusterIPCell {...serviceProps} />;
       case 'external-ip':
-        return <Cells.ExternalIPCell {...(cellProps as any)} />;
+        return <Cells.ExternalIPCell {...serviceProps} />;
       case 'ports':
         return (
           <Cells.PortsCell
@@ -171,13 +182,14 @@ export const renderCell = ({
   }
 
   if (resourceType === 'ingress') {
+    const ingressProps = { resource: resource as Ingress, style };
     switch (colId) {
       case 'class':
-        return <Cells.IngressClassCell {...(cellProps as any)} />;
+        return <Cells.IngressClassCell {...ingressProps} />;
       case 'hosts':
-        return <Cells.HostsCell {...(cellProps as any)} />;
+        return <Cells.HostsCell {...ingressProps} />;
       case 'address':
-        return <Cells.AddressCell {...(cellProps as any)} />;
+        return <Cells.AddressCell {...ingressProps} />;
     }
   }
 
@@ -190,29 +202,29 @@ export const renderCell = ({
   if (storageTypes.includes(resourceType)) {
     switch (colId) {
       case 'capacity':
-        return <Cells.CapacityCell {...(cellProps as any)} />;
+        return <Cells.CapacityCell {...cellProps} />;
       case 'access-modes':
-        return <Cells.AccessModesCell {...(cellProps as any)} />;
+        return <Cells.AccessModesCell {...cellProps} />;
       case 'storageclass':
-        return <Cells.StorageClassCell {...(cellProps as any)} />;
+        return <Cells.StorageClassCell {...cellProps} />;
       case 'volumemode':
-        return <Cells.VolumeModeCell {...(cellProps as any)} />;
+        return <Cells.VolumeModeCell {...cellProps} />;
       case 'reclaim-policy':
-        return <Cells.ReclaimPolicyCell {...(cellProps as any)} />;
+        return <Cells.ReclaimPolicyCell {...cellProps} />;
       case 'claim':
-        return <Cells.ClaimCell {...(cellProps as any)} />;
+        return <Cells.ClaimCell {...cellProps} />;
       case 'volume':
-        return <Cells.VolumeCell {...(cellProps as any)} />;
+        return <Cells.VolumeCell {...cellProps} />;
       case 'provisioner':
-        return <Cells.ProvisionerCell {...(cellProps as any)} />;
+        return <Cells.ProvisionerCell {...cellProps} />;
       case 'binding-mode':
-        return <Cells.BindingModeCell {...(cellProps as any)} />;
+        return <Cells.BindingModeCell {...cellProps} />;
       case 'allow-expansion':
-        return <Cells.AllowExpansionCell {...(cellProps as any)} />;
+        return <Cells.AllowExpansionCell {...cellProps} />;
       case 'selected-node':
-        return <Cells.PVCSelectedNodeCell {...(cellProps as any)} />;
+        return <Cells.PVCSelectedNodeCell {...cellProps} />;
       case 'vac':
-        return <Cells.VACCell {...(cellProps as any)} />;
+        return <Cells.VACCell {...cellProps} />;
     }
   }
 
@@ -229,9 +241,9 @@ function renderGenericCell({
   resource,
   style,
 }: RenderCellOptions): React.ReactNode {
-  const res = resource as any;
-  const spec = res.spec || {};
-  const status = res.status || {};
+  const res = resource as unknown as Record<string, unknown>;
+  const spec = isRecord(res.spec) ? res.spec : {};
+  const status = isRecord(res.status) ? res.status : {};
 
   // Handle common properties dynamically if possible
   if (colId in res) {

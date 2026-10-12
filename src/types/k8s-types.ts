@@ -714,8 +714,8 @@ export interface HorizontalPodAutoscaler extends K8sResource<
 // ============================================================================
 
 export interface GenericResource extends K8sResource<
-  Record<string, any>,
-  Record<string, any>
+  Record<string, unknown>,
+  Record<string, unknown>
 > {}
 
 // Type union for all specific resource types

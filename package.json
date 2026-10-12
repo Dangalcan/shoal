@@ -35,7 +35,11 @@
     "url": "git+https://github.com/Dangalcan/shoal.git"
   },
   "lint-staged": {
-    "*.{cjs,js,ts,tsx,json,css,scss,md}": [
+    "*.{js,jsx,ts,tsx}": [
+      "prettier --write",
+      "cross-env ESLINT_USE_FLAT_CONFIG=false eslint"
+    ],
+    "*.{cjs,json,css,scss,md}": [
       "prettier --write"
     ]
   },

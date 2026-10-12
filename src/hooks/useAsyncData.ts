@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useId, useRef } from 'react';
 import { handleError } from '../lib/error-handler';
 import { Result, isResult } from '../types/result';
 
@@ -53,24 +53,28 @@ export function useAsyncData<T>(
   const [loading, setLoading] = useState(!options.skipInitialFetch);
   const [error, setError] = useState<string | null>(null);
   const requestCounter = useRef(0);
-  // One toast per distinct failure: an auto-refresh that keeps failing the
-  // same way (cluster down, kubectl missing) must not stack a toast every
-  // interval. The id also lets a new failure replace the previous toast.
-  const lastToastedError = useRef<string | null>(null);
-  const toastId = useRef(`async-data-${Math.random().toString(36).slice(2)}`);
-  const reportError = (err: unknown, message: string) => {
-    if (!errorTitleRef.current || lastToastedError.current === message) return;
-    lastToastedError.current = message;
-    handleError(err, errorTitleRef.current, { id: toastId.current });
-  };
 
   // Use refs for functions and options to avoid re-render loops
   const fetchFnRef = useRef(options.fetchFn);
   const errorTitleRef = useRef(options.errorTitle);
 
-  // Update refs when options change
-  fetchFnRef.current = options.fetchFn;
-  errorTitleRef.current = options.errorTitle;
+  // Keep the refs current after every commit. Effects run in declaration
+  // order, so the fetch effect below always sees the latest options.
+  useEffect(() => {
+    fetchFnRef.current = options.fetchFn;
+    errorTitleRef.current = options.errorTitle;
+  });
+
+  // One toast per distinct failure: an auto-refresh that keeps failing the
+  // same way (cluster down, kubectl missing) must not stack a toast every
+  // interval. The id also lets a new failure replace the previous toast.
+  const lastToastedError = useRef<string | null>(null);
+  const toastId = `async-data-${useId()}`;
+  const reportError = (err: unknown, message: string) => {
+    if (!errorTitleRef.current || lastToastedError.current === message) return;
+    lastToastedError.current = message;
+    handleError(err, errorTitleRef.current, { id: toastId });
+  };
 
   const fetchData = useCallback(async () => {
     const requestId = ++requestCounter.current;

@@ -221,10 +221,14 @@ npm run lint
 npm run lint:fix
 ```
 
-CI runs `npm run lint:prettier`, so a pull request with unformatted files
-fails. The pre-commit hook formats staged files for you. Line endings are LF
-everywhere (`.gitattributes`); on Windows, git converts on checkout, so no
-editor setting is needed.
+CI runs `npm run lint:eslint` and `npm run lint:prettier`, so a pull request
+with an ESLint error or unformatted files fails (ESLint warnings are
+allowed). The pre-commit hook formats staged files and lints the staged
+`.js`, `.jsx`, `.ts` and `.tsx` files. `any` is an error in `src/` and
+`electron/` (use a typed shape, or `isRecord()` from `src/lib/type-guards.ts`
+for unknown API fields) and allowed in tests and e2e specs. Line endings are
+LF everywhere (`.gitattributes`); on Windows, git converts on checkout, so
+no editor setting is needed.
 
 **Key conventions:**
 

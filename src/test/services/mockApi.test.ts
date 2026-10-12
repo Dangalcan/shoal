@@ -61,7 +61,7 @@ describe('mockApi', () => {
     if (!target) throw new Error('No clusters found');
 
     // Switch context
-    let result = await mockApi.switchContext(target);
+    const result = await mockApi.switchContext(target);
     expect(result.success).toBe(true);
 
     const current = await mockApi.getCurrentContext();
