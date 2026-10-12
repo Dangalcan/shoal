@@ -92,6 +92,7 @@ describe('AboutCard', () => {
     expect(`${url.origin}${url.pathname}`).toBe(
       'https://github.com/Dangalcan/shoal/issues/new'
     );
-    expect(url.searchParams.get('body')).toContain('Shoal: v1.0.0-test');
+    expect(url.searchParams.get('template')).toBe('bug_report.yml');
+    expect(url.searchParams.get('version')).toBe('v1.0.0-test');
   });
 });

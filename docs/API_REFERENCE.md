@@ -169,7 +169,7 @@ count must be an integer between 0 and 1000.
 
 Version and runtime facts for the About card and bug reports.
 
-- **Returns**: `Promise<Result<AppInfo>>` where `AppInfo` is `{ version: string; platform: string; arch: string; electron: string; logsPath: string }` (`version` is `v` + package.json version, `logsPath` the folder holding `main.log`)
+- **Returns**: `Promise<Result<AppInfo>>` where `AppInfo` is `{ version: string; platform: string; arch: string; electron: string; logsPath: string }` (`version` is `v` + package.json version, `logsPath` the folder holding `main.log`, with the home folder shown as `~` because the value goes into the prefilled GitHub issue)
 
 ### `openLogsFolder()`
 

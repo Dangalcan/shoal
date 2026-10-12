@@ -133,11 +133,15 @@
     "beforePack": "scripts/third-party-notices.js",
     "extraResources": [
       {
-        "from": "LICENSE",
+        "from": "COPYING.LESSER",
         "to": "LICENSE.txt"
       },
       {
-        "from": "COPYRIGHT",
+        "from": "COPYING",
+        "to": "COPYING.txt"
+      },
+      {
+        "from": "NOTICE",
         "to": "COPYRIGHT.txt"
       },
       {

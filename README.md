@@ -2,7 +2,7 @@
 
 <img src="public/icon.svg" alt="Shoal icon" width="96" height="96">
 
-[![License](https://img.shields.io/badge/license-LGPL-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-LGPL--3.0-blue.svg)](COPYING.LESSER)
 [![Version](https://img.shields.io/badge/version-0.9.0--rc.2-green.svg)](CHANGELOG.md)
 [![Electron](https://img.shields.io/badge/electron-44.7.0-blue.svg)](https://electronjs.org)
 [![React](https://img.shields.io/badge/react-19.2.3-blue.svg)](https://react.dev)
@@ -450,7 +450,7 @@ npm run test
 
 ## License
 
-LGPL-3.0-or-later. See [LICENSE](LICENSE) and [COPYRIGHT](COPYRIGHT).
+LGPL-3.0-or-later. See [COPYING.LESSER](COPYING.LESSER) (the LGPL), [COPYING](COPYING) (the GPL it builds on) and [NOTICE](NOTICE) (copyright and third-party notes).
 
 Installers also ship `LICENSE.txt`, `COPYRIGHT.txt` and `THIRD_PARTY_NOTICES.txt` in the app's `resources` folder. The notices list every bundled npm package with its license text and are generated at package time by `scripts/third-party-notices.js`.
 

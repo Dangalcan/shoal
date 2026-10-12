@@ -16,7 +16,7 @@
  * LICENSES.chromium.html next to the executable).
  *
  * Default output: build/THIRD_PARTY_NOTICES.txt (gitignored), packaged as an
- * extraResource next to LICENSE.txt and COPYRIGHT.txt.
+ * extraResource next to LICENSE.txt, COPYING.txt and COPYRIGHT.txt.
  */
 
 const fs = require('fs');

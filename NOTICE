@@ -4,7 +4,12 @@ Copyright (C) 2026 Daniel Galván Cancio and the Shoal contributors
 Shoal is free software: you can redistribute it and/or modify it under the
 terms of the GNU Lesser General Public License as published by the Free
 Software Foundation, either version 3 of the License, or (at your option)
-any later version. See the LICENSE file for the full text.
+any later version. COPYING.LESSER holds the full text of the LGPL. Since the
+LGPL is a set of additional permissions on top of the GNU General Public
+License, the text of the GPL is in COPYING (the GNU naming convention, which
+is also what GitHub's license detection expects; this file is called NOTICE
+for the same reason). Installers ship them as LICENSE.txt, COPYING.txt and
+COPYRIGHT.txt.
 
 Shoal is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS

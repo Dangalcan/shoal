@@ -15,7 +15,7 @@ We take the security of Shoal seriously. If you believe you have found a securit
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Instead, please report them privately through [GitHub private vulnerability reporting](https://github.com/Dangalcan/shoal/security/advisories/new).
+Instead, please report them privately through [GitHub private vulnerability reporting](https://github.com/Dangalcan/shoal/security/advisories/new). If that form is not available to you, email <security@dangalcan.com>.
 
 ### What to include in your report
 
@@ -64,5 +64,5 @@ The core application follows several security principles:
 - **Navigation Guards:** The app window cannot open new windows or navigate away from the app; web links open in the system browser, and only one instance runs per profile.
 - **Permissions:** Web permission requests (camera, microphone, location, notifications and so on) are denied; only clipboard writes are allowed.
 - **Hardened Binary:** Electron fuses disable running the executable as plain Node.js and `NODE_OPTIONS`, and the app only loads from its integrity-checked `app.asar`.
-- **Signed Plugins:** Installed builds only load plugins whose signature covers every file of the plugin, code included. The ids of the bundled plugins cannot be reused by imported plugins.
+- **Signed Plugins:** Installed builds only load plugins whose signature covers every file of the plugin, code included. The ids of the bundled plugins cannot be reused by imported plugins. Known gap for 1.0: the `MARKETPLACE_PUBLIC_KEY` environment variable can still replace the signing key in installed builds, so anyone who can set environment variables for the app can also install their own plugins (tracked in `docs/PENDING_WORK.md`).
 - **Release Integrity:** Releases are not code-signed yet. Download installers only from this repository's GitHub Releases page.

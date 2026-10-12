@@ -49,7 +49,7 @@ describe('error reporting', () => {
     );
   });
 
-  it('builds a GitHub issue URL with version, OS and the logs folder', () => {
+  it('opens the bug report form with the environment fields filled in', () => {
     const url = new URL(
       buildIssueUrl(
         {
@@ -57,22 +57,28 @@ describe('error reporting', () => {
           platform: 'linux',
           arch: 'x64',
           electron: '44.7.0',
-          logsPath: '/home/ana/.config/Shoal/logs',
+          logsPath: '~/.config/Shoal/logs',
         },
         'Error: boom'
       )
     );
-    const body = url.searchParams.get('body') ?? '';
+    const p = url.searchParams;
 
     expect(`${url.origin}${url.pathname}`).toBe(ISSUES_URL);
-    expect(body).toContain('Shoal: v0.9.0');
-    expect(body).toContain('OS: linux x64');
-    expect(body).toContain('/home/ana/.config/Shoal/logs');
-    expect(body).toContain('Error: boom');
+    expect(p.get('template')).toBe('bug_report.yml');
+    expect(p.get('version')).toBe('v0.9.0');
+    expect(p.get('os')).toBe('linux x64');
+    expect(p.get('electron')).toBe('44.7.0');
+    expect(p.get('logs')).toContain('~/.config/Shoal/logs');
+    expect(p.get('what')).toContain('Error: boom');
   });
 
-  it('still builds a URL without app information', () => {
-    const body = new URL(buildIssueUrl(null)).searchParams.get('body') ?? '';
-    expect(body).toContain('Shoal: unknown');
+  it('still opens the form without app information or an error', () => {
+    const p = new URL(buildIssueUrl(null)).searchParams;
+    expect(p.get('template')).toBe('bug_report.yml');
+    expect(p.get('version')).toBe('unknown');
+    expect(p.get('os')).toBe('unknown');
+    expect(p.has('logs')).toBe(false);
+    expect(p.has('what')).toBe(false);
   });
 });

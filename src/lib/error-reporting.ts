@@ -48,33 +48,27 @@ export function installGlobalErrorHandlers(): void {
 }
 
 /**
- * GitHub "new issue" URL with version, OS and where to find the log. The log
- * itself is never attached automatically: the user decides what to share.
+ * GitHub "new issue" URL that opens the bug report form with the environment
+ * fields filled in (the query parameters are the form's field ids, see
+ * .github/ISSUE_TEMPLATE/bug_report.yml). The log itself is never attached
+ * automatically: the user decides what to share.
  */
 export function buildIssueUrl(
   info: AppInfo | null,
   errorText?: string
 ): string {
-  const lines = [
-    '**What happened?**',
-    '',
-    '',
-    '**Steps to reproduce**',
-    '',
-    '',
-    '---',
-    `- Shoal: ${info?.version ?? 'unknown'}`,
-    `- OS: ${info ? `${info.platform} ${info.arch}` : 'unknown'}`,
-    `- Electron: ${info?.electron ?? 'unknown'}`,
-  ];
+  const params = new URLSearchParams({ template: 'bug_report.yml' });
+  params.set('version', info?.version ?? 'unknown');
+  params.set('os', info ? `${info.platform} ${info.arch}` : 'unknown');
+  params.set('electron', info?.electron ?? 'unknown');
   if (info?.logsPath) {
-    lines.push(
-      `- Logs: \`${info.logsPath}\` (attach main.log if you are comfortable sharing it)`
+    params.set(
+      'logs',
+      `Logs folder: ${info.logsPath} (attach main.log only if you are comfortable sharing it)`
     );
   }
   if (errorText) {
-    lines.push('', '```', errorText.slice(0, 1500), '```');
+    params.set('what', ['```', errorText.slice(0, 1500), '```'].join('\n'));
   }
-  const params = new URLSearchParams({ body: lines.join('\n') });
   return `${ISSUES_URL}?${params.toString()}`;
 }

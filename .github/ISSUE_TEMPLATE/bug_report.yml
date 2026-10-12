@@ -1,0 +1,63 @@
+name: Bug report
+description: Something in Shoal does not work as expected
+title: 'bug: '
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. "Report a problem" in Settings, About & Support
+        fills the environment fields in for you.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, what you saw instead. Error messages verbatim if any.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Click ...
+        3. See ...
+  - type: input
+    id: version
+    attributes:
+      label: Shoal version
+      description: Settings, About & Support, or the bottom of the sidebar.
+      placeholder: v0.9.0
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: Windows 11 24H2, Ubuntu 24.04, ...
+    validations:
+      required: true
+  - type: dropdown
+    id: installer
+    attributes:
+      label: How did you install Shoal?
+      options:
+        - Windows installer (Shoal-Setup-*.exe)
+        - Windows portable (Shoal-*-portable.exe)
+        - Linux AppImage
+        - Linux .deb
+        - Built from source
+  - type: input
+    id: electron
+    attributes:
+      label: Electron version
+      description: Filled in by "Report a problem"; leave empty otherwise.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: >-
+        The logs folder is shown in Settings, About & Support ("Open logs
+        folder"). Attach main.log, or paste the relevant lines, only if you are
+        comfortable sharing them; they can contain cluster and namespace names.

@@ -121,8 +121,8 @@ describe('ErrorBoundary', () => {
     expect(url.origin + url.pathname).toBe(
       'https://github.com/Dangalcan/shoal/issues/new'
     );
-    expect(url.searchParams.get('body')).toContain('Shoal: v0.9.0');
-    expect(url.searchParams.get('body')).toContain('Error: Test Error');
+    expect(url.searchParams.get('version')).toBe('v0.9.0');
+    expect(url.searchParams.get('what')).toContain('Error: Test Error');
   });
 
   it('should show error details in development mode', () => {
