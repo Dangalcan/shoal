@@ -9,6 +9,10 @@ on:
       - master
   workflow_dispatch:
 
+# Nothing here writes to the repository.
+permissions:
+  contents: read
+
 # Cancel superseded runs on the same ref.
 concurrency:
   group: ci-${{ github.ref }}

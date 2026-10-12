@@ -1,0 +1,46 @@
+name: CodeQL
+
+# GitHub's static analysis for JavaScript and TypeScript. Code scanning is
+# free for public repositories only, so the job skips itself while the
+# repository is private (like the smoke job in build.yml) and starts on the
+# first push after the repository goes public.
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: Analyze (javascript-typescript)
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out git repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+          # Generated or vendored code is not ours to fix.
+          config: |
+            paths-ignore:
+              - public/plugin-host/bootstrap.js
+              - dist
+              - dist-electron
+              - release
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:javascript-typescript

@@ -19,8 +19,16 @@ permissions:
 jobs:
   release:
     # Gate on CI success when triggered by workflow_run; tag pushes and
-    # manual dispatches build directly.
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    # manual dispatches build directly. The workflow_run `branches` filter
+    # matches the triggering run's branch NAME, so a pull request from a fork
+    # whose branch is called "master" would also match: only accept runs for
+    # pushes to this repository, never pull_request runs or forks, because
+    # this job holds a write token.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -41,6 +49,8 @@ jobs:
         with:
           # For workflow_run, build the exact commit CI validated.
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+          # Build steps must not find a write token in .git/config.
+          persist-credentials: false
 
       - name: Install Node.js
         uses: actions/setup-node@v7
@@ -80,7 +90,10 @@ jobs:
             release/*.deb
             release/latest*.yml
           if-no-files-found: error
-          retention-days: 14
+          # Only the smoke job below reads them, in this same run. Releases
+          # keep the real files; 14 days of ~470 MB per run filled the
+          # artifact storage quota and blocked every upload.
+          retention-days: 1
 
   smoke:
     # Installs the freshly built package on a clean runner and runs the E2E
@@ -105,6 +118,7 @@ jobs:
         with:
           # Test the commit the release job packaged.
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+          persist-credentials: false
 
       - name: Install Node.js
         uses: actions/setup-node@v7
@@ -170,4 +184,4 @@ jobs:
         with:
           name: e2e-report-${{ matrix.os }}
           path: e2e-report
-          retention-days: 14
+          retention-days: 7
