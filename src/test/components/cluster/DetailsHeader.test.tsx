@@ -13,7 +13,7 @@ describe('DetailsHeader', () => {
     render(<DetailsHeader name="test-cluster" />);
     const backButton = screen.getByRole('button');
     fireEvent.click(backButton);
-    // Since we use useNavigate(-1), we can't easily verify the navigation in this unit test 
+    // Since we use useNavigate(-1), we can't easily verify the navigation in this unit test
     // without spying on the internal navigate function, but customRender uses MemoryRouter.
     // However, the test confirms the button is clickable and matches the expected icon/style context.
   });

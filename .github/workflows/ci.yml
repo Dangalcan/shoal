@@ -37,6 +37,9 @@ jobs:
       - name: Typecheck (renderer)
         run: npx tsc --noEmit
 
+      - name: Lint (Prettier)
+        run: npm run lint:prettier
+
       - name: Unit & integration tests
         # With coverage: the job fails if a threshold in vitest.config.ts
         # (90 lines/statements/functions, 80 branches) drops.

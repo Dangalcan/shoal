@@ -14,7 +14,7 @@ export const mockApi = createMockElectronAPI();
 export function mockClusters(names: string[]) {
   mockApi.getClusters = vi.fn().mockResolvedValue({
     success: true,
-    data: names
+    data: names,
   });
 }
 
@@ -25,20 +25,27 @@ export function mockClusterDeletion(success: boolean = true, error?: string) {
   mockApi.deleteCluster = vi.fn().mockResolvedValue({
     success,
     error,
-    data: (success ? undefined : null) as any
+    data: (success ? undefined : null) as any,
   });
 }
 
 /**
  * Simulates deleting a cluster via the UI.
  */
-export async function deleteClusterViaUI(name: string, userInstance?: ReturnType<typeof userEvent.setup>) {
+export async function deleteClusterViaUI(
+  name: string,
+  userInstance?: ReturnType<typeof userEvent.setup>
+) {
   const user = userInstance || userEvent.setup();
   const deleteBtn = screen.getByTitle(`Delete ${name}`);
   await user.click(deleteBtn);
-  
+
   // Modals might have a slight animation delay
-  const confirmBtn = await screen.findByRole('button', { name: 'Delete Cluster' }, { timeout: 2000 });
+  const confirmBtn = await screen.findByRole(
+    'button',
+    { name: 'Delete Cluster' },
+    { timeout: 2000 }
+  );
   await user.click(confirmBtn);
 }
 
@@ -51,6 +58,6 @@ export function renderClustersPage(clusters?: string[]) {
   } else {
     mockClusters([]);
   }
-  
+
   return render(React.createElement(Clusters), { api: mockApi });
 }

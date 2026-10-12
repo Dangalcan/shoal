@@ -1,18 +1,26 @@
 interface StarRatingProps {
-  rating: number;       // 0-5, supports decimals
+  rating: number; // 0-5, supports decimals
   reviews?: number;
   size?: number;
   showCount?: boolean;
 }
 
-export function StarRating({ rating, reviews, size = 14, showCount = true }: StarRatingProps) {
+export function StarRating({
+  rating,
+  reviews,
+  size = 14,
+  showCount = true,
+}: StarRatingProps) {
   const stars = Array.from({ length: 5 }, (_, i) => {
     const fill = Math.max(0, Math.min(1, rating - i));
     return fill;
   });
 
   return (
-    <span className="star-rating" aria-label={`${rating.toFixed(1)} out of 5 stars`}>
+    <span
+      className="star-rating"
+      aria-label={`${rating.toFixed(1)} out of 5 stars`}
+    >
       {stars.map((fill, i) => (
         <svg
           key={i}
@@ -24,7 +32,10 @@ export function StarRating({ rating, reviews, size = 14, showCount = true }: Sta
           <defs>
             <linearGradient id={`star-grad-${i}-${rating}`}>
               <stop offset={`${fill * 100}%`} stopColor="#f59e0b" />
-              <stop offset={`${fill * 100}%`} stopColor="var(--bg-tertiary, #374151)" />
+              <stop
+                offset={`${fill * 100}%`}
+                stopColor="var(--bg-tertiary, #374151)"
+              />
             </linearGradient>
           </defs>
           <polygon

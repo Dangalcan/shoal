@@ -12,7 +12,7 @@ const ThrowError = ({ shouldThrow }: { shouldThrow: boolean }) => {
 
 describe('ErrorBoundary', () => {
   const originalConsoleError = console.error;
-  
+
   beforeEach(() => {
     // Suppress console.error in tests because ErrorBoundary logs it
     console.error = vi.fn();
@@ -62,14 +62,14 @@ describe('ErrorBoundary', () => {
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>
     );
-    
+
     // We already mocked window.location in beforeEach
     // But we need to verify the assignment
-    // vi.stubGlobal('location', { ... }) 
-    // Usually assigning to window.location.href works with jsdom if configured, 
+    // vi.stubGlobal('location', { ... })
+    // Usually assigning to window.location.href works with jsdom if configured,
     // or we might need to use Object.defineProperty if it's read-only in test env.
     // Our beforeEach stubs 'location' with an object.
-    
+
     fireEvent.click(screen.getByText('Back to Dashboard'));
 
     // HashRouter: going "home" must not navigate the window to file:///.
@@ -126,20 +126,20 @@ describe('ErrorBoundary', () => {
   });
 
   it('should show error details in development mode', () => {
-    // Process.env is usually stringified. 
+    // Process.env is usually stringified.
     // We need to mock process.env.NODE_ENV
     // Vitest uses `vi.stubEnv`
-    
+
     vi.stubEnv('NODE_ENV', 'development');
-    
+
     render(
       <ErrorBoundary>
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>
     );
-    
+
     expect(screen.getByText(/Error: Test Error/)).toBeInTheDocument();
-    
+
     vi.unstubAllEnvs();
   });
 });

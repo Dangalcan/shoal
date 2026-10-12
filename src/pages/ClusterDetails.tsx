@@ -1,285 +1,336 @@
-import { useEffect, useState, useMemo, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { RefreshCw, Trash2 } from 'lucide-react'
-import { Toaster } from 'sonner'
-import { LogViewerModal } from '../components/modals/LogViewerModal'
-import { DescribeModal } from '../components/modals/DescribeModal'
-import { YamlModal } from '../components/modals/YamlModal'
-import { ConfirmModal } from '../components/modals/ConfirmModal'
-import { PodTerminalModal } from '../components/modals/PodTerminalModal'
-import { PortForwardModal } from '../components/modals/PortForwardModal'
-import { ScaleResourceModal } from '../components/modals/ScaleResourceModal'
-import { getForwardablePorts } from '../features/portforward/port-utils'
-import { ResourceType, ALL_TABS, RESOURCE_CONFIGS } from '../lib/resources/resource-definitions'
-import { DetailsHeader } from '../components/cluster/DetailsHeader'
-import { ResourceTabs } from '../components/cluster/ResourceTabs'
-import { NamespaceSelector } from '../components/cluster/NamespaceSelector'
-import { SettingsDropdown } from '../components/cluster/SettingsDropdown'
-import { ClusterResourceDisplay } from '../components/cluster/ClusterResourceDisplay'
-import { getSorterForColumn } from '../lib/sorting'
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { RefreshCw, Trash2 } from 'lucide-react';
+import { Toaster } from 'sonner';
+import { LogViewerModal } from '../components/modals/LogViewerModal';
+import { DescribeModal } from '../components/modals/DescribeModal';
+import { YamlModal } from '../components/modals/YamlModal';
+import { ConfirmModal } from '../components/modals/ConfirmModal';
+import { PodTerminalModal } from '../components/modals/PodTerminalModal';
+import { PortForwardModal } from '../components/modals/PortForwardModal';
+import { ScaleResourceModal } from '../components/modals/ScaleResourceModal';
+import { getForwardablePorts } from '../features/portforward/port-utils';
 import {
-    useClusterData,
-    useNamespaces,
-    useTableState,
-    useModalState,
-    useResourceActions,
-    useLocalStorage,
-} from '../hooks'
-import { useClusterContext } from '../features/clusters/ClusterContext'
-import { DisplaySettingsContext } from '../features/clusters/DisplaySettingsContext'
+  ResourceType,
+  ALL_TABS,
+  RESOURCE_CONFIGS,
+} from '../lib/resources/resource-definitions';
+import { DetailsHeader } from '../components/cluster/DetailsHeader';
+import { ResourceTabs } from '../components/cluster/ResourceTabs';
+import { NamespaceSelector } from '../components/cluster/NamespaceSelector';
+import { SettingsDropdown } from '../components/cluster/SettingsDropdown';
+import { ClusterResourceDisplay } from '../components/cluster/ClusterResourceDisplay';
+import { getSorterForColumn } from '../lib/sorting';
+import {
+  useClusterData,
+  useNamespaces,
+  useTableState,
+  useModalState,
+  useResourceActions,
+  useLocalStorage,
+} from '../hooks';
+import { useClusterContext } from '../features/clusters/ClusterContext';
+import { DisplaySettingsContext } from '../features/clusters/DisplaySettingsContext';
 
 export function ClusterDetails() {
-    const { name } = useParams<{ name: string }>()
-    const navigate = useNavigate()
-    
-    // 1. Navigation & Namespace State
-    const [activeTab, setActiveTab] = useLocalStorage<ResourceType>(
-        `cluster-tab-${name}`,
-        'pods'
-    )
-const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaces(name)
-    const { deleteCluster, deleting } = useClusterContext()
-    const [isDeletingCluster, setIsDeletingCluster] = useState(false)
+  const { name } = useParams<{ name: string }>();
+  const navigate = useNavigate();
 
-    // 2. Data Fetching
-    const { items, loading, error, fetchData } = useClusterData(name, activeTab, selectedNamespace)
+  // 1. Navigation & Namespace State
+  const [activeTab, setActiveTab] = useLocalStorage<ResourceType>(
+    `cluster-tab-${name}`,
+    'pods'
+  );
+  const { namespaces, selectedNamespace, setSelectedNamespace } =
+    useNamespaces(name);
+  const { deleteCluster, deleting } = useClusterContext();
+  const [isDeletingCluster, setIsDeletingCluster] = useState(false);
 
-    // 3. Actions (Restart/Delete/Scale)
-    const { handleRestart, handleDelete, handleScale } = useResourceActions(name, fetchData)
+  // 2. Data Fetching
+  const { items, loading, error, fetchData } = useClusterData(
+    name,
+    activeTab,
+    selectedNamespace
+  );
 
-    // 4. Modal State
-    const modals = useModalState()
+  // 3. Actions (Restart/Delete/Scale)
+  const { handleRestart, handleDelete, handleScale } = useResourceActions(
+    name,
+    fetchData
+  );
 
-    // 5. Table State (Sorting, Resizing, Visibility)
-    // Initialize visible resources logic
-    const [visibleResources, setVisibleResources] = useLocalStorage<ResourceType[]>(
-        'k8s_desktop_visible_resources',
-        RESOURCE_CONFIGS.filter(c => !c.defaultHidden).map(c => c.id)
-    )
+  // 4. Modal State
+  const modals = useModalState();
 
-    const activeConfig = RESOURCE_CONFIGS.find(c => c.id === activeTab)
-    const defaultColumns = activeConfig?.defaultVisibleColumns || []
+  // 5. Table State (Sorting, Resizing, Visibility)
+  // Initialize visible resources logic
+  const [visibleResources, setVisibleResources] = useLocalStorage<
+    ResourceType[]
+  >(
+    'k8s_desktop_visible_resources',
+    RESOURCE_CONFIGS.filter((c) => !c.defaultHidden).map((c) => c.id)
+  );
 
-    const {
-        sortConfig,
-        handleSort,
-        getColumnWidth,
-        visibleColumns,
-        handleColumnToggle,
-        resizingId,
-        onResizeStart
-    } = useTableState(defaultColumns)
+  const activeConfig = RESOURCE_CONFIGS.find((c) => c.id === activeTab);
+  const defaultColumns = activeConfig?.defaultVisibleColumns || [];
 
-    // Settings UI State
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-    const toggleSettings = useCallback(() => setIsSettingsOpen(v => !v), [])
-    const closeSettings = useCallback(() => setIsSettingsOpen(false), [])
+  const {
+    sortConfig,
+    handleSort,
+    getColumnWidth,
+    visibleColumns,
+    handleColumnToggle,
+    resizingId,
+    onResizeStart,
+  } = useTableState(defaultColumns);
 
-    // Handle inactive visible tab
-    useEffect(() => {
-        if (!visibleResources.includes(activeTab)) {
-            const nextTab = visibleResources.length > 0 && visibleResources[0] ? visibleResources[0] : 'pods'
-            setActiveTab(nextTab)
-        }
-    }, [visibleResources, activeTab])
+  // Settings UI State
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const toggleSettings = useCallback(() => setIsSettingsOpen((v) => !v), []);
+  const closeSettings = useCallback(() => setIsSettingsOpen(false), []);
 
-    // Sorting Logic
-    const sortedItems = useMemo(() => {
-        if (!sortConfig) return items
-        const sorter = getSorterForColumn(sortConfig.key, activeTab)
-        const sorted = [...items].sort(sorter)
-        return sortConfig.direction === 'asc' ? sorted : sorted.reverse()
-    }, [items, sortConfig, activeTab])
-
-    const tabs = useMemo(() => ALL_TABS.filter(tab => visibleResources.includes(tab.id)), [visibleResources])
-
-    const toggleResource = useCallback((id: ResourceType) => {
-        setVisibleResources(prev =>
-            prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]
-        )
-    }, [setVisibleResources])
-
-    const displaySettings = useMemo(() => ({
-        isSettingsOpen,
-        toggleSettings,
-        closeSettings,
-        visibleResources,
-        toggleResource,
-        activeTab,
-        visibleColumns,
-        toggleColumn: handleColumnToggle,
-    }), [isSettingsOpen, toggleSettings, closeSettings, visibleResources, toggleResource, activeTab, visibleColumns, handleColumnToggle])
-
-    const handleDeleteCluster = async () => {
-        if (!name) return
-        const { success } = await deleteCluster(name)
-        if (success) {
-            navigate('/clusters')
-        }
-        setIsDeletingCluster(false)
+  // Handle inactive visible tab
+  useEffect(() => {
+    if (!visibleResources.includes(activeTab)) {
+      const nextTab =
+        visibleResources.length > 0 && visibleResources[0]
+          ? visibleResources[0]
+          : 'pods';
+      setActiveTab(nextTab);
     }
+  }, [visibleResources, activeTab]);
 
-    return (
-        <DisplaySettingsContext.Provider value={displaySettings}>
-        <div className={`cluster-details-container ${resizingId ? 'cluster-details-container-no-select' : ''}`}>
-            <header className="cluster-details-header">
-                <DetailsHeader name={name || ''} />
+  // Sorting Logic
+  const sortedItems = useMemo(() => {
+    if (!sortConfig) return items;
+    const sorter = getSorterForColumn(sortConfig.key, activeTab);
+    const sorted = [...items].sort(sorter);
+    return sortConfig.direction === 'asc' ? sorted : sorted.reverse();
+  }, [items, sortConfig, activeTab]);
 
-                <div className="header-controls">
-                    <ResourceTabs 
-                        tabs={tabs} 
-                        activeTab={activeTab} 
-                        onTabChange={setActiveTab} 
-                    />
+  const tabs = useMemo(
+    () => ALL_TABS.filter((tab) => visibleResources.includes(tab.id)),
+    [visibleResources]
+  );
 
-                    <div className="header-actions">
-                        <NamespaceSelector 
-                            namespaces={namespaces} 
-                            selectedNamespace={selectedNamespace} 
-                            onNamespaceChange={setSelectedNamespace} 
-                        />
+  const toggleResource = useCallback(
+    (id: ResourceType) => {
+      setVisibleResources((prev) =>
+        prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]
+      );
+    },
+    [setVisibleResources]
+  );
 
-                        <button onClick={fetchData} disabled={loading} className="refresh-data-button" title="Refresh">
-                            <RefreshCw size={18} className={loading ? 'refresh-icon-spinning' : ''} />
-                        </button>
+  const displaySettings = useMemo(
+    () => ({
+      isSettingsOpen,
+      toggleSettings,
+      closeSettings,
+      visibleResources,
+      toggleResource,
+      activeTab,
+      visibleColumns,
+      toggleColumn: handleColumnToggle,
+    }),
+    [
+      isSettingsOpen,
+      toggleSettings,
+      closeSettings,
+      visibleResources,
+      toggleResource,
+      activeTab,
+      visibleColumns,
+      handleColumnToggle,
+    ]
+  );
 
-                        <button 
-                            onClick={() => setIsDeletingCluster(true)} 
-                            className="delete-cluster-button-action" 
-                            title="Delete Cluster"
-                        >
-                            <Trash2 size={18} />
-                        </button>
-                        
-                        <SettingsDropdown />
-                    </div>
-                </div>
-            </header>
+  const handleDeleteCluster = async () => {
+    if (!name) return;
+    const { success } = await deleteCluster(name);
+    if (success) {
+      navigate('/clusters');
+    }
+    setIsDeletingCluster(false);
+  };
 
-            <main className="cluster-details-main">
-                <ClusterResourceDisplay
-                    loading={loading}
-                    error={error}
-                    items={items}
-                    sortedItems={sortedItems}
-                    activeTab={activeTab}
-                    visibleColumns={visibleColumns}
-                    sortConfig={sortConfig}
-                    onSort={handleSort}
-                    getColumnWidth={getColumnWidth}
-                    onResize={onResizeStart}
-                    resizingId={resizingId}
-                    onDescribe={modals.openDescribe}
-                    onYaml={modals.openYaml}
-                    onRestart={(item) => handleRestart(item.metadata.name, item.metadata.namespace || '', activeTab)}
-                    onLogs={modals.openLogs}
-                    onExec={modals.openExec}
-                    onForward={modals.openForward}
-                    onScale={modals.openScale}
-                    onDelete={modals.openDelete}
-                    onRetry={fetchData}
-                    selectedNamespace={selectedNamespace}
+  return (
+    <DisplaySettingsContext.Provider value={displaySettings}>
+      <div
+        className={`cluster-details-container ${resizingId ? 'cluster-details-container-no-select' : ''}`}
+      >
+        <header className="cluster-details-header">
+          <DetailsHeader name={name || ''} />
+
+          <div className="header-controls">
+            <ResourceTabs
+              tabs={tabs}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
+
+            <div className="header-actions">
+              <NamespaceSelector
+                namespaces={namespaces}
+                selectedNamespace={selectedNamespace}
+                onNamespaceChange={setSelectedNamespace}
+              />
+
+              <button
+                onClick={fetchData}
+                disabled={loading}
+                className="refresh-data-button"
+                title="Refresh"
+              >
+                <RefreshCw
+                  size={18}
+                  className={loading ? 'refresh-icon-spinning' : ''}
                 />
-            </main>
+              </button>
 
-            <LogViewerModal
-                isOpen={modals.activeModal === 'logs'}
-                onClose={modals.closeAll}
-                clusterName={name || ''}
-                podName={modals.selectedItem?.metadata.name || ''}
-                namespace={modals.selectedItem?.metadata.namespace || ''}
-            />
-            <DescribeModal
-                isOpen={modals.activeModal === 'describe'}
-                onClose={modals.closeAll}
-                clusterName={name || ''}
-                resourceName={modals.selectedItem?.metadata.name || ''}
-                resourceType={activeTab}
-                namespace={modals.selectedItem?.metadata.namespace || ''}
-            />
-            <YamlModal
-                isOpen={modals.activeModal === 'yaml'}
-                onClose={modals.closeAll}
-                clusterName={name || ''}
-                resourceName={modals.selectedItem?.metadata.name || ''}
-                resourceType={activeTab}
-                namespace={modals.selectedItem?.metadata.namespace || ''}
-            />
-
-            <ConfirmModal
-                isOpen={modals.activeModal === 'delete'}
-                onClose={modals.closeAll}
-                onConfirm={() => {
-                    if (modals.selectedItem) {
-                        handleDelete(
-                            modals.selectedItem.metadata.name,
-                            modals.selectedItem.metadata.namespace || '',
-                            activeTab
-                        );
-                    }
-                    modals.closeAll();
-                }}
-                title={`Delete ${activeTab}`}
-                message={`Are you sure you want to delete ${activeTab}/${modals.selectedItem?.metadata.name}? This action cannot be undone.`}
-                confirmLabel={`Delete ${activeTab}`}
-                variant="danger"
-            />
-
-            <ConfirmModal
-                isOpen={isDeletingCluster}
-                onClose={() => setIsDeletingCluster(false)}
-                onConfirm={handleDeleteCluster}
+              <button
+                onClick={() => setIsDeletingCluster(true)}
+                className="delete-cluster-button-action"
                 title="Delete Cluster"
-                message={`Are you sure you want to delete cluster "${name}"? This action cannot be undone.`}
-                confirmLabel="Delete Cluster"
-                variant="danger"
-                loading={!!deleting}
-            />
-            <PodTerminalModal
-                isOpen={modals.activeModal === 'exec'}
-                onClose={modals.closeAll}
-                podName={modals.selectedItem?.metadata.name ?? ''}
-                namespace={modals.selectedItem?.metadata.namespace ?? ''}
-                contextName={name ?? ''}
-            />
-            <ScaleResourceModal
-                isOpen={modals.activeModal === 'scale'}
-                onClose={modals.closeAll}
-                onScale={(replicas) => {
-                    if (modals.selectedItem) {
-                        handleScale(
-                            modals.selectedItem.metadata.name,
-                            modals.selectedItem.metadata.namespace || '',
-                            activeTab,
-                            replicas
-                        )
-                    }
-                }}
-                resourceType={activeTab}
-                resourceName={modals.selectedItem?.metadata.name ?? ''}
-                currentReplicas={
-                    (modals.selectedItem?.spec as { replicas?: number } | undefined)
-                        ?.replicas ?? 0
-                }
-            />
-            <PortForwardModal
-                isOpen={modals.activeModal === 'forward'}
-                onClose={modals.closeAll}
-                contextName={name ?? ''}
-                namespace={modals.selectedItem?.metadata.namespace ?? 'default'}
-                resourceType={activeTab === 'services' ? 'service' : 'pod'}
-                resourceName={modals.selectedItem?.metadata.name ?? ''}
-                suggestedPorts={
-                    modals.selectedItem
-                        ? getForwardablePorts(
-                              modals.selectedItem,
-                              activeTab === 'services' ? 'service' : 'pod'
-                          )
-                        : []
-                }
-            />
-            <Toaster position="bottom-right" richColors />
-        </div>
-        </DisplaySettingsContext.Provider>
-    )
+              >
+                <Trash2 size={18} />
+              </button>
+
+              <SettingsDropdown />
+            </div>
+          </div>
+        </header>
+
+        <main className="cluster-details-main">
+          <ClusterResourceDisplay
+            loading={loading}
+            error={error}
+            items={items}
+            sortedItems={sortedItems}
+            activeTab={activeTab}
+            visibleColumns={visibleColumns}
+            sortConfig={sortConfig}
+            onSort={handleSort}
+            getColumnWidth={getColumnWidth}
+            onResize={onResizeStart}
+            resizingId={resizingId}
+            onDescribe={modals.openDescribe}
+            onYaml={modals.openYaml}
+            onRestart={(item) =>
+              handleRestart(
+                item.metadata.name,
+                item.metadata.namespace || '',
+                activeTab
+              )
+            }
+            onLogs={modals.openLogs}
+            onExec={modals.openExec}
+            onForward={modals.openForward}
+            onScale={modals.openScale}
+            onDelete={modals.openDelete}
+            onRetry={fetchData}
+            selectedNamespace={selectedNamespace}
+          />
+        </main>
+
+        <LogViewerModal
+          isOpen={modals.activeModal === 'logs'}
+          onClose={modals.closeAll}
+          clusterName={name || ''}
+          podName={modals.selectedItem?.metadata.name || ''}
+          namespace={modals.selectedItem?.metadata.namespace || ''}
+        />
+        <DescribeModal
+          isOpen={modals.activeModal === 'describe'}
+          onClose={modals.closeAll}
+          clusterName={name || ''}
+          resourceName={modals.selectedItem?.metadata.name || ''}
+          resourceType={activeTab}
+          namespace={modals.selectedItem?.metadata.namespace || ''}
+        />
+        <YamlModal
+          isOpen={modals.activeModal === 'yaml'}
+          onClose={modals.closeAll}
+          clusterName={name || ''}
+          resourceName={modals.selectedItem?.metadata.name || ''}
+          resourceType={activeTab}
+          namespace={modals.selectedItem?.metadata.namespace || ''}
+        />
+
+        <ConfirmModal
+          isOpen={modals.activeModal === 'delete'}
+          onClose={modals.closeAll}
+          onConfirm={() => {
+            if (modals.selectedItem) {
+              handleDelete(
+                modals.selectedItem.metadata.name,
+                modals.selectedItem.metadata.namespace || '',
+                activeTab
+              );
+            }
+            modals.closeAll();
+          }}
+          title={`Delete ${activeTab}`}
+          message={`Are you sure you want to delete ${activeTab}/${modals.selectedItem?.metadata.name}? This action cannot be undone.`}
+          confirmLabel={`Delete ${activeTab}`}
+          variant="danger"
+        />
+
+        <ConfirmModal
+          isOpen={isDeletingCluster}
+          onClose={() => setIsDeletingCluster(false)}
+          onConfirm={handleDeleteCluster}
+          title="Delete Cluster"
+          message={`Are you sure you want to delete cluster "${name}"? This action cannot be undone.`}
+          confirmLabel="Delete Cluster"
+          variant="danger"
+          loading={!!deleting}
+        />
+        <PodTerminalModal
+          isOpen={modals.activeModal === 'exec'}
+          onClose={modals.closeAll}
+          podName={modals.selectedItem?.metadata.name ?? ''}
+          namespace={modals.selectedItem?.metadata.namespace ?? ''}
+          contextName={name ?? ''}
+        />
+        <ScaleResourceModal
+          isOpen={modals.activeModal === 'scale'}
+          onClose={modals.closeAll}
+          onScale={(replicas) => {
+            if (modals.selectedItem) {
+              handleScale(
+                modals.selectedItem.metadata.name,
+                modals.selectedItem.metadata.namespace || '',
+                activeTab,
+                replicas
+              );
+            }
+          }}
+          resourceType={activeTab}
+          resourceName={modals.selectedItem?.metadata.name ?? ''}
+          currentReplicas={
+            (modals.selectedItem?.spec as { replicas?: number } | undefined)
+              ?.replicas ?? 0
+          }
+        />
+        <PortForwardModal
+          isOpen={modals.activeModal === 'forward'}
+          onClose={modals.closeAll}
+          contextName={name ?? ''}
+          namespace={modals.selectedItem?.metadata.namespace ?? 'default'}
+          resourceType={activeTab === 'services' ? 'service' : 'pod'}
+          resourceName={modals.selectedItem?.metadata.name ?? ''}
+          suggestedPorts={
+            modals.selectedItem
+              ? getForwardablePorts(
+                  modals.selectedItem,
+                  activeTab === 'services' ? 'service' : 'pod'
+                )
+              : []
+          }
+        />
+        <Toaster position="bottom-right" richColors />
+      </div>
+    </DisplaySettingsContext.Provider>
+  );
 }

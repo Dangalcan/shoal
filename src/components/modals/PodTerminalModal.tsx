@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Terminal as TerminalIcon, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import {
+  Terminal as TerminalIcon,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
+} from 'lucide-react';
 import { BaseModal } from './BaseModal';
 import { Terminal } from '../Terminal';
 
@@ -11,7 +16,14 @@ interface PodTerminalModalProps {
   contextName: string;
 }
 
-const SHELL_OPTIONS = ['/bin/sh', '/bin/bash', '/bin/ash', '/bin/zsh', 'sh', 'bash'];
+const SHELL_OPTIONS = [
+  '/bin/sh',
+  '/bin/bash',
+  '/bin/ash',
+  '/bin/zsh',
+  'sh',
+  'bash',
+];
 
 export function PodTerminalModal({
   isOpen,
@@ -44,7 +56,13 @@ export function PodTerminalModal({
     setSessionId(null);
 
     window.electron
-      .terminalCreate({ kind: 'pod-exec', podName, namespace, contextName, shell })
+      .terminalCreate({
+        kind: 'pod-exec',
+        podName,
+        namespace,
+        contextName,
+        shell,
+      })
       .then((result) => {
         if (cancelled) return;
         if (result.success) {
@@ -107,7 +125,9 @@ export function PodTerminalModal({
           {loading && (
             <div className="pod-terminal-modal__status">
               <Loader2 size={20} className="animate-spin" />
-              <span>Opening {shell} in {podName}...</span>
+              <span>
+                Opening {shell} in {podName}...
+              </span>
             </div>
           )}
           {error && !loading && (
@@ -115,7 +135,8 @@ export function PodTerminalModal({
               <AlertCircle size={32} />
               <p className="pod-terminal-modal__error-msg">{error}</p>
               <p className="pod-terminal-modal__error-hint">
-                Try a different shell from the selector above, then click Reconnect.
+                Try a different shell from the selector above, then click
+                Reconnect.
               </p>
             </div>
           )}

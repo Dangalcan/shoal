@@ -12,7 +12,9 @@ describe('Card Component', () => {
   it('renders with title', () => {
     render(<Card title="Test Title">Content</Card>);
     expect(screen.getByText('Test Title')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('Test Title');
+    expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent(
+      'Test Title'
+    );
   });
 
   it('renders with header action', () => {
@@ -22,7 +24,9 @@ describe('Card Component', () => {
   });
 
   it('applies custom className', () => {
-    const { container } = render(<Card className="custom-card-class">Content</Card>);
+    const { container } = render(
+      <Card className="custom-card-class">Content</Card>
+    );
     expect(container.firstChild).toHaveClass('custom-card-class');
   });
 

@@ -88,7 +88,10 @@ describe('usePurchasePlugin', () => {
     });
 
     const { result } = renderHook(() =>
-      usePurchasePlugin('paid-plugin', 'Paid', { pollIntervalMs: 0, maxPolls: 3 })
+      usePurchasePlugin('paid-plugin', 'Paid', {
+        pollIntervalMs: 0,
+        maxPolls: 3,
+      })
     );
     await act(async () => {
       await result.current.handlePurchase();
@@ -111,7 +114,10 @@ describe('usePurchasePlugin', () => {
     });
     let polls = 0;
     const { result } = renderHook(() =>
-      usePurchasePlugin('paid-plugin', 'Paid', { pollIntervalMs: 0, maxPolls: 50 })
+      usePurchasePlugin('paid-plugin', 'Paid', {
+        pollIntervalMs: 0,
+        maxPolls: 50,
+      })
     );
     api.getCheckoutStatus.mockImplementation(async () => {
       polls++;
@@ -187,8 +193,6 @@ describe('usePurchasePlugin', () => {
       const b = result.current.handlePurchase();
       await Promise.all([a, b]);
     });
-    await waitFor(() =>
-      expect(api.createCheckout).toHaveBeenCalledTimes(1)
-    );
+    await waitFor(() => expect(api.createCheckout).toHaveBeenCalledTimes(1));
   });
 });

@@ -11,7 +11,6 @@ import { usePlugins } from './PluginProvider';
 import { PluginConfigurationForm } from '../../components/plugins/PluginConfigurationForm';
 import { BaseModal } from '../../components/modals/BaseModal';
 
-
 interface PluginSettingsModalProps {
   plugin: Plugin;
   onClose: () => void;
@@ -37,18 +36,18 @@ export function PluginSettingsModal({
         // Merge with defaults
         const defaults: Record<string, unknown> = {};
         if (schema?.properties) {
-          Object.entries(schema.properties).forEach(
-            ([key, prop]) => {
-              if (prop.default !== undefined) {
-                defaults[key] = prop.default;
-              }
+          Object.entries(schema.properties).forEach(([key, prop]) => {
+            if (prop.default !== undefined) {
+              defaults[key] = prop.default;
             }
-          );
+          });
         }
 
         setSettings({ ...defaults, ...loaded });
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Failed to load settings');
+        setError(
+          err instanceof Error ? err.message : 'Failed to load settings'
+        );
       } finally {
         setLoading(false);
       }
@@ -80,7 +79,13 @@ export function PluginSettingsModal({
       maxWidth="600px"
     >
       {!schema ? (
-        <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>
+        <p
+          style={{
+            textAlign: 'center',
+            padding: '2rem',
+            color: 'var(--color-text-muted)',
+          }}
+        >
           This plugin has no configurable settings.
         </p>
       ) : (

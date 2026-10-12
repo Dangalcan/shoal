@@ -90,8 +90,7 @@ export function AboutCard() {
           <div>
             <label className="settings-form__label">Logs</label>
             <p className="settings-form__hint">
-              Errors are written to a local log file. Nothing is sent
-              anywhere.
+              Errors are written to a local log file. Nothing is sent anywhere.
             </p>
           </div>
           <Button

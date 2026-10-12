@@ -1,7 +1,10 @@
 import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ClusterProvider, useClusterContext } from '../../../features/clusters/ClusterContext';
+import {
+  ClusterProvider,
+  useClusterContext,
+} from '../../../features/clusters/ClusterContext';
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -156,7 +159,10 @@ describe('ClusterContext', () => {
   });
 
   it('should return failed result when switchContext API call fails', async () => {
-    mockApi.switchContext.mockResolvedValue({ success: false, error: 'Forbidden' });
+    mockApi.switchContext.mockResolvedValue({
+      success: false,
+      error: 'Forbidden',
+    });
 
     render(
       <ClusterProvider>
@@ -195,7 +201,9 @@ describe('ClusterContext', () => {
       screen.getByTestId('delete-btn').click();
     });
 
-    await waitFor(() => expect(mockApi.deleteCluster).toHaveBeenCalledWith('cluster-a'));
+    await waitFor(() =>
+      expect(mockApi.deleteCluster).toHaveBeenCalledWith('cluster-a')
+    );
   });
 
   it('should clear currentContext when deleting the active cluster', async () => {

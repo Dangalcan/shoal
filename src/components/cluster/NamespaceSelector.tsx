@@ -1,14 +1,16 @@
 import { Search } from 'lucide-react';
 
-
-
 interface NamespaceSelectorProps {
   namespaces: string[];
   selectedNamespace: string;
   onNamespaceChange: (ns: string) => void;
 }
 
-export function NamespaceSelector({ namespaces, selectedNamespace, onNamespaceChange }: NamespaceSelectorProps) {
+export function NamespaceSelector({
+  namespaces,
+  selectedNamespace,
+  onNamespaceChange,
+}: NamespaceSelectorProps) {
   return (
     <div className="namespace-selector-container">
       <Search className="namespace-selector-icon" size={16} />

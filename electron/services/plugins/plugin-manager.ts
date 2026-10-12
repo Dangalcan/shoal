@@ -455,8 +455,7 @@ export class PluginManager {
 
       // Get plugin context
       const context = pluginRegistry.getPluginContext(pluginId) as
-        | PluginContext
-        | undefined;
+        PluginContext | undefined;
 
       // Run deactivation hooks through the module handle (reuses the running
       // utility process for isolated plugins)
@@ -559,8 +558,7 @@ export class PluginManager {
     // Get a module handle (running utility process for isolated plugins,
     // fresh vm execution for in-process plugins)
     const context = pluginRegistry.getPluginContext(pluginId) as
-      | PluginContext
-      | undefined;
+      PluginContext | undefined;
     const handle = await pluginLoader.acquireModuleHandle(
       pluginId,
       pluginPath,

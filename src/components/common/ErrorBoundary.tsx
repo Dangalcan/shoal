@@ -6,8 +6,6 @@ import { electronService } from '../../services/electronService';
 import { isSuccess } from '../../types/result';
 import { buildIssueUrl, reportRendererError } from '../../lib/error-reporting';
 
-
-
 interface Props {
   children?: ReactNode;
 }
@@ -73,19 +71,20 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
             <h1 className="error-title">Something went wrong</h1>
             <p className="error-message">
-              The application encountered an unexpected error. It was written to the log file; you can report it on GitHub.
+              The application encountered an unexpected error. It was written to
+              the log file; you can report it on GitHub.
             </p>
             <div className="error-actions">
-              <Button 
-                variant="primary" 
+              <Button
+                variant="primary"
                 onClick={this.handleReset}
                 loading={this.state.isReloading}
                 icon={<RefreshCcw size={18} />}
               >
                 Reload Application
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={this.handleGoHome}
                 icon={<Home size={18} />}
               >
@@ -100,9 +99,7 @@ export class ErrorBoundary extends Component<Props, State> {
               </Button>
             </div>
             {process.env.NODE_ENV === 'development' && this.state.error && (
-              <div className="error-details">
-                {this.state.error.toString()}
-              </div>
+              <div className="error-details">{this.state.error.toString()}</div>
             )}
           </Card>
         </div>

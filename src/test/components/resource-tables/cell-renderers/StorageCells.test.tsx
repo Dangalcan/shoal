@@ -31,15 +31,21 @@ describe('StorageCells', () => {
 
   describe('CapacityCell', () => {
     it('should render status capacity', () => {
-      const resource = { ...emptyResource, status: { capacity: { storage: '10Gi' } } };
+      const resource = {
+        ...emptyResource,
+        status: { capacity: { storage: '10Gi' } },
+      };
       render(<CapacityCell resource={resource as any} style={style} />);
       expect(screen.getByText('10Gi')).toBeInTheDocument();
     });
 
     it('should render spec capacity if status missing', () => {
-        const resource = { ...emptyResource, spec: { capacity: { storage: '5Gi' } } };
-        render(<CapacityCell resource={resource as any} style={style} />);
-        expect(screen.getByText('5Gi')).toBeInTheDocument();
+      const resource = {
+        ...emptyResource,
+        spec: { capacity: { storage: '5Gi' } },
+      };
+      render(<CapacityCell resource={resource as any} style={style} />);
+      expect(screen.getByText('5Gi')).toBeInTheDocument();
     });
 
     it('should render <none> if missing', () => {
@@ -50,7 +56,10 @@ describe('StorageCells', () => {
 
   describe('AccessModesCell', () => {
     it('should render modes', () => {
-      const resource = { ...emptyResource, spec: { accessModes: ['RWO', 'ROX'] } };
+      const resource = {
+        ...emptyResource,
+        spec: { accessModes: ['RWO', 'ROX'] },
+      };
       render(<AccessModesCell resource={resource as any} style={style} />);
       expect(screen.getByText('RWO, ROX')).toBeInTheDocument();
     });
@@ -62,150 +71,176 @@ describe('StorageCells', () => {
   });
 
   describe('StorageClassCell', () => {
-      it('should render storage class', () => {
-          const resource = { ...emptyResource, spec: { storageClassName: 'standard' } };
-          render(<StorageClassCell resource={resource as any} style={style} />);
-          expect(screen.getByText('standard')).toBeInTheDocument();
-      });
+    it('should render storage class', () => {
+      const resource = {
+        ...emptyResource,
+        spec: { storageClassName: 'standard' },
+      };
+      render(<StorageClassCell resource={resource as any} style={style} />);
+      expect(screen.getByText('standard')).toBeInTheDocument();
+    });
 
-      it('should render <none> if missing', () => {
-          render(<StorageClassCell resource={emptyResource as any} style={style} />);
-          expect(screen.getByText('<none>')).toBeInTheDocument();
-      });
+    it('should render <none> if missing', () => {
+      render(
+        <StorageClassCell resource={emptyResource as any} style={style} />
+      );
+      expect(screen.getByText('<none>')).toBeInTheDocument();
+    });
   });
 
   describe('VolumeModeCell', () => {
-      it('should render volume mode', () => {
-          const resource = { ...emptyResource, spec: { volumeMode: 'Block' } };
-          render(<VolumeModeCell resource={resource as any} style={style} />);
-          expect(screen.getByText('Block')).toBeInTheDocument();
-      });
+    it('should render volume mode', () => {
+      const resource = { ...emptyResource, spec: { volumeMode: 'Block' } };
+      render(<VolumeModeCell resource={resource as any} style={style} />);
+      expect(screen.getByText('Block')).toBeInTheDocument();
+    });
 
-      it('should fallback to Filesystem', () => {
-          render(<VolumeModeCell resource={emptyResource as any} style={style} />);
-          expect(screen.getByText('Filesystem')).toBeInTheDocument();
-      });
+    it('should fallback to Filesystem', () => {
+      render(<VolumeModeCell resource={emptyResource as any} style={style} />);
+      expect(screen.getByText('Filesystem')).toBeInTheDocument();
+    });
   });
 
   describe('ReclaimPolicyCell', () => {
-      it('should render reclaim policy from spec', () => {
-          const resource = { ...emptyResource, spec: { persistentVolumeReclaimPolicy: 'Retain' } };
-          render(<ReclaimPolicyCell resource={resource as any} style={style} />);
-          expect(screen.getByText('Retain')).toBeInTheDocument();
-      });
+    it('should render reclaim policy from spec', () => {
+      const resource = {
+        ...emptyResource,
+        spec: { persistentVolumeReclaimPolicy: 'Retain' },
+      };
+      render(<ReclaimPolicyCell resource={resource as any} style={style} />);
+      expect(screen.getByText('Retain')).toBeInTheDocument();
+    });
 
-      it('should render reclaim policy from root', () => {
-          const resource = { ...emptyResource, reclaimPolicy: 'Recycle' } as any;
-          render(<ReclaimPolicyCell resource={resource as any} style={style} />);
-          expect(screen.getByText('Recycle')).toBeInTheDocument();
-      });
+    it('should render reclaim policy from root', () => {
+      const resource = { ...emptyResource, reclaimPolicy: 'Recycle' } as any;
+      render(<ReclaimPolicyCell resource={resource as any} style={style} />);
+      expect(screen.getByText('Recycle')).toBeInTheDocument();
+    });
 
-      it('should fallback to Delete', () => {
-          render(<ReclaimPolicyCell resource={emptyResource as any} style={style} />);
-          expect(screen.getByText('Delete')).toBeInTheDocument();
-      });
+    it('should fallback to Delete', () => {
+      render(
+        <ReclaimPolicyCell resource={emptyResource as any} style={style} />
+      );
+      expect(screen.getByText('Delete')).toBeInTheDocument();
+    });
   });
 
   describe('ClaimCell', () => {
-      it('should render claim ref', () => {
-          const resource = { 
-              ...emptyResource, 
-              spec: { claimRef: { namespace: 'default', name: 'my-claim' } } 
-          };
-          render(<ClaimCell resource={resource as any} style={style} />);
-          expect(screen.getByText('default/my-claim')).toBeInTheDocument();
-      });
+    it('should render claim ref', () => {
+      const resource = {
+        ...emptyResource,
+        spec: { claimRef: { namespace: 'default', name: 'my-claim' } },
+      };
+      render(<ClaimCell resource={resource as any} style={style} />);
+      expect(screen.getByText('default/my-claim')).toBeInTheDocument();
+    });
 
-      it('should render <none> if missing', () => {
-          render(<ClaimCell resource={emptyResource as any} style={style} />);
-          expect(screen.getByText('<none>')).toBeInTheDocument();
-      });
+    it('should render <none> if missing', () => {
+      render(<ClaimCell resource={emptyResource as any} style={style} />);
+      expect(screen.getByText('<none>')).toBeInTheDocument();
+    });
   });
 
   describe('VolumeCell', () => {
-      it('should render volume name', () => {
-          const resource = { ...emptyResource, spec: { volumeName: 'pv-123' } };
-          render(<VolumeCell resource={resource as any} style={style} />);
-          expect(screen.getByText('pv-123')).toBeInTheDocument();
-      });
+    it('should render volume name', () => {
+      const resource = { ...emptyResource, spec: { volumeName: 'pv-123' } };
+      render(<VolumeCell resource={resource as any} style={style} />);
+      expect(screen.getByText('pv-123')).toBeInTheDocument();
+    });
 
-        it('should render <none> if missing', () => {
-            render(<VolumeCell resource={emptyResource as any} style={style} />);
-            expect(screen.getByText('<none>')).toBeInTheDocument();
-        });
+    it('should render <none> if missing', () => {
+      render(<VolumeCell resource={emptyResource as any} style={style} />);
+      expect(screen.getByText('<none>')).toBeInTheDocument();
+    });
   });
 
   describe('ProvisionerCell', () => {
-      it('should render provisioner', () => {
-          const resource = { ...emptyResource, provisioner: 'driver.k8s.io' } as any;
-          render(<ProvisionerCell resource={resource as any} style={style} />);
-          expect(screen.getByText('driver.k8s.io')).toBeInTheDocument();
-      });
+    it('should render provisioner', () => {
+      const resource = {
+        ...emptyResource,
+        provisioner: 'driver.k8s.io',
+      } as any;
+      render(<ProvisionerCell resource={resource as any} style={style} />);
+      expect(screen.getByText('driver.k8s.io')).toBeInTheDocument();
+    });
 
-      it('should render <none> if missing', () => {
-          render(<ProvisionerCell resource={emptyResource as any} style={style} />);
-          expect(screen.getByText('<none>')).toBeInTheDocument();
-      });
+    it('should render <none> if missing', () => {
+      render(<ProvisionerCell resource={emptyResource as any} style={style} />);
+      expect(screen.getByText('<none>')).toBeInTheDocument();
+    });
   });
 
-    describe('BindingModeCell', () => {
-        it('should render binding mode', () => {
-            const resource = { ...emptyResource, volumeBindingMode: 'WaitForFirstConsumer' } as any;
-            render(<BindingModeCell resource={resource as any} style={style} />);
-            expect(screen.getByText('WaitForFirstConsumer')).toBeInTheDocument();
-        });
-
-        it('should render <none> if missing', () => {
-            render(<BindingModeCell resource={emptyResource as any} style={style} />);
-            expect(screen.getByText('<none>')).toBeInTheDocument();
-        });
+  describe('BindingModeCell', () => {
+    it('should render binding mode', () => {
+      const resource = {
+        ...emptyResource,
+        volumeBindingMode: 'WaitForFirstConsumer',
+      } as any;
+      render(<BindingModeCell resource={resource as any} style={style} />);
+      expect(screen.getByText('WaitForFirstConsumer')).toBeInTheDocument();
     });
 
-    describe('AllowExpansionCell', () => {
-        it('should render true', () => {
-            const resource = { ...emptyResource, allowVolumeExpansion: true } as any;
-            render(<AllowExpansionCell resource={resource as any} style={style} />);
-            expect(screen.getByText('true')).toBeInTheDocument();
-        });
+    it('should render <none> if missing', () => {
+      render(<BindingModeCell resource={emptyResource as any} style={style} />);
+      expect(screen.getByText('<none>')).toBeInTheDocument();
+    });
+  });
 
-        it('should render false', () => {
-            const resource = { ...emptyResource, allowVolumeExpansion: false } as any;
-            render(<AllowExpansionCell resource={resource as any} style={style} />);
-            expect(screen.getByText('false')).toBeInTheDocument();
-        });
-
-        it('should default to false', () => {
-             render(<AllowExpansionCell resource={emptyResource as any} style={style} />);
-             expect(screen.getByText('false')).toBeInTheDocument();
-        });
+  describe('AllowExpansionCell', () => {
+    it('should render true', () => {
+      const resource = { ...emptyResource, allowVolumeExpansion: true } as any;
+      render(<AllowExpansionCell resource={resource as any} style={style} />);
+      expect(screen.getByText('true')).toBeInTheDocument();
     });
 
-    describe('PVCSelectedNodeCell', () => {
-        it('should render selected node from annotation', () => {
-            const resource = { 
-                ...emptyResource, 
-                metadata: { ...emptyResource.metadata, annotations: { 'volume.kubernetes.io/selected-node': 'node-1' } } 
-            };
-            render(<PVCSelectedNodeCell resource={resource as any} style={style} />);
-            expect(screen.getByText('node-1')).toBeInTheDocument();
-        });
-
-        it('should render <none> if missing', () => {
-            render(<PVCSelectedNodeCell resource={emptyResource as any} style={style} />);
-            expect(screen.getByText('<none>')).toBeInTheDocument();
-        });
+    it('should render false', () => {
+      const resource = { ...emptyResource, allowVolumeExpansion: false } as any;
+      render(<AllowExpansionCell resource={resource as any} style={style} />);
+      expect(screen.getByText('false')).toBeInTheDocument();
     });
 
-    describe('VACCell', () => {
-        it('should render volume attributes class', () => {
-             const resource = { ...emptyResource, spec: { volumeAttributesClassName: 'fast' } };
-             render(<VACCell resource={resource as any} style={style} />);
-             expect(screen.getByText('fast')).toBeInTheDocument();
-        });
-
-        it('should render <none> if missing', () => {
-            render(<VACCell resource={emptyResource as any} style={style} />);
-            expect(screen.getByText('<none>')).toBeInTheDocument();
-        });
+    it('should default to false', () => {
+      render(
+        <AllowExpansionCell resource={emptyResource as any} style={style} />
+      );
+      expect(screen.getByText('false')).toBeInTheDocument();
     });
+  });
+
+  describe('PVCSelectedNodeCell', () => {
+    it('should render selected node from annotation', () => {
+      const resource = {
+        ...emptyResource,
+        metadata: {
+          ...emptyResource.metadata,
+          annotations: { 'volume.kubernetes.io/selected-node': 'node-1' },
+        },
+      };
+      render(<PVCSelectedNodeCell resource={resource as any} style={style} />);
+      expect(screen.getByText('node-1')).toBeInTheDocument();
+    });
+
+    it('should render <none> if missing', () => {
+      render(
+        <PVCSelectedNodeCell resource={emptyResource as any} style={style} />
+      );
+      expect(screen.getByText('<none>')).toBeInTheDocument();
+    });
+  });
+
+  describe('VACCell', () => {
+    it('should render volume attributes class', () => {
+      const resource = {
+        ...emptyResource,
+        spec: { volumeAttributesClassName: 'fast' },
+      };
+      render(<VACCell resource={resource as any} style={style} />);
+      expect(screen.getByText('fast')).toBeInTheDocument();
+    });
+
+    it('should render <none> if missing', () => {
+      render(<VACCell resource={emptyResource as any} style={style} />);
+      expect(screen.getByText('<none>')).toBeInTheDocument();
+    });
+  });
 });

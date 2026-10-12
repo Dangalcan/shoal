@@ -18,7 +18,16 @@ import { providerFromContext } from '../features/clusters/provider';
 
 export function Clusters() {
   const navigate = useNavigate();
-  const { clusters, loading, deleting, currentContext, switching, fetchClusters, deleteCluster, switchContext } = useClusterContext();
+  const {
+    clusters,
+    loading,
+    deleting,
+    currentContext,
+    switching,
+    fetchClusters,
+    deleteCluster,
+    switchContext,
+  } = useClusterContext();
 
   // useAsyncData handles initial fetch on mount
 
@@ -83,73 +92,75 @@ export function Clusters() {
             const provider = providerFromContext(cluster);
 
             return (
-            <Animate 
-              key={cluster} 
-              type="slide-up" 
-              delay={index * 50} 
-              className={`cluster-card ${isActive ? 'cluster-card--active' : ''}`}
-            >
-              <div className="cluster-card-content">
-                <div className="cluster-card-icon">
-                  <Server size={24} />
-                </div>
-                <div
-                  onClick={() => navigate(`/cluster/${cluster}`)}
-                  className="cluster-card-info"
-                >
-                  <div className="cluster-card-name-row">
-                    <h3 className="cluster-card-name">{cluster}</h3>
-                    {isActive && (
-                      <Badge variant="success" dot>
-                        Active
-                      </Badge>
-                    )}
+              <Animate
+                key={cluster}
+                type="slide-up"
+                delay={index * 50}
+                className={`cluster-card ${isActive ? 'cluster-card--active' : ''}`}
+              >
+                <div className="cluster-card-content">
+                  <div className="cluster-card-icon">
+                    <Server size={24} />
                   </div>
-                  <div className="cluster-card-meta">
-                    <span className="cluster-provider">
-                      {provider ? `Provider: ${provider}` : 'kubeconfig context'}
-                    </span>
+                  <div
+                    onClick={() => navigate(`/cluster/${cluster}`)}
+                    className="cluster-card-info"
+                  >
+                    <div className="cluster-card-name-row">
+                      <h3 className="cluster-card-name">{cluster}</h3>
+                      {isActive && (
+                        <Badge variant="success" dot>
+                          Active
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="cluster-card-meta">
+                      <span className="cluster-provider">
+                        {provider
+                          ? `Provider: ${provider}`
+                          : 'kubeconfig context'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="cluster-card-actions">
-                {!isActive && (
+                <div className="cluster-card-actions">
+                  {!isActive && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => switchContext(cluster)}
+                      loading={isSwitching}
+                      title="Set as Active Context"
+                    >
+                      <CheckCircle2 size={20} />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => switchContext(cluster)}
-                    loading={isSwitching}
-                    title="Set as Active Context"
+                    onClick={() => {
+                      setSelectedCluster(cluster);
+                      setIsModalOpen(true);
+                    }}
+                    title="View Pods"
                   >
-                    <CheckCircle2 size={20} />
+                    <Eye size={20} />
                   </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    setSelectedCluster(cluster);
-                    setIsModalOpen(true);
-                  }}
-                  title="View Pods"
-                >
-                  <Eye size={20} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="delete-cluster-button"
-                  onClick={() => setClusterToDelete(cluster)}
-                  loading={deleting === cluster}
-                  title={`Delete ${cluster}`}
-                >
-                  <Trash2 size={20} />
-                </Button>
-              </div>
-            </Animate>
-          )})}
-
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="delete-cluster-button"
+                    onClick={() => setClusterToDelete(cluster)}
+                    loading={deleting === cluster}
+                    title={`Delete ${cluster}`}
+                  >
+                    <Trash2 size={20} />
+                  </Button>
+                </div>
+              </Animate>
+            );
+          })}
         </div>
       ) : (
         <Animate type="fade">

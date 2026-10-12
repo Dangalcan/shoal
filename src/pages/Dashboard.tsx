@@ -46,16 +46,18 @@ function StatCard({ label, value, icon: Icon, color, status }: StatCardProps) {
           <p className="stat-card-label">{label}</p>
           <div className="stat-card-value-container">
             {status ? (
-              <Badge 
-                variant={status === 'running' ? 'success' : 'error'} 
-                dot 
+              <Badge
+                variant={status === 'running' ? 'success' : 'error'}
+                dot
                 className="stat-card-badge"
                 title={String(value)}
               >
                 {value}
               </Badge>
             ) : (
-              <p className="stat-card-value" title={String(value)}>{value}</p>
+              <p className="stat-card-value" title={String(value)}>
+                {value}
+              </p>
             )}
           </div>
         </div>
@@ -74,7 +76,9 @@ function engineLabel(status: ToolStatus | null): string {
   return status.running ? 'Running' : 'Stopped';
 }
 
-function engineState(status: ToolStatus | null): 'running' | 'stopped' | undefined {
+function engineState(
+  status: ToolStatus | null
+): 'running' | 'stopped' | undefined {
   if (status === null) return undefined;
   return status.installed && status.running ? 'running' : 'stopped';
 }
@@ -82,7 +86,12 @@ function engineState(status: ToolStatus | null): 'running' | 'stopped' | undefin
 export function Dashboard() {
   const navigate = useNavigate();
   const api = useApi();
-  const { clusters, currentContext, fetchClusters, loading: clustersLoading } = useClusterContext();
+  const {
+    clusters,
+    currentContext,
+    fetchClusters,
+    loading: clustersLoading,
+  } = useClusterContext();
   const [dockerStatus, setDockerStatus] = useState<ToolStatus | null>(null);
   const [podmanStatus, setPodmanStatus] = useState<ToolStatus | null>(null);
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
@@ -96,9 +105,20 @@ export function Dashboard() {
         api
           .getToolStatus(tool)
           .catch((err) => ({ success: false as const, error: String(err) }));
-      const [dockerRes, podmanRes] = await Promise.all([probe('docker'), probe('podman')]);
-      setDockerStatus(isSuccess(dockerRes) ? dockerRes.data : { tool: 'docker', installed: false });
-      setPodmanStatus(isSuccess(podmanRes) ? podmanRes.data : { tool: 'podman', installed: false });
+      const [dockerRes, podmanRes] = await Promise.all([
+        probe('docker'),
+        probe('podman'),
+      ]);
+      setDockerStatus(
+        isSuccess(dockerRes)
+          ? dockerRes.data
+          : { tool: 'docker', installed: false }
+      );
+      setPodmanStatus(
+        isSuccess(podmanRes)
+          ? podmanRes.data
+          : { tool: 'podman', installed: false }
+      );
       await fetchClusters();
     } finally {
       setLoading(false);
@@ -140,7 +160,9 @@ export function Dashboard() {
             label="Podman Status"
             value={engineLabel(podmanStatus)}
             icon={Layers}
-            color={engineState(podmanStatus) === 'stopped' ? 'orange' : 'purple'}
+            color={
+              engineState(podmanStatus) === 'stopped' ? 'orange' : 'purple'
+            }
             status={engineState(podmanStatus)}
           />
         </Animate>
@@ -175,8 +197,8 @@ export function Dashboard() {
                 Create New Cluster
               </Button>
               <div className="divider-text">or</div>
-              <Button 
-                variant="secondary" 
+              <Button
+                variant="secondary"
                 className="w-full"
                 onClick={() => navigate('/clusters')}
               >
@@ -190,7 +212,13 @@ export function Dashboard() {
           <Card
             title="Your Clusters"
             headerAction={
-              <Button variant="ghost" size="icon" onClick={refreshData} loading={dashboardLoading} title="Refresh Data">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={refreshData}
+                loading={dashboardLoading}
+                title="Refresh Data"
+              >
                 <RefreshCw size={16} />
               </Button>
             }
@@ -201,8 +229,10 @@ export function Dashboard() {
                   <li
                     key={cluster}
                     className={cn(
-                      "cluster-item",
-                      cluster === currentContext ? 'cluster-item-active' : 'cluster-item-inactive'
+                      'cluster-item',
+                      cluster === currentContext
+                        ? 'cluster-item-active'
+                        : 'cluster-item-inactive'
                     )}
                   >
                     <div
@@ -219,8 +249,10 @@ export function Dashboard() {
                       />
                       <span
                         className={cn(
-                          "cluster-item-name",
-                          cluster === currentContext ? 'cluster-item-name-active' : 'cluster-item-name-inactive'
+                          'cluster-item-name',
+                          cluster === currentContext
+                            ? 'cluster-item-name-active'
+                            : 'cluster-item-name-inactive'
                         )}
                       >
                         {cluster}

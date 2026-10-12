@@ -10,7 +10,6 @@ import type { Plugin } from '../../../electron/types/plugin-types';
 import { usePlugins } from './PluginProvider';
 import { BaseModal } from '../../components/modals/BaseModal';
 
-
 interface LicenseActivationModalProps {
   plugin: Plugin;
   onClose: () => void;
@@ -18,7 +17,10 @@ interface LicenseActivationModalProps {
 
 const LICENSE_KEY_RE = /^[A-Z]{2,10}-[A-Z0-9]{4,}(-[A-Z0-9]{4,})+$/;
 
-export function LicenseActivationModal({ plugin, onClose }: LicenseActivationModalProps) {
+export function LicenseActivationModal({
+  plugin,
+  onClose,
+}: LicenseActivationModalProps) {
   const { activateLicense, startTrial } = usePlugins();
   const [licenseKey, setLicenseKey] = useState('');
   const [keyTouched, setKeyTouched] = useState(false);
@@ -44,7 +46,9 @@ export function LicenseActivationModal({ plugin, onClose }: LicenseActivationMod
       setSuccess('License activated successfully!');
       setTimeout(onClose, 2000);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to activate license');
+      setError(
+        err instanceof Error ? err.message : 'Failed to activate license'
+      );
     } finally {
       setLoading(false);
     }
@@ -69,7 +73,11 @@ export function LicenseActivationModal({ plugin, onClose }: LicenseActivationMod
   const footer = (
     <p className="license-modal__footer-text">
       Don't have a license?{' '}
-      <a href={plugin.manifest.homepage ?? 'https://shoal.dangalcan.com'} target="_blank" rel="noopener noreferrer">
+      <a
+        href={plugin.manifest.homepage ?? 'https://shoal.dangalcan.com'}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
         Purchase one here
       </a>
     </p>
@@ -120,7 +128,9 @@ export function LicenseActivationModal({ plugin, onClose }: LicenseActivationMod
             </p>
           )}
           {!showKeyError && licenseKey.length === 0 && (
-            <p className="form-hint">Enter the key exactly as received (case-insensitive)</p>
+            <p className="form-hint">
+              Enter the key exactly as received (case-insensitive)
+            </p>
           )}
         </div>
 

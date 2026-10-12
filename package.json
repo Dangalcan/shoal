@@ -27,8 +27,8 @@
     "screenshots": "playwright test -c e2e/screenshots.config.ts",
     "lint": "npm run lint:eslint && npm run lint:prettier",
     "lint:eslint": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint . --ext .js,.jsx,.ts,.tsx",
-    "lint:prettier": "prettier --check '**/*.{cjs,js,ts,css,scss,md}'",
-    "lint:fix": "npm run lint:eslint -- --fix && prettier --write '**/*.{cjs,js,ts,css,scss,md}'",
+    "lint:prettier": "prettier --check \"**/*.{cjs,js,ts,tsx,json,css,scss,md}\"",
+    "lint:fix": "npm run lint:eslint -- --fix && prettier --write \"**/*.{cjs,js,ts,tsx,json,css,scss,md}\"",
     "prepare": "husky"
   },
   "repository": {
@@ -36,7 +36,7 @@
     "url": "git+https://github.com/Dangalcan/shoal.git"
   },
   "lint-staged": {
-    "*.{js,ts,json,css,scss,md}": [
+    "*.{cjs,js,ts,tsx,json,css,scss,md}": [
       "prettier --write"
     ]
   },

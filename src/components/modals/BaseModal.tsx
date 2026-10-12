@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 
-
 /**
  * Props for the BaseModal component.
  */

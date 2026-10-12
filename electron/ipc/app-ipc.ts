@@ -19,16 +19,13 @@ function clip(value: unknown): string {
 export function registerAppIpcHandlers(): void {
   ipcMain.handle(
     'get-app-info',
-    wrapIpcHandler(
-      'get-app-info',
-      async (): Promise<AppInfo> => ({
-        version: `v${app.getVersion()}`,
-        platform: process.platform,
-        arch: process.arch,
-        electron: process.versions.electron ?? '',
-        logsPath: getLogsDirectory(),
-      })
-    )
+    wrapIpcHandler('get-app-info', async (): Promise<AppInfo> => ({
+      version: `v${app.getVersion()}`,
+      platform: process.platform,
+      arch: process.arch,
+      electron: process.versions.electron ?? '',
+      logsPath: getLogsDirectory(),
+    }))
   );
 
   ipcMain.handle(

@@ -1,6 +1,15 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAsyncData } from '../hooks/useAsyncData';
-import { FileCode, Plus, Save, Edit2, Upload, FileUp, FolderPlus, BookOpen } from 'lucide-react';
+import {
+  FileCode,
+  Plus,
+  Save,
+  Edit2,
+  Upload,
+  FileUp,
+  FolderPlus,
+  BookOpen,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useApi } from '../services/api-context';
 import { Manifest, ManifestFolder } from '../types.d';
@@ -18,9 +27,7 @@ import { ExampleTemplatesModal } from '../features/manifests/ExampleTemplatesMod
 import type { ExampleTemplate } from '../features/manifests/example-templates';
 
 type FolderNameModalState =
-  | { mode: 'create' }
-  | { mode: 'rename'; folder: ManifestFolder }
-  | null;
+  { mode: 'create' } | { mode: 'rename'; folder: ManifestFolder } | null;
 
 type MoveTarget =
   | { kind: 'manifest'; manifest: Manifest }
@@ -29,7 +36,11 @@ type MoveTarget =
 
 export function Manifests() {
   const api = useApi();
-  const { data: manifestsData, loading, refetch: fetchManifests } = useAsyncData<Manifest[]>({
+  const {
+    data: manifestsData,
+    loading,
+    refetch: fetchManifests,
+  } = useAsyncData<Manifest[]>({
     fetchFn: async () => {
       const result = await api.getManifests();
       if (!result.success) throw new Error('Failed to fetch manifests');
@@ -57,11 +68,15 @@ export function Manifests() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({ name: '', content: '' });
   const [applying, setApplying] = useState<number | null>(null);
-  const [deleteConfirmationId, setDeleteConfirmationId] = useState<number | null>(null);
+  const [deleteConfirmationId, setDeleteConfirmationId] = useState<
+    number | null
+  >(null);
   const [activeContext, setActiveContext] = useState<string>('');
   const [isDragging, setIsDragging] = useState(false);
-  const [folderNameModal, setFolderNameModal] = useState<FolderNameModalState>(null);
-  const [deleteFolderTarget, setDeleteFolderTarget] = useState<ManifestFolder | null>(null);
+  const [folderNameModal, setFolderNameModal] =
+    useState<FolderNameModalState>(null);
+  const [deleteFolderTarget, setDeleteFolderTarget] =
+    useState<ManifestFolder | null>(null);
   const [moveTarget, setMoveTarget] = useState<MoveTarget>(null);
   const [isExamplesOpen, setIsExamplesOpen] = useState(false);
   // Field focused when the editor opens. Uses autoFocus on mount: a delayed
@@ -114,7 +129,11 @@ export function Manifests() {
     });
 
     if (result.success) {
-      toast.success(editingId ? 'Manifest updated successfully' : 'Manifest saved successfully');
+      toast.success(
+        editingId
+          ? 'Manifest updated successfully'
+          : 'Manifest saved successfully'
+      );
       setFormData({ name: '', content: '' });
       setEditingId(null);
       setIsModalOpen(false);
@@ -145,9 +164,14 @@ export function Manifests() {
     setIsModalOpen(true);
   };
 
-  const handleFileRead = (file: File): Promise<{name: string, content: string}> => {
+  const handleFileRead = (
+    file: File
+  ): Promise<{ name: string; content: string }> => {
     return new Promise((resolve, reject) => {
-      if (!file.name.toLowerCase().endsWith('.yaml') && !file.name.toLowerCase().endsWith('.yml')) {
+      if (
+        !file.name.toLowerCase().endsWith('.yaml') &&
+        !file.name.toLowerCase().endsWith('.yml')
+      ) {
         reject(new Error(`Invalid file type: ${file.name}`));
         return;
       }
@@ -156,13 +180,14 @@ export function Manifests() {
       reader.onload = (e) => {
         const target = e.target;
         if (target && typeof target.result === 'string') {
-          const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
+          const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
           resolve({ name: nameWithoutExt, content: target.result });
         } else {
           reject(new Error(`Failed to read file: ${file.name}`));
         }
       };
-      reader.onerror = () => reject(new Error(`Error reading file: ${file.name}`));
+      reader.onerror = () =>
+        reject(new Error(`Error reading file: ${file.name}`));
       reader.readAsText(file);
     });
   };
@@ -198,12 +223,16 @@ export function Manifests() {
     }
 
     if (successCount > 0) {
-      toast.success(`Successfully imported ${successCount} manifest${successCount > 1 ? 's' : ''}`);
+      toast.success(
+        `Successfully imported ${successCount} manifest${successCount > 1 ? 's' : ''}`
+      );
       await fetchManifests();
     }
 
     if (failCount > 0) {
-      toast.error(`Failed to import ${failCount} file${failCount > 1 ? 's' : ''}: ${errors.join(', ')}`);
+      toast.error(
+        `Failed to import ${failCount} file${failCount > 1 ? 's' : ''}: ${errors.join(', ')}`
+      );
     }
   };
 
@@ -326,7 +355,10 @@ export function Manifests() {
             <FolderPlus size={18} />
             <span>New Folder</span>
           </button>
-          <button className="btn btn--secondary btn--md upload-btn" onClick={() => fileInputRef.current?.click()}>
+          <button
+            className="btn btn--secondary btn--md upload-btn"
+            onClick={() => fileInputRef.current?.click()}
+          >
             <Upload size={18} />
             <span>Upload YAML</span>
           </button>
@@ -337,7 +369,10 @@ export function Manifests() {
             <BookOpen size={18} />
             <span>Examples</span>
           </button>
-          <button className="btn btn--primary btn--md add-btn" onClick={handleAddNew}>
+          <button
+            className="btn btn--primary btn--md add-btn"
+            onClick={handleAddNew}
+          >
             <Plus size={18} />
             <span>New Manifest</span>
           </button>
@@ -364,7 +399,10 @@ export function Manifests() {
         maxWidth="800px"
         footer={
           <>
-            <button className="close-footer-button" onClick={() => setIsModalOpen(false)}>
+            <button
+              className="close-footer-button"
+              onClick={() => setIsModalOpen(false)}
+            >
               Cancel
             </button>
             <button
@@ -386,7 +424,9 @@ export function Manifests() {
               type="text"
               autoFocus={focusField === 'name'}
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               placeholder="e.g., Nginx Deployment"
             />
           </div>
@@ -397,7 +437,9 @@ export function Manifests() {
                 id="manifest-content"
                 autoFocus={focusField === 'content'}
                 value={formData.content}
-                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, content: e.target.value })
+                }
                 placeholder={`apiVersion: v1\nkind: Service\nmetadata:\n  name: my-service`}
                 rows={12}
               />
@@ -429,7 +471,9 @@ export function Manifests() {
       {folderNameModal && (
         <FolderNameModal
           onClose={() => setFolderNameModal(null)}
-          initialName={folderNameModal.mode === 'rename' ? folderNameModal.folder.name : ''}
+          initialName={
+            folderNameModal.mode === 'rename' ? folderNameModal.folder.name : ''
+          }
           onSubmit={handleFolderNameSubmit}
         />
       )}
@@ -470,7 +514,9 @@ export function Manifests() {
                 folder={folder}
                 itemCount={folderItemCounts.get(folder.id) ?? 0}
                 onOpen={openFolder}
-                onRename={(f) => setFolderNameModal({ mode: 'rename', folder: f })}
+                onRename={(f) =>
+                  setFolderNameModal({ mode: 'rename', folder: f })
+                }
                 onMove={(f) => setMoveTarget({ kind: 'folder', folder: f })}
                 onDelete={setDeleteFolderTarget}
                 onDropManifest={(manifestId, targetFolderId) =>
@@ -497,7 +543,9 @@ export function Manifests() {
                   ? 'No saved manifests found.'
                   : 'This folder is empty.'}
               </p>
-              <span>Click here to upload or drag & drop your YAML files anywhere.</span>
+              <span>
+                Click here to upload or drag & drop your YAML files anywhere.
+              </span>
             </div>
           ) : (
             visibleManifests.map((m) => (
@@ -507,7 +555,9 @@ export function Manifests() {
                 applying={applying}
                 onApply={handleApply}
                 onEdit={handleEdit}
-                onMove={(manifest) => setMoveTarget({ kind: 'manifest', manifest })}
+                onMove={(manifest) =>
+                  setMoveTarget({ kind: 'manifest', manifest })
+                }
                 onDelete={handleDeleteClick}
               />
             ))

@@ -231,6 +231,11 @@ npm run lint
 npm run lint:fix
 ```
 
+CI runs `npm run lint:prettier`, so a pull request with unformatted files
+fails. The pre-commit hook formats staged files for you. Line endings are LF
+everywhere (`.gitattributes`); on Windows, git converts on checkout, so no
+editor setting is needed.
+
 **Key conventions:**
 
 - Use functional components with hooks (React)

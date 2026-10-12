@@ -32,9 +32,7 @@ interface TestHarness {
 }
 
 /** Import a fresh frame-runtime and dispatch an init message with a port. */
-async function bootFrame(
-  data: Record<string, unknown>
-): Promise<TestHarness> {
+async function bootFrame(data: Record<string, unknown>): Promise<TestHarness> {
   vi.resetModules();
   await import('../../../../features/plugins/sandbox/frame-runtime');
 
@@ -60,8 +58,7 @@ type Registry = {
 };
 
 function registry(): Registry {
-  return (window as unknown as { pluginUIRegistry: Registry })
-    .pluginUIRegistry;
+  return (window as unknown as { pluginUIRegistry: Registry }).pluginUIRegistry;
 }
 
 describe('frame-runtime mount path', () => {
@@ -175,8 +172,7 @@ describe('frame-runtime mount path', () => {
     await waitFor(() => {
       expect(
         received.some(
-          (m) =>
-            m.kind === 'rpc-request' && m.method === 'ui.showNotification'
+          (m) => m.kind === 'rpc-request' && m.method === 'ui.showNotification'
         )
       ).toBe(true);
     });

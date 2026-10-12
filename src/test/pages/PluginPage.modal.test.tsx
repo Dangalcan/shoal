@@ -66,7 +66,9 @@ describe('PluginPage plugin modals', () => {
     fireEvent.click(screen.getByText('open-from-plugin'));
     expect(document.querySelector('.plugin-modal-overlay')).not.toBeNull();
     expect(
-      document.querySelector('.plugin-modal-dialog [role], .plugin-modal-dialog')
+      document.querySelector(
+        '.plugin-modal-dialog [role], .plugin-modal-dialog'
+      )
     ).not.toBeNull();
 
     // The modal frame can close itself.

@@ -14,9 +14,11 @@ vi.mock('../../hooks/useLocalStorage', () => ({
     // Actually, capturing the setter allows us to spy on it?
     // For now, let's keep the simple implementation but ensure it works.
     let val = initial;
-    const setVal = vi.fn((newVal) => { val = newVal; });
+    const setVal = vi.fn((newVal) => {
+      val = newVal;
+    });
     return [val, setVal];
-  }
+  },
 }));
 
 // Mock hooks that are used in Settings
@@ -25,7 +27,7 @@ vi.mock('../../features/settings', () => {
   // The original test didn't mock useSettings, meaning it used the real one (integration).
   // But useSettings uses useLocalStorage which IS mocked.
   // And it calls useApi.
-  
+
   // To make testing easier and strictly about UI -> Handler connection, we can mock useSettings.
   // This gives us full control over the values passed to the component.
   return {
@@ -42,133 +44,137 @@ import { useSettings } from '../../features/settings';
 import { useNamespaces } from '../../hooks';
 
 describe('Settings Page', () => {
-    const mockApi = createMockElectronAPI({});
-    
-    // Default mock values
-    const mockSettingsValues = {
-        kubeconfigPath: 'C:\\default\\config',
-        defaultNamespace: 'default',
-        autoRefresh: true,
-        refreshInterval: 10,
-        saving: false,
-        localSettingsSaved: false,
-        setKubeconfigPath: vi.fn(),
-        setDefaultNamespace: vi.fn(),
-        setAutoRefresh: vi.fn(),
-        setRefreshInterval: vi.fn(),
-        handleSaveKubeconfig: vi.fn(),
-    };
+  const mockApi = createMockElectronAPI({});
 
-    beforeEach(() => {
-        vi.clearAllMocks();
-        
-        // Setup default hook returns
-        vi.mocked(useSettings).mockReturnValue(mockSettingsValues);
-        vi.mocked(useNamespaces).mockReturnValue({ 
-            namespaces: ['default', 'kube-system', 'all'], 
-            selectedNamespace: 'all',
-            setSelectedNamespace: vi.fn(),
-            loading: false,
-            error: null
-        });
+  // Default mock values
+  const mockSettingsValues = {
+    kubeconfigPath: 'C:\\default\\config',
+    defaultNamespace: 'default',
+    autoRefresh: true,
+    refreshInterval: 10,
+    saving: false,
+    localSettingsSaved: false,
+    setKubeconfigPath: vi.fn(),
+    setDefaultNamespace: vi.fn(),
+    setAutoRefresh: vi.fn(),
+    setRefreshInterval: vi.fn(),
+    handleSaveKubeconfig: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    // Setup default hook returns
+    vi.mocked(useSettings).mockReturnValue(mockSettingsValues);
+    vi.mocked(useNamespaces).mockReturnValue({
+      namespaces: ['default', 'kube-system', 'all'],
+      selectedNamespace: 'all',
+      setSelectedNamespace: vi.fn(),
+      loading: false,
+      error: null,
+    });
+  });
+
+  it('should display all settings with correct initial values', () => {
+    render(<Settings />, { api: mockApi });
+
+    expect(screen.getByDisplayValue('C:\\default\\config')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('default')).toBeInTheDocument(); // Namespace select
+    expect(screen.getByLabelText('Auto-Refresh Data')).toBeChecked();
+    expect(screen.getByText('10s')).toBeInTheDocument();
+  });
+
+  it('should update kubeconfig path input', () => {
+    render(<Settings />, { api: mockApi });
+
+    const input = screen.getByPlaceholderText(/e.g. C:/i);
+    fireEvent.change(input, { target: { value: 'C:\\new\\config' } });
+
+    expect(mockSettingsValues.setKubeconfigPath).toHaveBeenCalledWith(
+      'C:\\new\\config'
+    );
+  });
+
+  it('should call handleSaveKubeconfig when set button is clicked', () => {
+    render(<Settings />, { api: mockApi });
+
+    fireEvent.click(screen.getByText('Set'));
+
+    expect(mockSettingsValues.handleSaveKubeconfig).toHaveBeenCalled();
+  });
+
+  it('should show loading state on set button', () => {
+    vi.mocked(useSettings).mockReturnValue({
+      ...mockSettingsValues,
+      saving: true,
+      localSettingsSaved: false,
     });
 
-    it('should display all settings with correct initial values', () => {
-        render(<Settings />, { api: mockApi });
+    render(<Settings />, { api: mockApi });
 
-        expect(screen.getByDisplayValue('C:\\default\\config')).toBeInTheDocument();
-        expect(screen.getByDisplayValue('default')).toBeInTheDocument(); // Namespace select
-        expect(screen.getByLabelText('Auto-Refresh Data')).toBeChecked();
-        expect(screen.getByText('10s')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /set/i })).toBeDisabled();
+    // Assuming the button shows a spinner or loading text, checking disabled is a start.
+  });
+
+  it('should update default namespace', () => {
+    render(<Settings />, { api: mockApi });
+
+    const select = screen.getByLabelText('Default Namespace');
+    fireEvent.change(select, { target: { value: 'kube-system' } });
+
+    expect(mockSettingsValues.setDefaultNamespace).toHaveBeenCalledWith(
+      'kube-system'
+    );
+  });
+
+  it('should disabled namespace selector when loading namespaces', () => {
+    vi.mocked(useNamespaces).mockReturnValue({
+      namespaces: [],
+      selectedNamespace: 'all',
+      setSelectedNamespace: vi.fn(),
+      loading: true,
+      error: null,
     });
 
-    it('should update kubeconfig path input', () => {
-        render(<Settings />, { api: mockApi });
+    render(<Settings />, { api: mockApi });
 
-        const input = screen.getByPlaceholderText(/e.g. C:/i);
-        fireEvent.change(input, { target: { value: 'C:\\new\\config' } });
+    expect(screen.getByLabelText('Default Namespace')).toBeDisabled();
+  });
 
-        expect(mockSettingsValues.setKubeconfigPath).toHaveBeenCalledWith('C:\\new\\config');
+  it('should toggle auto-refresh', () => {
+    render(<Settings />, { api: mockApi });
+
+    const checkbox = screen.getByLabelText('Auto-Refresh Data');
+    fireEvent.click(checkbox);
+
+    // Since it was true, clicking should set it to false (handled by parent logic, we verify call)
+    expect(mockSettingsValues.setAutoRefresh).toHaveBeenCalledWith(false);
+  });
+
+  it('should update refresh interval', () => {
+    render(<Settings />, { api: mockApi });
+
+    const range = screen.getByLabelText('Refresh Interval');
+    fireEvent.change(range, { target: { value: '30' } });
+
+    expect(mockSettingsValues.setRefreshInterval).toHaveBeenCalledWith(30);
+  });
+
+  it('should hide refresh interval when auto-refresh is disabled', () => {
+    vi.mocked(useSettings).mockReturnValue({
+      ...mockSettingsValues,
+      autoRefresh: false,
+      localSettingsSaved: false,
     });
 
-    it('should call handleSaveKubeconfig when set button is clicked', () => {
-        render(<Settings />, { api: mockApi });
+    const { container } = render(<Settings />, { api: mockApi });
 
-        fireEvent.click(screen.getByText('Set'));
-
-        expect(mockSettingsValues.handleSaveKubeconfig).toHaveBeenCalled();
-    });
-
-    it('should show loading state on set button', () => {
-        vi.mocked(useSettings).mockReturnValue({
-            ...mockSettingsValues,
-            saving: true,
-            localSettingsSaved: false
-        });
-
-        render(<Settings />, { api: mockApi });
-
-        expect(screen.getByRole('button', { name: /set/i })).toBeDisabled();
-        // Assuming the button shows a spinner or loading text, checking disabled is a start.
-    });
-
-    it('should update default namespace', () => {
-        render(<Settings />, { api: mockApi });
-
-        const select = screen.getByLabelText('Default Namespace');
-        fireEvent.change(select, { target: { value: 'kube-system' } });
-
-        expect(mockSettingsValues.setDefaultNamespace).toHaveBeenCalledWith('kube-system');
-    });
-
-    it('should disabled namespace selector when loading namespaces', () => {
-        vi.mocked(useNamespaces).mockReturnValue({ 
-            namespaces: [], 
-            selectedNamespace: 'all',
-            setSelectedNamespace: vi.fn(),
-            loading: true, 
-            error: null
-        });
-
-        render(<Settings />, { api: mockApi });
-
-        expect(screen.getByLabelText('Default Namespace')).toBeDisabled();
-    });
-
-    it('should toggle auto-refresh', () => {
-        render(<Settings />, { api: mockApi });
-
-        const checkbox = screen.getByLabelText('Auto-Refresh Data');
-        fireEvent.click(checkbox);
-
-        // Since it was true, clicking should set it to false (handled by parent logic, we verify call)
-        expect(mockSettingsValues.setAutoRefresh).toHaveBeenCalledWith(false);
-    });
-
-    it('should update refresh interval', () => {
-        render(<Settings />, { api: mockApi });
-
-        const range = screen.getByLabelText('Refresh Interval');
-        fireEvent.change(range, { target: { value: '30' } });
-
-        expect(mockSettingsValues.setRefreshInterval).toHaveBeenCalledWith(30);
-    });
-
-    it('should hide refresh interval when auto-refresh is disabled', () => {
-        vi.mocked(useSettings).mockReturnValue({
-            ...mockSettingsValues,
-            autoRefresh: false,
-            localSettingsSaved: false
-        });
-
-        const { container } = render(<Settings />, { api: mockApi });
-
-        // Implementation uses a class "settings-page--hidden"
-        // We can check if the input is not visible or check for the class on parent
-        // Use a more robust check if possible, or just check implementation details if CSS is not loaded in test
-        // Vitest/JSDOM doesn't compute styles perfectly unless configured.
-        // Let's check if the class is applied.
-        const rangeGroup = container.querySelector('.settings-page--hidden');
-        expect(rangeGroup).toBeInTheDocument();
-    });
+    // Implementation uses a class "settings-page--hidden"
+    // We can check if the input is not visible or check for the class on parent
+    // Use a more robust check if possible, or just check implementation details if CSS is not loaded in test
+    // Vitest/JSDOM doesn't compute styles perfectly unless configured.
+    // Let's check if the class is applied.
+    const rangeGroup = container.querySelector('.settings-page--hidden');
+    expect(rangeGroup).toBeInTheDocument();
+  });
 });

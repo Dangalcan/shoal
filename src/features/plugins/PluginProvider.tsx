@@ -4,8 +4,17 @@
  * Provides plugin state and management functions to the React application.
  */
 
-import { createContext, useContext, ReactNode, useEffect, useState } from 'react';
-import type { Plugin, PluginScaffoldOptions } from '../../../electron/types/plugin-types';
+import {
+  createContext,
+  useContext,
+  ReactNode,
+  useEffect,
+  useState,
+} from 'react';
+import type {
+  Plugin,
+  PluginScaffoldOptions,
+} from '../../../electron/types/plugin-types';
 import { useApi } from '../../services/api-context';
 import { usePluginActions } from './usePluginActions';
 
@@ -17,13 +26,20 @@ interface PluginContextType {
   enablePlugin: (pluginId: string) => Promise<void>;
   disablePlugin: (pluginId: string) => Promise<void>;
   getPluginExtensions: (extensionPoint?: string) => Promise<unknown[]>;
-  executePluginAction: (pluginId: string, actionId: string, args?: unknown) => Promise<unknown>;
+  executePluginAction: (
+    pluginId: string,
+    actionId: string,
+    args?: unknown
+  ) => Promise<unknown>;
   activateLicense: (pluginId: string, key: string) => Promise<void>;
   startTrial: (pluginId: string) => Promise<void>;
   deactivateLicense: (pluginId: string) => Promise<void>;
   installPlugin: (pluginId: string) => Promise<void>;
   getSettings: (pluginId: string) => Promise<Record<string, unknown>>;
-  saveSettings: (pluginId: string, settings: Record<string, unknown>) => Promise<void>;
+  saveSettings: (
+    pluginId: string,
+    settings: Record<string, unknown>
+  ) => Promise<void>;
   checkForUpdates: () => Promise<void>;
   generatePlugin: (options: PluginScaffoldOptions) => Promise<void>;
   reloadPlugin: (pluginId: string) => Promise<void>;
@@ -76,7 +92,9 @@ export function PluginProvider({ children }: PluginProviderProps) {
     ...actions,
   };
 
-  return <PluginContext.Provider value={value}>{children}</PluginContext.Provider>;
+  return (
+    <PluginContext.Provider value={value}>{children}</PluginContext.Provider>
+  );
 }
 
 /**
@@ -95,7 +113,7 @@ export function usePlugins(): PluginContextType {
  */
 export function useEnabledPlugins(): Plugin[] {
   const { plugins } = usePlugins();
-  return plugins.filter(plugin => plugin.state === 'enabled');
+  return plugins.filter((plugin) => plugin.state === 'enabled');
 }
 
 /**

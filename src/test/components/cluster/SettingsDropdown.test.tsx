@@ -1,12 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
 import { screen, fireEvent, render } from '../../utils';
 import { SettingsDropdown } from '../../../components/cluster/SettingsDropdown';
-import { DisplaySettingsContext, type DisplaySettingsContextType } from '../../../features/clusters/DisplaySettingsContext';
+import {
+  DisplaySettingsContext,
+  type DisplaySettingsContextType,
+} from '../../../features/clusters/DisplaySettingsContext';
 
 const mockVisibleResources = ['pods', 'deployments'];
 const mockVisibleColumns = ['name', 'status'];
 
-function renderWithContext(overrides: Partial<DisplaySettingsContextType> = {}) {
+function renderWithContext(
+  overrides: Partial<DisplaySettingsContextType> = {}
+) {
   const defaultCtx: DisplaySettingsContextType = {
     isSettingsOpen: false,
     toggleSettings: vi.fn(),

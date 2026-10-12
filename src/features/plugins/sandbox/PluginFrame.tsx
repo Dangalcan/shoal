@@ -40,12 +40,10 @@ function collectHostStyles(): { texts: string[]; hrefs: string[] } {
   document.querySelectorAll('style').forEach((s) => {
     if (s.textContent) texts.push(s.textContent);
   });
-  document
-    .querySelectorAll('link[rel="stylesheet"]')
-    .forEach((l) => {
-      const href = (l as HTMLLinkElement).href;
-      if (href) hrefs.push(toFrameSafeUrl(href));
-    });
+  document.querySelectorAll('link[rel="stylesheet"]').forEach((l) => {
+    const href = (l as HTMLLinkElement).href;
+    if (href) hrefs.push(toFrameSafeUrl(href));
+  });
   return { texts, hrefs };
 }
 
@@ -116,22 +114,26 @@ export function PluginFrame({
       const channel = new MessageChannel();
       // Real MessagePort satisfies PortLike structurally; the interface uses a
       // minimal { data } event shape so it can be faked in unit tests.
-      const bridge = new PluginHostBridge(channel.port1 as unknown as PortLike, {
-        pluginId,
-        permissions: new Set(permissions),
-        invoke: createElectronInvoker(api),
-        onResize: (h) => setHeight(h),
-        onTitle: (t) => onTitle?.(t),
-        onNotification: (message, type) => {
-          const description = `From: ${pluginId}`;
-          if (type === 'success') toast.success(message, { description });
-          else if (type === 'error') toast.error(message, { description });
-          else if (type === 'warning') toast.warning(message, { description });
-          else toast.info(message, { description });
-        },
-        onOpenModal: (modalId, props) => onOpenModal?.(modalId, props),
-        onCloseModal: () => onCloseModal?.(),
-      });
+      const bridge = new PluginHostBridge(
+        channel.port1 as unknown as PortLike,
+        {
+          pluginId,
+          permissions: new Set(permissions),
+          invoke: createElectronInvoker(api),
+          onResize: (h) => setHeight(h),
+          onTitle: (t) => onTitle?.(t),
+          onNotification: (message, type) => {
+            const description = `From: ${pluginId}`;
+            if (type === 'success') toast.success(message, { description });
+            else if (type === 'error') toast.error(message, { description });
+            else if (type === 'warning')
+              toast.warning(message, { description });
+            else toast.info(message, { description });
+          },
+          onOpenModal: (modalId, props) => onOpenModal?.(modalId, props),
+          onCloseModal: () => onCloseModal?.(),
+        }
+      );
       bridge.start();
       bridgeRef.current = bridge;
 

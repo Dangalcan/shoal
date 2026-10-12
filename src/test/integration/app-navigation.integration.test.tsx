@@ -14,7 +14,10 @@ describe('App Navigation Integration', () => {
     vi.clearAllMocks();
     mockElectronAPI.checkTool.mockResolvedValue({ success: true, data: true });
     mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: [] });
-    mockElectronAPI.getCurrentContext.mockResolvedValue({ success: true, data: 'None' });
+    mockElectronAPI.getCurrentContext.mockResolvedValue({
+      success: true,
+      data: 'None',
+    });
   });
 
   const AppRoutes = () => (
@@ -22,7 +25,14 @@ describe('App Navigation Integration', () => {
       <Route path="/" element={<Layout />}>
         <Route index element={<Dashboard />} />
         <Route path="clusters" element={<Clusters />} />
-        <Route path="settings" element={<div className="p-8"><h2 className="text-2xl font-bold">Settings</h2></div>} />
+        <Route
+          path="settings"
+          element={
+            <div className="p-8">
+              <h2 className="text-2xl font-bold">Settings</h2>
+            </div>
+          }
+        />
         <Route path="create-cluster" element={<CreateCluster />} />
       </Route>
     </Routes>
@@ -30,12 +40,14 @@ describe('App Navigation Integration', () => {
 
   it('should navigate through main pages and show active link states', async () => {
     const user = userEvent.setup();
-    
+
     render(<AppRoutes />, { initialEntries: ['/'] });
 
     // 1. Initially on Dashboard
-    expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
-    
+    expect(
+      screen.getByRole('heading', { name: 'Dashboard' })
+    ).toBeInTheDocument();
+
     // Check active link
     const dashboardLink = screen.getByRole('link', { name: 'Dashboard' });
     expect(dashboardLink).toHaveClass('sidebar-link-active');
@@ -46,9 +58,11 @@ describe('App Navigation Integration', () => {
 
     // Verify Clusters page
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Clusters' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: 'Clusters' })
+      ).toBeInTheDocument();
     });
-    
+
     // Check active states
     expect(clustersLink).toHaveClass('sidebar-link-active');
     expect(dashboardLink).not.toHaveClass('sidebar-link-active');
@@ -59,9 +73,11 @@ describe('App Navigation Integration', () => {
 
     // Verify Settings page
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: 'Settings' })
+      ).toBeInTheDocument();
     });
-    
+
     expect(settingsLink).toHaveClass('sidebar-link-active');
     expect(clustersLink).not.toHaveClass('sidebar-link-active');
   });
@@ -73,9 +89,9 @@ describe('App Navigation Integration', () => {
     // Initially says "Switch to dark mode"
     const themeToggle = screen.getByRole('button', { name: /mode/i });
     expect(themeToggle).toHaveAttribute('title', 'Switch to dark mode');
-    
+
     await user.click(themeToggle);
-    
+
     // After click it should say "Switch to light mode"
     await waitFor(() => {
       expect(themeToggle).toHaveAttribute('title', 'Switch to light mode');

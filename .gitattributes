@@ -1,3 +1,7 @@
+# Every text file is LF in the working tree on every platform, so Prettier
+# (endOfLine: lf) and CI agree with Windows checkouts.
+* text=auto eol=lf
+
 # Bundled plugins are signed over the exact bytes of every file
 # (scripts/sign-plugin.js). Keep their text files LF on every platform so a
 # Windows checkout does not break the signature, and never let git touch the

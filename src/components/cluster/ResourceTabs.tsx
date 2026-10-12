@@ -1,6 +1,5 @@
 import { ResourceType } from '../../lib/resources/resource-definitions';
 
-
 interface Tab {
   id: ResourceType;
   label: string;
@@ -13,7 +12,11 @@ interface ResourceTabsProps {
   onTabChange: (id: ResourceType) => void;
 }
 
-export function ResourceTabs({ tabs, activeTab, onTabChange }: ResourceTabsProps) {
+export function ResourceTabs({
+  tabs,
+  activeTab,
+  onTabChange,
+}: ResourceTabsProps) {
   return (
     <div className="tabs-container">
       {tabs.map((tab) => (

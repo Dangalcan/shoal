@@ -2,14 +2,23 @@
  * Plugin card component for the Plugins page
  */
 
-import { Settings, RotateCcw, Trash2, Power, AlertCircle, User, Shield, Loader2 } from 'lucide-react';
+import {
+  Settings,
+  RotateCcw,
+  Trash2,
+  Power,
+  AlertCircle,
+  User,
+  Shield,
+  Loader2,
+} from 'lucide-react';
 import type { Plugin } from '../../../electron/types/plugin-types';
 
 const PLUGIN_STATE_MAP: Record<string, { label: string; className: string }> = {
-  enabled:  { label: 'Enabled',    className: 'plugin-state--enabled' },
-  disabled: { label: 'Disabled',   className: 'plugin-state--disabled' },
-  error:    { label: 'Error',      className: 'plugin-state--error' },
-  loading:  { label: 'Loading...', className: 'plugin-state--loading' },
+  enabled: { label: 'Enabled', className: 'plugin-state--enabled' },
+  disabled: { label: 'Disabled', className: 'plugin-state--disabled' },
+  error: { label: 'Error', className: 'plugin-state--error' },
+  loading: { label: 'Loading...', className: 'plugin-state--loading' },
 };
 
 export function getPluginStateClass(state: string): string {
@@ -52,14 +61,22 @@ export function PluginCard({
           <div className="plugin-card__title-row">
             <h3 className="plugin-card__name">{plugin.manifest.name}</h3>
             {plugin.hasUpdate && (
-              <span className="plugin-update-badge" title={`Update available: v${plugin.latestVersion}`}>
+              <span
+                className="plugin-update-badge"
+                title={`Update available: v${plugin.latestVersion}`}
+              >
                 Update Available
               </span>
             )}
           </div>
           <p className="plugin-card__version">
             v{plugin.manifest.version}
-            {plugin.hasUpdate && <span className="latest-version"> (Latest: v{plugin.latestVersion})</span>}
+            {plugin.hasUpdate && (
+              <span className="latest-version">
+                {' '}
+                (Latest: v{plugin.latestVersion})
+              </span>
+            )}
           </p>
         </div>
         <div className={`plugin-state ${getPluginStateClass(plugin.state)}`}>
@@ -75,11 +92,16 @@ export function PluginCard({
             <User size={14} style={{ display: 'inline', marginRight: '4px' }} />
             Author:
           </span>
-          <span className="plugin-card__meta-value">{plugin.manifest.author}</span>
+          <span className="plugin-card__meta-value">
+            {plugin.manifest.author}
+          </span>
         </div>
         <div className="plugin-card__meta-item">
           <span className="plugin-card__meta-label">
-            <Shield size={14} style={{ display: 'inline', marginRight: '4px' }} />
+            <Shield
+              size={14}
+              style={{ display: 'inline', marginRight: '4px' }}
+            />
             License:
           </span>
           <span className="plugin-card__meta-value">
@@ -88,17 +110,21 @@ export function PluginCard({
               : `${plugin.manifest.license.type} (${plugin.manifest.license.spdx})`}
           </span>
         </div>
-        {plugin.manifest.permissions && plugin.manifest.permissions.length > 0 && (
-          <div className="plugin-card__meta-item">
-            <span className="plugin-card__meta-label">
-              <AlertCircle size={14} style={{ display: 'inline', marginRight: '4px' }} />
-              Permissions:
-            </span>
-            <span className="plugin-card__meta-value">
-              {plugin.manifest.permissions.join(', ')}
-            </span>
-          </div>
-        )}
+        {plugin.manifest.permissions &&
+          plugin.manifest.permissions.length > 0 && (
+            <div className="plugin-card__meta-item">
+              <span className="plugin-card__meta-label">
+                <AlertCircle
+                  size={14}
+                  style={{ display: 'inline', marginRight: '4px' }}
+                />
+                Permissions:
+              </span>
+              <span className="plugin-card__meta-value">
+                {plugin.manifest.permissions.join(', ')}
+              </span>
+            </div>
+          )}
       </div>
 
       {plugin.error && (

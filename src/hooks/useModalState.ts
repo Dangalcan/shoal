@@ -2,13 +2,7 @@ import { useState } from 'react';
 import type { K8sResource } from '../types/k8s-types';
 
 type ModalType =
-  | 'describe'
-  | 'yaml'
-  | 'logs'
-  | 'delete'
-  | 'exec'
-  | 'forward'
-  | 'scale';
+  'describe' | 'yaml' | 'logs' | 'delete' | 'exec' | 'forward' | 'scale';
 
 interface ModalStateResult {
   selectedItem: K8sResource | null;

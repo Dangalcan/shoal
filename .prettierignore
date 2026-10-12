@@ -3,3 +3,8 @@
 plugins/namespace-watcher/
 plugins/resource-monitor/
 plugins/*/plugin.json
+
+# Generated or foreign
+package-lock.json
+.playwright-mcp/
+marketplace-backend/

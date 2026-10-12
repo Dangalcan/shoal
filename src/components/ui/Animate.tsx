@@ -1,8 +1,8 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
 
-
-type AnimationType = 'fade' | 'slide-up' | 'slide-down' | 'slide-left' | 'slide-right' | 'scale';
+type AnimationType =
+  'fade' | 'slide-up' | 'slide-down' | 'slide-left' | 'slide-right' | 'scale';
 
 interface AnimateProps {
   children: React.ReactNode;
@@ -31,10 +31,7 @@ export function Animate({
   const style = delay > 0 ? { animationDelay: `${delay}ms` } : undefined;
 
   return (
-    <Component
-      className={cn(animationClasses[type], className)}
-      style={style}
-    >
+    <Component className={cn(animationClasses[type], className)} style={style}>
       {children}
     </Component>
   );

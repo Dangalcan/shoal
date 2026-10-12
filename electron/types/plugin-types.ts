@@ -227,12 +227,7 @@ export interface PluginConfigProperty {
 // ============================================================================
 
 export type PluginState =
-  | 'disabled'
-  | 'enabled'
-  | 'loading'
-  | 'error'
-  | 'trial'
-  | 'expired';
+  'disabled' | 'enabled' | 'loading' | 'error' | 'trial' | 'expired';
 
 export interface Plugin {
   manifest: PluginManifest;

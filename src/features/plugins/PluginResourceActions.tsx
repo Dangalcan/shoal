@@ -44,7 +44,12 @@ export function usePluginResourceActions(
 
 function ActionIcon({ name }: { name?: string }) {
   const Icon = name
-    ? (LucideIcons as unknown as Record<string, React.ComponentType<{ size?: number }>>)[name]
+    ? (
+        LucideIcons as unknown as Record<
+          string,
+          React.ComponentType<{ size?: number }>
+        >
+      )[name]
     : undefined;
   const Fallback = LucideIcons.Puzzle;
   const Cmp = Icon ?? Fallback;
@@ -72,9 +77,7 @@ export function PluginResourceActions({
           key={`${plugin.manifest.id}:${action.id}`}
           className="action-button action-button-plugin"
           title={`${action.label} (${plugin.manifest.name})`}
-          onClick={() =>
-            openModal(plugin.manifest.id, action.id, { resource })
-          }
+          onClick={() => openModal(plugin.manifest.id, action.id, { resource })}
         >
           <ActionIcon name={action.icon} />
         </button>

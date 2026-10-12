@@ -14,10 +14,7 @@ interface PurchaseOptions {
 
 /** Where a purchase currently is; 'idle' means no purchase in flight. */
 export type PurchasePhase =
-  | 'idle'
-  | 'starting'
-  | 'awaiting-payment'
-  | 'activating';
+  'idle' | 'starting' | 'awaiting-payment' | 'activating';
 
 class PurchaseCancelledError extends Error {
   constructor() {

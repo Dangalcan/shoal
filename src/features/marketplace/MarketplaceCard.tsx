@@ -20,22 +20,21 @@ import { useInstallPlugin } from './useInstallPlugin';
 import { usePurchasePlugin } from './usePurchasePlugin';
 import { getOwnershipState } from './ownership';
 
-
 interface MarketplaceCardProps {
   entry: MarketplaceEntry;
   featured?: boolean;
   onOpenDetail: (entry: MarketplaceEntry) => void;
 }
 
-export function MarketplaceCard({ entry, featured = false, onOpenDetail }: MarketplaceCardProps) {
-  const { isInstalled, hasUpdate, installedPlugin, installing, handleInstall } = useInstallPlugin(
-    entry.id,
-    entry.name
-  );
-  const { purchasing, awaitingPayment, handlePurchase, cancelPurchase } = usePurchasePlugin(
-    entry.id,
-    entry.name
-  );
+export function MarketplaceCard({
+  entry,
+  featured = false,
+  onOpenDetail,
+}: MarketplaceCardProps) {
+  const { isInstalled, hasUpdate, installedPlugin, installing, handleInstall } =
+    useInstallPlugin(entry.id, entry.name);
+  const { purchasing, awaitingPayment, handlePurchase, cancelPurchase } =
+    usePurchasePlugin(entry.id, entry.name);
   const isPaid = entry.price > 0;
   const ownership = getOwnershipState(installedPlugin, isPaid);
 
@@ -55,7 +54,9 @@ export function MarketplaceCard({ entry, featured = false, onOpenDetail }: Marke
   };
 
   const badge = hasUpdate ? (
-    <span className="marketplace-card__badge marketplace-card__badge--update">Update</span>
+    <span className="marketplace-card__badge marketplace-card__badge--update">
+      Update
+    </span>
   ) : ownership === 'licensed' ? (
     <span className="marketplace-card__badge marketplace-card__badge--licensed">
       <BadgeCheck size={10} /> Licensed
@@ -109,17 +110,29 @@ export function MarketplaceCard({ entry, featured = false, onOpenDetail }: Marke
             <User size={12} style={{ marginRight: '4px', display: 'inline' }} />
             {entry.author}
           </span>
-          <span className={`marketplace-card__price ${entry.price === 0 ? 'free' : 'paid'}`}>
-            {entry.price === 0 ? 'Free' : <><DollarSign size={14} />{entry.price}</>}
+          <span
+            className={`marketplace-card__price ${entry.price === 0 ? 'free' : 'paid'}`}
+          >
+            {entry.price === 0 ? (
+              'Free'
+            ) : (
+              <>
+                <DollarSign size={14} />
+                {entry.price}
+              </>
+            )}
           </span>
         </div>
 
         {entry.rating !== undefined && (
           <div className="marketplace-card__rating">
-            <StarRating rating={entry.rating} reviews={entry.reviews} size={13} />
+            <StarRating
+              rating={entry.rating}
+              reviews={entry.reviews}
+              size={13}
+            />
           </div>
         )}
-
       </div>
 
       <div className="marketplace-card__footer">
@@ -140,20 +153,26 @@ export function MarketplaceCard({ entry, featured = false, onOpenDetail }: Marke
             )}
           </div>
         ) : ownership === 'expired' ? (
-          <button className="btn btn--full btn--warning" onClick={handleBuyClick}>
+          <button
+            className="btn btn--full btn--warning"
+            onClick={handleBuyClick}
+          >
             <ShoppingCart size={16} /> License expired — Buy ${entry.price}
           </button>
         ) : isInstalled && !hasUpdate ? (
-          <button
-            className="btn btn--outline btn--full btn--success"
-            disabled
-          >
+          <button className="btn btn--outline btn--full btn--success" disabled>
             {ownership === 'licensed' ? (
-              <><BadgeCheck size={16} /> Licensed</>
+              <>
+                <BadgeCheck size={16} /> Licensed
+              </>
             ) : ownership === 'trial' ? (
-              <><Clock size={16} /> Trial active</>
+              <>
+                <Clock size={16} /> Trial active
+              </>
             ) : (
-              <><Check size={16} /> Installed</>
+              <>
+                <Check size={16} /> Installed
+              </>
             )}
           </button>
         ) : isPaid && !hasUpdate ? (
@@ -170,11 +189,17 @@ export function MarketplaceCard({ entry, featured = false, onOpenDetail }: Marke
             disabled={installing}
           >
             {installing ? (
-              <><span className="spinner spinner--small" /> Installing...</>
+              <>
+                <span className="spinner spinner--small" /> Installing...
+              </>
             ) : hasUpdate ? (
-              <><Download size={16} /> Update</>
+              <>
+                <Download size={16} /> Update
+              </>
             ) : (
-              <><Download size={16} /> Install</>
+              <>
+                <Download size={16} /> Install
+              </>
             )}
           </button>
         )}

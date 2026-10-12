@@ -25,8 +25,7 @@
  * ```
  */
 export type Result<T = void> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+  { success: true; data: T } | { success: false; error: string };
 
 /**
  * Type guard to check if a Result is successful.

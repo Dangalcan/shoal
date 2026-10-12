@@ -12,7 +12,10 @@ import { usePlugins } from './PluginProvider';
 import { PluginFrame } from './sandbox/PluginFrame';
 import { buildPluginFrameUrls } from './sandbox/frame-props';
 import { usePluginModal } from './sandbox/usePluginModal';
-import type { Plugin, WidgetExtension } from '../../../electron/types/plugin-types';
+import type {
+  Plugin,
+  WidgetExtension,
+} from '../../../electron/types/plugin-types';
 
 interface ResolvedWidget {
   plugin: Plugin;

@@ -26,8 +26,8 @@ export function KomposeMissingPanel({
           >
             kompose
           </button>{' '}
-          (a CNCF project) to convert compose files. Install it and make sure
-          it is on your PATH.
+          (a CNCF project) to convert compose files. Install it and make sure it
+          is on your PATH.
         </p>
       }
       onOpenInstallDocs={onOpenInstallDocs}

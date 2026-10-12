@@ -1,7 +1,6 @@
 import { Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
-
 const SIZE_MAP: Record<string, number> = {
   small: 24,
   sm: 24,

@@ -6,11 +6,7 @@ import type { Plugin } from '../../../electron/types/plugin-types';
  * entry that is not installed has no ownership record).
  */
 export type OwnershipState =
-  | 'none'
-  | 'installed'
-  | 'licensed'
-  | 'trial'
-  | 'expired';
+  'none' | 'installed' | 'licensed' | 'trial' | 'expired';
 
 export function getOwnershipState(
   plugin: Plugin | undefined,

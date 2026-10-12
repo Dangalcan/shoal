@@ -2,16 +2,19 @@ import { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Check, Loader2 } from 'lucide-react';
 import { useClusterContext } from '../../features/clusters/ClusterContext';
 
-
 export function ContextSwitcher() {
-  const { clusters, currentContext, switching, switchContext } = useClusterContext();
+  const { clusters, currentContext, switching, switchContext } =
+    useClusterContext();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -49,9 +52,15 @@ export function ContextSwitcher() {
         <span className="context-switcher__label">Context:</span>
         <span className="context-switcher__current">{displayName}</span>
         {isSwitching ? (
-          <Loader2 size={16} className="context-switcher__icon context-switcher__icon--spinning" />
+          <Loader2
+            size={16}
+            className="context-switcher__icon context-switcher__icon--spinning"
+          />
         ) : (
-          <ChevronDown size={16} className={`context-switcher__icon ${isOpen ? 'context-switcher__icon--rotated' : ''}`} />
+          <ChevronDown
+            size={16}
+            className={`context-switcher__icon ${isOpen ? 'context-switcher__icon--rotated' : ''}`}
+          />
         )}
       </button>
 
@@ -73,17 +82,27 @@ export function ContextSwitcher() {
                     onClick={() => handleSwitch(cluster)}
                     disabled={isLoading}
                   >
-                    <span className="context-switcher__item-name">{cluster}</span>
+                    <span className="context-switcher__item-name">
+                      {cluster}
+                    </span>
                     {isLoading ? (
-                      <Loader2 size={16} className="context-switcher__item-icon context-switcher__item-icon--spinning" />
+                      <Loader2
+                        size={16}
+                        className="context-switcher__item-icon context-switcher__item-icon--spinning"
+                      />
                     ) : isActive ? (
-                      <Check size={16} className="context-switcher__item-icon" />
+                      <Check
+                        size={16}
+                        className="context-switcher__item-icon"
+                      />
                     ) : null}
                   </button>
                 );
               })
             ) : (
-              <div className="context-switcher__empty">No contexts available</div>
+              <div className="context-switcher__empty">
+                No contexts available
+              </div>
             )}
           </div>
         </div>

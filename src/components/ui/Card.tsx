@@ -1,7 +1,6 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
 
-
 interface CardProps {
   children: React.ReactNode;
   className?: string;
@@ -10,7 +9,13 @@ interface CardProps {
   icon?: React.ReactNode;
 }
 
-export function Card({ children, className, title, headerAction, icon }: CardProps) {
+export function Card({
+  children,
+  className,
+  title,
+  headerAction,
+  icon,
+}: CardProps) {
   return (
     <div className={cn('ui-card', className)}>
       {(title || headerAction || icon) && (
@@ -22,9 +27,7 @@ export function Card({ children, className, title, headerAction, icon }: CardPro
           {headerAction}
         </div>
       )}
-      <div className="ui-card-content">
-        {children}
-      </div>
+      <div className="ui-card-content">{children}</div>
     </div>
   );
 }

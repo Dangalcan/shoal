@@ -29,10 +29,12 @@ export default function Plugins() {
     installPlugin,
     reloadPlugin,
     uninstallPlugin,
-    importLocalPlugin
+    importLocalPlugin,
   } = usePlugins();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'installed' | 'marketplace'>('installed');
+  const [activeTab, setActiveTab] = useState<'installed' | 'marketplace'>(
+    'installed'
+  );
   const { flags } = useFeatureFlags();
   const showMarketplace = flags.marketplace && activeTab === 'marketplace';
   const [importing, setImporting] = useState(false);
@@ -48,12 +50,15 @@ export default function Plugins() {
     fn: () => Promise<void>,
     loadingMessage: string,
     successMessage: string,
-    errorTitle: string,
+    errorTitle: string
   ) => {
     setActionLoading(pluginId);
     try {
       await handleAsyncOperation(
-        async () => { await fn(); return { success: true as const, data: undefined }; },
+        async () => {
+          await fn();
+          return { success: true as const, data: undefined };
+        },
         { loadingMessage, successMessage, errorTitle }
       );
     } finally {
@@ -65,10 +70,13 @@ export default function Plugins() {
     const isEnabled = plugin.state === 'enabled';
     return withAction(
       plugin.manifest.id,
-      () => isEnabled ? disablePlugin(plugin.manifest.id) : enablePlugin(plugin.manifest.id),
+      () =>
+        isEnabled
+          ? disablePlugin(plugin.manifest.id)
+          : enablePlugin(plugin.manifest.id),
       isEnabled ? 'Disabling plugin...' : 'Enabling plugin...',
       isEnabled ? 'Plugin disabled.' : 'Plugin enabled.',
-      isEnabled ? 'Failed to disable plugin' : 'Failed to enable plugin',
+      isEnabled ? 'Failed to disable plugin' : 'Failed to enable plugin'
     );
   };
 
@@ -78,7 +86,7 @@ export default function Plugins() {
       () => reloadPlugin(plugin.manifest.id),
       'Reloading plugin...',
       'Plugin reloaded.',
-      'Failed to reload plugin',
+      'Failed to reload plugin'
     );
 
   const handleUpdatePlugin = (plugin: Plugin) => updateModal.open(plugin);
@@ -94,15 +102,22 @@ export default function Plugins() {
       },
       `Updating ${plugin.manifest.name}...`,
       'Plugin updated successfully.',
-      'Failed to update plugin',
+      'Failed to update plugin'
     );
   };
 
   const handleImportPlugin = async () => {
     setImporting(true);
     await handleAsyncOperation(
-      async () => { await importLocalPlugin(); return { success: true as const, data: undefined }; },
-      { loadingMessage: 'Importing plugin...', successMessage: 'Plugin imported.', errorTitle: 'Failed to import plugin' }
+      async () => {
+        await importLocalPlugin();
+        return { success: true as const, data: undefined };
+      },
+      {
+        loadingMessage: 'Importing plugin...',
+        successMessage: 'Plugin imported.',
+        errorTitle: 'Failed to import plugin',
+      }
     );
     setImporting(false);
   };
@@ -123,7 +138,7 @@ export default function Plugins() {
       },
       `Uninstalling ${plugin.manifest.name}...`,
       'Plugin uninstalled.',
-      'Failed to uninstall plugin',
+      'Failed to uninstall plugin'
     );
   };
 
@@ -134,7 +149,11 @@ export default function Plugins() {
           <h1 className="plugins__title">Plugins</h1>
         </div>
         <div className="plugins__loading">
-          <Loader2 size={48} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
+          <Loader2
+            size={48}
+            className="animate-spin"
+            style={{ color: 'var(--color-primary)' }}
+          />
           <p>Loading plugins...</p>
         </div>
       </div>
@@ -161,27 +180,27 @@ export default function Plugins() {
     <div className="plugins">
       <div className="plugins__header-container">
         <div className="plugins-header-main">
-           <h1 className="plugins__title">Plugins</h1>
-           <p className="plugins__subtitle">
-             {flags.marketplace
-               ? 'Manage your installed plugins or discover new ones.'
-               : 'Manage your installed plugins.'}
-           </p>
+          <h1 className="plugins__title">Plugins</h1>
+          <p className="plugins__subtitle">
+            {flags.marketplace
+              ? 'Manage your installed plugins or discover new ones.'
+              : 'Manage your installed plugins.'}
+          </p>
         </div>
 
         <div className="plugins-actions">
-           <button
-             className="btn btn--secondary btn--premium"
-             onClick={handleImportPlugin}
-             disabled={importing}
-           >
-             {importing ? (
-               <Loader2 size={16} className="animate-spin" />
-             ) : (
-               <Upload size={16} />
-             )}
-             <span>Load Unpacked Plugin</span>
-           </button>
+          <button
+            className="btn btn--secondary btn--premium"
+            onClick={handleImportPlugin}
+            disabled={importing}
+          >
+            {importing ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Upload size={16} />
+            )}
+            <span>Load Unpacked Plugin</span>
+          </button>
         </div>
       </div>
 
@@ -259,7 +278,11 @@ export default function Plugins() {
         onClose={uninstallModal.close}
         onConfirm={confirmUninstall}
         title="Uninstall Plugin"
-        message={uninstallModal.item ? `Are you sure you want to uninstall ${uninstallModal.item.manifest.name}? This will permanently delete all plugin files.` : ''}
+        message={
+          uninstallModal.item
+            ? `Are you sure you want to uninstall ${uninstallModal.item.manifest.name}? This will permanently delete all plugin files.`
+            : ''
+        }
         confirmLabel="Uninstall"
         variant="danger"
         loading={actionLoading === uninstallModal.item?.manifest.id}
@@ -270,7 +293,11 @@ export default function Plugins() {
         onClose={updateModal.close}
         onConfirm={confirmUpdate}
         title="Update Plugin"
-        message={updateModal.item ? `Update ${updateModal.item.manifest.name} to v${updateModal.item.latestVersion}?` : ''}
+        message={
+          updateModal.item
+            ? `Update ${updateModal.item.manifest.name} to v${updateModal.item.latestVersion}?`
+            : ''
+        }
         confirmLabel="Update"
         variant="info"
         loading={actionLoading === updateModal.item?.manifest.id}
@@ -290,11 +317,15 @@ export default function Plugins() {
             },
             'Deactivating license...',
             'License deactivated.',
-            'Failed to deactivate license',
+            'Failed to deactivate license'
           );
         }}
         title="Deactivate License"
-        message={deactivateLicenseModal.item ? `Deactivate the license for ${deactivateLicenseModal.item.manifest.name}? You will need to re-enter your license key to use it again.` : ''}
+        message={
+          deactivateLicenseModal.item
+            ? `Deactivate the license for ${deactivateLicenseModal.item.manifest.name}? You will need to re-enter your license key to use it again.`
+            : ''
+        }
         confirmLabel="Deactivate"
         variant="warning"
         loading={actionLoading === deactivateLicenseModal.item?.manifest.id}

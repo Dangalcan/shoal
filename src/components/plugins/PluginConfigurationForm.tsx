@@ -11,7 +11,6 @@ import type {
   PluginConfigProperty,
 } from '../../../electron/types/plugin-types';
 
-
 interface Props {
   schema: PluginConfigurationSchema;
   initialValues: Record<string, unknown>;
@@ -112,7 +111,10 @@ export function PluginConfigurationForm({
       await onSave(values);
     } catch (error: unknown) {
       console.error('Failed to save settings:', error);
-      setErrors({ _form: error instanceof Error ? error.message : 'Failed to save settings' });
+      setErrors({
+        _form:
+          error instanceof Error ? error.message : 'Failed to save settings',
+      });
     } finally {
       setSaving(false);
     }
@@ -149,7 +151,9 @@ export function PluginConfigurationForm({
           <input
             type="number"
             value={(value as number) ?? ''}
-            onChange={(e) => handleChange(key, e.target.valueAsNumber, property)}
+            onChange={(e) =>
+              handleChange(key, e.target.valueAsNumber, property)
+            }
             min={property.min}
             max={property.max}
             placeholder={property.placeholder}
@@ -223,7 +227,6 @@ export function PluginConfigurationForm({
             </button>
           </div>
         );
-
 
       default:
         return <div>Unsupported field type: {property.type}</div>;

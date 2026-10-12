@@ -33,3 +33,6 @@ marketplace-backend/src/**/*.map
 
 # MSYS2/Git Bash crash dumps
 *.stackdump
+
+# Playwright MCP browser-tool artifacts
+.playwright-mcp/

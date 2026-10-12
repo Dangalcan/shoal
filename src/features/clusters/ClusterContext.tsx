@@ -1,4 +1,11 @@
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  ReactNode,
+} from 'react';
 import { useApi } from '../../services/api-context';
 import { handleAsyncOperation } from '../../lib/async-operation-handler';
 import { useAsyncData } from '../../hooks/useAsyncData';
@@ -106,7 +113,9 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
     deleteCluster,
   };
 
-  return <ClusterContext.Provider value={value}>{children}</ClusterContext.Provider>;
+  return (
+    <ClusterContext.Provider value={value}>{children}</ClusterContext.Provider>
+  );
 }
 
 export function useClusterContext() {

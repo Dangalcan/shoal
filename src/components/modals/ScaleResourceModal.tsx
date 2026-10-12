@@ -34,7 +34,8 @@ export function ScaleResourceModal({
     if (isOpen) setReplicas(currentReplicas);
   }
 
-  const isValid = Number.isInteger(replicas) && replicas >= 0 && replicas <= INPUT_MAX;
+  const isValid =
+    Number.isInteger(replicas) && replicas >= 0 && replicas <= INPUT_MAX;
   const unchanged = replicas === currentReplicas;
 
   const handleInputChange = (value: string) => {

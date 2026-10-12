@@ -174,14 +174,12 @@ export const sortByExternalIP = sortByString((r) => {
 // Containers & Images
 export const sortByContainers = sortByString((r) => {
   const spec = (r as unknown as Record<string, unknown>).spec as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   const podSpec =
     ((spec?.template as unknown as Record<string, unknown> | undefined)
       ?.spec as Record<string, unknown> | undefined) || spec;
   const containers = podSpec?.containers as
-    | Record<string, unknown>[]
-    | undefined;
+    Record<string, unknown>[] | undefined;
   if (Array.isArray(containers)) {
     return containers.map((c) => c.name).join(', ');
   }
@@ -190,14 +188,12 @@ export const sortByContainers = sortByString((r) => {
 
 export const sortByImages = sortByString((r) => {
   const spec = (r as unknown as Record<string, unknown>).spec as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   const podSpec =
     ((spec?.template as unknown as Record<string, unknown> | undefined)
       ?.spec as Record<string, unknown> | undefined) || spec;
   const containers = podSpec?.containers as
-    | Record<string, unknown>[]
-    | undefined;
+    Record<string, unknown>[] | undefined;
   if (Array.isArray(containers)) {
     return containers.map((c) => c.image as string).join(', ');
   }
@@ -207,11 +203,9 @@ export const sortByImages = sortByString((r) => {
 // Selector
 export const sortBySelector = sortByString((r) => {
   const spec = (r as unknown as Record<string, unknown>).spec as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   const selectorObj = spec?.selector as unknown as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   const selector =
     (selectorObj?.matchLabels as unknown as Record<string, unknown>) ||
     selectorObj ||

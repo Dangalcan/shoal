@@ -12,7 +12,10 @@ interface ExampleTemplatesModalProps {
   onSelect: (template: ExampleTemplate) => void;
 }
 
-export function ExampleTemplatesModal({ onClose, onSelect }: ExampleTemplatesModalProps) {
+export function ExampleTemplatesModal({
+  onClose,
+  onSelect,
+}: ExampleTemplatesModalProps) {
   return (
     <BaseModal
       isOpen
@@ -37,7 +40,9 @@ export function ExampleTemplatesModal({ onClose, onSelect }: ExampleTemplatesMod
             }}
           >
             <span className="example-templates__name">{template.name}</span>
-            <span className="example-templates__description">{template.description}</span>
+            <span className="example-templates__description">
+              {template.description}
+            </span>
           </button>
         ))}
       </div>

@@ -31,7 +31,9 @@ const AllTheProviders: React.FC<{
     <ApiProvider api={api}>
       <ClusterProvider>
         <PluginProvider>
-          <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+          <MemoryRouter initialEntries={initialEntries}>
+            {children}
+          </MemoryRouter>
         </PluginProvider>
       </ClusterProvider>
     </ApiProvider>
@@ -40,26 +42,26 @@ const AllTheProviders: React.FC<{
 
 /**
  * Custom render function with router support.
- * 
+ *
  * Wraps components in MemoryRouter for testing components that use routing.
- * 
+ *
  * @param ui - Component to render
  * @param options - Render options including route configuration
  * @returns Render result from React Testing Library
- * 
+ *
  * @example
  * ```typescript
  * // Simple render with router
  * render(<MyComponent />)
- * 
+ *
  * // Render with specific route
- * render(<ClusterDetails />, { 
+ * render(<ClusterDetails />, {
  *   route: '/clusters/my-cluster',
  *   path: '/clusters/:name'
  * })
  * ```
- * @param ui 
- * @param options 
+ * @param ui
+ * @param options
  */
 export function render(
   ui: ReactElement,

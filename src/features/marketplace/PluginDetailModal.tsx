@@ -18,7 +18,6 @@ import { usePurchasePlugin } from './usePurchasePlugin';
 import { getOwnershipState, formatExpiry } from './ownership';
 import { BaseModal } from '../../components/modals/BaseModal';
 
-
 interface PluginDetailModalProps {
   entry: MarketplaceEntry;
   onClose: () => void;
@@ -35,24 +34,41 @@ const CATEGORY_COLORS: Record<string, string> = {
   Themes: '#ec4899',
 };
 
-const PERMISSION_LABELS: Record<string, { label: string; description: string }> = {
-  kubernetes: { label: 'Kubernetes API', description: 'Read and write Kubernetes resources' },
-  ui: { label: 'UI Extensions', description: 'Add sidebar items and custom pages' },
-  storage: { label: 'Local Storage', description: 'Store persistent data on this machine' },
-  notifications: { label: 'Notifications', description: 'Show desktop notifications' },
-  filesystem: { label: 'File System', description: 'Read and write local files' },
-  network: { label: 'Network Access', description: 'Make outbound network requests' },
+const PERMISSION_LABELS: Record<
+  string,
+  { label: string; description: string }
+> = {
+  kubernetes: {
+    label: 'Kubernetes API',
+    description: 'Read and write Kubernetes resources',
+  },
+  ui: {
+    label: 'UI Extensions',
+    description: 'Add sidebar items and custom pages',
+  },
+  storage: {
+    label: 'Local Storage',
+    description: 'Store persistent data on this machine',
+  },
+  notifications: {
+    label: 'Notifications',
+    description: 'Show desktop notifications',
+  },
+  filesystem: {
+    label: 'File System',
+    description: 'Read and write local files',
+  },
+  network: {
+    label: 'Network Access',
+    description: 'Make outbound network requests',
+  },
 };
 
 export function PluginDetailModal({ entry, onClose }: PluginDetailModalProps) {
-  const { isInstalled, installedPlugin, installing, handleInstall } = useInstallPlugin(
-    entry.id,
-    entry.name
-  );
-  const { purchasing, awaitingPayment, handlePurchase, cancelPurchase } = usePurchasePlugin(
-    entry.id,
-    entry.name
-  );
+  const { isInstalled, installedPlugin, installing, handleInstall } =
+    useInstallPlugin(entry.id, entry.name);
+  const { purchasing, awaitingPayment, handlePurchase, cancelPurchase } =
+    usePurchasePlugin(entry.id, entry.name);
   const [activeScreenshot, setActiveScreenshot] = useState(0);
 
   const isPaid = entry.price > 0;
@@ -62,17 +78,23 @@ export function PluginDetailModal({ entry, onClose }: PluginDetailModalProps) {
 
   const screenshots = entry.screenshots ?? [];
   const tags = entry.tags ?? [];
-  const categoryColor = CATEGORY_COLORS[entry.category] ?? 'var(--color-primary)';
+  const categoryColor =
+    CATEGORY_COLORS[entry.category] ?? 'var(--color-primary)';
 
   const prevScreenshot = () =>
-    setActiveScreenshot((i) => (i - 1 + screenshots.length) % screenshots.length);
+    setActiveScreenshot(
+      (i) => (i - 1 + screenshots.length) % screenshots.length
+    );
   const nextScreenshot = () =>
     setActiveScreenshot((i) => (i + 1) % screenshots.length);
 
   const pluginIcon = (
     <div
       className="plugin-detail-modal__icon"
-      style={{ background: `${categoryColor}22`, border: `1px solid ${categoryColor}44` }}
+      style={{
+        background: `${categoryColor}22`,
+        border: `1px solid ${categoryColor}44`,
+      }}
     >
       {entry.icon ? (
         <img src={entry.icon} alt={entry.name} width={32} height={32} />
@@ -141,12 +163,20 @@ export function PluginDetailModal({ entry, onClose }: PluginDetailModalProps) {
         <div className="plugin-detail-modal__meta-row">
           <div
             className="plugin-detail-modal__category-badge"
-            style={{ background: `${categoryColor}22`, color: categoryColor, border: `1px solid ${categoryColor}44` }}
+            style={{
+              background: `${categoryColor}22`,
+              color: categoryColor,
+              border: `1px solid ${categoryColor}44`,
+            }}
           >
             {entry.category}
           </div>
           {entry.rating !== undefined && (
-            <StarRating rating={entry.rating} reviews={entry.reviews} size={16} />
+            <StarRating
+              rating={entry.rating}
+              reviews={entry.reviews}
+              size={16}
+            />
           )}
           <div className="plugin-detail-modal__price">
             {entry.price === 0 ? (
@@ -181,13 +211,19 @@ export function PluginDetailModal({ entry, onClose }: PluginDetailModalProps) {
                 <AlertTriangle size={14} /> Your license has expired
                 {licenseExpiry ? ` (on ${licenseExpiry})` : ''}.
               </div>
-              <button className="btn btn--warning btn--full" onClick={handlePurchase}>
+              <button
+                className="btn btn--warning btn--full"
+                onClick={handlePurchase}
+              >
                 <ShoppingCart size={16} /> Buy again — ${entry.price}
               </button>
             </>
           ) : ownership === 'licensed' ? (
             <>
-              <button className="btn btn--outline btn--full btn--success" disabled>
+              <button
+                className="btn btn--outline btn--full btn--success"
+                disabled
+              >
                 <BadgeCheck size={16} /> Licensed
               </button>
               {licenseExpiry && (
@@ -198,20 +234,29 @@ export function PluginDetailModal({ entry, onClose }: PluginDetailModalProps) {
             </>
           ) : ownership === 'trial' ? (
             <>
-              <button className="btn btn--outline btn--full btn--success" disabled>
+              <button
+                className="btn btn--outline btn--full btn--success"
+                disabled
+              >
                 <Clock size={16} /> Trial active
               </button>
               <div className="plugin-detail-modal__license-note">
-                {trialEnd ? `Trial ends ${trialEnd}. ` : ''}Buy a license to keep
-                using {entry.name} afterwards.
+                {trialEnd ? `Trial ends ${trialEnd}. ` : ''}Buy a license to
+                keep using {entry.name} afterwards.
               </div>
             </>
           ) : isInstalled ? (
-            <button className="btn btn--outline btn--full btn--success" disabled>
+            <button
+              className="btn btn--outline btn--full btn--success"
+              disabled
+            >
               <Check size={16} /> Installed
             </button>
           ) : isPaid ? (
-            <button className="btn btn--primary btn--full" onClick={handlePurchase}>
+            <button
+              className="btn btn--primary btn--full"
+              onClick={handlePurchase}
+            >
               <ShoppingCart size={16} /> Buy & Install — ${entry.price}
             </button>
           ) : (
@@ -221,9 +266,13 @@ export function PluginDetailModal({ entry, onClose }: PluginDetailModalProps) {
               disabled={installing}
             >
               {installing ? (
-                <><span className="spinner spinner--small" /> Installing...</>
+                <>
+                  <span className="spinner spinner--small" /> Installing...
+                </>
               ) : (
-                <><Download size={16} /> Install</>
+                <>
+                  <Download size={16} /> Install
+                </>
               )}
             </button>
           )}
@@ -235,7 +284,9 @@ export function PluginDetailModal({ entry, onClose }: PluginDetailModalProps) {
             <h4>Tags</h4>
             <div className="plugin-detail-modal__tag-list">
               {tags.map((tag) => (
-                <span key={tag} className="plugin-detail-modal__tag">{tag}</span>
+                <span key={tag} className="plugin-detail-modal__tag">
+                  {tag}
+                </span>
               ))}
             </div>
           </div>
@@ -256,20 +307,31 @@ export function PluginDetailModal({ entry, onClose }: PluginDetailModalProps) {
         )}
 
         {/* Permissions */}
-        {entry.manifest?.permissions && entry.manifest.permissions.length > 0 && (
-          <div className="plugin-detail-modal__permissions">
-            <h4>Permissions</h4>
-            {entry.manifest.permissions.map((perm) => {
-              const info = PERMISSION_LABELS[perm] ?? { label: perm, description: '' };
-              return (
-                <div key={perm} className="plugin-detail-modal__permission-item">
-                  <span className="plugin-detail-modal__permission-label">{info.label}</span>
-                  <span className="plugin-detail-modal__permission-desc">{info.description}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        {entry.manifest?.permissions &&
+          entry.manifest.permissions.length > 0 && (
+            <div className="plugin-detail-modal__permissions">
+              <h4>Permissions</h4>
+              {entry.manifest.permissions.map((perm) => {
+                const info = PERMISSION_LABELS[perm] ?? {
+                  label: perm,
+                  description: '',
+                };
+                return (
+                  <div
+                    key={perm}
+                    className="plugin-detail-modal__permission-item"
+                  >
+                    <span className="plugin-detail-modal__permission-label">
+                      {info.label}
+                    </span>
+                    <span className="plugin-detail-modal__permission-desc">
+                      {info.description}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
       </div>
     </BaseModal>
   );

@@ -1,188 +1,221 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '../utils'
-import { toast } from 'sonner' 
-import { Clusters } from '../../pages/Clusters'
-import { 
-    mockApi,
-    mockClusters,
-    mockClusterDeletion, 
-    deleteClusterViaUI,
-    renderClustersPage
-} from '../helpers/cluster-test-utils'
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor, fireEvent } from '../utils';
+import { toast } from 'sonner';
+import { Clusters } from '../../pages/Clusters';
+import {
+  mockApi,
+  mockClusters,
+  mockClusterDeletion,
+  deleteClusterViaUI,
+  renderClustersPage,
+} from '../helpers/cluster-test-utils';
 
 // Mock child components
 vi.mock('../../components/modals/PodViewerModal', () => ({
-    PodViewerModal: ({ isOpen, onClose, clusterName }: any) => (
-        isOpen ? <div data-testid="pod-modal">PodViewer for {clusterName} <button onClick={onClose}>Close</button></div> : null
-    )
-}))
+  PodViewerModal: ({ isOpen, onClose, clusterName }: any) =>
+    isOpen ? (
+      <div data-testid="pod-modal">
+        PodViewer for {clusterName} <button onClick={onClose}>Close</button>
+      </div>
+    ) : null,
+}));
 
 // Mock toast
 vi.mock('sonner', () => ({
-    Toaster: () => null,
-    toast: {
-        loading: vi.fn(),
-        success: vi.fn(),
-        error: vi.fn(),
-        dismiss: vi.fn()
-    }
-}))
+  Toaster: () => null,
+  toast: {
+    loading: vi.fn(),
+    success: vi.fn(),
+    error: vi.fn(),
+    dismiss: vi.fn(),
+  },
+}));
 
 describe('Clusters Page', () => {
-    beforeEach(() => {
-        vi.clearAllMocks()
-        mockClusters([])
-    })
-    
-    it('should render', async () => {
-        renderClustersPage()
-        await waitFor(() => {
-            expect(screen.getByRole('heading', { name: /clusters/i })).toBeInTheDocument()
-        })
-    })
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockClusters([]);
+  });
 
-    it('should explain how to install kubectl when it is missing', async () => {
-        mockApi.getToolStatus = vi.fn().mockResolvedValue({
-            success: true,
-            data: { tool: 'kubectl', installed: false },
-        })
-        renderClustersPage()
-        expect(await screen.findByText('kubectl not found')).toBeInTheDocument()
-    })
+  it('should render', async () => {
+    renderClustersPage();
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: /clusters/i })
+      ).toBeInTheDocument();
+    });
+  });
 
-    it('should fetch clusters and handle empty state', async () => {
-        renderClustersPage()
-        await waitFor(() => {
-            expect(mockApi.getClusters).toHaveBeenCalled()
-            expect(screen.getByText(/No clusters found/i)).toBeInTheDocument()
-        })
-    })
+  it('should explain how to install kubectl when it is missing', async () => {
+    mockApi.getToolStatus = vi.fn().mockResolvedValue({
+      success: true,
+      data: { tool: 'kubectl', installed: false },
+    });
+    renderClustersPage();
+    expect(await screen.findByText('kubectl not found')).toBeInTheDocument();
+  });
 
-    it('should display clusters', async () => {
-        renderClustersPage(['cluster-1', 'cluster-2'])
-        await waitFor(() => {
-            expect(screen.getByText('cluster-1')).toBeInTheDocument()
-            expect(screen.getByText('cluster-2')).toBeInTheDocument()
-        })
-    })
+  it('should fetch clusters and handle empty state', async () => {
+    renderClustersPage();
+    await waitFor(() => {
+      expect(mockApi.getClusters).toHaveBeenCalled();
+      expect(screen.getByText(/No clusters found/i)).toBeInTheDocument();
+    });
+  });
 
-    it('should label each card with its real provider and no unverified status', async () => {
-        renderClustersPage(['kind-dev', 'k3d-staging', 'docker-desktop'])
-        expect(await screen.findByText('Provider: kind')).toBeInTheDocument()
-        expect(screen.getByText('Provider: k3d')).toBeInTheDocument()
-        expect(screen.getByText('kubeconfig context')).toBeInTheDocument()
-        expect(screen.queryByText('Running')).toBeNull()
-    })
+  it('should display clusters', async () => {
+    renderClustersPage(['cluster-1', 'cluster-2']);
+    await waitFor(() => {
+      expect(screen.getByText('cluster-1')).toBeInTheDocument();
+      expect(screen.getByText('cluster-2')).toBeInTheDocument();
+    });
+  });
 
-    it('should handle load error gracefully', async () => {
-        mockApi.getClusters = vi.fn().mockRejectedValue(new Error('Fetch failed'))
-        renderClustersPage()
-        await waitFor(() => {
-             expect(screen.getByText(/No clusters found/i)).toBeInTheDocument()
-        })
-    })
+  it('should label each card with its real provider and no unverified status', async () => {
+    renderClustersPage(['kind-dev', 'k3d-staging', 'docker-desktop']);
+    expect(await screen.findByText('Provider: kind')).toBeInTheDocument();
+    expect(screen.getByText('Provider: k3d')).toBeInTheDocument();
+    expect(screen.getByText('kubeconfig context')).toBeInTheDocument();
+    expect(screen.queryByText('Running')).toBeNull();
+  });
 
-    it('should handle cluster deletion success', async () => {
-         renderClustersPage(['cluster-to-delete'])
-         mockClusterDeletion(true)
+  it('should handle load error gracefully', async () => {
+    mockApi.getClusters = vi.fn().mockRejectedValue(new Error('Fetch failed'));
+    renderClustersPage();
+    await waitFor(() => {
+      expect(screen.getByText(/No clusters found/i)).toBeInTheDocument();
+    });
+  });
 
-         await waitFor(() => expect(screen.getByText('cluster-to-delete')).toBeInTheDocument())
-         await deleteClusterViaUI('cluster-to-delete')
+  it('should handle cluster deletion success', async () => {
+    renderClustersPage(['cluster-to-delete']);
+    mockClusterDeletion(true);
 
-         await waitFor(() => {
-             expect(mockApi.deleteCluster).toHaveBeenCalledWith('cluster-to-delete')
-             expect(mockApi.getClusters).toHaveBeenCalledTimes(2) 
-         })
-    })
+    await waitFor(() =>
+      expect(screen.getByText('cluster-to-delete')).toBeInTheDocument()
+    );
+    await deleteClusterViaUI('cluster-to-delete');
 
-    it('should handle cluster deletion cancellation', async () => {
-         renderClustersPage(['cluster-keep'])
+    await waitFor(() => {
+      expect(mockApi.deleteCluster).toHaveBeenCalledWith('cluster-to-delete');
+      expect(mockApi.getClusters).toHaveBeenCalledTimes(2);
+    });
+  });
 
-         await waitFor(() => expect(screen.getByText('cluster-keep')).toBeInTheDocument())
+  it('should handle cluster deletion cancellation', async () => {
+    renderClustersPage(['cluster-keep']);
 
-         fireEvent.click(screen.getByTitle('Delete cluster-keep'))
-         fireEvent.click(screen.getByText('Cancel'))
+    await waitFor(() =>
+      expect(screen.getByText('cluster-keep')).toBeInTheDocument()
+    );
 
-         expect(mockApi.deleteCluster).not.toHaveBeenCalled()
-    })
+    fireEvent.click(screen.getByTitle('Delete cluster-keep'));
+    fireEvent.click(screen.getByText('Cancel'));
 
-    it('should handle cluster deletion API failure', async () => {
-         renderClustersPage(['cluster-fail'])
-         mockClusterDeletion(false, 'Cannot delete')
-         
-         await waitFor(() => expect(screen.getByText('cluster-fail')).toBeInTheDocument())
-         await deleteClusterViaUI('cluster-fail')
+    expect(mockApi.deleteCluster).not.toHaveBeenCalled();
+  });
 
-         await waitFor(() => {
-             expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Failed to delete cluster'), expect.anything())
-             expect(mockApi.getClusters).toHaveBeenCalledTimes(1) 
-         })
-    })
+  it('should handle cluster deletion API failure', async () => {
+    renderClustersPage(['cluster-fail']);
+    mockClusterDeletion(false, 'Cannot delete');
 
-    it('should handle cluster deletion unexpected exception', async () => {
-         renderClustersPage(['cluster-crash'])
-         mockApi.deleteCluster = vi.fn().mockRejectedValue(new Error('Boom'))
-         
-         await waitFor(() => expect(screen.getByText('cluster-crash')).toBeInTheDocument())
-         await deleteClusterViaUI('cluster-crash')
+    await waitFor(() =>
+      expect(screen.getByText('cluster-fail')).toBeInTheDocument()
+    );
+    await deleteClusterViaUI('cluster-fail');
 
-         await waitFor(() => {
-             expect(toast.error).toHaveBeenCalledWith('Failed to delete cluster', expect.any(Object))
-             expect(mockApi.getClusters).toHaveBeenCalledTimes(1) 
-         })
-    })
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to delete cluster'),
+        expect.anything()
+      );
+      expect(mockApi.getClusters).toHaveBeenCalledTimes(1);
+    });
+  });
 
-    it('should refresh list on button click', async () => {
-         renderClustersPage(['cluster-1'])
-         await waitFor(() => expect(screen.getByText('cluster-1')).toBeInTheDocument())
+  it('should handle cluster deletion unexpected exception', async () => {
+    renderClustersPage(['cluster-crash']);
+    mockApi.deleteCluster = vi.fn().mockRejectedValue(new Error('Boom'));
 
-         fireEvent.click(screen.getByTitle('Refresh List'))
+    await waitFor(() =>
+      expect(screen.getByText('cluster-crash')).toBeInTheDocument()
+    );
+    await deleteClusterViaUI('cluster-crash');
 
-         await waitFor(() => {
-             expect(mockApi.getClusters).toHaveBeenCalledTimes(2)
-         })
-    })
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        'Failed to delete cluster',
+        expect.any(Object)
+      );
+      expect(mockApi.getClusters).toHaveBeenCalledTimes(1);
+    });
+  });
 
-    it('should navigate to details on click', async () => {
-         renderClustersPage(['cluster-nav'])
-         await waitFor(() => expect(screen.getByText('cluster-nav')).toBeInTheDocument())
+  it('should refresh list on button click', async () => {
+    renderClustersPage(['cluster-1']);
+    await waitFor(() =>
+      expect(screen.getByText('cluster-1')).toBeInTheDocument()
+    );
 
-         fireEvent.click(screen.getByText('cluster-nav'))
-    })
+    fireEvent.click(screen.getByTitle('Refresh List'));
 
-    it('should open pod viewer modal', async () => {
-         renderClustersPage(['cluster-view'])
-         await waitFor(() => expect(screen.getByText('cluster-view')).toBeInTheDocument())
+    await waitFor(() => {
+      expect(mockApi.getClusters).toHaveBeenCalledTimes(2);
+    });
+  });
 
-         fireEvent.click(screen.getByTitle('View Pods'))
-    })
+  it('should navigate to details on click', async () => {
+    renderClustersPage(['cluster-nav']);
+    await waitFor(() =>
+      expect(screen.getByText('cluster-nav')).toBeInTheDocument()
+    );
 
-    it('should close the pod viewer modal', async () => {
-         renderClustersPage(['cluster-view'])
-         await waitFor(() => expect(screen.getByText('cluster-view')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('cluster-nav'));
+  });
 
-         fireEvent.click(screen.getByTitle('View Pods'))
-         await waitFor(() => expect(screen.getByTestId('pod-modal')).toBeInTheDocument())
+  it('should open pod viewer modal', async () => {
+    renderClustersPage(['cluster-view']);
+    await waitFor(() =>
+      expect(screen.getByText('cluster-view')).toBeInTheDocument()
+    );
 
-         fireEvent.click(screen.getByText('Close'))
-         await waitFor(() => expect(screen.queryByTestId('pod-modal')).toBeNull())
-    })
+    fireEvent.click(screen.getByTitle('View Pods'));
+  });
 
-    it('should navigate to the create-cluster page', async () => {
-         renderClustersPage([])
-         await waitFor(() => expect(screen.getByText(/No clusters found/i)).toBeInTheDocument())
+  it('should close the pod viewer modal', async () => {
+    renderClustersPage(['cluster-view']);
+    await waitFor(() =>
+      expect(screen.getByText('cluster-view')).toBeInTheDocument()
+    );
 
-         fireEvent.click(screen.getByTitle('Create New Cluster'))
-    })
+    fireEvent.click(screen.getByTitle('View Pods'));
+    await waitFor(() =>
+      expect(screen.getByTestId('pod-modal')).toBeInTheDocument()
+    );
 
-    it('should switch the active context from a cluster card', async () => {
-         renderClustersPage(['cluster-a'])
-         await waitFor(() => expect(screen.getByText('cluster-a')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('Close'));
+    await waitFor(() => expect(screen.queryByTestId('pod-modal')).toBeNull());
+  });
 
-         fireEvent.click(screen.getByTitle('Set as Active Context'))
+  it('should navigate to the create-cluster page', async () => {
+    renderClustersPage([]);
+    await waitFor(() =>
+      expect(screen.getByText(/No clusters found/i)).toBeInTheDocument()
+    );
 
-         await waitFor(() => {
-             expect(mockApi.switchContext).toHaveBeenCalledWith('cluster-a')
-         })
-    })
-})
+    fireEvent.click(screen.getByTitle('Create New Cluster'));
+  });
+
+  it('should switch the active context from a cluster card', async () => {
+    renderClustersPage(['cluster-a']);
+    await waitFor(() =>
+      expect(screen.getByText('cluster-a')).toBeInTheDocument()
+    );
+
+    fireEvent.click(screen.getByTitle('Set as Active Context'));
+
+    await waitFor(() => {
+      expect(mockApi.switchContext).toHaveBeenCalledWith('cluster-a');
+    });
+  });
+});

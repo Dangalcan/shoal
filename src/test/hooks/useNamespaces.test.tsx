@@ -17,8 +17,10 @@ describe('useNamespaces', () => {
       <ApiProvider api={mockApi}>{children}</ApiProvider>
     );
 
-    const { result } = renderHook(() => useNamespaces('test-context'), { wrapper });
-    
+    const { result } = renderHook(() => useNamespaces('test-context'), {
+      wrapper,
+    });
+
     expect(result.current.namespaces).toEqual([]);
     expect(result.current.loading).toBe(true);
   });
@@ -33,7 +35,9 @@ describe('useNamespaces', () => {
       <ApiProvider api={mockApi}>{children}</ApiProvider>
     );
 
-    const { result } = renderHook(() => useNamespaces('test-context'), { wrapper });
+    const { result } = renderHook(() => useNamespaces('test-context'), {
+      wrapper,
+    });
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -57,7 +61,9 @@ describe('useNamespaces', () => {
       <ApiProvider api={mockApi}>{children}</ApiProvider>
     );
 
-    const { result } = renderHook(() => useNamespaces('test-context'), { wrapper });
+    const { result } = renderHook(() => useNamespaces('test-context'), {
+      wrapper,
+    });
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);

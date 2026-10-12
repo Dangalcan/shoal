@@ -1,169 +1,185 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // Unmock component for unit testing
-vi.unmock('../../../components/modals/LogViewerModal')
+vi.unmock('../../../components/modals/LogViewerModal');
 
-import { render, screen, waitFor, fireEvent } from '../../utils'
-import { LogViewerModal } from '../../../components/modals/LogViewerModal'
-import { mockElectronAPI } from '../../setup'
+import { render, screen, waitFor, fireEvent } from '../../utils';
+import { LogViewerModal } from '../../../components/modals/LogViewerModal';
+import { mockElectronAPI } from '../../setup';
 
 describe('LogViewerModal', () => {
-    beforeEach(() => {
-        vi.clearAllMocks()
-        Element.prototype.scrollIntoView = vi.fn()
-        mockElectronAPI.getLogs.mockResolvedValue({
-            success: true,
-            data: 'Test logs',
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Element.prototype.scrollIntoView = vi.fn();
+    mockElectronAPI.getLogs.mockResolvedValue({
+      success: true,
+      data: 'Test logs',
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('should not render when closed', () => {
+    const { container } = render(
+      <LogViewerModal
+        isOpen={false}
+        onClose={vi.fn()}
+        clusterName="test"
+        podName="test"
+        namespace="default"
+      />
+    );
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('should call getLogs API when open', async () => {
+    mockElectronAPI.getLogs.mockResolvedValue({
+      success: true,
+      data: 'Test logs',
+    });
+
+    render(
+      <LogViewerModal
+        isOpen={true}
+        onClose={vi.fn()}
+        clusterName="test-cluster"
+        podName="test-pod"
+        namespace="default"
+      />
+    );
+
+    await waitFor(() => {
+      expect(window.electron.getLogs).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contextName: 'test-cluster',
+          podName: 'test-pod',
+          namespace: 'default',
+          tailLines: 200,
         })
-    })
+      );
+    });
+    expect(
+      await screen.findByText('Test logs', {}, { timeout: 3000 })
+    ).toBeInTheDocument();
+  });
 
-    afterEach(() => {
-        vi.useRealTimers()
-    })
+  it('should display error when getLogs fails', async () => {
+    mockElectronAPI.getLogs.mockResolvedValueOnce({
+      success: false,
+      error: 'Failed to fetch logs',
+    });
 
-    it('should not render when closed', () => {
-        const { container } = render(
-            <LogViewerModal
-                isOpen={false}
-                onClose={vi.fn()}
-                clusterName="test"
-                podName="test"
-                namespace="default"
-            />
-        )
-        expect(container.firstChild).toBeNull()
-    })
+    render(
+      <LogViewerModal
+        isOpen={true}
+        onClose={vi.fn()}
+        clusterName="test-cluster"
+        podName="test-pod"
+        namespace="default"
+      />
+    );
 
-    it('should call getLogs API when open', async () => {
-        mockElectronAPI.getLogs.mockResolvedValue({
-            success: true,
-            data: 'Test logs',
-        })
+    await waitFor(() => {
+      expect(screen.getByText('Failed to fetch logs')).toBeInTheDocument();
+    });
+  });
 
-        render(
-            <LogViewerModal
-                isOpen={true}
-                onClose={vi.fn()}
-                clusterName="test-cluster"
-                podName="test-pod"
-                namespace="default"
-            />
-        )
+  it('should toggle auto-refresh', async () => {
+    vi.useFakeTimers();
+    render(
+      <LogViewerModal
+        isOpen={true}
+        onClose={vi.fn()}
+        clusterName="test-cluster"
+        podName="test-pod"
+        namespace="default"
+      />
+    );
 
-        await waitFor(() => {
-            expect(window.electron.getLogs).toHaveBeenCalledWith(expect.objectContaining({
-            contextName: 'test-cluster',
-            podName: 'test-pod',
-            namespace: 'default',
-            tailLines: 200
-        }))
-        })
-        expect(await screen.findByText('Test logs', {}, { timeout: 3000 })).toBeInTheDocument()
-    })
+    const autoRefreshBtn = screen.getByRole('button', {
+      name: /auto-refresh/i,
+    });
+    // Click to enable
+    fireEvent.click(autoRefreshBtn);
+    expect(autoRefreshBtn).toHaveClass('active');
 
-    it('should display error when getLogs fails', async () => {
-        mockElectronAPI.getLogs.mockResolvedValueOnce({
-            success: false,
-            error: 'Failed to fetch logs'
-        })
+    // Fast forward time
+    await vi.advanceTimersByTimeAsync(5500);
 
-        render(
-            <LogViewerModal
-                isOpen={true}
-                onClose={vi.fn()}
-                clusterName="test-cluster"
-                podName="test-pod"
-                namespace="default"
-            />
-        )
+    // Should have called getLogs again (initial + 1 interval)
+    // Note: initial call is 1, interval is 1. Total 2.
+    // We verify call count > 1
+    expect(window.electron.getLogs).toHaveBeenCalledTimes(2);
 
-        await waitFor(() => {
-            expect(screen.getByText('Failed to fetch logs')).toBeInTheDocument()
-        })
-    })
+    // Click to disable
+    fireEvent.click(autoRefreshBtn);
+    expect(autoRefreshBtn).not.toHaveClass('active');
 
-    it('should toggle auto-refresh', async () => {
-        vi.useFakeTimers()
-        render(
-            <LogViewerModal
-                isOpen={true}
-                onClose={vi.fn()}
-                clusterName="test-cluster"
-                podName="test-pod"
-                namespace="default"
-            />
-        )
+    vi.useRealTimers();
+  });
 
-        const autoRefreshBtn = screen.getByRole('button', { name: /auto-refresh/i })
-        // Click to enable
-        fireEvent.click(autoRefreshBtn)
-        expect(autoRefreshBtn).toHaveClass('active')
+  it('should filter logs based on search query', async () => {
+    mockElectronAPI.getLogs.mockResolvedValue({
+      success: true,
+      data: 'Error: Something went wrong\nInfo: Server started\nWarning: Low memory',
+    });
 
-        // Fast forward time
-        await vi.advanceTimersByTimeAsync(5500)
-        
-        // Should have called getLogs again (initial + 1 interval)
-        // Note: initial call is 1, interval is 1. Total 2.
-        // We verify call count > 1
-        expect(window.electron.getLogs).toHaveBeenCalledTimes(2)
+    render(
+      <LogViewerModal
+        isOpen={true}
+        onClose={vi.fn()}
+        clusterName="test-cluster"
+        podName="test-pod"
+        namespace="default"
+      />
+    );
 
-        // Click to disable
-        fireEvent.click(autoRefreshBtn)
-        expect(autoRefreshBtn).not.toHaveClass('active')
-        
-        vi.useRealTimers()
-    })
+    // Wait for logs to load
+    await screen.findByText(
+      'Info: Server started',
+      { exact: false },
+      { timeout: 3000 }
+    );
 
-    it('should filter logs based on search query', async () => {
-         mockElectronAPI.getLogs.mockResolvedValue({
-            success: true,
-            data: 'Error: Something went wrong\nInfo: Server started\nWarning: Low memory',
-        })
+    const { act } = await import('@testing-library/react');
+    const searchInput = screen.getByPlaceholderText('Filter logs...');
 
-        render(
-            <LogViewerModal
-                isOpen={true}
-                onClose={vi.fn()}
-                clusterName="test-cluster"
-                podName="test-pod"
-                namespace="default"
-            />
-        )
+    act(() => {
+      fireEvent.change(searchInput, { target: { value: 'Error' } });
+    });
 
-        // Wait for logs to load
-        await screen.findByText('Info: Server started', { exact: false }, { timeout: 3000 })
+    // Wait for 'Info' to disappear (filtering applied)
+    await waitFor(() => {
+      expect(
+        screen.queryByText('Info: Server started', { exact: false })
+      ).not.toBeInTheDocument();
+    });
 
-        const { act } = await import('@testing-library/react')
-        const searchInput = screen.getByPlaceholderText('Filter logs...')
-        
-        act(() => {
-            fireEvent.change(searchInput, { target: { value: 'Error' } })
-        })
+    expect(
+      screen.getByText('Error: Something went wrong', { exact: false })
+    ).toBeInTheDocument();
+  });
 
-        // Wait for 'Info' to disappear (filtering applied)
-        await waitFor(() => {
-            expect(screen.queryByText('Info: Server started', { exact: false })).not.toBeInTheDocument()
-        })
-        
-        expect(screen.getByText('Error: Something went wrong', { exact: false })).toBeInTheDocument()
-    })
-    
-     it('should display empty message when no logs', async () => {
-        mockElectronAPI.getLogs.mockResolvedValue({
-            success: true,
-            data: '',
-        })
+  it('should display empty message when no logs', async () => {
+    mockElectronAPI.getLogs.mockResolvedValue({
+      success: true,
+      data: '',
+    });
 
-        render(
-            <LogViewerModal
-                isOpen={true}
-                onClose={vi.fn()}
-                clusterName="test-cluster"
-                podName="test-pod"
-                namespace="default"
-            />
-        )
-        
-        // Component sets "No logs found." fallback when logs are empty string
-        expect(await screen.findByText('No logs found.', {}, { timeout: 3000 })).toBeInTheDocument()
-    })
-})
+    render(
+      <LogViewerModal
+        isOpen={true}
+        onClose={vi.fn()}
+        clusterName="test-cluster"
+        podName="test-pod"
+        namespace="default"
+      />
+    );
+
+    // Component sets "No logs found." fallback when logs are empty string
+    expect(
+      await screen.findByText('No logs found.', {}, { timeout: 3000 })
+    ).toBeInTheDocument();
+  });
+});

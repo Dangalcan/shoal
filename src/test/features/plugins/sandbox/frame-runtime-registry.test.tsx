@@ -14,12 +14,19 @@ interface RegistryShim {
   registerPage: (p: { component?: ComponentType }) => void;
   registerWidget: (w: { id?: string; component?: ComponentType }) => void;
   registerModal: (m: { id?: string; component?: ComponentType }) => void;
-  registerResourceAction: (a: { id?: string; component?: ComponentType }) => void;
+  registerResourceAction: (a: {
+    id?: string;
+    component?: ComponentType;
+  }) => void;
 }
 
 function shimFor(view: FrameView, viewProps?: unknown) {
   const mount = vi.fn();
-  const shim = makeRegistryShim(view, viewProps, mount) as unknown as RegistryShim;
+  const shim = makeRegistryShim(
+    view,
+    viewProps,
+    mount
+  ) as unknown as RegistryShim;
   return { shim, mount };
 }
 

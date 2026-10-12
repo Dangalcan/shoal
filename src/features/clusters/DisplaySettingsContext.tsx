@@ -12,10 +12,14 @@ export interface DisplaySettingsContextType {
   toggleColumn: (id: string) => void;
 }
 
-export const DisplaySettingsContext = createContext<DisplaySettingsContextType | null>(null);
+export const DisplaySettingsContext =
+  createContext<DisplaySettingsContextType | null>(null);
 
 export function useDisplaySettings(): DisplaySettingsContextType {
   const ctx = useContext(DisplaySettingsContext);
-  if (!ctx) throw new Error('useDisplaySettings must be used within DisplaySettingsContext.Provider');
+  if (!ctx)
+    throw new Error(
+      'useDisplaySettings must be used within DisplaySettingsContext.Provider'
+    );
   return ctx;
 }

@@ -20,7 +20,10 @@ function featuredScore(p: MarketplaceEntry): number {
   return (p.rating ?? 0) * Math.log((p.reviews ?? 0) + 1);
 }
 
-function sortPlugins(plugins: MarketplaceEntry[], sort: SortOption): MarketplaceEntry[] {
+function sortPlugins(
+  plugins: MarketplaceEntry[],
+  sort: SortOption
+): MarketplaceEntry[] {
   const copy = [...plugins];
   switch (sort) {
     case 'popular':
@@ -36,7 +39,12 @@ function sortPlugins(plugins: MarketplaceEntry[], sort: SortOption): Marketplace
 
 export function MarketplaceList() {
   const api = useApi();
-  const { data: pluginsData, loading, error, refetch: fetchPlugins } = useAsyncData<MarketplaceEntry[]>({
+  const {
+    data: pluginsData,
+    loading,
+    error,
+    refetch: fetchPlugins,
+  } = useAsyncData<MarketplaceEntry[]>({
     fetchFn: () => api.getMarketplacePlugins(),
     errorTitle: 'Failed to load marketplace plugins',
   });
@@ -61,7 +69,8 @@ export function MarketplaceList() {
 
   const filtered = useMemo(() => {
     const result = plugins.filter((p) => {
-      if (selectedCategory !== 'All' && p.category !== selectedCategory) return false;
+      if (selectedCategory !== 'All' && p.category !== selectedCategory)
+        return false;
       if (!search) return true;
       const q = search.toLowerCase();
       return (
@@ -139,7 +148,9 @@ export function MarketplaceList() {
               <section className="marketplace-section">
                 {featuredPlugins.length > 0 && (
                   <h2 className="marketplace-section__title">
-                    {selectedCategory === 'All' ? 'All Plugins' : selectedCategory}
+                    {selectedCategory === 'All'
+                      ? 'All Plugins'
+                      : selectedCategory}
                     <span className="marketplace-section__count">
                       {' '}
                       ({regularPlugins.length})

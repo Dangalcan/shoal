@@ -26,10 +26,7 @@ export function ToolMissingPanel({
       className={cn('tool-missing', compact && 'tool-missing--compact')}
       role="alert"
     >
-      <AlertTriangle
-        size={compact ? 20 : 40}
-        className="tool-missing__icon"
-      />
+      <AlertTriangle size={compact ? 20 : 40} className="tool-missing__icon" />
       <p className="tool-missing__title">{title}</p>
       <div className="tool-missing__description">{description}</div>
       <div className="tool-missing__actions">

@@ -2,7 +2,6 @@ import { AlertTriangle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { BaseModal } from './BaseModal';
 
-
 interface ConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -27,9 +26,21 @@ export function ConfirmModal({
   loading,
 }: ConfirmModalProps) {
   const variantMap = {
-    danger: { iconColor: 'text-red-500', bgClass: 'confirm-bg-red', btnVariant: 'destructive' as const },
-    warning: { iconColor: 'text-amber-500', bgClass: 'confirm-bg-amber', btnVariant: 'primary' as const },
-    info: { iconColor: 'text-blue-500', bgClass: 'confirm-bg-blue', btnVariant: 'primary' as const },
+    danger: {
+      iconColor: 'text-red-500',
+      bgClass: 'confirm-bg-red',
+      btnVariant: 'destructive' as const,
+    },
+    warning: {
+      iconColor: 'text-amber-500',
+      bgClass: 'confirm-bg-amber',
+      btnVariant: 'primary' as const,
+    },
+    info: {
+      iconColor: 'text-blue-500',
+      bgClass: 'confirm-bg-blue',
+      btnVariant: 'primary' as const,
+    },
   };
 
   const { iconColor, bgClass, btnVariant } = variantMap[variant];
@@ -51,11 +62,7 @@ export function ConfirmModal({
           <Button variant="ghost" onClick={onClose} disabled={loading}>
             {cancelLabel}
           </Button>
-          <Button 
-            variant={btnVariant} 
-            onClick={onConfirm} 
-            loading={loading}
-          >
+          <Button variant={btnVariant} onClick={onConfirm} loading={loading}>
             {confirmLabel}
           </Button>
         </div>

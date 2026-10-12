@@ -38,8 +38,14 @@ export function createResourceModalTests(
   Component: ComponentType<any>,
   opts: ResourceModalTestOptions
 ) {
-  const { apiMethod, titlePattern, subtitleText, successData, contentMatcher, loadingPattern } =
-    opts;
+  const {
+    apiMethod,
+    titlePattern,
+    subtitleText,
+    successData,
+    contentMatcher,
+    loadingPattern,
+  } = opts;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const apiMock = () => mockElectronAPI[apiMethod] as any;
@@ -50,7 +56,9 @@ export function createResourceModalTests(
   });
 
   it('should not render when closed', () => {
-    const { container } = render(<Component {...defaultProps} isOpen={false} />);
+    const { container } = render(
+      <Component {...defaultProps} isOpen={false} />
+    );
     expect(container.firstChild).toBeNull();
   });
 
@@ -104,7 +112,10 @@ export function createResourceModalTests(
 
   it('should show loading state', async () => {
     apiMock().mockImplementation(
-      () => new Promise((resolve) => setTimeout(() => resolve({ success: true, data: 'done' }), 100))
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => resolve({ success: true, data: 'done' }), 100)
+        )
     );
 
     render(<Component {...defaultProps} />);
@@ -119,7 +130,9 @@ export function createResourceModalTests(
   it('should handle copy to clipboard', async () => {
     render(<Component {...defaultProps} />);
 
-    await waitFor(() => expect(screen.getByText(contentMatcher)).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText(contentMatcher)).toBeInTheDocument()
+    );
 
     const copyBtn = screen.getByText('Copy').closest('button')!;
     fireEvent.click(copyBtn);
