@@ -160,8 +160,11 @@ that drops below any of them fails:
 - **Functions**: 90%
 - **Branches**: 80%
 
-Only files some test imports are counted, so a new page or IPC handler with no
-test drags the totals down as soon as another test loads it. Page tests should
+Every production file counts (`coverage.include` in `vitest.config.ts` lists
+`electron/**` and `src/**`), so a new page or IPC handler with no test drags
+the totals down from the moment it exists, not only once another test loads
+it. The process entry points (`electron/main.ts`, `electron/preload.ts`,
+`src/main.tsx`) are excluded; the e2e suite exercises them. Page tests should
 click through the actions, not only render the empty state.
 
 Run coverage report:

@@ -19,6 +19,9 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
+      // Every production file counts, not only the ones a test happens to
+      // import; the process entry points are exercised by the e2e suite.
+      include: ['electron/**/*.ts', 'src/**/*.{ts,tsx}'],
       thresholds: {
         lines: 90,
         statements: 90,
@@ -37,6 +40,10 @@ export default defineConfig({
         '**/dist-electron/**',
         '**/e2e/**',
         '**/.*/**',
+        'electron/__tests__/**',
+        'electron/main.ts',
+        'electron/preload.ts',
+        'src/main.tsx',
       ],
     },
   },

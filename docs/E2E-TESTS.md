@@ -189,6 +189,17 @@ Creates a cluster once (`beforeAll`), runs 10 UI tests against its details page,
 | Settings toggle    | Jobs toggle switch changes CSS class (on → off → on)         |
 | Settings columns   | Column section title matches the active tab name             |
 
+### `first-run.spec.ts`
+
+Two launches with their own `KUBECONFIG`, no cluster needed. With a
+kubeconfig that holds no context, the Dashboard and the cluster list say
+where contexts come from and no error toast appears. With a context whose
+server is an address that never answers (TEST-NET-3), the window must open
+in under 20 seconds (the bundled Namespace Watcher runs kubectl while it
+activates, and start-up used to wait for it) and the cluster details page
+must settle on its error panel instead of alternating with the spinner on
+every auto-refresh.
+
 ### `terminal.spec.ts`
 
 Local shell only, no cluster. Starts a session, checks the shell picker,

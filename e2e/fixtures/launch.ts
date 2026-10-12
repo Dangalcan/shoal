@@ -9,6 +9,8 @@ const REPO_ROOT = path.resolve(__dirname, '../..');
 export interface LaunchOptions {
   /** User data directory; a fresh temporary one is created when omitted. */
   userDataDir?: string;
+  /** Extra environment for the app (for example KUBECONFIG). */
+  env?: NodeJS.ProcessEnv;
 }
 
 /**
@@ -34,6 +36,7 @@ export async function launchApp(
     ...process.env,
     ALLOW_UNSIGNED_PLUGINS: 'true',
     NODE_ENV: 'test',
+    ...options.env,
   };
 
   if (executablePath) {
