@@ -4,7 +4,8 @@ import { launchApp, mainWindow } from '../fixtures/launch';
 
 /**
  * Local terminal: session startup, shell picker, command round-trip through
- * the real spawned shell, and the New Terminal action.
+ * the real spawned shell, Ctrl+C on a running command, and the New Terminal
+ * action.
  *
  * No cluster required. The command output assertion reads the xterm DOM
  * renderer rows, so it works without any PTY introspection.
@@ -12,6 +13,21 @@ import { launchApp, mainWindow } from '../fixtures/launch';
 
 let app: ElectronApplication;
 let window: Page;
+
+/** Types a line into the focused terminal and submits it. */
+async function run(command: string): Promise<void> {
+  await window.locator('.xterm').click();
+  await window.keyboard.type(command);
+  await window.keyboard.press('Enter');
+}
+
+/** Resolves once `marker` shows up in the terminal rows `times` times. */
+async function expectMarker(marker: string, times: number): Promise<void> {
+  await expect(async () => {
+    const text = await window.locator('.xterm-rows').innerText();
+    expect(text.split(marker).length - 1).toBeGreaterThanOrEqual(times);
+  }).toPass({ timeout: 20_000 });
+}
 
 test.beforeAll(async () => {
   app = await launchApp();
@@ -42,18 +58,32 @@ test('shell picker lists the detected shells', async () => {
 test('echo round-trips through the real shell', async () => {
   const marker = `e2e-marker-${Date.now().toString(36)}`;
 
-  // xterm captures keys through a hidden helper textarea.
-  await window.locator('.xterm').click();
-  await window.keyboard.type(`echo ${marker}`);
-  await window.keyboard.press('Enter');
+  // xterm captures keys through a hidden helper textarea. Output (not just
+  // the echoed input) appears in the terminal rows: the marker must occur at
+  // least twice — once as typed, once as output.
+  await run(`echo ${marker}`);
+  await expectMarker(marker, 2);
+});
 
-  // Output (not just the echoed input) appears in the terminal rows: the
-  // marker must occur at least twice — once as typed, once as output.
-  await expect(async () => {
-    const text = await window.locator('.xterm-rows').innerText();
-    const occurrences = text.split(marker).length - 1;
-    expect(occurrences).toBeGreaterThanOrEqual(2);
-  }).toPass({ timeout: 20_000 });
+test('Ctrl+C stops a running command and the shell keeps working', async () => {
+  // A child process that would hold the shell for a minute. Sessions have no
+  // PTY, so the interrupt has to reach the child itself (Stop-Process on
+  // Windows, pkill -INT on Linux); if it only reached the shell, the echo
+  // below would wait for the whole minute and the assertion would time out.
+  const longCommand =
+    process.platform === 'win32' ? 'ping -n 60 127.0.0.1' : 'sleep 60';
+  const marker = `e2e-after-interrupt-${Date.now().toString(36)}`;
+
+  await run(longCommand);
+  await window.waitForTimeout(3_000);
+  // Lower-case "c": an upper-case letter makes Playwright add Shift, and
+  // Ctrl+Shift+C is xterm's copy chord, not an interrupt.
+  await window.keyboard.press('Control+c');
+  // The terminal echoes ^C itself, so this proves the keystroke reached xterm.
+  await expectMarker('^C', 1);
+
+  await run(`echo ${marker}`);
+  await expectMarker(marker, 2);
 });
 
 test('New Terminal starts a fresh session', async () => {

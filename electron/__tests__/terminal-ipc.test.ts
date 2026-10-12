@@ -346,6 +346,14 @@ describe('terminal-ipc', () => {
           expect.any(Array),
           expect.objectContaining({ windowsHide: true, stdio: 'ignore' })
         );
+        // Kill by id (piping Win32_Process into Stop-Process binds by Name
+        // and matches nothing), spare the console host (killing it takes the
+        // shell down), and take each child's whole tree.
+        const command = vi.mocked(spawn).mock.lastCall?.[1]?.at(-1) as string;
+        expect(command).toContain('ParentProcessId=1234');
+        expect(command).toContain("$_.Name -ne 'conhost.exe'");
+        expect(command).toContain('taskkill /T /F /PID $_.ProcessId');
+        expect(command).not.toContain('Stop-Process');
       } else {
         expect(child.kill).toHaveBeenCalledWith('SIGINT');
       }

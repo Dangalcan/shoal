@@ -504,7 +504,7 @@ Kills a terminal session.
 
 Sends an interrupt signal to the process (Ctrl+C). Sessions have no PTY, so the
 shell's children are signalled directly: on Windows they are stopped through
-`Stop-Process`, on Linux and macOS they get `SIGINT` through `pkill -INT -P <pid>`
+`taskkill /T` on every child except the console host, on Linux and macOS they get `SIGINT` through `pkill -INT -P <pid>`
 and the shell itself gets `SIGINT` too. The shell stays open either way.
 
 - **Parameters**: `sessionId`: `string`

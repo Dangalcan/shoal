@@ -241,15 +241,20 @@ export function registerTerminalIpcHandlers(): void {
         const pid = session.process.pid;
 
         if (process.platform === 'win32') {
-          // Kill child processes of the shell (e.g. ping.exe inside PowerShell)
-          // but leave the shell itself alive so the terminal stays usable.
+          // Kill the process trees of the shell's children (e.g. ping.exe
+          // inside PowerShell) but leave the shell itself alive so the
+          // terminal stays usable. Two traps: piping Win32_Process straight
+          // into Stop-Process binds by Name ("PING.EXE"), which matches no
+          // process and silently does nothing, so kill by id; and the hidden
+          // console host (conhost.exe) is a child too, and killing it takes
+          // the shell down with it.
           spawn(
             'powershell.exe',
             [
               '-NoProfile',
               '-NonInteractive',
               '-Command',
-              `Get-CimInstance Win32_Process -Filter "ParentProcessId=${pid}" | Stop-Process -Force -ErrorAction SilentlyContinue`,
+              `Get-CimInstance Win32_Process -Filter "ParentProcessId=${pid}" | Where-Object { $_.Name -ne 'conhost.exe' } | ForEach-Object { taskkill /T /F /PID $_.ProcessId | Out-Null }`,
             ],
             { windowsHide: true, stdio: 'ignore' }
           );

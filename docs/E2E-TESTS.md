@@ -25,7 +25,7 @@ e2e/
 │   ├── cluster-details.spec.ts   # Cluster details UI: tabs, sorting, filters, settings
 │   ├── manifests.spec.ts         # Manifest library: create, edit, templates, folders
 │   ├── plugins.spec.ts           # Bundled plugins: list, enable/disable, plugin page
-│   ├── terminal.spec.ts          # Local shell sessions
+│   ├── terminal.spec.ts          # Local shell sessions, Ctrl+C on a running command
 │   ├── sandbox-theme.spec.ts     # Plugin iframe follows host theme toggles
 │   └── sandbox-widget.spec.ts    # Plugin dashboard widget + page frame stability
 ├── screenshots/
@@ -188,6 +188,19 @@ Creates a cluster once (`beforeAll`), runs 10 UI tests against its details page,
 | Settings filter    | Typing in search narrows the resource list                   |
 | Settings toggle    | Jobs toggle switch changes CSS class (on → off → on)         |
 | Settings columns   | Column section title matches the active tab name             |
+
+### `terminal.spec.ts`
+
+Local shell only, no cluster. Starts a session, checks the shell picker,
+round-trips an `echo` through the real shell, and interrupts a running
+command: it starts a child process that would hold the shell for a minute
+(`ping -n 60 127.0.0.1` on Windows, `sleep 60` on Linux), presses Ctrl+C
+and expects a following `echo` to answer within 20 seconds. Sessions have
+no PTY, so this proves the interrupt reaches the child itself (`taskkill /T`
+per child on Windows, `pkill -INT -P` on Linux) and not only the shell. The
+spec was what revealed that the Windows interrupt had never killed anything
+(it matched processes by name). The last test
+checks that **New Terminal** starts a session without the old scrollback.
 
 ### `sandbox-theme.spec.ts`
 
