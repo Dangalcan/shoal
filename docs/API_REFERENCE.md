@@ -22,8 +22,9 @@ Probes a CLI tool with the command it understands (`kubectl version --client`, `
 
 ### `openExternal(url)`
 
-Opens a URL in the system's default browser (used e.g. to open the
-marketplace checkout page).
+Opens a URL in the system's default browser (install guides, the GitHub
+issue form, and in 1.0 the marketplace checkout page). Only `http(s)` URLs
+are accepted.
 
 - **Parameters**: `url`: `string`
 - **Returns**: `Promise<Result<boolean>>`
@@ -635,7 +636,7 @@ have a `.yml`/`.yaml` extension, and be at most 1 MiB.
       (`{ fileName, kind, name, content }`)
     - `warnings`: `string[]` — kompose warnings for keys it could not convert
     - `locallyBuiltImages`: `string[]` — images from `build:` sections that a
-      cluster cannot pull (load into kind/minikube or push to a registry
+      cluster cannot pull (load into kind or k3d, or push to a registry,
       first)
 
 ### `migrationImportManifests(args)`

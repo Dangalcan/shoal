@@ -22,13 +22,17 @@ src/test/
 ├── components/        # React component tests
 ├── hooks/            # Custom hook tests
 ├── pages/            # Page-level integration tests
-├── electron/         # Backend (Main Process) service and IPC tests
+├── features/         # Feature hook and component tests
+├── electron/         # A few main-process tests that need the renderer setup
 ├── lib/              # Utility logic tests
 ├── integration/      # Multi-component flow tests
 ├── fixtures/         # Test data and builders
+├── mocks/            # Shared module mocks (toast, ...)
 └── utils/            # Test infrastructure
     ├── render.tsx    # Custom render with providers
     └── mocks.ts      # createMockElectronAPI utility
+
+electron/__tests__/   # Main-process service and IPC tests (node environment)
 
 e2e/                  # Playwright End-to-End tests
 ```
@@ -85,44 +89,53 @@ it('should display cluster data from API', async () => {
 When testing components that interact with the Terminal API, you must mock the session lifecycle.
 
 ```typescript
-it('should initialize terminal session', async () => {
+it('should open a local shell session', async () => {
   const mockApi = createMockElectronAPI({
-    terminalCreate: vi.fn().mockResolvedValue({ success: true, data: 'session-123' }),
+    terminalCreate: vi.fn().mockResolvedValue({
+      success: true,
+      data: { sessionId: 'session-123', shellFamily: 'unix' },
+    }),
   });
 
-  render(<PodTerminal podName="test-pod" />, { api: mockApi });
+  render(<TerminalPage />, { api: mockApi });
 
   await waitFor(() => {
-    expect(mockApi.terminalCreate).toHaveBeenCalledWith(expect.objectContaining({
-      podName: 'test-pod'
-    }));
+    expect(mockApi.terminalCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'local' })
+    );
   });
 });
 ```
+
+The default mock already resolves `terminalCreate`, `onTerminalOutput` and
+`onTerminalExited`; override them only to drive a specific flow.
 
 ---
 
 ## E2E Testing (Playwright)
 
-End-to-End tests run the **real production build** of the Electron app.
+End-to-End tests run the **compiled app** (`dist/` and `dist-electron/`), or a
+packaged executable when `SHOAL_E2E_EXECUTABLE` is set (see
+[E2E-TESTS.md](E2E-TESTS.md)).
 
 ### 1. Test Location
 
-E2E tests live in the `e2e/` directory and use the `.spec.ts` extension.
+E2E tests live in `e2e/features/` and use the `.spec.ts` extension.
 
 ### 2. Using the App Fixture
 
 Use the standard fixture from `e2e/fixtures/app.fixture.ts` to get access to the `window` (Page object).
 
 ```typescript
-import { test, expect } from './fixtures/app.fixture';
+import { test, expect } from '../fixtures/app.fixture';
 
-test('create and delete a manifest', async ({ window }) => {
-  await window.click('text=Manifests');
-  await window.fill('placeholder=Manifest Name', 'test-manifest');
-  await window.click('button:has-text("Save")');
+test('create a manifest', async ({ window }) => {
+  await window.getByRole('link', { name: 'Manifests' }).click();
+  await window.getByRole('button', { name: 'New Manifest' }).click();
+  await window.getByPlaceholder('Manifest Name').fill('test-manifest');
+  await window.getByRole('button', { name: 'Save' }).click();
 
-  await expect(window.locator('text=test-manifest')).toBeVisible();
+  await expect(window.getByText('test-manifest')).toBeVisible();
 });
 ```
 

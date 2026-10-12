@@ -14,8 +14,13 @@ yet, so Windows SmartScreen shows a warning on first launch.
 
 - Cluster management for local clusters created with kind or k3d, and any
   kubeconfig context.
-- Resource browser with namespace filter, YAML and logs, rollout restart,
-  scaling and deletion.
+- Dashboard with the active context summary, the state of Docker and Podman
+  and the widgets of the enabled plugins; light and dark theme.
+- Resource browser for the core resource kinds (workloads, networking,
+  configuration, storage, RBAC, cluster objects) with namespace filter,
+  sortable columns and a column picker, describe, YAML and recent logs,
+  rollout restart, scaling and deletion. Settings hold the default
+  namespace and the auto-refresh interval.
 - Manifest library with folders, templates, file import and one-click apply.
 - Docker Compose to Kubernetes migration through kompose.
 - Local terminal and pod exec sessions, and port-forward management.
@@ -121,3 +126,20 @@ yet, so Windows SmartScreen shows a warning on first launch.
 - The plugin marketplace, paid plugins and licenses (planned for 1.0; hidden
   behind `MARKETPLACE_ENABLED`).
 - macOS builds and code-signed installers.
+
+### Known limitations
+
+- Terminal sessions have no pseudo-terminal: the shell is not resized with
+  the window and full-screen programs such as `vim` or `top` do not render
+  correctly.
+- Logs are fetched on demand (the last 200 lines), not streamed.
+- Installed builds only run plugins signed with the Shoal key, which means
+  the two bundled ones; third-party plugins load in development builds.
+- The Windows portable build and the `.deb` package do not update
+  themselves.
+- On Ubuntu 24.04 the AppImage runs without Chromium's OS-level sandbox
+  (AppArmor blocks it for unprivileged AppImages); the `.deb` installs an
+  AppArmor profile and keeps it.
+- The AppImage needs `libfuse2` (`libfuse2t64` on Ubuntu 24.04).
+
+[Unreleased]: https://github.com/Dangalcan/shoal/compare/v0.9.0-rc.2...HEAD

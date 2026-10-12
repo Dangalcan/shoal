@@ -26,7 +26,9 @@ Shoal 0.9 is a public beta for **Windows** and **Linux** (macOS arrives with 1.0
 1. Download the latest release from the [Releases page](https://github.com/Dangalcan/shoal/releases).
 2. Install the application:
    - **Windows**: Run `Shoal-Setup-<version>.exe`. The installer is not code-signed yet, so SmartScreen may show "Windows protected your PC": choose **More info → Run anyway**. Prefer no install? Use `Shoal-<version>-portable.exe` (it does not update itself).
-   - **Linux**: Make the `.AppImage` executable (`chmod +x Shoal-<version>.AppImage`) and run it, or install the `.deb` package.
+   - **Linux**: Make the `.AppImage` executable (`chmod +x Shoal-<version>.AppImage`) and run it, or install the `.deb` package (`sudo apt install ./shoal_<version>_amd64.deb`). The AppImage updates itself; the `.deb` does not.
+     - The AppImage needs `libfuse2`, which Ubuntu 22.04 and later do not install by default: `sudo apt install libfuse2` (`libfuse2t64` on Ubuntu 24.04).
+     - On Ubuntu 24.04 AppArmor blocks Chromium's sandbox for AppImages, so the AppImage starts without it. The `.deb` installs an AppArmor profile and keeps the sandbox; prefer it there.
 
 ### Requirements
 
@@ -34,13 +36,13 @@ Shoal drives your clusters through the usual command-line tools, which you insta
 
 - **kubectl** (required for everything cluster-related). If it is missing, the Dashboard and Clusters pages say so and link to the install guide.
 - **kind** or **k3d**, plus **Docker** running, to create local clusters. Create Cluster checks both and tells you what is missing.
-- **helm** (Helm features) and **kompose** (Docker Compose migration), optional.
+- **kompose** (Docker Compose migration), optional.
 
-After installing a tool, press **Check again**. On Linux and macOS Shoal also looks in the usual install locations (`/usr/local/bin`, `~/.local/bin`, `/snap/bin`, Homebrew...) even when it is started from the desktop menu. On Windows, **Check again** re-reads the user and system `PATH` from the registry, so a tool installed while Shoal was running is found without a restart; terminals that were already open keep the old `PATH` until you open a new one.
+After installing a tool, press **Check again**. On Linux Shoal also looks in the usual install locations (`/usr/local/bin`, `~/.local/bin`, `/snap/bin`, Homebrew...) even when it is started from the desktop menu. On Windows, **Check again** re-reads the user and system `PATH` from the registry, so a tool installed while Shoal was running is found without a restart; terminals that were already open keep the old `PATH` until you open a new one.
 
 ### The Dashboard
 
-Upon launching, you will be greeted by the **Dashboard**. This view provides a high-level overview of your connected clusters and the current health of your local environment.
+Upon launching, you will be greeted by the **Dashboard**. It shows a summary of the active context, whether Docker or Podman is installed and running, and the widgets of the enabled plugins. The sun or moon button at the bottom of the sidebar switches between the light and dark theme.
 
 ---
 
@@ -50,14 +52,18 @@ Upon launching, you will be greeted by the **Dashboard**. This view provides a h
 
 Shoal makes it easy to spin up local development clusters.
 
-1. Click on **"Create Cluster"** in the left sidebar.
+1. Open **"Clusters"** in the left sidebar and click **"Create Cluster"**.
 2. Select your preferred provider (**kind** or **k3d**). If its CLI is missing, or Docker is not running, a notice explains what to install or start.
 3. Give your cluster a name.
 4. Click **"Create Cluster"**. The application will handle the setup in the background.
 
 ### Switching Contexts
 
-If you have multiple clusters, you can switch between them using the context selector in the top navigation bar. The active context determines which cluster's resources are displayed.
+If you have multiple clusters, you can switch between them with the context switcher at the top of the sidebar. The active context determines which cluster's resources are displayed.
+
+### Deleting a Cluster or Removing a Context
+
+The trash icon on a cluster card deletes kind and k3d clusters (containers included). For any other context it only removes the entry from your kubeconfig; the cluster itself is untouched. The dialog says which of the two will happen.
 
 ---
 
@@ -67,18 +73,20 @@ If you have multiple clusters, you can switch between them using the context sel
 
 Navigate to **"Clusters"** in the sidebar to see a list of your connected clusters. Each card shows the tool behind the context when its name tells (`kind-…` or `k3d-…`), or "kubeconfig context" for any other cluster. Click on any cluster to enter the **Cluster Details** view.
 
-- **Namespace Filter**: Use the dropdown at the top to filter resources by namespace (e.g., `default`, `kube-system`).
-- **Resource Tabs**: Quickly switch between Pods, Services, Deployments, and ConfigMaps.
+- **Namespace Filter**: Use the dropdown at the top to filter resources by namespace (e.g., `default`, `kube-system`). The namespace selected on start comes from **Default Namespace** in Settings.
+- **Resource Tabs**: Switch between the resource kinds: workloads (Pods, Deployments, ReplicaSets, DaemonSets, StatefulSets, Jobs, CronJobs), networking (Services, Ingresses, EndpointSlices, NetworkPolicies), configuration (ConfigMaps, Secrets, ServiceAccounts), storage (PVs, PVCs, StorageClasses), RBAC, cluster objects (Nodes, Events, CRDs) and more. The gear button lets you hide tabs and columns you do not use.
+- **Refresh**: Tables refresh on their own at the interval set in Settings (**Auto-Refresh Data**), or on demand with the refresh button.
 
 ### Resource Actions
 
-Click on a resource name to view more options:
+Hover a row to reveal its action buttons:
 
-- **YAML View**: Inspect the live YAML manifest of the resource.
-- **Logs**: Stream live logs from your containers.
-- **Restart/Delete**: Safely perform rollouts or deletions directly from the UI.
+- **Describe** and **YAML**: Inspect the resource as `kubectl describe` and `kubectl get -o yaml` show it.
+- **Logs**: Show the last 200 lines of a pod's log, with a search box. Logs are fetched on demand, not streamed; reopen the viewer for newer lines.
+- **Rollout Restart** and **Delete**: Perform rollouts or deletions directly from the UI, after a confirmation.
 - **Scale**: Set the replica count for Deployments, StatefulSets, and ReplicaSets (0–1000).
-- **Port Forward**: Open a `kubectl port-forward` tunnel to a pod or service (see [Port Forwarding](#port-forwarding)).
+- **Open Shell**: Start a terminal session inside a pod (see [Terminal](#terminal)).
+- **Forward Port**: Open a `kubectl port-forward` tunnel to a pod or service (see [Port Forwarding](#port-forwarding)).
 
 ---
 
@@ -150,14 +158,16 @@ The **Terminal** page provides direct shell access — either a local shell on y
 ### Opening a Pod Exec Session
 
 1. Navigate to a cluster's **Cluster Details** view.
-2. Click on a **Pod** row to open its action menu.
-3. Select **"Open Terminal"**. A new session starts inside the pod's default container using `/bin/sh` (you can choose a different shell for containers that ship one, e.g. `/bin/bash`).
+2. Hover a **Pod** row and click **"Open Shell"**.
+3. A new session starts inside the pod's default container using `/bin/sh` (you can choose a different shell for containers that ship one, e.g. `/bin/bash`).
 4. The session is bound to the pod's lifecycle — if the pod restarts, the session ends.
 
 ### Notes
 
 - Sessions run without a pseudo-terminal (PTY): resizing the window does not resize the shell, and full-screen programs such as `vim` or `top` may not display correctly.
+- **Ctrl+C** stops the command running in the shell (for example `ping` or `kubectl logs -f`) and leaves the shell open.
 - Each session is independent; multiple sessions are not currently supported from a single Terminal page visit.
+- Open sessions are closed when Shoal quits.
 
 ---
 
@@ -183,31 +193,15 @@ Plugins allow you to extend the functionality of Shoal.
 
 ### Included Plugins
 
-Shoal ships with two example plugins, **Namespace Watcher** and **Resource Monitor**. They are enabled the first time you start the app; you can disable them from the **"Plugins"** section in the sidebar.
+Shoal ships with two example plugins, **Namespace Watcher** (namespace stats and events) and **Resource Monitor** (CPU, memory and restarts per pod, needs a metrics server in the cluster). They are enabled the first time you start the app. From the **"Plugins"** section in the sidebar you can disable or enable them, change their settings (the gear on the card) and reload them.
 
-> **Beta note:** the plugin marketplace, paid plugins and licenses arrive with Shoal 1.0. In the 0.9 beta the Marketplace tab is hidden and the sections below do not apply yet.
+Both plugins add a page to the sidebar; Resource Monitor also adds a widget to the Dashboard.
 
-### Installing Plugins
+### Other Plugins
 
-1. Go to the **"Plugins"** section in the sidebar.
-2. Browse the **Marketplace** for extensions like "Advanced Log Viewer" or "Network Topology".
-3. Click **"Install"**.
+Installed builds of the 0.9 beta only run plugins signed with the Shoal key, which means the two bundled ones. **Load Unpacked Plugin** checks the signature before copying anything and refuses an unsigned plugin. To develop a plugin, run Shoal from source (`npm run dev`), which loads unsigned plugins; see the [Plugin Developer Guide](PLUGINS_GUIDE.md).
 
-### Buying Paid Plugins
-
-1. In the **Marketplace**, click **"Buy"** on a paid plugin.
-2. A checkout page opens in your browser — complete the payment there.
-3. Back in the app, the purchase is detected automatically: your license is activated and the plugin is installed. No manual key entry needed.
-
-If the payment is cancelled or times out, nothing is installed and you can retry.
-
-### Managing Licenses
-
-For paid or trial plugins:
-
-1. Navigate to the **"Installed Plugins"** tab.
-2. Click **"Activate"** to enter your license key or start a trial period (14 days, one per machine per plugin).
-3. You can also **deactivate** a license on the current machine to use it elsewhere.
+> **Planned for 1.0:** the plugin marketplace (browse, install and update plugins from inside the app), signing for third-party plugins, paid plugins, trials and licenses. In the 0.9 beta the Marketplace tab is hidden.
 
 ---
 
@@ -215,10 +209,12 @@ For paid or trial plugins:
 
 Click on **"Settings"** in the sidebar to customize your experience:
 
-- **Theme**: Switch between Dark and Light mode.
 - **Kubeconfig Path**: Point Shoal at a kubeconfig stored in a non-standard location (several files can be joined with the OS path separator). The file must exist; the path is saved and restored when Shoal starts.
-- **Refresh Interval**: Adjust how often the UI polls for resource changes.
+- **Default Namespace**: The namespace the resource tables select when you open a cluster (`All Namespaces`, `default`, or any namespace of the active context).
+- **Auto-Refresh Data** and **Refresh Interval**: Whether the UI polls for resource changes, and how often.
 - **About & Support**: Shows your Shoal version and platform, and lets you check for updates, open the logs folder, or report a problem.
+
+The light or dark theme is switched with the sun or moon button at the bottom of the sidebar.
 
 ---
 
@@ -228,7 +224,7 @@ Shoal updates itself automatically from GitHub Releases:
 
 - When a new version is found, a toast tells you it is downloading in the background.
 - Once downloaded, a persistent **"Restart"** prompt appears — click it to install the update and relaunch. You can also keep working and the update installs on the next app restart.
-- To check right away, use **Settings → About & Support → Check for updates**. The portable Windows version cannot update itself: download the new release instead.
+- To check right away, use **Settings → About & Support → Check for updates**. The portable Windows version and the `.deb` package cannot update themselves: download the new release instead.
 
 ---
 

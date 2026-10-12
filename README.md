@@ -3,13 +3,13 @@
 <img src="public/icon.svg" alt="Shoal icon" width="96" height="96">
 
 [![License](https://img.shields.io/badge/license-LGPL--3.0-blue.svg)](COPYING.LESSER)
-[![Version](https://img.shields.io/badge/version-0.9.0--rc.2-green.svg)](CHANGELOG.md)
-[![Electron](https://img.shields.io/badge/electron-44.7.0-blue.svg)](https://electronjs.org)
-[![React](https://img.shields.io/badge/react-19.2.3-blue.svg)](https://react.dev)
+[![Release](https://img.shields.io/github/v/release/Dangalcan/shoal?include_prereleases&label=release)](https://github.com/Dangalcan/shoal/releases)
+[![Electron](https://img.shields.io/badge/electron-44-blue.svg)](https://electronjs.org)
+[![React](https://img.shields.io/badge/react-19-blue.svg)](https://react.dev)
 
-A modern, desktop-based management tool for Kubernetes clusters and container runtimes, inspired by Docker Desktop. Built with Electron, React, TypeScript, and Vite.
+A desktop app for your Kubernetes clusters: local clusters with kind or k3d, resources, manifests, logs, terminals and port-forwards in one window. Built with Electron, React, TypeScript and Vite.
 
-> **Public beta (0.9).** Windows and Linux only; macOS arrives with 1.0. Installers are not code-signed yet, so Windows SmartScreen shows "Windows protected your PC": choose **More info → Run anyway**. The plugin marketplace and paid plugins also arrive with 1.0. Please report problems on [GitHub Issues](https://github.com/Dangalcan/shoal/issues).
+> **Public beta (0.9).** Windows and Linux only; macOS arrives with 1.0. Installers are not code-signed yet, so Windows SmartScreen shows "Windows protected your PC": choose **More info → Run anyway**. The plugin marketplace and paid plugins also arrive with 1.0; the beta ships two bundled plugins. Please report problems on [GitHub Issues](https://github.com/Dangalcan/shoal/issues).
 
 ![Shoal dashboard](docs/images/dashboard-light.png)
 
@@ -27,7 +27,7 @@ A modern, desktop-based management tool for Kubernetes clusters and container ru
   - [Installation](#installation)
   - [Development](#development)
 - [Plugin System](#-plugin-system)
-- [Marketplace Backend](#-marketplace-backend)
+- [Marketplace (planned for 1.0)](#-marketplace-planned-for-10)
 - [Testing](#-testing)
 - [Deployment](#-deployment)
 - [Contributing](#-contributing)
@@ -39,16 +39,17 @@ A modern, desktop-based management tool for Kubernetes clusters and container ru
 ### Cluster Management
 
 - 🚀 Create local clusters with kind or k3d
-- 📋 List and manage multiple clusters
-- 🔄 Switch between kubeconfig contexts
-- 🗑️ Delete clusters safely
+- 📋 List every kubeconfig context, with the provider shown for kind and k3d clusters
+- 🔄 Switch between kubeconfig contexts from the sidebar
+- 🗑️ Delete kind and k3d clusters, or remove any other context from the kubeconfig
+- 🖥️ Dashboard with the cluster summary and the state of Docker or Podman, and a light or dark theme
 
 ### Resource Management
 
-- 👁️ View Kubernetes resources (Pods, Services, Deployments, etc.)
-- 🔍 Filter by namespace
-- 📊 Real-time resource status updates
-- 📝 View resource YAML and logs
+- 👁️ Browse the core resource kinds (Pods, Deployments, Services, ConfigMaps, Secrets, Ingresses, PVCs, RBAC, CRDs and more), with sortable columns and a per-tab column picker
+- 🔍 Filter by namespace, with a default namespace in Settings
+- 🔁 Auto-refresh with a configurable interval
+- 📝 Describe, YAML and recent logs for any resource
 - 🔄 Rollout restart for Deployments, DaemonSets, StatefulSets
 - ⚖️ Scale Deployments, StatefulSets, and ReplicaSets to any replica count
 - 🗑️ Delete any resource directly from the UI
@@ -71,7 +72,7 @@ A modern, desktop-based management tool for Kubernetes clusters and container ru
 
 - 💻 Local shell sessions with a shell picker (PowerShell, PowerShell 7, Git Bash, WSL on Windows; bash, zsh, sh on Linux)
 - 🐚 Pod exec (`kubectl exec`) sessions inside any running container
-- 📐 Resizable terminal with interrupt support
+- ⏹️ Ctrl+C reaches the running command. Sessions have no PTY, so full-screen programs such as `vim` or `top` are not supported
 
 ### Port Forwarding
 
@@ -81,14 +82,14 @@ A modern, desktop-based management tool for Kubernetes clusters and container ru
 ### Plugin System (Beta)
 
 - 🔌 Extensible plugin architecture with sandboxed plugin UI
-- 🛒 Marketplace for free and paid plugins, with in-app checkout for purchases
-- 🔐 Secure plugin signing and verification
-- 💳 License management for commercial plugins (trials, activation, deactivation)
-- 🎨 UI extensions (sidebar items, pages, resource actions, dashboard widgets)
+- 🔐 Plugin signing and verification covering every file of a plugin
+- 🎨 UI extensions (sidebar items, pages, resource actions, dashboard widgets, modals)
+- 📦 Two bundled example plugins, Namespace Watcher and Resource Monitor
+- 🛒 Planned for 1.0: the marketplace, paid plugins and licenses
 
 ### App Updates
 
-- ⬆️ In-app auto-update via `electron-updater` and GitHub Releases
+- ⬆️ In-app auto-update via `electron-updater` and GitHub Releases (Windows installer and AppImage)
 
 ### Developer Tools
 
@@ -125,40 +126,52 @@ This is routed securely:
 ```bash
 shoal/
 ├── electron/               # ⚡ Main Process Source
-│   ├── main.ts            # Entry point, window setup
+│   ├── main.ts            # Entry point, window setup, navigation guards
 │   ├── preload.ts         # ContextBridge — secure IPC surface
 │   ├── database.ts        # SQLite setup (manifests)
-│   ├── ipc/               # IPC handler modules (cluster, resources, plugins, manifests, migration, terminal, portforward, update)
+│   ├── logger.ts          # electron-log setup (main.log)
+│   ├── ipc/               # IPC handler modules (cluster, resources, plugins, manifests, migration, terminal, portforward, update, app)
 │   ├── services/          # Business logic
 │   │   ├── cluster/       # Kind/K3d cluster management
-│   │   ├── kubernetes/    # kubectl API wrapper
-│   │   ├── plugins/       # Plugin manager, loader, registry, context, events, sandbox
-│   │   ├── marketplace/   # Marketplace HTTP client
+│   │   ├── kubernetes/    # kubectl API wrapper and read cache
+│   │   ├── helm/          # helm CLI wrapper (used by the plugin SDK)
+│   │   ├── plugins/       # Plugin manager, loader, registry, context, events, sandbox, utility-process host
+│   │   ├── marketplace/   # Marketplace HTTP client (hidden in 0.9)
 │   │   ├── migration/     # Docker Compose → Kubernetes conversion (kompose)
 │   │   ├── portforward/   # kubectl port-forward tunnel manager
+│   │   ├── settings/      # app-settings.json (kubeconfig path)
 │   │   ├── terminal/      # Local & pod-exec shell sessions
+│   │   ├── tools/         # kubectl, kind, k3d, Docker, Podman, kompose detection
 │   │   ├── update/        # electron-updater integration
 │   │   └── security/      # License manager, signature verification, encryption
-│   ├── types/             # Shared TypeScript types (plugin-types.ts, migration-types.ts)
+│   ├── shared/            # Code shared with the renderer (plugin-file URLs)
+│   ├── utils/             # safe-exec, path helpers, Windows PATH refresh
+│   ├── data/              # Sample marketplace catalog for development
+│   ├── __tests__/         # Main-process unit tests (Vitest)
+│   ├── types/             # Shared TypeScript types (plugin-types.ts, migration-types.ts, ...)
 │   └── tsconfig.json      # Main process TS config
 ├── src/                    # ⚛️ Renderer Source (React)
 │   ├── components/        # Reusable UI components (tables, modals, sidebar, terminal)
-│   ├── features/          # Feature modules (plugins, marketplace, manifests, terminal)
+│   ├── features/          # Feature modules (clusters, manifests, migration, plugins, portforward, settings, updates)
 │   ├── hooks/             # Custom React hooks
 │   ├── layouts/           # Page layouts
 │   ├── pages/             # Route-level components (Dashboard, Clusters, Manifests, Migration, Plugins, PortForwards, Terminal, Settings)
 │   ├── services/          # Frontend API service layer & plugin UI registry
 │   ├── types/             # Frontend TypeScript interfaces
 │   ├── lib/               # Utilities and resource definitions
+│   ├── test/              # Renderer unit tests (Vitest + Testing Library)
 │   ├── App.tsx            # React Router setup
 │   └── main.tsx           # React entry point
-├── plugins/               # 🔌 Bundled example plugins (namespace-watcher, resource-monitor); the 6 marketplace plugins live in their own repos
+├── plugins/               # 🔌 Bundled example plugins (namespace-watcher, resource-monitor)
+├── public/                # Static assets, app icon, sandboxed plugin host page
 ├── styles/                # 🎨 SCSS stylesheets (variables, animations, components)
 ├── e2e/                   # 🎭 Playwright end-to-end tests and the screenshot capture (npm run screenshots)
-├── scripts/               # 🔧 Build and utility scripts
+├── scripts/               # 🔧 Build and utility scripts (plugin signing, third-party notices)
+├── docs/                  # 📚 Guides (user, plugins, API, release, testing)
+├── .github/               # CI, release, gitleaks and CodeQL workflows, issue forms, Dependabot
 ├── dist-electron/          # 📦 Compiled Main Process (output)
 ├── dist/                   # 📦 Compiled Renderer (output)
-├── package.json           # Dependencies and npm scripts
+├── package.json           # Dependencies, npm scripts and the electron-builder config
 ├── vite.config.ts         # Vite renderer build config
 ├── vitest.config.ts       # Unit test configuration
 ├── playwright.config.ts   # E2E test configuration
@@ -180,7 +193,6 @@ shoal/
 - **Auto-Update**: [electron-updater](https://github.com/electron-userland/electron-builder/tree/master/packages/electron-updater) (GitHub Releases)
 - **Notifications**: [Sonner](https://sonner.emilkowal.ski/) (toasts)
 - **Testing**: [Vitest 5](https://vitest.dev/) (unit) + [Playwright](https://playwright.dev/) (E2E)
-- **Marketplace Backend**: [Express.js](https://expressjs.com/) + JWT
 
 ## 🚀 Getting Started
 
@@ -188,10 +200,10 @@ shoal/
 
 To use Shoal:
 
-- **Windows 10 or later**, or **Linux** (Ubuntu 20.04+ or equivalent, X11 or Wayland)
+- **Windows 10 or later**, or **Linux** (Ubuntu 22.04+ or equivalent, X11 or Wayland). The AppImage needs `libfuse2` (`libfuse2t64` on Ubuntu 24.04); the `.deb` does not.
 - **kubectl** on your `PATH` (required for anything cluster-related; Shoal tells you when it is missing)
 - **kind** or **k3d**, plus **Docker** running, to create local clusters
-- **helm** and **kompose** (optional, for Helm features and Docker Compose migration)
+- **kompose** (optional, for the Docker Compose migration)
 
 To develop Shoal:
 
@@ -203,7 +215,7 @@ To develop Shoal:
 Download the latest release from [Releases](https://github.com/Dangalcan/shoal/releases):
 
 - **Windows:** `Shoal-Setup-<version>.exe` (installs per user and updates itself) or `Shoal-<version>-portable.exe` (no install, no auto-update).
-- **Linux:** `Shoal-<version>.AppImage` (`chmod +x` it, then run it; updates itself) or the `.deb` package.
+- **Linux:** `Shoal-<version>.AppImage` (`chmod +x` it, then run it; updates itself) or the `.deb` package (no auto-update). On Ubuntu 24.04 prefer the `.deb`: it installs an AppArmor profile that keeps Chromium's sandbox, which the AppImage has to turn off there.
 
 ### Development
 
@@ -218,7 +230,7 @@ Download the latest release from [Releases](https://github.com/Dangalcan/shoal/r
     scripts off (better-sqlite3 ships prebuilt binaries), so npm does not run
     the `prepare` hook by itself.
 
-2.  Run the development server (starts React and Electron; the marketplace uses bundled sample data):
+2.  Run the development server (starts React and Electron; development builds also load unsigned plugins and show the hidden Marketplace tab with bundled sample data):
 
     ```bash
     npm run dev
@@ -238,23 +250,19 @@ This produces the distribution files in `dist/` and `dist-electron/`.
 
 ## 🔌 Plugin System
 
-Shoal features a powerful plugin system that allows developers to extend functionality.
+Shoal has a plugin system that lets developers extend the app. A plugin is a Node entry (`index.js`, run in a sandbox or in its own utility process) plus an optional UI (`renderer.js`, run in a sandboxed iframe behind the permission-gated `window.k8sPlugin` API).
 
-### Plugin Types
-
-- **Free Plugins:** Open-source plugins (MIT, Apache-2.0, LGPL-3)
-- **Paid Plugins:** Commercial plugins with licensing
-- **Trial Plugins:** Try before you buy
+In the 0.9 beta, installed builds only run plugins signed with the Shoal key, which means the two bundled examples. Third-party plugins load in development builds (`npm run dev`); signing them through the marketplace arrives with 1.0.
 
 ### Plugin Capabilities
 
 Plugins can:
 
 - Add sidebar navigation items
-- Register custom pages
+- Register custom pages, dashboard widgets and modals
 - Add resource action buttons
-- Access Kubernetes API
-- Store persistent data
+- Read cluster resources, logs and metrics through kubectl
+- Store persistent data and declared, validated settings
 - Show notifications
 
 ### For Plugin Developers
@@ -283,32 +291,13 @@ module.exports = {
 };
 ```
 
-### Plugin Marketplace
+For the architecture (sandbox, isolation, signing), see [Plugin Architecture](docs/PLUGIN_ARCHITECTURE.md).
 
-The marketplace provides:
+## 🛒 Marketplace (planned for 1.0)
 
-- Plugin discovery and search
-- Secure plugin downloads
-- License management (trials, activation, deactivation)
-- Paid plugin checkout — pay in the browser, license activates automatically
-- Reviews and ratings
+The marketplace client (catalog, installs, trials, licenses and checkout) is in the code base but hidden in the 0.9 beta: the Marketplace tab only appears when the app runs with `MARKETPLACE_ENABLED=true`, which `npm run dev` sets. Its backend is **kdMarket**, a separate private repository with a `/v1` API, selected through `MARKETPLACE_BACKEND_URL` (for example `http://localhost:3001/v1`). Without a backend, development builds fall back to the sample catalog in `electron/data/marketplace.json`.
 
-For more information, see [Plugin Architecture](docs/PLUGIN_ARCHITECTURE.md).
-
-## 🛒 Marketplace Backend
-
-The plugin ecosystem is powered by **kdMarket**, a standalone, contract-first marketplace API (separate repository) serving under a `/v1` base URL. It provides:
-
-- RESTful API for the plugin catalog (search, filter, pagination)
-- License key validation and JWT-based license generation
-- Trial period activation and tracking
-- Checkout sessions for paid plugin purchases
-- Admin endpoints for managing license keys and catalog entries
-- Rate limiting and Helmet security middleware
-
-The marketplace is off unless the app runs with `MARKETPLACE_ENABLED=true` (the 0.9 beta ships without it; `npm run dev` turns it on and falls back to bundled sample data when no backend is running). The app selects the backend via the `MARKETPLACE_BACKEND_URL` environment variable (e.g. `http://localhost:3001/v1` for a local kdMarket).
-
-Without a backend, `npm run dev` falls back to the sample catalog in `electron/data/marketplace.json`.
+Paid plugins, payments and the publishing flow for third-party plugins ship with 1.0 (see [docs/PENDING_WORK.md](docs/PENDING_WORK.md)).
 
 ## 🧪 Testing
 
@@ -431,8 +420,8 @@ npm run dev
 - Verify plugin permissions
 - Open **Settings → About & Support → Open logs folder** and check `main.log`
 - In development builds (`npm run dev`), open DevTools with Ctrl+Shift+I
-- Packaged builds only load signed plugins whose files still match the signature (re-sign after any change with `node scripts/sign-plugin.js <dir>`)
-- Try disabling and re-enabling the plugin
+- Packaged builds only load signed plugins whose files still match the signature (re-sign after any change with `node scripts/sign-plugin.js <dir>`). During the beta only the bundled plugins are signed; develop third-party plugins against `npm run dev`
+- Try disabling and re-enabling the plugin, or **Reload Plugin** on its card after editing its files
 
 **Issue: Tests failing**
 

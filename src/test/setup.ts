@@ -16,8 +16,8 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-// Global clipboard mock. `navigator` is a global only in jsdom and Node >= 21;
-// node-environment test files on CI (Node 20) don't have it.
+// Global clipboard mock. `navigator` exists in jsdom and in Node >= 21; the
+// guard keeps node-environment test files working on any supported Node.
 export const writeTextMock = vi.fn();
 if (typeof navigator !== 'undefined') {
   Object.assign(navigator, {

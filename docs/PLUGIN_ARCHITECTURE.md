@@ -1,6 +1,6 @@
 # Plugin System Architecture
 
-A hybrid plugin architecture with marketplace and licensing support that extends Shoal functionality through free and paid third-party extensions.
+A hybrid plugin architecture that extends Shoal through sandboxed third-party extensions. The marketplace and licensing side is implemented but hidden in the 0.9 beta; it ships with 1.0.
 
 > **Note:** This document was originally written as an implementation plan. The core plugin system (Phases 1–3) is now fully implemented. Sections below reflect the current architecture.
 
@@ -15,14 +15,16 @@ Shoal uses a **hybrid plugin architecture**:
 - **Main Process plugins** (`index.js`): Node.js code running in the Electron main process. Executed inside a `vm` sandbox with a built-in allowlist (`electron/services/plugins/plugin-sandbox.ts`) and a permission-gated `PluginContext`.
 - **Renderer plugins** (`renderer.js`): the plugin's UI, run inside an **isolated sandboxed iframe** (`sandbox="allow-scripts"`, opaque origin). The iframe has **no access** to `window.electron`, the host DOM, cookies, or other plugins. Its entire capability surface is `window.k8sPlugin`, a promise-based, permission-gated API delivered over a `MessageChannel` (see below).
 
-### Monetization Model
+### Monetization Model (planned for 1.0)
 
-Inspired by Odoo's App Store:
+The manifest `license` field already models what the marketplace will sell:
 
 - **Free Plugins**: Open-source plugins (MIT, Apache-2.0, LGPL-3, etc.)
 - **Paid Plugins**: Commercial plugins with per-installation licensing and activation keys
 - **Trial Periods**: Optional time-limited trials for paid plugins
-- **License Types**: One-time purchase, subscription (monthly/yearly), freemium, enterprise
+- **License types** (`license.type`): `free`, `paid`, `trial`, `subscription`; pricing models `one-time`, `subscription` (monthly or yearly) and `freemium`
+
+In 0.9 the marketplace is hidden (`MARKETPLACE_ENABLED`), so every plugin that runs is free and signed with the Shoal key.
 
 ### Security Model
 
@@ -138,8 +140,9 @@ k8sPlugin.ready();                     // call once mounted
 ```
 
 Plugins own their rendering stack (plain DOM, React, etc.) and mount into
-`#root`; the host does not provide a framework. `npx tsx` scaffolding via
-`generate-plugin` emits a working `renderer.js` reference.
+`#root`; the host does not provide a framework. The scaffold written by
+`generatePlugin` (`template-service.ts`, reachable from the Plugins page in
+development builds) emits a working `renderer.js` reference.
 
 ---
 
@@ -147,22 +150,22 @@ Plugins own their rendering stack (plain DOM, React, etc.) and mount into
 
 ### Core Plugin Infrastructure (`electron/services/plugins/`)
 
-| File                          | Description                                                                                                                                                                                                                 |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `plugin-manager.ts`           | Central orchestrator. Wires together loader, registry, context, and dependency resolver.                                                                                                                                    |
-| `plugin-loader.ts`            | Discovers plugins from disk, validates manifests, requires entry point. Decides in-process vs utility-process execution and hands out module handles.                                                                       |
-| `host/plugin-host.ts`         | Utility-process entry: runs the plugin's `index.js` in a vm sandbox with an RPC-proxied `PluginContext`.                                                                                                                    |
-| `host/plugin-host-manager.ts` | Main-process side: spawns/kills plugin utility processes and routes context RPC to the real permission-enforcing context.                                                                                                   |
-| `host/module-handle.ts`       | `PluginModuleHandle` abstraction — `LocalPluginModule` (in-process vm) and `RemotePluginModule` (utility process) behind one interface.                                                                                     |
-| `host/host-protocol.ts`       | Typed message contract between main and plugin host processes.                                                                                                                                                              |
-| `plugin-registry.ts`          | Persists plugin state and settings in `plugin-config.json`.                                                                                                                                                                 |
-| `plugin-context.ts`           | Creates the scoped API surface (`kubernetes`, `ui`, `storage`, `logger`, `events`) injected into each plugin.                                                                                                               |
-| `plugin-events.ts`            | Global event bus used by `context.events`. Supports `on`, `once`, `off`, `emit` and app-level events.                                                                                                                       |
-| `dependency-resolver.ts`      | Topological sort for activation order; detects circular dependencies; cascades disable to dependents.                                                                                                                       |
-| `path-service.ts`             | Platform-aware path resolution for the plugins directory (`<userData>/plugins/`, i.e. `%APPDATA%\Shoal\plugins\` on Windows, `~/.config/Shoal/plugins/` on Linux, `~/Library/Application Support/Shoal/plugins/` on macOS). |
-| `storage-service.ts`          | File-per-key JSON storage scoped per plugin.                                                                                                                                                                                |
-| `data-loader.ts`              | Auto-loads files declared in the `data` manifest field into `context.storage`.                                                                                                                                              |
-| `template-service.ts`         | Scaffolds new plugin directories from a built-in template.                                                                                                                                                                  |
+| File                          | Description                                                                                                                                                                                                                                       |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugin-manager.ts`           | Central orchestrator. Wires together loader, registry, context, and dependency resolver.                                                                                                                                                          |
+| `plugin-loader.ts`            | Discovers plugins from disk, validates manifests, requires entry point. Decides in-process vs utility-process execution and hands out module handles.                                                                                             |
+| `host/plugin-host.ts`         | Utility-process entry: runs the plugin's `index.js` in a vm sandbox with an RPC-proxied `PluginContext`.                                                                                                                                          |
+| `host/plugin-host-manager.ts` | Main-process side: spawns/kills plugin utility processes and routes context RPC to the real permission-enforcing context.                                                                                                                         |
+| `host/module-handle.ts`       | `PluginModuleHandle` abstraction — `LocalPluginModule` (in-process vm) and `RemotePluginModule` (utility process) behind one interface.                                                                                                           |
+| `host/host-protocol.ts`       | Typed message contract between main and plugin host processes.                                                                                                                                                                                    |
+| `plugin-registry.ts`          | Persists plugin state and settings in `plugin-config.json`.                                                                                                                                                                                       |
+| `plugin-context.ts`           | Creates the scoped API surface (`kubernetes`, `ui`, `storage`, `logger`, `events`) injected into each plugin.                                                                                                                                     |
+| `plugin-events.ts`            | Global event bus used by `context.events`. Supports `on`, `once`, `off`, `emit` and app-level events.                                                                                                                                             |
+| `dependency-resolver.ts`      | Topological sort for activation order; detects circular dependencies; cascades disable to dependents.                                                                                                                                             |
+| `path-service.ts`             | Platform-aware path resolution for the plugins directory (`<userData>/plugins/`, i.e. `%APPDATA%\Shoal\plugins\` on Windows and `~/.config/Shoal/plugins/` on Linux) and the bundled plugins directory (`resources/plugins/` in packaged builds). |
+| `storage-service.ts`          | Key-value storage scoped per plugin, one SQLite table (`plugin_kv` in `plugins_storage.db`) with JSON-serialised values.                                                                                                                          |
+| `data-loader.ts`              | Auto-loads files declared in the `data` manifest field into `context.storage`.                                                                                                                                                                    |
+| `template-service.ts`         | Scaffolds new plugin directories from a built-in template.                                                                                                                                                                                        |
 
 ### Security (`electron/services/security/`)
 
@@ -275,8 +278,8 @@ The marketplace is hidden in the 0.9 beta (`MARKETPLACE_ENABLED`). Its backend i
 | `watchResources` API                                      | ✅ (kubectl --watch, returns unsubscribe fn)    |
 | Plugin modals (sandboxed)                                 | ✅ Implemented (`ui.showModal` → overlay frame) |
 | Resource-table actions (sandboxed)                        | ✅ Implemented (manifest `resourceActions`)     |
-| Structured plugin storage (SQLite per plugin)             | ❌ Future (currently file-per-key JSON)         |
-| Cross-plugin event communication                          | ❌ Future                                       |
+| Plugin storage in SQLite (one `plugin_kv` table)          | ✅ Implemented (key-value, JSON values)         |
+| Cross-plugin events (`events.broadcast` / `onBroadcast`)  | ✅ Implemented                                  |
 | Granular network/filesystem permissions                   | ❌ Future                                       |
 | Advanced sandboxing (worker_threads / isolated-vm)        | ❌ Future                                       |
 | Remote plugins (npm / URL)                                | ❌ Future                                       |
@@ -285,10 +288,11 @@ The marketplace is hidden in the 0.9 beta (`MARKETPLACE_ENABLED`). Its backend i
 
 ## Known Limitations
 
-See [plugin_system_analysis.md](./plugin_system_analysis.md) for the historical (March 2026) analysis that motivated the sandbox rework; several of its findings (isolation, `watchResources`, modals) have since been addressed.
+See [history/plugin_system_analysis.md](./history/plugin_system_analysis.md) for the historical (March 2026) analysis that motivated the sandbox rework; several of its findings (isolation, `watchResources`, modals) have since been addressed.
 
 **Summary:**
 
 1. **Renderer UI is fully sandboxed**; **bundled main-process code is not a hard boundary**. Plugin `renderer.js` (all UI: pages, widgets, modals, actions) runs in an opaque-origin iframe with only the permission-gated `window.k8sPlugin`. **User-installed** plugins run their `index.js` in an Electron `utilityProcess` with an RPC-proxied context (see "Main-Process Isolation" above). **Bundled** plugins still run in-process in a `vm` sandbox with a built-in allowlist — that limits casual access but is **not** a security boundary against a determined plugin; run only signed/trusted bundled `index.js` (`PLUGIN_ISOLATION=all` forces isolation for everything).
-2. **Simple storage**: `StorageAPI` uses one JSON file per key. No concurrent write protection or structured queries.
+2. **Simple storage**: `StorageAPI` is a key-value table; there are no structured queries, and the `kubernetes` permission is all-or-nothing (reads, writes and Helm; a split is planned for 1.0).
 3. **`watchResources` is basic**: it spawns `kubectl get <type> --watch` per subscription (no shared informer, no reconnect on failure) and is available to the Node context only, not the renderer SDK.
+4. **No file watcher**: editing a plugin's files does not reload it; use **Reload Plugin** on the Plugins page (`reloadPlugin` IPC).

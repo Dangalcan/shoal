@@ -24,7 +24,6 @@ Before developing plugins, ensure you have:
 1.  **Run Shoal from source** with `npm run dev`. Development builds load unsigned plugins (`ALLOW_UNSIGNED_PLUGINS=true`); installed releases only load plugins signed with the Shoal key.
 2.  **Create Plugin Directory**:
     - Windows: `%APPDATA%\Shoal\plugins\my-plugin\`
-    - macOS: `~/Library/Application Support/Shoal/plugins/my-plugin/`
     - Linux: `~/.config/Shoal/plugins/my-plugin/`
 3.  **Initialize Project**:
     ```bash
@@ -57,7 +56,7 @@ The `plugin.json` file defines the identity and capabilities of your plugin.
   "author": "Your Name",
   "main": "index.js",
   "renderer": "renderer.js",
-  "permissions": ["kubernetes", "ui", "notifications"],
+  "permissions": ["kubernetes", "ui", "storage"],
   "license": {
     "type": "free",
     "spdx": "MIT"
@@ -103,6 +102,7 @@ The `plugin.json` file defines the identity and capabilities of your plugin.
 
 ### Manifest Fields Detail
 
+- **permissions**: The manifest accepts `kubernetes`, `ui`, `storage`, `notifications`, `network` and `filesystem`, but only the first three gate anything today: `kubernetes` (cluster reads and writes, Helm and manifests), `ui` (notifications, modals, external links) and `storage` (persisted data). `network` and `filesystem` are reserved for 1.0 and grant nothing yet.
 - **dependencies**: A map of plugin IDs and semver version constraints. Required plugins will be auto-enabled or requested.
 - **data**: An array of file paths (relative to plugin root) to be automatically loaded into `context.storage` on activation. The storage key is `data/` plus the path without its extension, with a leading `data/` folder collapsed: `data/default-presets.json` is read with `context.storage.get('data/default-presets')`.
 - **configuration**: Defines a schema for settings. The UI is automatically generated with validation. Supported types: `string`, `number`, `boolean`, `select`.
@@ -190,8 +190,8 @@ module.exports = {
 ### Manual Testing
 
 1.  Run Shoal from source (`npm run dev`).
-2.  On the **Plugins** page, click **"Load Unpacked Plugin"** and select your plugin directory.
-3.  The app will watch your files and automatically reload the plugin on changes.
+2.  On the **Plugins** page, click **"Load Unpacked Plugin"** and select your plugin directory (or place it in the plugins directory above and restart).
+3.  After editing files, click **"Reload Plugin"** on the plugin's card. Shoal does not watch plugin files.
 
 ### Debugging
 
@@ -201,7 +201,7 @@ Use `context.logger` to output information:
 context.logger.debug('Useful debug info');
 ```
 
-View logs in the Developer Console (**Ctrl+Shift+I** or **Cmd+Option+I**).
+`context.logger` writes to Shoal's `main.log` (**Settings → About & Support → Open logs folder**). In development builds the DevTools (**Ctrl+Shift+I**) also show the renderer side, including the output of your `renderer.js`.
 
 ### Unit Testing
 
@@ -329,30 +329,30 @@ Passed to `activate(context)`.
 
 #### context.kubernetes
 
-| Method                                 | Description                           | Returns                 |
-| -------------------------------------- | ------------------------------------- | ----------------------- |
-| `getResources(type, namespace?)`       | Fetch resources                       | `Promise<Resource[]>`   |
-| `createResource(manifest)`             | Create resource                       | `Promise<Result>`       |
-| `updateResource(type, name, manifest)` | Update resource                       | `Promise<Result>`       |
-| `deleteResource(type, name, ns)`       | Delete resource                       | `Promise<Result>`       |
-| `executeCommand(pod, cmd)`             | Run cmd in pod                        | `Promise<string>`       |
-| `getPodMetrics(namespace)`             | CPU/memory per pod via metrics server | `Promise<PodMetrics[]>` |
-| `watchResources(type, cb)`             | Watch resources                       | `UnsubscribeFn`         |
+| Method                                 | Description                                                         | Returns                 |
+| -------------------------------------- | ------------------------------------------------------------------- | ----------------------- |
+| `getResources(type, namespace)`        | Fetch resources (`'all'` for every namespace)                       | `Promise<Resource[]>`   |
+| `createResource(manifest)`             | Create resource                                                     | `Promise<void>`         |
+| `updateResource(type, name, manifest)` | Update resource                                                     | `Promise<void>`         |
+| `deleteResource(type, name, ns)`       | Delete resource                                                     | `Promise<void>`         |
+| `executeCommand(pod, namespace, cmd)`  | Run a command in a pod                                              | `Promise<string>`       |
+| `getPodMetrics(namespace)`             | CPU/memory per pod via metrics server (`[]` when unavailable)       | `Promise<PodMetrics[]>` |
+| `watchResources(type, cb)`             | Watch resources (`kubectl get --watch`); returns the unsubscribe fn | `() => void`            |
 
 #### context.ui
 
-| Method                                    | Description                                                                                                                  |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `registerSidebarItem(item)`               | Add entry to left navigation                                                                                                 |
-| `registerPage(route, comp)`               | Register custom React page at a `/plugin/*` route                                                                            |
-| `registerResourceAction(type, act)`       | Add button to resource rows in Cluster Details                                                                               |
-| `registerDashboardWidget(widget)`         | Add widget tile to the Dashboard page                                                                                        |
-| `showNotification(msg, type)`             | Show Sonner toast (type: `success`, `error`, `info`, `warning`)                                                              |
-| `notifyOnce(key, msg, type, cooldownMs?)` | Like `showNotification`, but deduped: the same `key` fires at most once per cooldown window (ledger resets on plugin reload) |
+| Method                                    | Description                                                                                                                                     |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `registerSidebarItem(item)`               | Add entry to left navigation                                                                                                                    |
+| `showNotification(msg, type)`             | Show Sonner toast (type: `success`, `error`, `info`, `warning`)                                                                                 |
+| `notifyOnce(key, msg, type, cooldownMs?)` | Like `showNotification`, but deduped: the same `key` fires at most once per cooldown window (default 30 min; ledger resets on plugin reload)    |
+| `openModal(modalId, props?)`              | Open a modal the plugin registered in `renderer.js` (`registerModal`); `props` must be plain data                                               |
+| `registerPage(route, componentId)`        | Declare a page; `componentId` is a string naming the component registered in `renderer.js` (the manifest `extensions` do the same without code) |
+| `registerResourceAction(type, action)`    | Declare a resource-row action; its component is registered in `renderer.js` with the same id                                                    |
 
 > **Note:** This table is the **main-process** `context` (passed to
 > `activate(context)` in `index.js`). All **UI** — pages, widgets, modals, and
-> resource actions — is now registered in **`renderer.js`** via
+> resource actions — is registered in **`renderer.js`** via
 > `window.pluginUIRegistry` and opened via `window.k8sPlugin.ui` (see
 > [Renderer UI](#registering-a-page) above). The renderer runs sandboxed; it is
 > the correct place for anything that renders.
@@ -361,25 +361,30 @@ Passed to `activate(context)`.
 
 The `EventsAPI` provides a global event bus for the application.
 
-| Method                           | Description                         |
-| -------------------------------- | ----------------------------------- |
-| `on(event, handler)`             | Subscribe to a custom event         |
-| `once(event, handler)`           | Subscribe to an event once          |
-| `off(event, handler)`            | Unsubscribe from an event           |
-| `emit(event, ...args)`           | Emit a custom event                 |
-| `onClusterConnected(handler)`    | Called when cluster is connected    |
-| `onClusterDisconnected(handler)` | Called when cluster is disconnected |
-| `onResourceCreated(handler)`     | Called when K8s resource is created |
-| `onResourceUpdated(handler)`     | Called when K8s resource is updated |
-| `onResourceDeleted(handler)`     | Called when K8s resource is deleted |
+| Method                           | Description                                             |
+| -------------------------------- | ------------------------------------------------------- |
+| `on(event, handler)`             | Subscribe to a custom event (local to this plugin)      |
+| `once(event, handler)`           | Subscribe to an event once                              |
+| `off(event, handler)`            | Unsubscribe from an event                               |
+| `emit(event, ...args)`           | Emit a custom event (local to this plugin)              |
+| `broadcast(event, ...args)`      | Emit an event every enabled plugin can receive          |
+| `onBroadcast(event, handler)`    | Subscribe to broadcasts (`offBroadcast` to unsubscribe) |
+| `onClusterConnected(handler)`    | Called when cluster is connected                        |
+| `onClusterDisconnected(handler)` | Called when cluster is disconnected                     |
+| `onResourceCreated(handler)`     | Called when K8s resource is created                     |
+| `onResourceUpdated(handler)`     | Called when K8s resource is updated                     |
+| `onResourceDeleted(handler)`     | Called when K8s resource is deleted                     |
 
 #### context.storage
 
+Per-plugin key-value storage persisted in SQLite (`plugins_storage.db` in the user data directory). Values are JSON-serialised.
+
 | Method            | Description                                                                       |
 | ----------------- | --------------------------------------------------------------------------------- |
-| `get(key)`        | Retrieve data                                                                     |
+| `get(key)`        | Retrieve data (`null` when missing)                                               |
 | `set(key, value)` | Save data                                                                         |
 | `delete(key)`     | Remove data                                                                       |
+| `clear()`         | Remove every key of this plugin                                                   |
 | `data/{file}`     | Auto-loaded data files (path without extension, leading `data/` folder collapsed) |
 
 #### context.logger
@@ -414,14 +419,13 @@ Every call returns a Promise; anything outside the table is rejected.
 Package your plugin as a `.zip` archive containing `plugin.json`, `index.js`, and any other files. Users install it via **"Load Unpacked Plugin"** (directory picker) or by placing the unzipped folder in the plugins directory:
 
 - **Windows**: `%APPDATA%\Shoal\plugins\`
-- **macOS**: `~/Library/Application Support/Shoal/plugins/`
 - **Linux**: `~/.config/Shoal/plugins/`
 
 Packaged builds only load plugins that carry a valid `plugin.json.sig`. The signature covers the whole plugin: the file lists the SHA-256 of every file in the plugin directory (manifest and code) and an RSA-SHA256 signature over that list, made with the Shoal signing key. Any file changed, added or removed after signing makes the plugin fail to load, so sign last. Plugin ids of the plugins bundled with Shoal are reserved and cannot be imported. Unsigned or out-of-date plugins load only in development (`npm run dev`, which sets `ALLOW_UNSIGNED_PLUGINS=true`). In installed builds, **"Load Unpacked Plugin"** checks the signature before copying anything and refuses an unsigned plugin with an explanation. During the 0.9 beta there is no way to get a third-party plugin signed yet; signing through the marketplace arrives with 1.0.
 
-### Paid Plugins & Licensing
+### Paid Plugins & Licensing (planned for 1.0)
 
-Plugins can be sold through the marketplace. Declare the model in the `license` field of `plugin.json`:
+The marketplace, paid plugins, trials and licenses are hidden in the 0.9 beta; the manifest fields and the flow below describe what 1.0 will use. Plugins will be sold through the marketplace. Declare the model in the `license` field of `plugin.json`:
 
 ```json
 {

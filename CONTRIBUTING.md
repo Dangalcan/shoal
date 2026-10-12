@@ -36,40 +36,37 @@ When creating a bug report, please include:
 - **Screenshots** (if applicable)
 - **Environment details:**
   - OS and version (e.g., Windows 11, Ubuntu 24.04)
-  - Application version
-  - Node.js version
-  - Relevant logs from Developer Console (Ctrl+Shift+I or Cmd+Option+I)
+  - Application version and installer (Settings → About & Support shows both)
+  - Relevant lines from `main.log` (Settings → About & Support → Open logs folder)
+
+The issue form on GitHub asks for exactly these fields, and **Settings → About & Support → Report a problem** opens it with the version, OS and logs path already filled in.
 
 **Example:**
 
-```markdown
+````markdown
 **Bug:** Cluster creation fails with kind provider
 
 **Steps to reproduce:**
 
-1. Click "Create Cluster"
+1. Open Clusters and click "Create Cluster"
 2. Enter name "test-cluster"
 3. Select "kind" as provider
-4. Click "Create"
+4. Click "Create Cluster"
 
 **Expected:** Cluster should be created successfully
-**Actual:** Error message "Failed to create cluster: command not found"
+**Actual:** Error message "kind is not installed or not on the PATH"
 
 **Environment:**
 
 - OS: Windows 11
-- App Version: 1.0.0
-- Node.js: v22.18.0
+- App Version: 0.9.0 (Setup.exe)
 
 **Logs:**
-```
-
-Error: spawn kind ENOENT
-at Process.ChildProcess.\_handle.onexit
 
 ```
-
+[error] [Cluster] kind create cluster: kind is not installed or not on the PATH
 ```
+````
 
 ### Suggesting Features
 
@@ -113,7 +110,7 @@ When creating a feature request, please include:
 
 We love pull requests! Here's how to submit one:
 
-1. **Fork the repository** and create your branch from `main`
+1. **Fork the repository** and create your branch from `master`
 2. **Follow our development guidelines** (see below)
 3. **Write tests** for your changes
 4. **Ensure tests pass:** `npm run test`
@@ -131,7 +128,7 @@ Before submitting, make sure:
 - [ ] Documentation is updated (if applicable)
 - [ ] Commit messages follow conventional commits format
 - [ ] No linting errors
-- [ ] Branch is up to date with `main`
+- [ ] Branch is up to date with `master`
 
 ## Development Setup
 
@@ -176,9 +173,9 @@ Before submitting, make sure:
      `electron/data/marketplace.json`; `npm run dev:full` also starts the
      private kdMarket backend if you have it checked out next to this repo)
 
-4. **Open Developer Tools:**
-   - Press `Ctrl+Shift+I` (Windows/Linux) or `Cmd+Option+I` (macOS)
-   - View console logs and debug
+4. **Open Developer Tools** (development builds only):
+   - Press `Ctrl+Shift+I`
+   - View console logs and debug. The main process logs to `main.log` (Settings → About & Support → Open logs folder)
 
 ## Development Guidelines
 
@@ -243,7 +240,7 @@ editor setting is needed.
 - **Hooks:** `use[Name].ts` (e.g., `useClusters.ts`)
 - **Types:** `types.ts` or `[feature].types.ts`
 - **Tests:** `[name].test.tsx` or `[name].test.ts`
-- **Styles:** `[ComponentName].css`
+- **Styles:** `[ComponentName].scss` (BEM classes, `@use` imports)
 
 ## Commit Message Guidelines
 
@@ -279,7 +276,7 @@ The scope specifies what part of the codebase is affected:
 - `plugin` - Plugin system
 - `ui` - UI components
 - `electron` - Main process
-- `marketplace` - Marketplace backend
+- `marketplace` - Marketplace client (hidden in 0.9)
 - `docs` - Documentation
 
 ### Examples

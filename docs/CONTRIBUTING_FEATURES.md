@@ -37,55 +37,71 @@ Our application follows a **clean architecture** pattern with clear separation o
 
 Most features start with a new capability in the Electron main process.
 
-**Example**: Add a "Terminal" feature.
+**Example**: the "Port Forwarding" feature, as it exists in the repository.
 
 #### A. Create a Backend Service
 
 Implement the core logic in `electron/services/`.
 
-**File**: `electron/services/terminal/terminal-service.ts`
+**File**: `electron/services/portforward/portforward-service.ts`
 
 ```typescript
-export class TerminalService {
-  async createSession(args: CreateTerminalArgs) {
-    // Implementation logic here...
+export interface PortForwardArgs {
+  contextName: string;
+  namespace: string;
+  resourceType: 'pod' | 'service';
+  resourceName: string;
+  localPort: number;
+  remotePort: number;
+}
+
+export class PortForwardService {
+  async startForward(
+    args: PortForwardArgs,
+    onClosed: (info: PortForwardInfo, error?: string) => void
+  ): Promise<PortForwardInfo> {
+    // Validate the arguments, spawn `kubectl port-forward`, track the tunnel.
   }
 }
-export const terminalService = new TerminalService();
+export const portForwardService = new PortForwardService();
 ```
 
 #### B. Register IPC Handlers
 
-Expose the service via IPC in `electron/ipc/`. Use `wrapIpcHandler` to standardize responses and `assert*` helpers for security validation.
+Expose the service via IPC in `electron/ipc/`. Use `wrapIpcHandler` to standardize responses and `assert*` helpers (or the service's own validation) before anything reaches a shell command.
 
-**File**: `electron/ipc/terminal-ipc.ts`
+**File**: `electron/ipc/portforward-ipc.ts`
 
 ```typescript
 import { ipcMain } from 'electron';
-import { wrapIpcHandler, assertContext, assertNamespace } from './ipc-utils';
-import { terminalService } from '../services/terminal/terminal-service';
+import { wrapIpcHandler } from './ipc-utils';
+import {
+  portForwardService,
+  PortForwardArgs,
+} from '../services/portforward/portforward-service';
 
-export function registerTerminalIpcHandlers() {
+export function registerPortForwardIpcHandlers(): void {
   ipcMain.handle(
-    'terminal:create',
-    wrapIpcHandler('terminal:create', async (event, args) => {
-      if (args.kind === 'pod-exec') {
-        assertContext(args.contextName);
-        assertNamespace(args.namespace);
-      }
-      return await terminalService.createSession(args);
-    })
+    'portforward:start',
+    wrapIpcHandler('portforward:start', async (event, args: PortForwardArgs) =>
+      portForwardService.startForward(args, (info, error) => {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send('portforward:closed', { info, error });
+        }
+      })
+    )
   );
 }
 ```
 
 #### C. Update Preload Script
 
-Expose the new IPC methods to the renderer in `electron/preload.ts`.
+Expose the new IPC methods to the renderer in `electron/preload.ts`, and add their types to `src/types.d.ts` (`ElectronAPI`), the mock in `src/test/utils/mocks.ts` and `docs/API_REFERENCE.md`.
 
 ```typescript
 contextBridge.exposeInMainWorld('electron', {
-  terminalCreate: (args: any) => ipcRenderer.invoke('terminal:create', args),
+  portForwardStart: (args: PortForwardArgs) =>
+    ipcRenderer.invoke('portforward:start', args),
   // ...
 });
 ```
@@ -97,40 +113,39 @@ contextBridge.exposeInMainWorld('electron', {
 #### A. Create Feature Directory
 
 ```bash
-mkdir -p src/features/terminal
+mkdir -p src/features/portforward
 ```
 
 **Structure**:
 
 ```
-src/features/terminal/
-├── TerminalContext.tsx    # Context Provider and Logic
-├── components/            # Feature-specific components
-├── types.ts              # TypeScript types
-└── index.ts              # Public exports
+src/features/portforward/
+├── usePortForwards.ts     # Business logic hook (list, start, stop)
+└── port-utils.ts          # Pure helpers (port suggestions, validation)
 ```
 
 #### B. Implement Business Logic Hook
 
 Use `useApi()` to call Electron methods and `useAsyncData` or `handleAsyncOperation` for standardized state management.
 
-**File**: `src/features/terminal/TerminalContext.tsx`
+**File**: `src/features/portforward/usePortForwards.ts`
 
 ```typescript
+import { useCallback } from 'react';
 import { useApi } from '../../services/api-context';
 import { handleAsyncOperation } from '../../lib/async-operation-handler';
+import type { PortForwardArgs } from '../../types';
 
-export function TerminalProvider({ children }: { children: ReactNode }) {
+export function usePortForwards() {
   const api = useApi();
 
-  const createTerminal = useCallback(
-    async (args: any) => {
-      return await handleAsyncOperation(() => api.terminalCreate(args), {
-        loadingMessage: 'Initializing terminal...',
-        successMessage: 'Terminal ready.',
-        errorTitle: 'Failed to create terminal',
-      });
-    },
+  const start = useCallback(
+    (args: PortForwardArgs) =>
+      handleAsyncOperation(() => api.portForwardStart(args), {
+        loadingMessage: 'Starting port forward...',
+        successMessage: 'Port forward started.',
+        errorTitle: 'Failed to start port forward',
+      }),
     [api]
   );
 
@@ -142,16 +157,16 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
 
 ### 3. Create UI Components
 
-Use the feature context and shared UI components from `src/components/ui/`.
+Use the feature hook and shared UI components from `src/components/ui/`.
 
-**File**: `src/features/terminal/components/TerminalView.tsx`
+**File**: `src/pages/PortForwards.tsx`
 
 ```typescript
-import { useTerminal } from '../TerminalContext';
+import { usePortForwards } from '../features/portforward/usePortForwards';
 
-export function TerminalView() {
-  const { sessions, activeSessionId } = useTerminal();
-  // ... render terminal ...
+export function PortForwards() {
+  const { forwards, stop } = usePortForwards();
+  // ... render the table of tunnels ...
 }
 ```
 

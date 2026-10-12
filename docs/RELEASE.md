@@ -21,8 +21,12 @@ newest **non** pre-release.
 
 1. Make sure `master` is green (CI, gitleaks, Build/Release).
 2. On a branch, bump `version` in `package.json` (and the two version fields at
-   the top of `package-lock.json`), add the section to `CHANGELOG.md`, open a
-   PR and merge it.
+   the top of `package-lock.json`), update `CHANGELOG.md`, open a PR and
+   merge it. Release candidates accumulate under the
+   `## [Unreleased] - 0.9.0 public beta` heading. For the stable release,
+   retitle that heading `## [0.9.0] - 2026-11-02`, add an empty
+   `## [Unreleased]` above it and update the compare links at the bottom of
+   the file (`[0.9.0]: .../compare/v0.9.0-rc.3...v0.9.0`).
 3. Tag the merge commit and push the tag:
 
    ```bash
@@ -39,7 +43,11 @@ newest **non** pre-release.
    - Linux: `Shoal-<version>.AppImage`, `shoal_<version>_amd64.deb`,
      `latest-linux.yml`
 
-   The same files are also kept as workflow artifacts for 14 days.
+   The installers and `latest*.yml` are also kept as workflow artifacts for
+   one day, only for the `smoke` job of the same run (the `.blockmap` files
+   are not uploaded as artifacts; the release holds them). Longer retention
+   filled the artifact storage quota of the free plan and blocked every
+   upload.
 
    For a release candidate (a tag with a hyphen, such as `v0.9.0-rc.2`) the
    workflow then flags the draft as a pre-release with `gh release edit`.
