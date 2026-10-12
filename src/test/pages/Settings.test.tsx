@@ -87,7 +87,7 @@ describe('Settings Page', () => {
   it('should update kubeconfig path input', () => {
     render(<Settings />, { api: mockApi });
 
-    const input = screen.getByPlaceholderText(/e.g. C:/i);
+    const input = screen.getByPlaceholderText(/config-custom/);
     fireEvent.change(input, { target: { value: 'C:\\new\\config' } });
 
     expect(mockSettingsValues.setKubeconfigPath).toHaveBeenCalledWith(

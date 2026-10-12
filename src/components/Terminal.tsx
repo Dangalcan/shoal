@@ -46,7 +46,10 @@ export function Terminal({
     const terminal = new XTerm({
       cursorBlink: true,
       fontSize: 13,
-      fontFamily: 'Consolas, "Courier New", monospace',
+      // One stack for every platform: Windows, macOS and the common Linux
+      // fonts, then the generic family. xterm needs a concrete value.
+      fontFamily:
+        'Consolas, "Cascadia Mono", Menlo, "DejaVu Sans Mono", "Liberation Mono", "Courier New", monospace',
       theme: {
         background: '#1e1e1e',
         foreground: '#d4d4d4',

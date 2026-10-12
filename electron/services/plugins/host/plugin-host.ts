@@ -228,12 +228,11 @@ export class PluginHostRuntime {
     handler: (...a: unknown[]) => void
   ): number {
     const cbId = this.registerCallback(handler);
+    // The utility process has no logger of its own; the main process logs
+    // what arrives on the logger.* channel under the plugin's id.
     void this.request(path, args, [{ index: args.length, cbId }]).catch(
       (error: unknown) => {
-        console.error(
-          `[PluginHost:${this.pluginId}] ${path} failed:`,
-          errorMessage(error)
-        );
+        this.notify('logger.error', [`${path} failed: ${errorMessage(error)}`]);
       }
     );
     return cbId;

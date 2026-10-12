@@ -25,6 +25,11 @@ export function Settings() {
   const { namespaces, loading: loadingNamespaces } =
     useNamespaces(currentContext);
 
+  // The renderer has no process.platform; the user agent names the OS.
+  const kubeconfigPlaceholder = navigator.userAgent.includes('Windows')
+    ? 'e.g. C:\\Users\\you\\.kube\\config-custom'
+    : 'e.g. ~/.kube/config-custom';
+
   return (
     <div className="settings-page">
       <Animate type="fade">
@@ -49,7 +54,7 @@ export function Settings() {
                     type="text"
                     value={kubeconfigPath}
                     onChange={(e) => setKubeconfigPath(e.target.value)}
-                    placeholder="e.g. C:\Users\user\.kube\config-custom"
+                    placeholder={kubeconfigPlaceholder}
                     className="settings-form__input"
                     aria-label="Kubeconfig Path"
                   />

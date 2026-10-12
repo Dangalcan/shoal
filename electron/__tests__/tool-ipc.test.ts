@@ -43,17 +43,8 @@ describe('tool IPC handlers', () => {
     expect(result).toEqual({ success: true, data: status });
   });
 
-  it('check-tool fails when the tool is not installed', async () => {
-    vi.mocked(toolService.getToolStatus).mockResolvedValue({
-      tool: 'kind',
-      installed: false,
-    });
-
-    const result = await getHandler('check-tool')(mockEvent, 'kind');
-
-    expect(result).toEqual({
-      success: false,
-      error: 'kind is not installed',
-    });
+  it('registers only get-tool-status (check-tool is gone)', () => {
+    const channels = vi.mocked(ipcMain.handle).mock.calls.map(([c]) => c);
+    expect(channels).toEqual(['get-tool-status']);
   });
 });

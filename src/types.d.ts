@@ -73,7 +73,6 @@ export interface FeatureFlags {
 }
 
 export interface ElectronAPI {
-  checkTool: (tool: string) => Promise<Result<boolean>>;
   getToolStatus: (tool: string) => Promise<Result<ToolStatus>>;
   openExternal: (url: string) => Promise<Result<boolean>>;
   createCluster: (name: string, provider: string) => Promise<Result<void>>;

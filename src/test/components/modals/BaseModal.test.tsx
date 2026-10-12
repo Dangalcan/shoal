@@ -21,6 +21,17 @@ describe('BaseModal', () => {
     expect(screen.queryByText('Test Modal')).not.toBeInTheDocument();
   });
 
+  it('labels the dialog with its own title element', () => {
+    render(<BaseModal {...defaultProps} />);
+    const dialog = screen.getByRole('dialog');
+    const labelledBy = dialog.getAttribute('aria-labelledby');
+    expect(labelledBy).toBeTruthy();
+    expect(document.getElementById(labelledBy!)).toHaveTextContent(
+      'Test Modal'
+    );
+    expect(dialog).toHaveAccessibleName('Test Modal');
+  });
+
   it('should call onClose when close button is clicked', () => {
     render(<BaseModal {...defaultProps} />);
     fireEvent.click(screen.getByLabelText('Close modal'));

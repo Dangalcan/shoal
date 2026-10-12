@@ -66,6 +66,12 @@ yet, so Windows SmartScreen shows a warning on first launch.
   with the right line endings from the first prompt instead of being
   recreated when the shell list arrives; a shell that fails to start says so
   instead of hanging; open shells are closed when Shoal quits.
+- The YAML and Describe views clear the previous resource's text when they
+  open or fail to load; "Save to DB" could store the previous resource's
+  YAML under the new name while the new one was still loading.
+- The kubeconfig path placeholder in Settings matches the platform, and the
+  terminal font stack covers Linux and macOS instead of falling back to the
+  generic monospace font.
 - Toasts no longer appear twice on the Clusters and cluster details pages.
 - Creating a cluster that fails showed a green "created" toast next to the
   red one; it now shows one toast with the result.

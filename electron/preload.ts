@@ -9,7 +9,6 @@ import type { MigrationImportArgs } from './types/migration-types';
 import type { RendererErrorReport } from './types/app-types';
 
 contextBridge.exposeInMainWorld('electron', {
-  checkTool: (tool: string) => ipcRenderer.invoke('check-tool', tool),
   getToolStatus: (tool: string) => ipcRenderer.invoke('get-tool-status', tool),
   openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
   createCluster: (name: string, provider: string) =>

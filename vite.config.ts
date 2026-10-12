@@ -9,13 +9,7 @@ export default defineConfig({
     cssCodeSplit: true,
     sourcemap: false,
     chunkSizeWarningLimit: 1000, // Electron app — large lucide-react icon set is expected
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          router: ['react-router-dom'],
-        },
-      },
-    },
+    // No manualChunks: the object form produced an empty "vendor" chunk that
+    // nothing referenced (react-dom still landed in the main bundle).
   },
 });

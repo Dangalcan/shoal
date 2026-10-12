@@ -22,7 +22,6 @@ export function createMockElectronAPI(
   overrides?: Partial<ElectronAPI>
 ): vi.Mocked<ElectronAPI> {
   return {
-    checkTool: vi.fn().mockResolvedValue(true),
     getToolStatus: vi.fn().mockImplementation(async (tool: string) => ({
       success: true,
       data: { tool, installed: true, version: 'test', running: true },

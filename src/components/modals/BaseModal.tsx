@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useId } from 'react';
 import { X } from 'lucide-react';
 
 /**
@@ -58,6 +58,10 @@ export function BaseModal({
   maxWidth,
   ...props
 }: BaseModalProps) {
+  // Unique per modal instance, so aria-labelledby points at this title even
+  // when two modals are mounted.
+  const titleId = useId();
+
   // Close on escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -94,7 +98,7 @@ export function BaseModal({
         style={style}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="modal-title"
+        aria-labelledby={titleId}
         {...props}
       >
         {/* Header */}
@@ -102,7 +106,9 @@ export function BaseModal({
           <div className="base-modal-header-content">
             {icon && <div className="base-modal-header-icon">{icon}</div>}
             <div className="base-modal-title-group">
-              <h3 className="base-modal-title">{title}</h3>
+              <h3 id={titleId} className="base-modal-title">
+                {title}
+              </h3>
               {subtitle && <p className="base-modal-subtitle">{subtitle}</p>}
             </div>
           </div>

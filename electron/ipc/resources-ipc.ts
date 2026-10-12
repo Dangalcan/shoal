@@ -21,13 +21,6 @@ import {
   DEFAULT_LOG_TAIL_LINES,
 } from './ipc-utils';
 
-/** Namespace args for list-style commands ('all' → -A). */
-function namespaceArgs(namespace: string): string[] {
-  if (namespace === 'all') return ['-A'];
-  assertNamespace(namespace);
-  return ['-n', namespace];
-}
-
 /** Namespace args for single-resource commands ('all'/empty → none). */
 function optionalNamespaceArgs(namespace?: string): string[] {
   if (!namespace || namespace === 'all') return [];

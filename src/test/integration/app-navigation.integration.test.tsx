@@ -12,7 +12,6 @@ import React from 'react';
 describe('App Navigation Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockElectronAPI.checkTool.mockResolvedValue({ success: true, data: true });
     mockElectronAPI.getClusters.mockResolvedValue({ success: true, data: [] });
     mockElectronAPI.getCurrentContext.mockResolvedValue({
       success: true,

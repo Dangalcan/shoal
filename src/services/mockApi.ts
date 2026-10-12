@@ -13,10 +13,6 @@ let mockClusters = ['minikube', 'kind-cluster-1', 'docker-desktop'];
 let mockCurrentContext = 'minikube';
 
 export const mockApi: ElectronAPI = {
-  checkTool: async (tool: string) => {
-    console.log('[MockAPI] checkTool:', tool);
-    return { success: true, data: true };
-  },
   getToolStatus: async (tool: string) => ({
     success: true,
     data: { tool, installed: true, version: 'mock', running: true },

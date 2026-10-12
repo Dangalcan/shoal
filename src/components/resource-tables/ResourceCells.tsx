@@ -29,13 +29,12 @@ interface ActionProps {
 export const NameCell: React.FC<
   {
     name: string;
-    namespace?: string;
     onLogClick?: () => void;
     actions: ActionProps;
     /** Plugin-contributed action buttons rendered after the built-in ones. */
     extraActions?: React.ReactNode;
   } & React.HTMLAttributes<HTMLTableCellElement>
-> = ({ name, namespace, onLogClick, actions, extraActions, ...props }) => {
+> = ({ name, onLogClick, actions, extraActions, ...props }) => {
   return (
     <td className="table-cell table-cell-name" {...props} title={name}>
       <div className="table-cell-name-content">

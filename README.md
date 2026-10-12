@@ -116,7 +116,7 @@ A desktop app for your Kubernetes clusters: local clusters with kind or k3d, res
 ### IPC Bridge Pattern
 
 The frontend requests actions (like "Check Docker Status") by calling:
-`window.electron.checkTool('docker')`
+`window.electron.getToolStatus('docker')`
 
 This is routed securely:
 `UI (React) -> preload.ts -> IPC Channel -> Main Process (executes command) -> IPC Response -> UI`

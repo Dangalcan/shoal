@@ -9,6 +9,7 @@
 import vm from 'vm';
 import path from 'path';
 import { readFileSync } from 'fs';
+import { isPathInside } from '../../utils/fs-utils';
 
 /** Node.js built-ins that are safe to expose to plugin code. */
 export const ALLOWED_BUILTINS = new Set([
@@ -45,7 +46,9 @@ export function executeInSandbox(
     if (specifier.startsWith('./') || specifier.startsWith('../')) {
       const resolved = path.resolve(path.dirname(filename), specifier);
 
-      if (!resolved.startsWith(path.resolve(pluginDir))) {
+      // A prefix test would also accept a sibling directory such as
+      // "<pluginDir>-evil"; isPathInside compares path segments.
+      if (!isPathInside(pluginDir, resolved)) {
         throw new Error(
           `[PluginSandbox] Path traversal blocked: "${specifier}"`
         );

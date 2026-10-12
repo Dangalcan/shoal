@@ -11,12 +11,6 @@ describe('ElectronService', () => {
     expect(instance1).toBe(electronService);
   });
 
-  it('checkTool calls window.electron.checkTool', async () => {
-    const tool = 'kubectl';
-    await electronService.checkTool(tool);
-    expect(getMockApi().checkTool).toHaveBeenCalledWith(tool);
-  });
-
   it('createCluster calls window.electron.createCluster', async () => {
     await electronService.createCluster('my-cluster', 'kind');
     expect(getMockApi().createCluster).toHaveBeenCalledWith(

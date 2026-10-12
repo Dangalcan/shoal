@@ -72,7 +72,6 @@ export const ResourceRow: React.FC<ResourceRowProps> = ({
             <NameCell
               key={col.id}
               name={item.metadata.name}
-              namespace={item.metadata.namespace}
               onLogClick={activeTab === 'pods' ? actions.onLogs : undefined}
               actions={actions}
               extraActions={

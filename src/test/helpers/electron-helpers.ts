@@ -51,9 +51,6 @@ export const mockToolStatus = (
   mockApi: any
 ) => {
   const state = (tool: string) => tools[tool] ?? true;
-  mockApi.checkTool = vi.fn().mockImplementation(async (tool: string) => {
-    return { success: true, data: state(tool) !== false };
-  });
   mockApi.getToolStatus = vi.fn().mockImplementation(async (tool: string) => {
     const value = state(tool);
     return {
@@ -114,7 +111,6 @@ export const mockResourceResponse = <T>(
  * ```
  */
 export const resetElectronMocks = () => {
-  mockElectronAPI.checkTool.mockResolvedValue(true);
   mockElectronAPI.createCluster.mockResolvedValue({
     success: true,
     data: undefined,

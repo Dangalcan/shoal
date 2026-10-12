@@ -82,11 +82,16 @@ export class TemplateService {
 
 const PLUGIN_NAME = ${nameLiteral};
 
+// The context handed to activate() is the plugin's logger and API; keep it
+// for deactivate(), which receives no arguments.
+let activeContext = null;
+
 module.exports = {
   /**
    * Called when the plugin is enabled or the app starts.
    */
   activate: (context) => {
+    activeContext = context;
     context.logger.info(PLUGIN_NAME + ' activated');
 
     // Register a notification
@@ -103,7 +108,8 @@ module.exports = {
    * Clean up timers, event listeners, or watchers here.
    */
   deactivate: () => {
-    console.log(PLUGIN_NAME + ' deactivated');
+    if (activeContext) activeContext.logger.info(PLUGIN_NAME + ' deactivated');
+    activeContext = null;
   }
 };
 `.trim();

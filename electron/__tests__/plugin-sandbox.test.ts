@@ -90,6 +90,15 @@ describe('PluginSandbox', () => {
     ).toThrow('[PluginSandbox] Path traversal blocked');
   });
 
+  it('should block a sibling directory that shares the plugin dir prefix', () => {
+    // "/mock/plugin-evil" starts with "/mock/plugin" but is outside it.
+    const code = 'require("../plugin-evil/payload");';
+    expect(() =>
+      executeInSandbox(code, mainFile, pluginDir, moduleCache)
+    ).toThrow('[PluginSandbox] Path traversal blocked');
+    expect(fs.readFileSync).not.toHaveBeenCalled();
+  });
+
   it('should handle circular dependencies', () => {
     const aPath = path.resolve(pluginDir, 'a.js');
     const bPath = path.resolve(pluginDir, 'b.js');

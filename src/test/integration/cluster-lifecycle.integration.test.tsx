@@ -24,9 +24,6 @@ describe('Cluster Lifecycle Integration', () => {
     vi.clearAllMocks();
 
     // Default mocks for standard environment
-    mockApi.checkTool = vi
-      .fn()
-      .mockResolvedValue({ success: true, data: true });
     mockApi.getCurrentContext = vi
       .fn()
       .mockResolvedValue({ success: true, data: 'None' });

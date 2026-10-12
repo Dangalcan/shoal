@@ -6,13 +6,6 @@ All `invoke` methods return a `Promise<Result<T>>`. See the [Types](#types) sect
 
 ## Diagnostics
 
-### `checkTool(tool)`
-
-Checks whether a CLI tool from the safe-exec allowlist (e.g. `kubectl`, `kind`, `docker`) is installed. Fails (`success: false`) when it is not. Prefer `getToolStatus` for UI.
-
-- **Parameters**: `tool`: `string`
-- **Returns**: `Promise<Result<boolean>>`
-
 ### `getToolStatus(tool)`
 
 Probes a CLI tool with the command it understands (`kubectl version --client`, `helm version --short`, `kind version`, `docker --version`, ...). Never fails for a missing tool: absence is reported as `installed: false`. For `docker` and `podman` a second probe (`info`) tells whether the daemon is running. On Windows the probe first re-reads the user and system `PATH` from the registry (at most once every 5 seconds) and appends new folders to the process `PATH`, so tools installed after start-up are found; child processes started afterwards inherit the updated `PATH`.

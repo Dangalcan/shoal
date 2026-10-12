@@ -20,10 +20,6 @@ export class ElectronService {
     return ElectronService.instance;
   }
 
-  async checkTool(tool: string): Promise<Result<boolean>> {
-    return window.electron.checkTool(tool);
-  }
-
   /**
    * Used outside the ApiProvider (ErrorBoundary, global error listeners), so
    * it must not throw when the preload bridge is missing.

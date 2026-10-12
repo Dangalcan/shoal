@@ -44,6 +44,10 @@ export function useResourceModal({
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    // Drop the previous resource's text: otherwise it flashes for a frame
+    // when the modal reopens, stays on screen after a failed fetch, and a
+    // YAML "Save to DB" during loading would store it under the new name.
+    setContent('');
     try {
       const result = await fetchFnRef.current();
       if (result.success) {

@@ -14,8 +14,10 @@ export function registerUpdateIpcHandlers(): void {
   ipcMain.handle(
     'check-for-updates',
     wrapIpcHandler('check-for-updates', async () => {
-      // User-triggered: force even in dev so the button gives feedback.
-      return await updateService.checkForUpdates(true);
+      // Development builds get 'dev' back (the About card says so) instead
+      // of a forced check: electron-updater resolves to null without any
+      // event when the app is not packaged, which left the button spinning.
+      return await updateService.checkForUpdates();
     })
   );
 
