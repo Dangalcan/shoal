@@ -43,9 +43,21 @@
       "prettier --write"
     ]
   },
-  "keywords": [],
+  "keywords": [
+    "kubernetes",
+    "k8s",
+    "kubectl",
+    "kind",
+    "k3d",
+    "helm",
+    "kompose",
+    "electron",
+    "desktop",
+    "devops",
+    "developer-tools"
+  ],
   "author": {
-    "name": "dangalcan",
+    "name": "Daniel Galván Cancio",
     "email": "92941017+Dangalcan@users.noreply.github.com"
   },
   "license": "LGPL-3.0-or-later",

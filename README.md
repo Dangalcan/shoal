@@ -30,6 +30,7 @@ A desktop app for your Kubernetes clusters: local clusters with kind or k3d, res
 - [Marketplace (planned for 1.0)](#-marketplace-planned-for-10)
 - [Testing](#-testing)
 - [Deployment](#-deployment)
+- [Roadmap](#-roadmap)
 - [Contributing](#-contributing)
 - [Troubleshooting](#-troubleshooting)
 - [License](#license)
@@ -93,7 +94,7 @@ A desktop app for your Kubernetes clusters: local clusters with kind or k3d, res
 
 ### Developer Tools
 
-- 🧪 Comprehensive test suite (90%+ coverage)
+- 🧪 Test suite with coverage thresholds enforced in CI (90% lines, 80% branches)
 - 📚 Detailed contribution guides
 - 🎯 Type-safe IPC communication
 - 🔧 Hot-reload development mode
@@ -297,7 +298,7 @@ For the architecture (sandbox, isolation, signing), see [Plugin Architecture](do
 
 The marketplace client (catalog, installs, trials, licenses and checkout) is in the code base but hidden in the 0.9 beta: the Marketplace tab only appears when the app runs with `MARKETPLACE_ENABLED=true`, which `npm run dev` sets. Its backend is **kdMarket**, a separate private repository with a `/v1` API, selected through `MARKETPLACE_BACKEND_URL` (for example `http://localhost:3001/v1`). Without a backend, development builds fall back to the sample catalog in `electron/data/marketplace.json`.
 
-Paid plugins, payments and the publishing flow for third-party plugins ship with 1.0 (see [docs/PENDING_WORK.md](docs/PENDING_WORK.md)).
+Paid plugins, payments and the publishing flow for third-party plugins ship with 1.0 (see the [roadmap](#-roadmap)).
 
 ## 🧪 Testing
 
@@ -359,7 +360,13 @@ The build process creates platform-specific installers:
 - **Windows:** NSIS installer and portable `.exe`
 - **Linux:** `.AppImage` and `.deb`
 
-Releases are built and published by CI from `v*` tags; see [docs/RELEASE.md](docs/RELEASE.md). Repository settings (branch protection, security features, Pages) are recorded in [docs/GOING_PUBLIC.md](docs/GOING_PUBLIC.md).
+Releases are built and published by CI from `v*` tags; see [docs/RELEASE.md](docs/RELEASE.md), which also records how the repository is configured (required checks, tag protection, security features).
+
+## 🗺 Roadmap
+
+- **0.9.x** (beta fixes): log streaming with a container picker, keyboard access to every table and card, and whatever the beta feedback shows first. Report what you miss on [GitHub Issues](https://github.com/Dangalcan/shoal/issues).
+- **1.0** (planned for Q1 2027): code-signed installers (no more SmartScreen warning), macOS builds, the plugin marketplace with third-party and paid plugins, plugin secrets in the OS keychain, and finer plugin permissions (read, write and Helm separated).
+- **Not planned**: telemetry or accounts. Shoal works offline and sends nothing anywhere except the update check against GitHub Releases.
 
 ## 🤝 Contributing
 

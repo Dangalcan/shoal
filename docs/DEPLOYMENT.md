@@ -62,7 +62,7 @@ npm run build:linux
 
 The 0.9 beta installers are **not** code-signed: Windows SmartScreen shows
 "Windows protected your PC" on first launch (More info → Run anyway). Signing
-is planned for 1.0 (`docs/PENDING_WORK.md`): a SignPath Foundation
+is planned for 1.0 (see the roadmap in the README): a SignPath Foundation
 certificate or an OV/EV certificate on Windows, an Apple Developer
 certificate with notarization on macOS. Once a Windows certificate exists:
 

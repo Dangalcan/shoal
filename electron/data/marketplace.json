@@ -2,22 +2,22 @@
   {
     "id": "resource-monitor",
     "name": "Resource Monitor",
-    "version": "1.0.0",
-    "description": "Visualizes pod resource usage.",
-    "author": "Shoal",
+    "version": "1.1.0",
+    "description": "Monitors Pod resources within namespaces. Depends on Namespace Watcher.",
+    "author": "Shoal Team",
     "category": "Monitoring",
     "price": 0,
     "icon": "",
     "screenshots": [],
     "rating": 0,
     "reviews": 0,
-    "downloadUrl": "local://resource-monitor-1.0.0.zip",
+    "downloadUrl": "local://resource-monitor-1.1.0.zip",
     "manifest": {
       "id": "resource-monitor",
       "name": "Resource Monitor",
-      "version": "1.0.0",
-      "description": "Visualizes pod resource usage.",
-      "author": "Shoal",
+      "version": "1.1.0",
+      "description": "Monitors Pod resources within namespaces. Depends on Namespace Watcher.",
+      "author": "Shoal Team",
       "license": {
         "type": "free",
         "spdx": "MIT"
@@ -25,35 +25,37 @@
       "main": "index.js",
       "renderer": "renderer.js",
       "styles": ["styles.css"],
-      "permissions": ["kubernetes"]
+      "permissions": ["kubernetes", "ui", "storage", "notifications"]
     }
   },
   {
     "id": "namespace-watcher",
     "name": "Namespace Watcher",
-    "version": "1.0.0",
-    "description": "Notifications for namespace changes.",
-    "author": "Shoal",
+    "version": "1.1.0",
+    "description": "Monitors Kubernetes namespaces and provides quick stats.",
+    "author": "Shoal Team",
     "category": "Monitoring",
     "price": 0,
     "icon": "",
     "screenshots": [],
     "rating": 0,
     "reviews": 0,
-    "downloadUrl": "local://namespace-watcher-1.0.0.zip",
+    "downloadUrl": "local://namespace-watcher-1.1.0.zip",
     "manifest": {
       "id": "namespace-watcher",
       "name": "Namespace Watcher",
-      "version": "1.0.0",
-      "description": "Notifications for namespace changes.",
-      "author": "Shoal",
+      "version": "1.1.0",
+      "description": "Monitors Kubernetes namespaces and provides quick stats.",
+      "author": "Shoal Team",
       "license": {
         "type": "free",
         "spdx": "MIT"
       },
       "main": "index.js",
       "data": ["data/default-config.json"],
-      "permissions": ["kubernetes", "notifications"]
+      "permissions": ["kubernetes", "ui", "storage"],
+      "renderer": "renderer.js",
+      "styles": ["styles.css"]
     }
   }
 ]

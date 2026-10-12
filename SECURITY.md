@@ -31,7 +31,7 @@ Please include the following information in your report:
 
 ### Our Process
 
-1. **Acknowledgement:** You should receive a response within 48 hours. If for some reason you do not, please follow up on the advisory thread to ensure we received your original message.
+1. **Acknowledgement:** Shoal is maintained by one person, so expect an acknowledgement within a few days. If you hear nothing after a week, please follow up on the advisory thread to make sure the report arrived.
 2. **Investigation:** We will investigate the issue and may ask for additional information.
 3. **Resolution:** If a vulnerability is confirmed, we will work on a fix.
 4. **Public Disclosure:** Once a fix is available and tested, we will release a new version. We will coordinate the public disclosure with you to give credit where it's due.

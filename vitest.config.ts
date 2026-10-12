@@ -9,11 +9,9 @@ export default defineConfig({
       ...configDefaults.exclude,
       '**/dist-electron/**',
       'e2e/**',
-      // Claude Code worktrees live inside the project dir; without this the
-      // main checkout's test run picks up a duplicate copy of every test.
-      '**/.claude/**',
-      // Playwright MCP browser-tool scratch specs (gitignored).
-      '**/.playwright-mcp/**',
+      // Nested checkouts and tool scratch directories live in dot-directories
+      // inside the project; without this a test run picks up their copies.
+      '**/.*/**',
     ],
     globals: true,
     environment: 'jsdom',
@@ -38,7 +36,7 @@ export default defineConfig({
         '**/dist/**',
         '**/dist-electron/**',
         '**/e2e/**',
-        '**/.claude/**',
+        '**/.*/**',
       ],
     },
   },

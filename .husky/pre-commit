@@ -1,5 +1,4 @@
 #!/bin/sh
 npx lint-staged --concurrent false
-npm run build:electron
+npx tsc --noEmit -p electron/tsconfig.json
 npx tsc --noEmit
-npm test

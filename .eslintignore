@@ -11,4 +11,3 @@ public/plugin-host/bootstrap.js
 e2e-report
 test-results
 build
-.playwright-mcp

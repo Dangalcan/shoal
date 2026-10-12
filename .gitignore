@@ -32,9 +32,13 @@ release-*/
 # MSYS2/Git Bash crash dumps
 *.stackdump
 
-# Claude Code local state
-.claude/settings.local.json
-.claude/worktrees/
+# Editors and operating systems
+.idea/
+.DS_Store
+Thumbs.db
+*.local.json
 
-# Playwright MCP browser-tool artifacts
-.playwright-mcp/
+# Keys and local environment files never belong in the repository
+.env.*
+*.pem
+*.key

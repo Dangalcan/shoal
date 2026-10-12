@@ -107,3 +107,23 @@ A bad release that is already published:
 
 Never re-use a version number or move an existing tag; always release a new
 version.
+
+## Repository configuration
+
+How `Dangalcan/shoal` is set up on GitHub, so the release process above can
+be trusted:
+
+- **`master`** requires the `App (typecheck + tests)` and `gitleaks` checks,
+  a linear history, and allows neither force pushes nor deletion.
+- **`v*` tags** are covered by a ruleset: only repository admins can create
+  them, and nobody can move or delete one. Auto-update trusts whatever a
+  `v*` tag publishes, so the tag is the release key until the installers are
+  code-signed.
+- **Actions**: the default `GITHUB_TOKEN` is read-only (workflows that need
+  more ask for it explicitly), and workflows from first-time outside
+  contributors wait for approval. `build.yml` only publishes from tags and
+  from pushes to `master`, never from fork pull requests.
+- **Security features**: Dependabot alerts and security updates, secret
+  scanning with push protection, private vulnerability reporting (the link
+  in `SECURITY.md`) and CodeQL on every push and pull request.
+- **Merges**: squash only, and branches are deleted after merge.

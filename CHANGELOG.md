@@ -159,4 +159,4 @@ yet, so Windows SmartScreen shows a warning on first launch.
   AppArmor profile and keeps it.
 - The AppImage needs `libfuse2` (`libfuse2t64` on Ubuntu 24.04).
 
-[Unreleased]: https://github.com/Dangalcan/shoal/compare/v0.9.0-rc.2...HEAD
+[Unreleased]: https://github.com/Dangalcan/shoal/commits/master

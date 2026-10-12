@@ -455,4 +455,4 @@ At runtime the app enforces the license state: an expired trial or missing licen
 
 ### Marketplace Submission
 
-Production plugin distribution goes through **kdMarket**, the standalone marketplace API (plugin catalog, licensing, and checkout), planned for 1.0. Submission/developer-portal tooling is still being rolled out — see [PLUGIN_ARCHITECTURE.md](./PLUGIN_ARCHITECTURE.md) for the architecture and `docs/PENDING_WORK.md` for the current release plan.
+Production plugin distribution goes through **kdMarket**, the standalone marketplace API (plugin catalog, licensing, and checkout), planned for 1.0. Submission/developer-portal tooling is still being rolled out — see [PLUGIN_ARCHITECTURE.md](./PLUGIN_ARCHITECTURE.md) for the architecture and the roadmap in the README for the release plan.

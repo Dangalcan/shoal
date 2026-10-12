@@ -288,8 +288,6 @@ The marketplace is hidden in the 0.9 beta (`MARKETPLACE_ENABLED`). Its backend i
 
 ## Known Limitations
 
-See [history/plugin_system_analysis.md](./history/plugin_system_analysis.md) for the historical (March 2026) analysis that motivated the sandbox rework; several of its findings (isolation, `watchResources`, modals) have since been addressed.
-
 **Summary:**
 
 1. **Renderer UI is fully sandboxed**; **bundled main-process code is not a hard boundary**. Plugin `renderer.js` (all UI: pages, widgets, modals, actions) runs in an opaque-origin iframe with only the permission-gated `window.k8sPlugin`. **User-installed** plugins run their `index.js` in an Electron `utilityProcess` with an RPC-proxied context (see "Main-Process Isolation" above). **Bundled** plugins still run in-process in a `vm` sandbox with a built-in allowlist — that limits casual access but is **not** a security boundary against a determined plugin; run only signed/trusted bundled `index.js` (`PLUGIN_ISOLATION=all` forces isolation for everything).

@@ -73,7 +73,7 @@ The issue form on GitHub asks for exactly these fields, and **Settings → About
 We welcome feature suggestions! Before creating a feature request:
 
 1. Check [existing issues](https://github.com/Dangalcan/shoal/issues) to see if it's already been suggested
-2. Review [docs/PENDING_WORK.md](docs/PENDING_WORK.md) to see if it's already planned
+2. Check the [roadmap](README.md#-roadmap) to see if it's already planned
 
 When creating a feature request, please include:
 
@@ -223,8 +223,9 @@ npm run lint:fix
 
 CI runs `npm run lint:eslint` and `npm run lint:prettier`, so a pull request
 with an ESLint error or unformatted files fails (ESLint warnings are
-allowed). The pre-commit hook formats staged files and lints the staged
-`.js`, `.jsx`, `.ts` and `.tsx` files. `any` is an error in `src/` and
+allowed). The pre-commit hook formats staged files, lints the staged
+`.js`, `.jsx`, `.ts` and `.tsx` files and type-checks both processes; the
+full test suite runs in CI. `any` is an error in `src/` and
 `electron/` (use a typed shape, or `isRecord()` from `src/lib/type-guards.ts`
 for unknown API fields) and allowed in tests and e2e specs. Line endings are
 LF everywhere (`.gitattributes`); on Windows, git converts on checkout, so
@@ -332,9 +333,10 @@ Plugins must update their activate() function signature.
 
 ### Review Timeline
 
-- **Initial response:** Within 3 business days
-- **Full review:** Within 1 week
-- **Merge:** After approval and passing all checks
+Shoal is maintained by one person in their spare time, so reviews are best
+effort: expect a first response within a week or two, and a merge once the
+review is done and every check passes. Feel free to ping the pull request if
+it goes quiet.
 
 ## Getting Help
 
@@ -346,7 +348,7 @@ If you need help with your contribution:
 
 ## Recognition
 
-All contributors will be recognized in our release notes and README. Thank you for making Shoal better!
+Contributions are credited in the changelog and the release notes. Thank you for making Shoal better!
 
 ## License
 
