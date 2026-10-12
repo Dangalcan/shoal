@@ -21,10 +21,12 @@ export type UpdateStatus =
 /**
  * What a manual update check did: 'started' (results arrive as UpdateStatus
  * events), 'portable' (the Windows portable build cannot update itself),
- * 'dev' (not a packaged build) or 'error' (the updater threw; an 'error'
- * status was emitted too).
+ * 'package' (installed from a Linux package, which the package manager
+ * updates), 'dev' (not a packaged build) or 'error' (the updater threw; an
+ * 'error' status was emitted too).
  */
-export type UpdateCheckStart = 'started' | 'portable' | 'dev' | 'error';
+export type UpdateCheckStart =
+  'started' | 'portable' | 'package' | 'dev' | 'error';
 
 /** Minimal structural view of electron-updater's autoUpdater (for testing). */
 export interface UpdaterLike {
@@ -39,8 +41,17 @@ export interface UpdaterLike {
 export class UpdateService {
   private onStatus?: (s: UpdateStatus) => void;
   private wired = false;
+  private lastStatus: UpdateStatus | null = null;
 
   constructor(private readonly updater: UpdaterLike) {}
+
+  /**
+   * The most recent status, for a renderer that mounts (or reloads) after
+   * the event was sent. Null until the first check reports anything.
+   */
+  getStatus(): UpdateStatus | null {
+    return this.lastStatus;
+  }
 
   /** Attach listeners and set the status sink. Idempotent. */
   init(onStatus: (s: UpdateStatus) => void): void {
@@ -74,10 +85,11 @@ export class UpdateService {
 
   /**
    * Check for updates. Says why when it does not: outside packaged builds
-   * (unless forced; electron-updater cannot run against a dev build) and in
+   * (unless forced; electron-updater cannot run against a dev build), in
    * the Windows portable build, which cannot replace itself (the updater
-   * would install a separate NSIS copy). An updater failure is also reported
-   * through the status sink.
+   * would install a separate NSIS copy), and in a Linux install that did not
+   * come from the AppImage (the .deb), which the package manager updates.
+   * An updater failure is also reported through the status sink.
    */
   async checkForUpdates(force = false): Promise<UpdateCheckStart> {
     if (process.env.PORTABLE_EXECUTABLE_DIR) {
@@ -89,6 +101,12 @@ export class UpdateService {
     if (!isProduction() && !force) {
       log.info('[UpdateService] Skipping update check (not a packaged build)');
       return 'dev';
+    }
+    if (process.platform === 'linux' && !process.env.APPIMAGE) {
+      log.info(
+        '[UpdateService] Skipping update check (installed from a package, not the AppImage)'
+      );
+      return 'package';
     }
     try {
       await this.updater.checkForUpdates();
@@ -105,6 +123,7 @@ export class UpdateService {
   }
 
   private emit(s: UpdateStatus): void {
+    this.lastStatus = s;
     this.onStatus?.(s);
   }
 }

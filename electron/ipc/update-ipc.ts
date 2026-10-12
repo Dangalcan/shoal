@@ -22,6 +22,11 @@ export function registerUpdateIpcHandlers(): void {
   );
 
   ipcMain.handle(
+    'get-update-status',
+    wrapIpcHandler('get-update-status', async () => updateService.getStatus())
+  );
+
+  ipcMain.handle(
     'install-update',
     wrapIpcHandler('install-update', async () => {
       updateService.quitAndInstall();

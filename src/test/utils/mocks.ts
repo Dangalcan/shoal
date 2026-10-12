@@ -225,6 +225,7 @@ export function createMockElectronAPI(
     checkForAppUpdates: vi
       .fn()
       .mockResolvedValue({ success: true, data: 'started' }),
+    getUpdateStatus: vi.fn().mockResolvedValue({ success: true, data: null }),
     installAppUpdate: vi.fn().mockResolvedValue({ success: true, data: true }),
     onUpdateStatus: vi.fn().mockReturnValue(() => {}),
     ...overrides,

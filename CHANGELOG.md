@@ -87,6 +87,14 @@ yet, so Windows SmartScreen shows a warning on first launch.
   terminal follows.
 - Manifests show the database error instead of a generic message when the
   library cannot be read.
+- The bundled example plugins no longer offer "Uninstall" (they came back
+  on the next launch); disable them instead. Uninstalling a plugin you
+  installed now also removes its stored data.
+- The "Update available" and "Update ready" toasts survive a renderer reload
+  and no longer go missing when the start-up check finishes before the
+  window is listening.
+- The `.deb` package no longer runs the updater (it was never able to update
+  itself); a manual check says to use the package manager instead.
 - Local terminal: Ctrl+C now stops the running command (`ping`,
   `kubectl logs -f`) and leaves the shell usable. On Linux the interrupt
   only reached the shell; on Windows it stopped nothing at all (it looked

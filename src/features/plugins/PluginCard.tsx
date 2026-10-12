@@ -214,14 +214,16 @@ export function PluginCard({
           </button>
         )}
 
-        <button
-          className="btn btn--icon btn--secondary btn--danger-hover"
-          onClick={() => onUninstall(plugin)}
-          disabled={isLoading}
-          title="Uninstall Plugin"
-        >
-          <Trash2 size={15} />
-        </button>
+        {!plugin.bundled && (
+          <button
+            className="btn btn--icon btn--secondary btn--danger-hover"
+            onClick={() => onUninstall(plugin)}
+            disabled={isLoading}
+            title="Uninstall Plugin"
+          >
+            <Trash2 size={15} />
+          </button>
+        )}
       </div>
     </div>
   );

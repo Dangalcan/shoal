@@ -6,6 +6,9 @@ const h = vi.hoisted(() => {
   const state: { cb: ((s: unknown) => void) | null } = { cb: null };
   const off = vi.fn();
   const installAppUpdate = vi.fn().mockResolvedValue({ success: true });
+  const getUpdateStatus = vi
+    .fn()
+    .mockResolvedValue({ success: true, data: null });
   const toast = { info: vi.fn(), success: vi.fn() };
   const api = {
     onUpdateStatus: vi.fn((cb: (s: unknown) => void) => {
@@ -13,8 +16,9 @@ const h = vi.hoisted(() => {
       return off;
     }),
     installAppUpdate,
+    getUpdateStatus,
   };
-  return { state, off, installAppUpdate, toast, api };
+  return { state, off, installAppUpdate, getUpdateStatus, toast, api };
 });
 
 vi.mock('../../../services/api-context', () => ({ useApi: () => h.api }));
@@ -22,7 +26,7 @@ vi.mock('sonner', () => ({ toast: h.toast }));
 
 import { useAppUpdates } from '../../../features/updates/useAppUpdates';
 
-const { api, toast, off, installAppUpdate } = h;
+const { api, toast, off, installAppUpdate, getUpdateStatus } = h;
 const fire = (s: UpdateStatus) => h.state.cb!(s);
 
 describe('useAppUpdates', () => {
@@ -41,7 +45,10 @@ describe('useAppUpdates', () => {
   it('shows an info toast when an update is downloading', () => {
     renderHook(() => useAppUpdates());
     fire({ state: 'available', version: '3.1.0' });
-    expect(toast.info).toHaveBeenCalledWith(expect.stringContaining('3.1.0'));
+    expect(toast.info).toHaveBeenCalledWith(
+      expect.stringContaining('3.1.0'),
+      expect.objectContaining({ id: 'app-update-available' })
+    );
   });
 
   it('prompts a restart when the update is downloaded', () => {
@@ -60,6 +67,20 @@ describe('useAppUpdates', () => {
     };
     opts.action.onClick();
     expect(installAppUpdate).toHaveBeenCalled();
+  });
+
+  it('shows a status that arrived before it subscribed', async () => {
+    getUpdateStatus.mockResolvedValueOnce({
+      success: true,
+      data: { state: 'downloaded', version: '3.2.0' },
+    });
+    renderHook(() => useAppUpdates());
+    await vi.waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        expect.stringContaining('3.2.0'),
+        expect.objectContaining({ id: 'app-update-downloaded' })
+      )
+    );
   });
 
   it('does nothing for non-actionable statuses', () => {

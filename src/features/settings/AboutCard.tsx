@@ -51,6 +51,11 @@ export function AboutCard() {
         description:
           'The portable version updates by downloading the new release.',
       });
+    } else if (outcome === 'package') {
+      toast.info('This build cannot update itself', {
+        description:
+          'Installed from a package: update it with your package manager or download the new release.',
+      });
     } else if (outcome === 'dev') {
       toast.info('Update checks only run in installed builds');
     } else if (!result.success) {

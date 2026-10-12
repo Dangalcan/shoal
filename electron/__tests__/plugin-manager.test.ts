@@ -8,6 +8,7 @@ import { pluginLoader } from '../services/plugins/plugin-loader';
 import { pluginRegistry } from '../services/plugins/plugin-registry';
 import { licenseManager } from '../services/security/license-manager';
 import { pluginWatcher } from '../services/plugins/plugin-watcher';
+import { storageService } from '../services/plugins/storage-service';
 
 vi.mock('../logger', () => ({
   default: {
@@ -130,6 +131,11 @@ vi.mock('../services/plugins/path-service', () => ({
       .mockReturnValue(['/mock/app/plugins', '/mock/user/plugins']),
     resolvePluginPath: vi.fn(),
     isBundledPluginId: vi.fn().mockResolvedValue(false),
+    getPluginStorageDir: vi
+      .fn()
+      .mockImplementation(
+        (id: string) => `/mock/user/data/plugin-storage/${id}`
+      ),
   },
 }));
 
@@ -665,11 +671,31 @@ describe('PluginManager', () => {
 
       expect(pluginRegistry.unregisterPlugin).toHaveBeenCalledWith(pluginId);
       expect(pluginLoader.unregisterPlugin).toHaveBeenCalledWith(pluginId);
-      expect(fs.promises.rm).toHaveBeenCalled();
+      expect(fs.promises.rm).toHaveBeenCalledWith(pluginPath, {
+        recursive: true,
+        force: true,
+      });
+      expect(storageService.clear).toHaveBeenCalledWith(pluginId);
+      expect(fs.promises.rm).toHaveBeenCalledWith(
+        `/mock/user/data/plugin-storage/${pluginId}`,
+        { recursive: true, force: true }
+      );
     });
 
-    it('uninstallPlugin should skip file deletion for bundled plugins', async () => {
+    it('uninstallPlugin should refuse a bundled plugin', async () => {
       const pluginId = 'bundled-plugin';
+      vi.mocked(pathService.isBundledPluginId).mockResolvedValueOnce(true);
+
+      await expect(pluginManager.uninstallPlugin(pluginId)).rejects.toThrow(
+        /bundled with Shoal/
+      );
+
+      expect(pluginRegistry.unregisterPlugin).not.toHaveBeenCalled();
+      expect(fs.promises.rm).not.toHaveBeenCalled();
+    });
+
+    it('uninstallPlugin should skip file deletion for a plugin outside the user directory', async () => {
+      const pluginId = 'elsewhere-plugin';
       vi.mocked(pluginRegistry.getAllPlugins).mockReturnValue([]);
       vi.mocked(dependencyResolver.getDependents).mockReturnValue([]);
       vi.mocked(pluginRegistry.isPluginEnabled).mockReturnValue(false);

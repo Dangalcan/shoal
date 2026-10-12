@@ -107,6 +107,35 @@ describe('UpdateService', () => {
     }
   });
 
+  it('remembers the last status for late subscribers', () => {
+    const updater = makeUpdater();
+    const svc = new UpdateService(updater);
+    expect(svc.getStatus()).toBeNull();
+    svc.init(() => {});
+    updater.fire('update-downloaded', { version: '2.0.0' });
+    expect(svc.getStatus()).toEqual({ state: 'downloaded', version: '2.0.0' });
+  });
+
+  it('never checks in a Linux package install (not the AppImage)', async () => {
+    vi.mocked(isProduction).mockReturnValue(true);
+    const platform = Object.getOwnPropertyDescriptor(process, 'platform');
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+    vi.stubEnv('APPIMAGE', '');
+    try {
+      const updater = makeUpdater();
+      const svc = new UpdateService(updater);
+      expect(await svc.checkForUpdates()).toBe('package');
+      expect(updater.checkForUpdates).not.toHaveBeenCalled();
+
+      vi.stubEnv('APPIMAGE', '/home/me/Shoal.AppImage');
+      expect(await svc.checkForUpdates()).toBe('started');
+      expect(updater.checkForUpdates).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllEnvs();
+      if (platform) Object.defineProperty(process, 'platform', platform);
+    }
+  });
+
   it('runs the check in packaged builds', async () => {
     vi.mocked(isProduction).mockReturnValue(true);
     const updater = makeUpdater();

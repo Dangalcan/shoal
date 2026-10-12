@@ -13,13 +13,16 @@ export function useAppUpdates(): void {
 
   useEffect(() => {
     if (!api.onUpdateStatus) return;
-    const off = api.onUpdateStatus((status: UpdateStatus) => {
+    const show = (status: UpdateStatus) => {
       switch (status.state) {
         case 'available':
-          toast.info(`Update available (v${status.version}). Downloading...`);
+          toast.info(`Update available (v${status.version}). Downloading...`, {
+            id: 'app-update-available',
+          });
           break;
         case 'downloaded':
           toast.success(`Update v${status.version} is ready.`, {
+            id: 'app-update-downloaded',
             duration: Infinity,
             action: {
               label: 'Restart',
@@ -32,7 +35,18 @@ export function useAppUpdates(): void {
         default:
           break;
       }
+    };
+    const off = api.onUpdateStatus(show);
+    // The start-up check can finish before this subscription exists (and a
+    // reload drops the toasts): ask for the last status once. Toast ids keep
+    // a status that arrives both ways from showing twice.
+    let cancelled = false;
+    void api.getUpdateStatus?.().then((result) => {
+      if (!cancelled && result?.success && result.data) show(result.data);
     });
-    return off;
+    return () => {
+      cancelled = true;
+      off();
+    };
   }, [api]);
 }

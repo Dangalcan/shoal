@@ -7,7 +7,11 @@ vi.mock('../logger', () => ({
 }));
 vi.mock('electron', () => ({ ipcMain: { handle: vi.fn() } }));
 vi.mock('../services/update', () => ({
-  updateService: { checkForUpdates: vi.fn(), quitAndInstall: vi.fn() },
+  updateService: {
+    checkForUpdates: vi.fn(),
+    quitAndInstall: vi.fn(),
+    getStatus: vi.fn(),
+  },
 }));
 
 import { registerUpdateIpcHandlers } from '../ipc/update-ipc';
@@ -50,5 +54,19 @@ describe('update IPC handlers', () => {
 
     expect(updateService.quitAndInstall).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ success: true, data: true });
+  });
+
+  it('get-update-status returns the last status the service saw', async () => {
+    vi.mocked(updateService.getStatus).mockReturnValue({
+      state: 'downloaded',
+      version: '2.0.0',
+    });
+
+    const result = await getHandler('get-update-status')(mockEvent);
+
+    expect(result).toEqual({
+      success: true,
+      data: { state: 'downloaded', version: '2.0.0' },
+    });
   });
 });

@@ -632,6 +632,14 @@ export class PluginManager {
   async uninstallPlugin(pluginId: string): Promise<void> {
     log.info(`[PluginManager] Uninstalling plugin: ${pluginId}`);
 
+    // A bundled plugin is rediscovered (and re-enabled by the first-run
+    // rule) on the next launch, so uninstalling it only confuses: refuse.
+    if (await pathService.isBundledPluginId(pluginId)) {
+      throw new Error(
+        `${pluginId} is bundled with Shoal and cannot be uninstalled; disable it instead`
+      );
+    }
+
     // --- Cascading Uninstall Logic ---
     const installedPlugins = pluginRegistry.getAllPlugins();
     const dependents = dependencyResolver.getDependents(
@@ -681,6 +689,13 @@ export class PluginManager {
         if (isUserPlugin) {
           await fs.promises.rm(pluginPath, { recursive: true, force: true });
           log.info(`[PluginManager] Deleted files for plugin ${pluginId}`);
+          // Its stored data goes too: the key-value rows and the storage
+          // directory (database, logs, cache) under the plugin's own id.
+          storageService.clear(pluginId);
+          await fs.promises.rm(pathService.getPluginStorageDir(pluginId), {
+            recursive: true,
+            force: true,
+          });
         } else {
           log.info(
             `[PluginManager] Plugin ${pluginId} is a bundled plugin, skipping file deletion`

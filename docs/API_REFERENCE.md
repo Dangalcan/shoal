@@ -425,10 +425,20 @@ Triggers a manual update check. Forced even in development so the button
 always gives feedback.
 
 - **Returns**: `Promise<Result<UpdateCheckStart>>` where `UpdateCheckStart` is
-  `'started' | 'portable' | 'dev' | 'error'`: `started` means the outcome
-  arrives through `onUpdateStatus`; `portable` is the Windows portable build,
-  which cannot update itself; `dev` an unpackaged build; `error` an updater
-  failure (an `error` status is emitted as well).
+  `'started' | 'portable' | 'package' | 'dev' | 'error'`: `started` means the
+  outcome arrives through `onUpdateStatus`; `portable` is the Windows
+  portable build, which cannot update itself; `package` a Linux install that
+  did not come from the AppImage (the `.deb`), which the package manager
+  updates; `dev` an unpackaged build; `error` an updater failure (an `error`
+  status is emitted as well).
+
+### `getUpdateStatus()`
+
+The last `UpdateStatus` the main process emitted, or `null` before the first
+check reports anything. `useAppUpdates` asks for it on mount, because the
+start-up check can finish before the renderer subscribes.
+
+- **Returns**: `Promise<Result<UpdateStatus | null>>`
 
 ### `installAppUpdate()`
 

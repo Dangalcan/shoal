@@ -26,6 +26,7 @@ vi.mock('../services/plugins/path-service', () => ({
     getDiscoveryDirectories: vi
       .fn()
       .mockReturnValue(['/mock/user/data/plugins', '/mock/app/path/plugins']),
+    getBundledPluginsDir: vi.fn().mockReturnValue('/mock/app/path/plugins'),
     resolvePluginPath: vi.fn(),
   },
 }));

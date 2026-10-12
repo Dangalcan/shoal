@@ -111,6 +111,7 @@ export class PluginLoader {
         manifest,
         state: 'disabled',
         installedAt: new Date().toISOString(),
+        bundled: isPathInside(pathService.getBundledPluginsDir(), pluginPath),
       };
 
       if (manifest.renderer) {

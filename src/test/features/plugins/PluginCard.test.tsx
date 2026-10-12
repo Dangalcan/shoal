@@ -43,6 +43,11 @@ describe('PluginCard', () => {
     expect(screen.getByTitle('Uninstall Plugin')).toBeDisabled();
   });
 
+  it('offers no uninstall for a bundled plugin', () => {
+    renderCard(makePlugin({ state: 'enabled', bundled: true }));
+    expect(screen.queryByTitle('Uninstall Plugin')).toBeNull();
+  });
+
   it('says Enabling while a disabled plugin turns on', () => {
     renderCard(makePlugin({ state: 'disabled' }), 'p1');
     expect(screen.getByRole('button', { name: 'Enabling...' })).toBeDisabled();

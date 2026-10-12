@@ -292,6 +292,7 @@ export interface ElectronAPI {
 
   // App updates
   checkForAppUpdates: () => Promise<Result<UpdateCheckStart>>;
+  getUpdateStatus: () => Promise<Result<UpdateStatus | null>>;
   installAppUpdate: () => Promise<Result<boolean>>;
   onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
 
@@ -308,10 +309,12 @@ export interface ElectronAPI {
 /**
  * What a manual update check did. 'started': results arrive as UpdateStatus
  * events. 'portable': the Windows portable build cannot update itself.
- * 'dev': not a packaged build. 'error': the updater threw (an 'error' status
- * was emitted too).
+ * 'package': installed from a Linux package, which the package manager
+ * updates. 'dev': not a packaged build. 'error': the updater threw (an
+ * 'error' status was emitted too).
  */
-export type UpdateCheckStart = 'started' | 'portable' | 'dev' | 'error';
+export type UpdateCheckStart =
+  'started' | 'portable' | 'package' | 'dev' | 'error';
 
 export type UpdateStatus =
   | { state: 'checking' }

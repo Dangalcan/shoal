@@ -328,6 +328,7 @@ export const mockApi: ElectronAPI = {
   portForwardList: async () => ({ success: true, data: [] }),
   onPortForwardClosed: () => () => {},
   checkForAppUpdates: async () => ({ success: true, data: 'dev' as const }),
+  getUpdateStatus: async () => ({ success: true, data: null }),
   installAppUpdate: async () => ({ success: true, data: true }),
   onUpdateStatus: () => () => {},
 };

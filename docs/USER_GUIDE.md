@@ -193,7 +193,7 @@ Plugins allow you to extend the functionality of Shoal.
 
 ### Included Plugins
 
-Shoal ships with two example plugins, **Namespace Watcher** (namespace stats and events) and **Resource Monitor** (CPU, memory and restarts per pod, needs a metrics server in the cluster). They are enabled the first time you start the app. From the **"Plugins"** section in the sidebar you can disable or enable them, change their settings (the gear on the card) and reload them.
+Shoal ships with two example plugins, **Namespace Watcher** (namespace stats and events) and **Resource Monitor** (CPU, memory and restarts per pod, needs a metrics server in the cluster). They are enabled the first time you start the app. From the **"Plugins"** section in the sidebar you can disable or enable them, change their settings (the gear on the card) and reload them. Being part of the app, they cannot be uninstalled: disable them instead.
 
 Both plugins add a page to the sidebar; Resource Monitor also adds a widget to the Dashboard.
 

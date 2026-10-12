@@ -280,7 +280,7 @@ export default function Plugins() {
         title="Uninstall Plugin"
         message={
           uninstallModal.item
-            ? `Are you sure you want to uninstall ${uninstallModal.item.manifest.name}? This will permanently delete all plugin files.`
+            ? `Are you sure you want to uninstall ${uninstallModal.item.manifest.name}? This removes the plugin, its files and its stored data.`
             : ''
         }
         confirmLabel="Uninstall"

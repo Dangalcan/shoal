@@ -245,6 +245,8 @@ export interface Plugin {
   updatedAt?: string;
   hasUpdate?: boolean;
   latestVersion?: string;
+  /** Shipped with the app: can be disabled, never uninstalled. */
+  bundled?: boolean;
 
   // Lifecycle hooks
   beforeActivate?: (context: PluginContext) => Promise<void>;
