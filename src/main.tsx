@@ -8,6 +8,7 @@ import '../styles/tailwind.css';
 import '../styles/index.scss';
 import { PluginProvider } from './features/plugins/PluginProvider';
 import { PluginNotifications } from './features/plugins/PluginNotifications';
+import { PluginModalBridge } from './features/plugins/PluginModalBridge';
 import { installGlobalErrorHandlers } from './lib/error-reporting';
 
 // Uncaught errors and unhandled rejections go to the main log file.
@@ -23,6 +24,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <ClusterProvider>
           <PluginProvider>
             <PluginNotifications />
+            <PluginModalBridge />
             <App />
           </PluginProvider>
         </ClusterProvider>

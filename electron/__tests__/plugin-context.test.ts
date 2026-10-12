@@ -208,7 +208,8 @@ describe('Plugin Context', () => {
       await context.kubernetes.getResources('pods', 'default');
       expect(mockSafeExec).toHaveBeenCalledWith(
         'kubectl',
-        expect.arrayContaining(['get', 'pods'])
+        expect.arrayContaining(['get', 'pods']),
+        expect.objectContaining({ timeout: 30_000 })
       );
     });
 

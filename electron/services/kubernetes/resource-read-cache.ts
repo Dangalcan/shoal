@@ -14,8 +14,10 @@
  */
 
 interface CacheEntry {
+  /** When the read settled (or started, while still in flight). */
   at: number;
   promise: Promise<unknown[]>;
+  settled: boolean;
 }
 
 const DEFAULT_TTL_MS = 5_000;
@@ -27,23 +29,34 @@ export class ResourceReadCache {
 
   /**
    * Return the cached list for `key` when fresh, otherwise run `fetch` and
-   * share its promise with any caller arriving before it settles.
+   * share its promise with any caller arriving before it settles. An
+   * in-flight read is shared however long it takes: a kubectl stuck on a
+   * credential prompt must not get a new copy from every poll.
    */
   getOrFetch(key: string, fetch: () => Promise<unknown[]>): Promise<unknown[]> {
     const now = Date.now();
     const hit = this.entries.get(key);
-    if (hit && now - hit.at < this.ttlMs) {
+    if (hit && (!hit.settled || now - hit.at < this.ttlMs)) {
       return hit.promise;
     }
 
     const promise = fetch();
-    this.entries.set(key, { at: now, promise });
-    // Never serve a failed read from cache
-    promise.catch(() => {
-      if (this.entries.get(key)?.promise === promise) {
-        this.entries.delete(key);
+    const entry: CacheEntry = { at: now, promise, settled: false };
+    this.entries.set(key, entry);
+    promise.then(
+      () => {
+        if (this.entries.get(key) === entry) {
+          entry.settled = true;
+          entry.at = Date.now(); // the TTL counts from the answer, not the start
+        }
+      },
+      () => {
+        // Never serve a failed read from cache
+        if (this.entries.get(key) === entry) {
+          this.entries.delete(key);
+        }
       }
-    });
+    );
     return promise;
   }
 

@@ -68,14 +68,12 @@ describe('KubernetesService', () => {
 
       const items = await service.getResources('pods', 'default');
       expect(items).toEqual(mockItems);
-      expect(mockSafeExec).toHaveBeenCalledWith('kubectl', [
-        'get',
-        'pods',
-        '-n',
-        'default',
-        '-o',
-        'json',
-      ]);
+      expect(mockSafeExec).toHaveBeenCalledWith(
+        'kubectl',
+        ['get', 'pods', '-n', 'default', '-o', 'json'],
+        // List reads time out so a stuck kubectl cannot pile up.
+        expect.objectContaining({ timeout: 30_000 })
+      );
     });
 
     it('should handle namespace all', async () => {

@@ -24,6 +24,28 @@ describe('ResourceReadCache', () => {
     await expect(p2).resolves.toEqual([{ name: 'pod-1' }]);
   });
 
+  it('keeps sharing an in-flight read past the TTL instead of starting another', async () => {
+    const cache = new ResourceReadCache(5000);
+    let resolve!: (v: unknown[]) => void;
+    const fetch = vi.fn(() => new Promise<unknown[]>((r) => (resolve = r)));
+
+    const p1 = cache.getOrFetch('ctx|pods|all', fetch);
+    vi.advanceTimersByTime(20_000); // kubectl stuck on a credential prompt
+    const p2 = cache.getOrFetch('ctx|pods|all', fetch);
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    resolve([1]);
+    await expect(p1).resolves.toEqual([1]);
+    await expect(p2).resolves.toEqual([1]);
+
+    // The TTL counts from the answer: a read right after it is a cache hit.
+    expect(await cache.getOrFetch('ctx|pods|all', fetch)).toEqual([1]);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(6_000);
+    fetch.mockImplementation(() => Promise.resolve([2]));
+    expect(await cache.getOrFetch('ctx|pods|all', fetch)).toEqual([2]);
+  });
+
   it('serves a resolved entry within the TTL without refetching', async () => {
     const cache = new ResourceReadCache(5000);
     const fetch = vi.fn().mockResolvedValue([1]);

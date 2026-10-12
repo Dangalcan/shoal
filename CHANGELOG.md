@@ -76,6 +76,19 @@ yet, so Windows SmartScreen shows a warning on first launch.
 - Plugin pages, widgets and modals render in installed builds. Sandboxed
   plugin frames could not load `file:` resources, so they stayed blank.
 - The manifest editor no longer steals focus from the other fields.
+- Switching context no longer resets the Default Namespace setting, and the
+  "default" option in Settings now really selects the `default` namespace
+  (it used to fall back to all namespaces).
+- Setting a kubeconfig path refreshes the cluster list and current context
+  immediately.
+- Deleting a context that is not a kind or k3d cluster says "Remove
+  Context" and explains that only the kubeconfig entry goes; the cluster is
+  not touched.
+- kubectl list reads time out after 30 seconds and a read that is still
+  running is shared by every poller instead of started again each interval,
+  so a stuck credential prompt no longer piles up kubectl processes.
+- `context.ui.openModal` from main-process plugin code opens the plugin's
+  modal; the event was sent but nothing in the UI listened.
 
 ### Security
 

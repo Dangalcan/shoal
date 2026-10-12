@@ -2,10 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { useApi } from '../../services/api-context';
 import { toast } from 'sonner';
+import { useClusterContext } from '../clusters/ClusterContext';
 import { UseSettingsResult } from './types';
 
 export function useSettings(): UseSettingsResult {
   const api = useApi();
+  const { fetchClusters } = useClusterContext();
 
   // Local Storage State
   const [defaultNamespace, setDefaultNamespace] = useLocalStorage<string>(
@@ -57,13 +59,16 @@ export function useSettings(): UseSettingsResult {
       const result = await api.setKubeconfigPath(kubeconfigPath);
       if (result.success) {
         toast.success('Kubeconfig path updated successfully');
+        // A different kubeconfig means different contexts: refresh the
+        // cluster list and current context right away.
+        await fetchClusters();
       } else {
         toast.error(`Error updating Kubeconfig: ${result.error}`);
       }
     } finally {
       setSaving(false);
     }
-  }, [api, kubeconfigPath]);
+  }, [api, kubeconfigPath, fetchClusters]);
 
   return {
     kubeconfigPath,

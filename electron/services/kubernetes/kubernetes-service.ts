@@ -25,6 +25,13 @@ import { pluginEventBus } from '../plugins/plugin-events';
 import { resourceReadCache } from './resource-read-cache';
 import log from '../../logger';
 
+/**
+ * List reads are polled by pages, widgets and plugins; one that hangs (a
+ * credential plugin waiting for a browser login, an unreachable API server
+ * without a connect timeout) must not pile up. Writes keep no timeout.
+ */
+const READ_TIMEOUT_MS = 30_000;
+
 /** Builds ['--context', ctx] when a context is given, validating it. */
 function contextArgs(contextName?: string): string[] {
   if (!contextName) return [];
@@ -138,14 +145,11 @@ export class KubernetesService {
       return await resourceReadCache.getOrFetch(
         `${contextName ?? ''}|${type}|${namespace}`,
         async () => {
-          const { stdout } = await safeExec('kubectl', [
-            'get',
-            type,
-            ...ctx,
-            ...ns,
-            '-o',
-            'json',
-          ]);
+          const { stdout } = await safeExec(
+            'kubectl',
+            ['get', type, ...ctx, ...ns, '-o', 'json'],
+            { timeout: READ_TIMEOUT_MS }
+          );
           const data = JSON.parse(stdout) as Record<string, unknown>;
           return (data.items as unknown[]) || [];
         }
@@ -314,13 +318,11 @@ export class KubernetesService {
       return (await resourceReadCache.getOrFetch(
         `${contextName ?? ''}|top-pods|${namespace}`,
         async () => {
-          const { stdout } = await safeExec('kubectl', [
-            'top',
-            'pods',
-            ...ctx,
-            ...ns,
-            '--no-headers',
-          ]);
+          const { stdout } = await safeExec(
+            'kubectl',
+            ['top', 'pods', ...ctx, ...ns, '--no-headers'],
+            { timeout: READ_TIMEOUT_MS }
+          );
           return parseTopPodsOutput(stdout, namespace);
         }
       )) as PodMetrics[];

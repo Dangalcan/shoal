@@ -839,15 +839,15 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
       // Open modal
       fireEvent.click(screen.getByTitle('Delete Cluster'));
       expect(
-        screen.getByText(
-          /Are you sure you want to delete cluster "cluster-123"?/i
-        )
+        screen.getByText(/Remove "cluster-123" from your kubeconfig\?/i)
       ).toBeInTheDocument();
 
       // Confirm deletion - use within to be specific to the modal
       const modal = screen.getByRole('dialog');
       const confirmBtn = within(modal).getByRole('button', {
-        name: 'Delete Cluster',
+        // "cluster-123" is not a kind/k3d cluster: the dialog offers to
+        // remove the context, not to delete a cluster.
+        name: 'Remove Context',
       });
       fireEvent.click(confirmBtn);
 
@@ -869,7 +869,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
 
       await waitFor(() => {
         expect(
-          screen.queryByText(/Are you sure you want to delete cluster/i)
+          screen.queryByText(/from your kubeconfig/i)
         ).not.toBeInTheDocument();
       });
     });
@@ -883,14 +883,16 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
       fireEvent.click(screen.getByTitle('Delete Cluster'));
       const modal = screen.getByRole('dialog');
       const confirmBtn = within(modal).getByRole('button', {
-        name: 'Delete Cluster',
+        // "cluster-123" is not a kind/k3d cluster: the dialog offers to
+        // remove the context, not to delete a cluster.
+        name: 'Remove Context',
       });
       fireEvent.click(confirmBtn);
 
       await waitFor(() => {
         expect(mockApi.deleteCluster).toHaveBeenCalled();
         expect(
-          screen.queryByText(/Are you sure you want to delete cluster/i)
+          screen.queryByText(/from your kubeconfig/i)
         ).not.toBeInTheDocument();
       });
     });
@@ -1154,8 +1156,9 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
         fireEvent.click(deleteBtn);
 
         // Confirm
-        const confirmBtn = await screen.findByText('Delete Cluster', {
-          selector: 'button',
+        // No name resolves to "Remove Context" (not a kind/k3d cluster).
+        const confirmBtn = await screen.findByRole('button', {
+          name: 'Remove Context',
         });
         fireEvent.click(confirmBtn);
 

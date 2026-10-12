@@ -40,10 +40,12 @@ export async function deleteClusterViaUI(
   const deleteBtn = screen.getByTitle(`Delete ${name}`);
   await user.click(deleteBtn);
 
-  // Modals might have a slight animation delay
+  // Modals might have a slight animation delay. kind/k3d clusters are
+  // deleted; any other context is only removed from the kubeconfig, and the
+  // dialog says so.
   const confirmBtn = await screen.findByRole(
     'button',
-    { name: 'Delete Cluster' },
+    { name: /^(Delete Cluster|Remove Context)$/ },
     { timeout: 2000 }
   );
   await user.click(confirmBtn);

@@ -72,16 +72,18 @@ export function Settings() {
                   Default Namespace
                 </label>
                 <select
-                  value={defaultNamespace}
+                  value={defaultNamespace || 'all'}
                   onChange={(e) => setDefaultNamespace(e.target.value)}
                   className="settings-form__input"
                   aria-label="Default Namespace"
                   disabled={loadingNamespaces}
                 >
                   <option value="all">All Namespaces</option>
-                  <option value="">Default (Use 'default')</option>
+                  {/* The real namespace called "default"; an empty value used to
+                      stand for it but was read back as "all". */}
+                  <option value="default">default</option>
                   {namespaces
-                    .filter((ns) => ns !== 'all')
+                    .filter((ns) => ns !== 'all' && ns !== 'default')
                     .map((ns) => (
                       <option key={ns} value={ns}>
                         {ns}

@@ -13,7 +13,10 @@ import { ConfirmModal } from '../components/modals/ConfirmModal';
 import { useClusterContext } from '../features/clusters/ClusterContext';
 import { Button, Badge, Spinner, Animate } from '../components/ui';
 import { KubectlMissingNotice } from '../features/clusters/KubectlMissingNotice';
-import { providerFromContext } from '../features/clusters/provider';
+import {
+  providerFromContext,
+  deleteClusterDialogText,
+} from '../features/clusters/provider';
 
 export function Clusters() {
   const navigate = useNavigate();
@@ -186,9 +189,7 @@ export function Clusters() {
         isOpen={!!clusterToDelete}
         onClose={() => setClusterToDelete(null)}
         onConfirm={handleDelete}
-        title="Delete Cluster"
-        message={`Are you sure you want to delete cluster "${clusterToDelete}"? This action cannot be undone.`}
-        confirmLabel="Delete Cluster"
+        {...deleteClusterDialogText(clusterToDelete ?? '')}
         variant="danger"
         loading={!!deleting}
       />

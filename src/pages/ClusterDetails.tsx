@@ -9,6 +9,7 @@ import { PodTerminalModal } from '../components/modals/PodTerminalModal';
 import { PortForwardModal } from '../components/modals/PortForwardModal';
 import { ScaleResourceModal } from '../components/modals/ScaleResourceModal';
 import { getForwardablePorts } from '../features/portforward/port-utils';
+import { deleteClusterDialogText } from '../features/clusters/provider';
 import {
   ResourceType,
   ALL_TABS,
@@ -279,9 +280,7 @@ export function ClusterDetails() {
           isOpen={isDeletingCluster}
           onClose={() => setIsDeletingCluster(false)}
           onConfirm={handleDeleteCluster}
-          title="Delete Cluster"
-          message={`Are you sure you want to delete cluster "${name}"? This action cannot be undone.`}
-          confirmLabel="Delete Cluster"
+          {...deleteClusterDialogText(name ?? '')}
           variant="danger"
           loading={!!deleting}
         />
