@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handleError, handleIpcError } from '../../lib/error-handler';
+import { handleError } from '../../lib/error-handler';
 import { toast } from 'sonner';
 
 // Mock sonner toast
@@ -87,18 +87,6 @@ describe('error-handler', () => {
         'Null Error',
         expect.objectContaining({
           description: undefined,
-        })
-      );
-    });
-  });
-
-  describe('handleIpcError', () => {
-    it('should format title correctly', () => {
-      handleIpcError(new Error('IPC Failure'), 'fetch items');
-      expect(toast.error).toHaveBeenCalledWith(
-        'Failed to fetch items',
-        expect.objectContaining({
-          description: 'IPC Failure',
         })
       );
     });

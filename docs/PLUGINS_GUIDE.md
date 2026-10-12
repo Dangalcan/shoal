@@ -319,6 +319,12 @@ pluginUIRegistry.registerResourceAction({
 });
 ```
 
+The `icon` of a resource action in `plugin.json` is one of these Lucide
+names: `Activity`, `AlertCircle`, `Bell`, `Box`, `Database`, `Download`,
+`Eye`, `FileText`, `Globe`, `Info`, `Key`, `Layers`, `Link`, `Lock`, `Play`,
+`Puzzle`, `RotateCcw`, `Search`, `Settings`, `Shield`, `Terminal`, `Trash2`,
+`Upload`, `Zap`. Any other name shows the puzzle piece.
+
 ---
 
 ## Complete API Reference

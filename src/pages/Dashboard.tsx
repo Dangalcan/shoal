@@ -20,6 +20,7 @@ import { cn } from '../lib/utils';
 import { DashboardWidgets } from '../features/plugins/DashboardWidgets';
 import { KubectlMissingNotice } from '../features/clusters/KubectlMissingNotice';
 import type { ToolStatus } from '../types.d';
+import { activateOnKey } from '../lib/a11y';
 
 interface StatCardProps {
   label: string;
@@ -244,6 +245,13 @@ export function Dashboard() {
                       onClick={() =>
                         navigate(`/cluster/${encodeURIComponent(cluster)}`)
                       }
+                      onKeyDown={(e) =>
+                        activateOnKey(e, () =>
+                          navigate(`/cluster/${encodeURIComponent(cluster)}`)
+                        )
+                      }
+                      role="button"
+                      tabIndex={0}
                       className="cluster-item-content"
                     >
                       <Server

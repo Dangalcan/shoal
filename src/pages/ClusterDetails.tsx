@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { RefreshCw, Trash2 } from 'lucide-react';
 import { LogViewerModal } from '../components/modals/LogViewerModal';
+import { isPod } from '../lib/type-guards';
 import { DescribeModal } from '../components/modals/DescribeModal';
 import { YamlModal } from '../components/modals/YamlModal';
 import { ConfirmModal } from '../components/modals/ConfirmModal';
@@ -239,6 +240,11 @@ export function ClusterDetails() {
           clusterName={name || ''}
           podName={modals.selectedItem?.metadata.name || ''}
           namespace={modals.selectedItem?.metadata.namespace || ''}
+          containers={
+            modals.selectedItem && isPod(modals.selectedItem)
+              ? (modals.selectedItem.spec?.containers ?? []).map((c) => c.name)
+              : undefined
+          }
         />
         <DescribeModal
           isOpen={modals.activeModal === 'describe'}

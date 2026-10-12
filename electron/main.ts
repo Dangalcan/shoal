@@ -40,6 +40,13 @@ import log from './logger';
 import { installApplicationMenu } from './menu';
 import { trackWindowState, usableBounds } from './window-state';
 
+// `shoal --version` answers on the console and exits instead of opening
+// a window.
+if (process.argv.includes('--version') || process.argv.includes('-v')) {
+  process.stdout.write(`Shoal ${app.getVersion()}\n`);
+  app.exit(0);
+}
+
 // Desktop launchers do not read the shell profile: add the usual tool
 // directories (kubectl, kind, helm...) before any child process starts.
 applyDesktopToolPath();

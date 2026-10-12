@@ -14,6 +14,7 @@ import {
   resolveLocalShell,
 } from '../services/terminal/local-shells';
 import log from '../logger';
+import { StringDecoder } from 'string_decoder';
 
 interface CreateTerminalArgs {
   kind: 'local' | 'pod-exec';
@@ -115,11 +116,16 @@ export function registerTerminalIpcHandlers(): void {
 
         sessions.set(sessionId, { process: child });
 
+        // A multibyte character can straddle two chunks; a StringDecoder
+        // keeps the partial bytes until the next chunk completes them.
+        const stdoutDecoder = new StringDecoder('utf8');
+        const stderrDecoder = new StringDecoder('utf8');
+
         child.stdout!.on('data', (data: Buffer) => {
           if (!event.sender.isDestroyed()) {
             event.sender.send('terminal:output', {
               sessionId,
-              data: data.toString('utf8'),
+              data: stdoutDecoder.write(data),
             });
           }
         });
@@ -128,7 +134,7 @@ export function registerTerminalIpcHandlers(): void {
           if (!event.sender.isDestroyed()) {
             event.sender.send('terminal:output', {
               sessionId,
-              data: data.toString('utf8'),
+              data: stderrDecoder.write(data),
             });
           }
         });

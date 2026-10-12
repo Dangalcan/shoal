@@ -8,7 +8,33 @@
  */
 
 import { useMemo } from 'react';
-import * as LucideIcons from 'lucide-react';
+import type { ComponentType } from 'react';
+import {
+  Activity,
+  AlertCircle,
+  Bell,
+  Box,
+  Database,
+  Download,
+  Eye,
+  FileText,
+  Globe,
+  Info,
+  Key,
+  Layers,
+  Link,
+  Lock,
+  Play,
+  Puzzle,
+  RotateCcw,
+  Search,
+  Settings,
+  Shield,
+  Terminal,
+  Trash2,
+  Upload,
+  Zap,
+} from 'lucide-react';
 import { usePlugins } from './PluginProvider';
 import { usePluginModal } from './sandbox/usePluginModal';
 import type {
@@ -42,17 +68,43 @@ export function usePluginResourceActions(
   }, [plugins, resourceType]);
 }
 
+/**
+ * Icons a resource action may name in its manifest (`icon`). A named set
+ * keeps the whole Lucide library out of the main bundle; anything else
+ * falls back to the puzzle piece.
+ */
+export const RESOURCE_ACTION_ICONS: Record<
+  string,
+  ComponentType<{ size?: number }>
+> = {
+  Activity,
+  AlertCircle,
+  Bell,
+  Box,
+  Database,
+  Download,
+  Eye,
+  FileText,
+  Globe,
+  Info,
+  Key,
+  Layers,
+  Link,
+  Lock,
+  Play,
+  Puzzle,
+  RotateCcw,
+  Search,
+  Settings,
+  Shield,
+  Terminal,
+  Trash2,
+  Upload,
+  Zap,
+};
+
 function ActionIcon({ name }: { name?: string }) {
-  const Icon = name
-    ? (
-        LucideIcons as unknown as Record<
-          string,
-          React.ComponentType<{ size?: number }>
-        >
-      )[name]
-    : undefined;
-  const Fallback = LucideIcons.Puzzle;
-  const Cmp = Icon ?? Fallback;
+  const Cmp = (name && RESOURCE_ACTION_ICONS[name]) || Puzzle;
   return <Cmp size={14} />;
 }
 

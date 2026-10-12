@@ -87,6 +87,20 @@ yet, so Windows SmartScreen shows a warning on first launch.
   terminal follows.
 - Manifests show the database error instead of a generic message when the
   library cannot be read.
+- The log viewer starts blank for the next pod instead of showing the
+  previous pod's lines while the new ones load, offers a container picker
+  for pods with several containers (sidecars) and a copy button.
+- Sortable column headers, cluster cards, the Dashboard cluster list and the
+  manifest drop zone work from the keyboard (Tab, Enter, Space) and announce
+  their sort state.
+- A page that throws no longer takes the sidebar with it: the error shows in
+  the page area and the rest of the app stays usable.
+- Terminal output no longer splits a multibyte character (accented letters,
+  box drawing) across two chunks.
+- The main bundle no longer carries every Lucide icon for plugin resource
+  actions; actions pick from a named set (see the plugin guide).
+- Linux desktop entries carry a comment and search keywords, and
+  `shoal --version` prints the version instead of opening a window.
 - The bundled example plugins no longer offer "Uninstall" (they came back
   on the next launch); disable them instead. Uninstalling a plugin you
   installed now also removes its stored data.

@@ -209,7 +209,13 @@
         "AppImage",
         "deb"
       ],
-      "category": "Development"
+      "category": "Development",
+      "desktop": {
+        "entry": {
+          "Comment": "Desktop app for your Kubernetes clusters",
+          "Keywords": "kubernetes;k8s;kubectl;kind;k3d;cluster;devops;"
+        }
+      }
     },
     "nsis": {
       "artifactName": "${productName}-Setup-${version}.${ext}"

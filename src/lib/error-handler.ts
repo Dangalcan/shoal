@@ -65,13 +65,3 @@ export const handleError = (
     id: options?.id,
   });
 };
-
-/**
- * Specific handler for IPC/Bridge errors.
- *
- * @param error - The error to handle
- * @param action - The action that failed (e.g., "fetch clusters")
- */
-export const handleIpcError = (error: unknown, action: string) => {
-  handleError(error, `Failed to ${action}`);
-};

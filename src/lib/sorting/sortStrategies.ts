@@ -39,10 +39,3 @@ export const sortByDate = (
     return valA - valB;
   };
 };
-
-/**
- * Reverses a sorter function
- */
-export const reverseSorter = (sorter: SorterFunction): SorterFunction => {
-  return (a, b) => sorter(b, a); // Note: b, a order reverses the sort
-};

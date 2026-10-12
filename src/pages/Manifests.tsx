@@ -25,6 +25,7 @@ import { useManifestFolders } from '../features/manifests/useManifestFolders';
 import { isFileDrag } from '../features/manifests/manifest-dnd';
 import { ExampleTemplatesModal } from '../features/manifests/ExampleTemplatesModal';
 import type { ExampleTemplate } from '../features/manifests/example-templates';
+import { activateOnKey } from '../lib/a11y';
 
 type FolderNameModalState =
   { mode: 'create' } | { mode: 'rename'; folder: ManifestFolder } | null;
@@ -538,6 +539,11 @@ export function Manifests() {
             <div
               className="empty-state drop-zone"
               onClick={() => fileInputRef.current?.click()}
+              onKeyDown={(e) =>
+                activateOnKey(e, () => fileInputRef.current?.click())
+              }
+              role="button"
+              tabIndex={0}
             >
               <FileUp size={48} className="empty-icon" />
               <p>

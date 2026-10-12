@@ -82,7 +82,7 @@ Navigate to **"Clusters"** in the sidebar to see a list of your connected cluste
 Hover a row to reveal its action buttons:
 
 - **Describe** and **YAML**: Inspect the resource as `kubectl describe` and `kubectl get -o yaml` show it.
-- **Logs**: Show the last 200 lines of a pod's log, with a search box. Logs are fetched on demand, not streamed; reopen the viewer for newer lines.
+- **Logs**: Show the last 200 lines of a pod's log, with a filter box, a container picker for pods with several containers (sidecars), auto-refresh and a copy button. Logs are fetched on demand, not streamed.
 - **Rollout Restart** and **Delete**: Perform rollouts or deletions directly from the UI, after a confirmation.
 - **Scale**: Set the replica count for Deployments, StatefulSets, and ReplicaSets (0–1000).
 - **Open Shell**: Start a terminal session inside a pod (see [Terminal](#terminal)).

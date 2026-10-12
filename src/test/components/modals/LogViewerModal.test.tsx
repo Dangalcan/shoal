@@ -182,4 +182,74 @@ describe('LogViewerModal', () => {
       await screen.findByText('No logs found.', {}, { timeout: 3000 })
     ).toBeInTheDocument();
   });
+
+  it('starts blank for the next pod and asks for the chosen container', async () => {
+    mockElectronAPI.getLogs.mockResolvedValue({
+      success: true,
+      data: 'lines of pod-a',
+    });
+    const { rerender } = render(
+      <LogViewerModal
+        isOpen={true}
+        onClose={vi.fn()}
+        clusterName="c"
+        podName="pod-a"
+        namespace="default"
+        containers={['app', 'sidecar']}
+      />
+    );
+    await waitFor(() =>
+      expect(screen.getByText('lines of pod-a')).toBeInTheDocument()
+    );
+    expect(window.electron.getLogs).toHaveBeenLastCalledWith(
+      expect.objectContaining({ podName: 'pod-a', container: undefined })
+    );
+
+    fireEvent.change(screen.getByLabelText('Container'), {
+      target: { value: 'sidecar' },
+    });
+    await waitFor(() =>
+      expect(window.electron.getLogs).toHaveBeenLastCalledWith(
+        expect.objectContaining({ podName: 'pod-a', container: 'sidecar' })
+      )
+    );
+
+    mockElectronAPI.getLogs.mockImplementation(() => new Promise(() => {}));
+    rerender(
+      <LogViewerModal
+        isOpen={true}
+        onClose={vi.fn()}
+        clusterName="c"
+        podName="pod-b"
+        namespace="default"
+      />
+    );
+    await waitFor(() =>
+      expect(screen.queryByText('lines of pod-a')).not.toBeInTheDocument()
+    );
+    expect(screen.getByText('Fetching logs...')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Container')).toBeNull();
+  });
+
+  it('copies the visible lines', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+    render(
+      <LogViewerModal
+        isOpen={true}
+        onClose={vi.fn()}
+        clusterName="c"
+        podName="pod-a"
+        namespace="default"
+      />
+    );
+    await waitFor(() =>
+      expect(screen.getByText('Test logs')).toBeInTheDocument()
+    );
+    fireEvent.click(screen.getByTitle('Copy logs'));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('Test logs'));
+  });
 });

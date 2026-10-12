@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { ChevronUp, ChevronDown } from 'lucide-react';
+import { activateOnKey } from '../../lib/a11y';
 
 export interface ColumnDef {
   id: string;
@@ -45,6 +46,15 @@ export const ResourceTable: React.FC<ResourceTableProps> = ({
                     className="table-head-cell"
                     style={{ width: `${width}px` }}
                     onClick={() => onSort(col.id)}
+                    onKeyDown={(e) => activateOnKey(e, () => onSort(col.id))}
+                    tabIndex={0}
+                    aria-sort={
+                      isSorted
+                        ? sortConfig.direction === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : 'none'
+                    }
                   >
                     <div className="table-head-cell-content">
                       <span>{col.label}</span>

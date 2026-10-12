@@ -7,7 +7,9 @@ import {
   Search,
   X,
   Check,
+  Copy,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { BaseModal } from './BaseModal';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
@@ -19,6 +21,8 @@ interface LogViewerModalProps {
   clusterName: string;
   podName: string;
   namespace: string;
+  /** Container names of the pod; a picker appears when there is more than one. */
+  containers?: string[];
 }
 
 export function LogViewerModal({
@@ -27,6 +31,7 @@ export function LogViewerModal({
   clusterName,
   podName,
   namespace,
+  containers = [],
 }: LogViewerModalProps) {
   const api = useApi();
   const [logs, setLogs] = useState<string>('');
@@ -34,9 +39,18 @@ export function LogViewerModal({
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [container, setContainer] = useState<string | undefined>(undefined);
   const [tailLines] = useState(200);
   const logEndRef = useRef<HTMLDivElement>(null);
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // A different pod starts from a blank viewer: the previous pod's lines
+  // must not show as the new pod's while its logs load.
+  useEffect(() => {
+    setLogs('');
+    setError(null);
+    setContainer(undefined);
+  }, [podName, namespace]);
 
   const fetchLogs = useCallback(
     async (isAuto = false) => {
@@ -49,6 +63,7 @@ export function LogViewerModal({
           podName,
           namespace,
           tailLines,
+          container,
         });
         if (result.success) {
           setLogs(result.data || 'No logs found.');
@@ -64,7 +79,7 @@ export function LogViewerModal({
         if (!isAuto) setLoading(false);
       }
     },
-    [api, podName, namespace, clusterName, tailLines]
+    [api, podName, namespace, clusterName, tailLines, container]
   );
 
   useEffect(() => {
@@ -95,13 +110,37 @@ export function LogViewerModal({
     .filter((line) => line.toLowerCase().includes(searchQuery.toLowerCase()))
     .join('\n');
 
+  const copyLogs = async () => {
+    try {
+      await navigator.clipboard.writeText(filteredLogs);
+      toast.success('Logs copied to the clipboard');
+    } catch {
+      toast.error('Could not copy the logs');
+    }
+  };
+
   const headerActions = (
     <div className="log-header-actions">
+      {containers.length > 1 && (
+        <select
+          aria-label="Container"
+          className="log-container-select"
+          value={container ?? containers[0]}
+          onChange={(e) => setContainer(e.target.value)}
+        >
+          {containers.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
+      )}
       <div className="log-search-container">
         <Search size={14} className="log-search-icon" />
         <input
           type="text"
           placeholder="Filter logs..."
+          aria-label="Filter logs"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="log-search-input"
@@ -129,6 +168,15 @@ export function LogViewerModal({
           title="Refresh Now"
         >
           <RefreshCw size={18} />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => void copyLogs()}
+          disabled={!logs}
+          title="Copy logs"
+        >
+          <Copy size={18} />
         </Button>
       </div>
     </div>

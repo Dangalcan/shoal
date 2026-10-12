@@ -3,7 +3,6 @@ import {
   sortByString,
   sortByNumber,
   sortByDate,
-  reverseSorter,
 } from '../../../lib/sorting/sortStrategies';
 import type { K8sResource } from '../../../types/k8s-types';
 
@@ -122,33 +121,6 @@ describe('sortStrategies', () => {
       });
       // getter(b) undefined → line 38 `|| 0` branch
       expect(sorter(withDate, noDate)).toBeGreaterThan(0);
-    });
-  });
-
-  describe('reverseSorter', () => {
-    it('should reverse the order of the wrapped sorter', () => {
-      const ascending = sortByString((r) => (r as any).metadata.name);
-      const descending = reverseSorter(ascending);
-
-      const a = makeResource({
-        metadata: { name: 'alpha', uid: '1', resourceVersion: '1' },
-      });
-      const b = makeResource({
-        metadata: { name: 'zeta', uid: '2', resourceVersion: '1' },
-      });
-
-      // ascending: alpha < zeta → negative
-      expect(ascending(a, b)).toBeLessThan(0);
-      // descending: alpha > zeta → positive
-      expect(descending(a, b)).toBeGreaterThan(0);
-      expect(descending(b, a)).toBeLessThan(0);
-    });
-
-    it('should return 0 for equal elements after reversal', () => {
-      const ascending = sortByNumber((r) => 5);
-      const descending = reverseSorter(ascending);
-      const r = makeResource();
-      expect(descending(r, r)).toBe(0);
     });
   });
 });

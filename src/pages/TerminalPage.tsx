@@ -8,8 +8,10 @@ import {
 } from 'lucide-react';
 import { Terminal } from '../components/Terminal';
 import type { LocalShellInfo } from '../types';
+import { useApi } from '../services/api-context';
 
 export function TerminalPage() {
+  const api = useApi();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,7 @@ export function TerminalPage() {
   const sessionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    window.electron.terminalShells().then((result) => {
+    api.terminalShells().then((result) => {
       if (result.success && result.data) {
         setShells(result.data.shells);
         setDefaultShell(result.data.defaultShell);
@@ -39,7 +41,7 @@ export function TerminalPage() {
     setLoading(true);
     setError(null);
     setSessionId(null);
-    const result = await window.electron.terminalCreate({
+    const result = await api.terminalCreate({
       kind: 'local',
       shell: shell ?? undefined,
     });
@@ -57,7 +59,7 @@ export function TerminalPage() {
     startSession();
     return () => {
       if (sessionIdRef.current) {
-        window.electron.terminalKill(sessionIdRef.current);
+        api.terminalKill(sessionIdRef.current);
         sessionIdRef.current = null;
       }
     };

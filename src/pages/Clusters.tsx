@@ -13,6 +13,7 @@ import { ConfirmModal } from '../components/modals/ConfirmModal';
 import { useClusterContext } from '../features/clusters/ClusterContext';
 import { Button, Badge, Spinner, Animate } from '../components/ui';
 import { KubectlMissingNotice } from '../features/clusters/KubectlMissingNotice';
+import { activateOnKey } from '../lib/a11y';
 import {
   providerFromContext,
   deleteClusterDialogText,
@@ -107,6 +108,13 @@ export function Clusters() {
                     onClick={() =>
                       navigate(`/cluster/${encodeURIComponent(cluster)}`)
                     }
+                    onKeyDown={(e) =>
+                      activateOnKey(e, () =>
+                        navigate(`/cluster/${encodeURIComponent(cluster)}`)
+                      )
+                    }
+                    role="button"
+                    tabIndex={0}
                     className="cluster-card-info"
                   >
                     <div className="cluster-card-name-row">
