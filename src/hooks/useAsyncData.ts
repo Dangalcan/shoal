@@ -53,6 +53,16 @@ export function useAsyncData<T>(
   const [loading, setLoading] = useState(!options.skipInitialFetch);
   const [error, setError] = useState<string | null>(null);
   const requestCounter = useRef(0);
+  // One toast per distinct failure: an auto-refresh that keeps failing the
+  // same way (cluster down, kubectl missing) must not stack a toast every
+  // interval. The id also lets a new failure replace the previous toast.
+  const lastToastedError = useRef<string | null>(null);
+  const toastId = useRef(`async-data-${Math.random().toString(36).slice(2)}`);
+  const reportError = (err: unknown, message: string) => {
+    if (!errorTitleRef.current || lastToastedError.current === message) return;
+    lastToastedError.current = message;
+    handleError(err, errorTitleRef.current, { id: toastId.current });
+  };
 
   // Use refs for functions and options to avoid re-render loops
   const fetchFnRef = useRef(options.fetchFn);
@@ -76,15 +86,15 @@ export function useAsyncData<T>(
 
       if (isResult(result)) {
         if (result.success) {
+          lastToastedError.current = null;
           setData(result.data);
         } else {
           setError(result.error);
           setData(null);
-          if (errorTitleRef.current) {
-            handleError(new Error(result.error), errorTitleRef.current);
-          }
+          reportError(new Error(result.error), result.error);
         }
       } else {
+        lastToastedError.current = null;
         setData(result as T);
       }
     } catch (err) {
@@ -93,10 +103,7 @@ export function useAsyncData<T>(
           err instanceof Error ? err.message : 'An error occurred';
         setError(errorMsg);
         setData(null);
-
-        if (errorTitleRef.current) {
-          handleError(err, errorTitleRef.current);
-        }
+        reportError(err, errorMsg);
       }
     } finally {
       if (requestId === requestCounter.current) {

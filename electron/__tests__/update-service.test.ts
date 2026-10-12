@@ -71,11 +71,26 @@ describe('UpdateService', () => {
     const updater = makeUpdater();
     const svc = new UpdateService(updater);
 
-    expect(await svc.checkForUpdates()).toBe(false);
+    expect(await svc.checkForUpdates()).toBe('dev');
     expect(updater.checkForUpdates).not.toHaveBeenCalled();
 
-    expect(await svc.checkForUpdates(true)).toBe(true);
+    expect(await svc.checkForUpdates(true)).toBe('started');
     expect(updater.checkForUpdates).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports an updater failure as error through the status sink too', async () => {
+    vi.mocked(isProduction).mockReturnValue(true);
+    const updater = makeUpdater();
+    updater.checkForUpdates = vi.fn().mockRejectedValue(new Error('offline'));
+    const svc = new UpdateService(updater);
+    const onStatus = vi.fn();
+    svc.init(onStatus);
+
+    expect(await svc.checkForUpdates()).toBe('error');
+    expect(onStatus).toHaveBeenCalledWith({
+      state: 'error',
+      message: 'offline',
+    });
   });
 
   it('never checks in the Windows portable build, even when forced', async () => {
@@ -84,8 +99,8 @@ describe('UpdateService', () => {
     try {
       const updater = makeUpdater();
       const svc = new UpdateService(updater);
-      expect(await svc.checkForUpdates()).toBe(false);
-      expect(await svc.checkForUpdates(true)).toBe(false);
+      expect(await svc.checkForUpdates()).toBe('portable');
+      expect(await svc.checkForUpdates(true)).toBe('portable');
       expect(updater.checkForUpdates).not.toHaveBeenCalled();
     } finally {
       vi.unstubAllEnvs();
@@ -96,7 +111,7 @@ describe('UpdateService', () => {
     vi.mocked(isProduction).mockReturnValue(true);
     const updater = makeUpdater();
     const svc = new UpdateService(updater);
-    expect(await svc.checkForUpdates()).toBe(true);
+    expect(await svc.checkForUpdates()).toBe('started');
     expect(updater.checkForUpdates).toHaveBeenCalled();
   });
 
@@ -108,7 +123,7 @@ describe('UpdateService', () => {
     const statuses: unknown[] = [];
     svc.init((s) => statuses.push(s));
 
-    expect(await svc.checkForUpdates()).toBe(false);
+    expect(await svc.checkForUpdates()).toBe('error');
     expect(statuses).toContainEqual({ state: 'error', message: 'net down' });
   });
 

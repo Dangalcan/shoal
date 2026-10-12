@@ -430,7 +430,11 @@ progress is pushed from the main process on the `update-status` channel
 Triggers a manual update check. Forced even in development so the button
 always gives feedback.
 
-- **Returns**: `Promise<Result<boolean>>`
+- **Returns**: `Promise<Result<UpdateCheckStart>>` where `UpdateCheckStart` is
+  `'started' | 'portable' | 'dev' | 'error'`: `started` means the outcome
+  arrives through `onUpdateStatus`; `portable` is the Windows portable build,
+  which cannot update itself; `dev` an unpackaged build; `error` an updater
+  failure (an `error` status is emitted as well).
 
 ### `installAppUpdate()`
 

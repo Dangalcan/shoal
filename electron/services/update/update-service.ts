@@ -18,6 +18,14 @@ export type UpdateStatus =
   | { state: 'downloaded'; version: string }
   | { state: 'error'; message: string };
 
+/**
+ * What a manual update check did: 'started' (results arrive as UpdateStatus
+ * events), 'portable' (the Windows portable build cannot update itself),
+ * 'dev' (not a packaged build) or 'error' (the updater threw; an 'error'
+ * status was emitted too).
+ */
+export type UpdateCheckStart = 'started' | 'portable' | 'dev' | 'error';
+
 /** Minimal structural view of electron-updater's autoUpdater (for testing). */
 export interface UpdaterLike {
   autoDownload: boolean;
@@ -65,28 +73,29 @@ export class UpdateService {
   }
 
   /**
-   * Check for updates. Skipped (returns false) outside packaged builds unless
-   * forced, because electron-updater cannot run against a dev build. Always
-   * skipped in the Windows portable build: it cannot replace itself, and the
-   * updater would install a separate NSIS copy instead.
+   * Check for updates. Says why when it does not: outside packaged builds
+   * (unless forced; electron-updater cannot run against a dev build) and in
+   * the Windows portable build, which cannot replace itself (the updater
+   * would install a separate NSIS copy). An updater failure is also reported
+   * through the status sink.
    */
-  async checkForUpdates(force = false): Promise<boolean> {
+  async checkForUpdates(force = false): Promise<UpdateCheckStart> {
     if (process.env.PORTABLE_EXECUTABLE_DIR) {
       log.info(
         '[UpdateService] Skipping update check (portable build cannot self-update)'
       );
-      return false;
+      return 'portable';
     }
     if (!isProduction() && !force) {
       log.info('[UpdateService] Skipping update check (not a packaged build)');
-      return false;
+      return 'dev';
     }
     try {
       await this.updater.checkForUpdates();
-      return true;
+      return 'started';
     } catch (err: unknown) {
       this.emit({ state: 'error', message: getErrorMessage(err) });
-      return false;
+      return 'error';
     }
   }
 

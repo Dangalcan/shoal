@@ -76,11 +76,16 @@ function engineLabel(status: ToolStatus | null): string {
   return status.running ? 'Running' : 'Stopped';
 }
 
+/**
+ * Only an installed engine that is not running is a problem worth a red
+ * dot; most users have Docker or Podman, not both, so "not installed" is
+ * neutral.
+ */
 function engineState(
   status: ToolStatus | null
 ): 'running' | 'stopped' | undefined {
-  if (status === null) return undefined;
-  return status.installed && status.running ? 'running' : 'stopped';
+  if (status === null || !status.installed) return undefined;
+  return status.running ? 'running' : 'stopped';
 }
 
 export function Dashboard() {
@@ -236,7 +241,9 @@ export function Dashboard() {
                     )}
                   >
                     <div
-                      onClick={() => navigate(`/cluster/${cluster}`)}
+                      onClick={() =>
+                        navigate(`/cluster/${encodeURIComponent(cluster)}`)
+                      }
                       className="cluster-item-content"
                     >
                       <Server

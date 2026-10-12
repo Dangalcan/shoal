@@ -26,16 +26,20 @@ export function registerPluginsIpcHandlers(): void {
     })
   );
 
+  // Every handler that takes a plugin id validates it first: the ids end up
+  // in file system paths (plugin directories, settings, uninstall).
   ipcMain.handle(
     'enable-plugin',
-    wrapIpcHandler('enable-plugin', async (_event, pluginId: string) => {
+    wrapIpcHandler('enable-plugin', async (_event, pluginId: unknown) => {
+      assertValidPluginId(pluginId);
       return await pluginManager.enablePlugin(pluginId);
     })
   );
 
   ipcMain.handle(
     'disable-plugin',
-    wrapIpcHandler('disable-plugin', async (_event, pluginId: string) => {
+    wrapIpcHandler('disable-plugin', async (_event, pluginId: unknown) => {
+      assertValidPluginId(pluginId);
       return await pluginManager.disablePlugin(pluginId);
     })
   );
@@ -87,7 +91,8 @@ export function registerPluginsIpcHandlers(): void {
 
   ipcMain.handle(
     'reload-plugin',
-    wrapIpcHandler('reload-plugin', async (_event, pluginId: string) => {
+    wrapIpcHandler('reload-plugin', async (_event, pluginId: unknown) => {
+      assertValidPluginId(pluginId);
       await pluginManager.reloadPlugin(pluginId);
       return true;
     })
@@ -98,6 +103,7 @@ export function registerPluginsIpcHandlers(): void {
     wrapIpcHandler(
       'execute-plugin-action',
       async (_event, { pluginId, actionId, args }) => {
+        assertValidPluginId(pluginId);
         return await pluginManager.executePluginAction(
           pluginId,
           actionId,
@@ -109,7 +115,8 @@ export function registerPluginsIpcHandlers(): void {
 
   ipcMain.handle(
     'get-plugin-settings',
-    wrapIpcHandler('get-plugin-settings', async (_event, pluginId: string) => {
+    wrapIpcHandler('get-plugin-settings', async (_event, pluginId: unknown) => {
+      assertValidPluginId(pluginId);
       return pluginManager.getPluginSettings(pluginId);
     })
   );
@@ -119,6 +126,7 @@ export function registerPluginsIpcHandlers(): void {
     wrapIpcHandler(
       'set-plugin-settings',
       async (_event, { pluginId, settings }) => {
+        assertValidPluginId(pluginId);
         await pluginManager.updatePluginSettings(pluginId, settings);
         return true;
       }
@@ -127,7 +135,8 @@ export function registerPluginsIpcHandlers(): void {
 
   ipcMain.handle(
     'uninstall-plugin',
-    wrapIpcHandler('uninstall-plugin', async (_event, pluginId: string) => {
+    wrapIpcHandler('uninstall-plugin', async (_event, pluginId: unknown) => {
+      assertValidPluginId(pluginId);
       await pluginManager.uninstallPlugin(pluginId);
       return true;
     })
@@ -139,6 +148,7 @@ export function registerPluginsIpcHandlers(): void {
       'activate-plugin-license',
       async (_event, { pluginId, licenseKey }) => {
         assertMarketplaceEnabled();
+        assertValidPluginId(pluginId);
         return await licenseManager.activateLicense(pluginId, licenseKey);
       }
     )
@@ -146,8 +156,9 @@ export function registerPluginsIpcHandlers(): void {
 
   ipcMain.handle(
     'start-plugin-trial',
-    wrapIpcHandler('start-plugin-trial', async (_event, pluginId: string) => {
+    wrapIpcHandler('start-plugin-trial', async (_event, pluginId: unknown) => {
       assertMarketplaceEnabled();
+      assertValidPluginId(pluginId);
       return await licenseManager.startTrial(pluginId);
     })
   );
@@ -156,7 +167,8 @@ export function registerPluginsIpcHandlers(): void {
     'deactivate-plugin-license',
     wrapIpcHandler(
       'deactivate-plugin-license',
-      async (_event, pluginId: string) => {
+      async (_event, pluginId: unknown) => {
+        assertValidPluginId(pluginId);
         return await licenseManager.deactivateLicense(pluginId);
       }
     )

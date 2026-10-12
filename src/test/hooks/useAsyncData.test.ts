@@ -42,8 +42,31 @@ describe('useAsyncData', () => {
     expect(result.current.data).toBeNull();
     expect(mockedHandleError).toHaveBeenCalledWith(
       expect.any(Error),
-      'Load Failed'
+      'Load Failed',
+      expect.objectContaining({ id: expect.any(String) })
     );
+  });
+
+  it('reports the same failure once until it changes or the fetch recovers', async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce({ success: false, error: 'down' })
+      .mockResolvedValueOnce({ success: false, error: 'down' })
+      .mockResolvedValueOnce({ success: false, error: 'other' })
+      .mockResolvedValueOnce({ success: true, data: 'ok' })
+      .mockResolvedValueOnce({ success: false, error: 'down' });
+    const { result } = renderHook(() =>
+      useAsyncData({ fetchFn, errorTitle: 'Load Failed' })
+    );
+    await waitFor(() => expect(result.current.error).toBe('down'));
+    await result.current.refetch(); // same error: no new toast
+    await result.current.refetch(); // different error: toast
+    await result.current.refetch(); // recovers
+    await result.current.refetch(); // fails again: toast
+
+    expect(mockedHandleError).toHaveBeenCalledTimes(3);
+    const ids = mockedHandleError.mock.calls.map((c) => c[2]?.id);
+    expect(new Set(ids).size).toBe(1);
   });
 
   it('sets error without reporting when no title is given', async () => {
@@ -59,7 +82,11 @@ describe('useAsyncData', () => {
       useAsyncData({ fetchFn, errorTitle: 'Oops' })
     );
     await waitFor(() => expect(result.current.error).toBe('kaboom'));
-    expect(mockedHandleError).toHaveBeenCalledWith(expect.any(Error), 'Oops');
+    expect(mockedHandleError).toHaveBeenCalledWith(
+      expect.any(Error),
+      'Oops',
+      expect.objectContaining({ id: expect.any(String) })
+    );
   });
 
   it('uses a generic message for a non-Error throw', async () => {

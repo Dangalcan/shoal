@@ -286,7 +286,7 @@ export interface ElectronAPI {
   onTerminalExited: (callback: (sessionId: string) => void) => () => void;
 
   // App updates
-  checkForAppUpdates: () => Promise<Result<boolean>>;
+  checkForAppUpdates: () => Promise<Result<UpdateCheckStart>>;
   installAppUpdate: () => Promise<Result<boolean>>;
   onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
 
@@ -296,6 +296,14 @@ export interface ElectronAPI {
   ) => () => void;
   onPluginModal: (callback: (data: PluginModalData) => void) => () => void;
 }
+
+/**
+ * What a manual update check did. 'started': results arrive as UpdateStatus
+ * events. 'portable': the Windows portable build cannot update itself.
+ * 'dev': not a packaged build. 'error': the updater threw (an 'error' status
+ * was emitted too).
+ */
+export type UpdateCheckStart = 'started' | 'portable' | 'dev' | 'error';
 
 export type UpdateStatus =
   | { state: 'checking' }

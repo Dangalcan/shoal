@@ -245,4 +245,51 @@ describe('manifests-ipc folder handlers', () => {
       expect(result.error).toMatch(/own descendant/i);
     });
   });
+
+  describe('manifest validation', () => {
+    it.each([
+      ['a missing name', { content: 'a: 1' }, /name is required/i],
+      ['a blank name', { name: '  ', content: 'a: 1' }, /name is required/i],
+      [
+        'a name that is too long',
+        { name: 'x'.repeat(201), content: 'a: 1' },
+        /at most 200/i,
+      ],
+      ['missing content', { name: 'svc' }, /content is required/i],
+      [
+        'oversized content',
+        { name: 'svc', content: 'x'.repeat(1024 * 1024 + 1) },
+        /too large/i,
+      ],
+      ['a bad id', { id: -1, name: 'svc', content: 'a: 1' }, /manifest id/i],
+      [
+        'a bad folder id',
+        { folder_id: 'x', name: 'svc', content: 'a: 1' },
+        /folder id/i,
+      ],
+      [
+        'a bad cluster context',
+        { name: 'svc', content: 'a: 1', cluster_context: 42 },
+        /cluster context/i,
+      ],
+    ])('save-manifest rejects %s', async (_label, manifest, message) => {
+      const result = await getHandler('save-manifest')(mockEvent, manifest);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(message);
+      expect(manifestDb.saveManifest).not.toHaveBeenCalled();
+    });
+
+    it.each(['delete-manifest', 'apply-manifest'])(
+      '%s rejects an invalid id',
+      async (channel) => {
+        for (const bad of ['3', 0, -1, 1.5, null, undefined]) {
+          const result = await getHandler(channel)(mockEvent, bad);
+          expect(result.success).toBe(false);
+        }
+        expect(manifestDb.deleteManifest).not.toHaveBeenCalled();
+        expect(manifestDb.applyManifest).not.toHaveBeenCalled();
+      }
+    );
+  });
 });

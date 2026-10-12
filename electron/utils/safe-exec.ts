@@ -62,14 +62,43 @@ export async function safeExec(
     }
   }
 
-  const { stdout, stderr } = await execFileAsync(tool, args, {
-    maxBuffer: options.maxBuffer ?? DEFAULT_MAX_BUFFER,
-    timeout: options.timeout,
-    windowsHide: true,
-    // On Windows, kubectl/kind/etc. resolve via PATH; execFile handles
-    // .exe directly. shell stays OFF — that is the whole point.
-    shell: false,
-  });
+  try {
+    const { stdout, stderr } = await execFileAsync(tool, args, {
+      maxBuffer: options.maxBuffer ?? DEFAULT_MAX_BUFFER,
+      timeout: options.timeout,
+      windowsHide: true,
+      // On Windows, kubectl/kind/etc. resolve via PATH; execFile handles
+      // .exe directly. shell stays OFF — that is the whole point.
+      shell: false,
+    });
+    return { stdout, stderr };
+  } catch (err: unknown) {
+    throw describeExecError(tool, err);
+  }
+}
 
-  return { stdout, stderr };
+/**
+ * Turns execFile's error into one a user can read in a toast: a missing
+ * binary says so instead of "spawn kubectl ENOENT", and a failed command
+ * keeps the tool's own message (first line of stderr) instead of the full
+ * command line followed by the whole stderr.
+ */
+export function describeExecError(tool: string, err: unknown): Error {
+  const e = err as {
+    code?: unknown;
+    stderr?: unknown;
+    message?: unknown;
+    killed?: boolean;
+    signal?: string;
+  };
+  if (e?.code === 'ENOENT') {
+    return new Error(`${tool} is not installed or not on the PATH`);
+  }
+  if (e?.killed && e.signal === 'SIGTERM') {
+    return new Error(`${tool} did not answer in time`);
+  }
+  const stderr = typeof e?.stderr === 'string' ? e.stderr.trim() : '';
+  const firstLine = stderr.split(/\r?\n/)[0] ?? '';
+  if (firstLine) return new Error(`${tool}: ${firstLine}`);
+  return err instanceof Error ? err : new Error(String(err));
 }

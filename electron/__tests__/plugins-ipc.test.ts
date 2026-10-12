@@ -281,4 +281,42 @@ describe('plugins IPC handlers', () => {
       });
     });
   });
+
+  describe('plugin id validation', () => {
+    it.each([
+      'enable-plugin',
+      'disable-plugin',
+      'reload-plugin',
+      'get-plugin-settings',
+      'uninstall-plugin',
+      'deactivate-plugin-license',
+    ])(
+      '%s rejects ids that could leave the plugins folder',
+      async (channel) => {
+        for (const bad of ['../../plugins', '', '.', 'a/b', 42, null]) {
+          const result = await getHandler(channel)(mockEvent, bad);
+          expect(result.success).toBe(false);
+          expect(result.error).toMatch(/Invalid plugin ID/);
+        }
+        expect(mocks.pluginManager.uninstallPlugin).not.toHaveBeenCalled();
+        expect(mocks.pluginManager.enablePlugin).not.toHaveBeenCalled();
+      }
+    );
+
+    it('validates the id inside request objects too', async () => {
+      const settings = await getHandler('set-plugin-settings')(mockEvent, {
+        pluginId: '../x',
+        settings: {},
+      });
+      const action = await getHandler('execute-plugin-action')(mockEvent, {
+        pluginId: '..',
+        actionId: 'a',
+      });
+
+      expect(settings.success).toBe(false);
+      expect(action.success).toBe(false);
+      expect(mocks.pluginManager.updatePluginSettings).not.toHaveBeenCalled();
+      expect(mocks.pluginManager.executePluginAction).not.toHaveBeenCalled();
+    });
+  });
 });

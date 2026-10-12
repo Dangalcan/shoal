@@ -32,7 +32,7 @@ describe('AboutCard', () => {
   it('confirms when a manual check finds no update', async () => {
     api.checkForAppUpdates = vi
       .fn()
-      .mockResolvedValue({ success: true, data: true });
+      .mockResolvedValue({ success: true, data: 'started' });
     render(<AboutCard />, { api });
 
     fireEvent.click(screen.getByText('Check for updates'));
@@ -46,7 +46,7 @@ describe('AboutCard', () => {
   it('explains when the build cannot update itself', async () => {
     api.checkForAppUpdates = vi
       .fn()
-      .mockResolvedValue({ success: true, data: false });
+      .mockResolvedValue({ success: true, data: 'portable' });
     render(<AboutCard />, { api });
 
     fireEvent.click(screen.getByText('Check for updates'));
@@ -55,6 +55,37 @@ describe('AboutCard', () => {
       expect(toast.info).toHaveBeenCalledWith(
         'This build cannot update itself',
         expect.anything()
+      )
+    );
+  });
+
+  it('does not call a failed check "portable"', async () => {
+    api.checkForAppUpdates = vi
+      .fn()
+      .mockResolvedValue({ success: false, error: 'bridge down' });
+    render(<AboutCard />, { api });
+
+    fireEvent.click(screen.getByText('Check for updates'));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith('Could not check for updates', {
+        description: 'bridge down',
+      })
+    );
+    expect(toast.info).not.toHaveBeenCalled();
+  });
+
+  it('says that development builds do not check for updates', async () => {
+    api.checkForAppUpdates = vi
+      .fn()
+      .mockResolvedValue({ success: true, data: 'dev' });
+    render(<AboutCard />, { api });
+
+    fireEvent.click(screen.getByText('Check for updates'));
+
+    await waitFor(() =>
+      expect(toast.info).toHaveBeenCalledWith(
+        'Update checks only run in installed builds'
       )
     );
   });

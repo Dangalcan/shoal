@@ -1,8 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Server, ArrowLeft } from 'lucide-react';
-import { toast } from 'sonner';
-import { handleError } from '../lib/error-handler';
+import { handleAsyncOperation } from '../lib/async-operation-handler';
 import { useApi } from '../services/api-context';
 import { useClusterContext } from '../features/clusters/ClusterContext';
 import { ToolMissingPanel } from '../components/common/ToolMissingPanel';
@@ -34,28 +33,22 @@ export function CreateCluster() {
     if (!name) return;
 
     setIsCreating(true);
-    const promise = api.createCluster(name, provider);
-
-    toast.promise(promise, {
-      loading: `Creating cluster "${name}"...`,
-      success: `Cluster "${name}" created successfully!`,
-      error: (err) =>
-        `Failed to create cluster: ${err.message || 'Unknown error'}`,
-    });
-
-    try {
-      const result = await promise;
-      if (result.success) {
-        setName('');
-        await fetchClusters();
-        navigate('/clusters');
-      } else {
-        handleError(new Error(result.error), 'Cluster Creation Failed');
+    // One toast that turns green or red with the result. toast.promise used
+    // to report success for a resolved-but-failed Result, so a green and a
+    // red toast appeared together.
+    const result = await handleAsyncOperation(
+      () => api.createCluster(name, provider),
+      {
+        loadingMessage: `Creating cluster "${name}"...`,
+        successMessage: `Cluster "${name}" created.`,
+        errorTitle: 'Cluster creation failed',
       }
-    } catch (err) {
-      handleError(err, 'Cluster Creation Error');
-    } finally {
-      setIsCreating(false);
+    );
+    setIsCreating(false);
+    if (result.success) {
+      setName('');
+      await fetchClusters();
+      navigate('/clusters');
     }
   };
 

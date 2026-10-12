@@ -295,7 +295,7 @@ describe('mockApi', () => {
         })
       ).data
     ).toEqual([]);
-    expect((await mockApi.checkForAppUpdates()).data).toBe(false);
+    expect((await mockApi.checkForAppUpdates()).data).toBe('dev');
     expect((await mockApi.installAppUpdate()).success).toBe(true);
     mockApi.onUpdateStatus(() => {})();
   });

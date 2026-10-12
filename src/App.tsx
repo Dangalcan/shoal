@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './layouts/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { CreateCluster } from './pages/CreateCluster';
@@ -28,6 +28,8 @@ function App() {
           <Route path="migration" element={<Migration />} />
           <Route path="terminal" element={<TerminalPage />} />
           <Route path="port-forwards" element={<PortForwards />} />
+          {/* Unknown routes (e.g. a stale hash) land on the dashboard. */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
     </HashRouter>

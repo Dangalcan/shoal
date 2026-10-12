@@ -67,6 +67,54 @@ describe('safeExec', () => {
     expect(mocks.execFile).not.toHaveBeenCalled();
   });
 
+  const failWith = (error: Record<string, unknown>) =>
+    mocks.execFile.mockImplementation(
+      (
+        _file: string,
+        _args: string[],
+        _opts: unknown,
+        cb: (err: Error | null, result: unknown) => void
+      ) => {
+        cb(Object.assign(new Error(String(error.message ?? 'failed')), error), {
+          stdout: '',
+          stderr: String(error.stderr ?? ''),
+        });
+      }
+    );
+
+  it('says a tool is missing instead of "spawn ENOENT"', async () => {
+    failWith({ code: 'ENOENT', message: 'spawn kubectl ENOENT' });
+    await expect(safeExec('kubectl', ['version'])).rejects.toThrow(
+      'kubectl is not installed or not on the PATH'
+    );
+  });
+
+  it('reports the first line of stderr instead of the whole command line', async () => {
+    failWith({
+      code: 1,
+      message:
+        'Command failed: kubectl get pods --context kind-dev -A -o json\nerror: context "kind-dev" does not exist\nmore',
+      stderr: 'error: context "kind-dev" does not exist\nmore',
+    });
+    await expect(
+      safeExec('kubectl', ['get', 'pods', '--context', 'kind-dev'])
+    ).rejects.toThrow('kubectl: error: context "kind-dev" does not exist');
+  });
+
+  it('names a timeout', async () => {
+    failWith({ killed: true, signal: 'SIGTERM', message: 'killed' });
+    await expect(
+      safeExec('kubectl', ['get', 'pods'], { timeout: 10 })
+    ).rejects.toThrow('kubectl did not answer in time');
+  });
+
+  it('keeps an error without stderr as it is', async () => {
+    failWith({ code: 1, message: 'Command failed: kubectl version' });
+    await expect(safeExec('kubectl', ['version'])).rejects.toThrow(
+      'Command failed: kubectl version'
+    );
+  });
+
   it('exposes the shared tool allowlist', () => {
     expect(ALLOWED_TOOLS.has('kubectl')).toBe(true);
     expect(ALLOWED_TOOLS.has('bash')).toBe(false);

@@ -28,6 +28,41 @@ function assertOptionalId(
   }
 }
 
+const MAX_MANIFEST_NAME_LENGTH = 200;
+const MAX_CONTEXT_LENGTH = 200;
+/** Manifests are hand-written YAML; anything above 1 MiB is suspect. */
+const MAX_MANIFEST_CONTENT_LENGTH = 1024 * 1024;
+
+function assertManifest(
+  value: unknown
+): asserts value is Partial<Manifest> & { name: string; content: string } {
+  const m = value as Partial<Manifest> | null | undefined;
+  if (!m || typeof m !== 'object') throw new Error('Invalid manifest');
+  assertOptionalId(m.id, 'manifest id');
+  assertOptionalId(m.folder_id, 'folder id');
+  if (typeof m.name !== 'string' || !m.name.trim()) {
+    throw new Error('Manifest name is required');
+  }
+  if (m.name.trim().length > MAX_MANIFEST_NAME_LENGTH) {
+    throw new Error(
+      `Manifest name must be at most ${MAX_MANIFEST_NAME_LENGTH} characters`
+    );
+  }
+  if (typeof m.content !== 'string' || !m.content.trim()) {
+    throw new Error('Manifest content is required');
+  }
+  if (m.content.length > MAX_MANIFEST_CONTENT_LENGTH) {
+    throw new Error('Manifest content is too large (max 1 MiB)');
+  }
+  if (
+    m.cluster_context !== undefined &&
+    (typeof m.cluster_context !== 'string' ||
+      m.cluster_context.length > MAX_CONTEXT_LENGTH)
+  ) {
+    throw new Error('Invalid cluster context');
+  }
+}
+
 function assertFolderName(value: unknown): asserts value is string {
   if (typeof value !== 'string' || !value.trim()) {
     throw new Error('Folder name is required');
@@ -52,6 +87,7 @@ export function registerManifestsIpcHandlers(): void {
     wrapIpcHandler(
       'save-manifest',
       async (_event, manifest: Partial<Manifest>) => {
+        assertManifest(manifest);
         return manifestDb.saveManifest(manifest);
       }
     )
@@ -59,7 +95,8 @@ export function registerManifestsIpcHandlers(): void {
 
   ipcMain.handle(
     'delete-manifest',
-    wrapIpcHandler('delete-manifest', async (_event, id: number) => {
+    wrapIpcHandler('delete-manifest', async (_event, id: unknown) => {
+      assertId(id, 'manifest id');
       manifestDb.deleteManifest(id);
       return true;
     })
@@ -67,7 +104,8 @@ export function registerManifestsIpcHandlers(): void {
 
   ipcMain.handle(
     'apply-manifest',
-    wrapIpcHandler('apply-manifest', async (_event, id: number) => {
+    wrapIpcHandler('apply-manifest', async (_event, id: unknown) => {
+      assertId(id, 'manifest id');
       const result = await manifestDb.applyManifest(id);
       // Applying a manifest mutates the cluster — invalidate cached reads
       resourceReadCache.clear();

@@ -1,7 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { RefreshCw, Trash2 } from 'lucide-react';
-import { Toaster } from 'sonner';
 import { LogViewerModal } from '../components/modals/LogViewerModal';
 import { DescribeModal } from '../components/modals/DescribeModal';
 import { YamlModal } from '../components/modals/YamlModal';
@@ -329,7 +328,6 @@ export function ClusterDetails() {
               : []
           }
         />
-        <Toaster position="bottom-right" richColors />
       </div>
     </DisplaySettingsContext.Provider>
   );

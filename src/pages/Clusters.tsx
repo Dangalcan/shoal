@@ -8,7 +8,6 @@ import {
   Plus,
   CheckCircle2,
 } from 'lucide-react';
-import { Toaster } from 'sonner';
 import { PodViewerModal } from '../components/modals/PodViewerModal';
 import { ConfirmModal } from '../components/modals/ConfirmModal';
 import { useClusterContext } from '../features/clusters/ClusterContext';
@@ -45,7 +44,6 @@ export function Clusters() {
 
   return (
     <div className="clusters-container">
-      <Toaster position="top-right" />
       <Animate type="slide-down">
         <header className="clusters-header">
           <div>
@@ -103,7 +101,9 @@ export function Clusters() {
                     <Server size={24} />
                   </div>
                   <div
-                    onClick={() => navigate(`/cluster/${cluster}`)}
+                    onClick={() =>
+                      navigate(`/cluster/${encodeURIComponent(cluster)}`)
+                    }
                     className="cluster-card-info"
                   >
                     <div className="cluster-card-name-row">

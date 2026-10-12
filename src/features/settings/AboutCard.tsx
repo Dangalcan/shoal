@@ -42,14 +42,24 @@ export function AboutCard() {
     checkingRef.current = true;
     setChecking(true);
     const result = await api.checkForAppUpdates();
-    if (!result.success || result.data === false) {
-      checkingRef.current = false;
-      setChecking(false);
+    const outcome = result.success ? result.data : 'error';
+    if (outcome === 'started') return; // the status listener above finishes
+    checkingRef.current = false;
+    setChecking(false);
+    if (outcome === 'portable') {
       toast.info('This build cannot update itself', {
         description:
           'The portable version updates by downloading the new release.',
       });
+    } else if (outcome === 'dev') {
+      toast.info('Update checks only run in installed builds');
+    } else if (!result.success) {
+      toast.error('Could not check for updates', {
+        description: result.error,
+      });
     }
+    // 'error' from a started check: the updater already reported it through
+    // the status listener.
   };
 
   const handleOpenLogs = async () => {

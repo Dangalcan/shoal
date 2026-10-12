@@ -47,7 +47,21 @@ yet, so Windows SmartScreen shows a warning on first launch.
 
 ### Fixed
 
-- "Load Unpacked Plugin" checks the signature before copying a plugin, and an
+- Toasts no longer appear twice on the Clusters and cluster details pages.
+- Creating a cluster that fails showed a green "created" toast next to the
+  red one; it now shows one toast with the result.
+- Contexts whose name contains a slash (EKS, OpenShift) opened a blank page
+  from the cluster list; unknown routes now land on the dashboard.
+- "Check for updates" no longer says "this build cannot update itself" when
+  the check merely failed (offline) or ran from a development build.
+- A missing kubectl is reported as "not installed or not on the PATH"
+  instead of "spawn kubectl ENOENT", failed commands show the tool's own
+  message rather than the whole command line, and a failing auto-refresh
+  reports once instead of stacking a toast every interval.
+- The dashboard shows a container engine that is not installed as neutral,
+  not as an error; only an installed engine that is stopped is red.
+- A failure while the app starts shows an error dialog and quits instead of
+  leaving an invisible process behind.
   unsigned plugin is explained as unsigned instead of "may be tampered with".
 - Manifest cards showed the save date in UTC (one day off late in the
   evening in Europe). SQLite timestamps are now read as UTC.
@@ -71,6 +85,9 @@ yet, so Windows SmartScreen shows a warning on first launch.
   app instance, external links opened in the browser and navigation away from
   the app blocked.
 - IPC debug logs redact license keys, secret settings and Helm values.
+- Every plugin IPC handler validates the plugin id before it reaches the
+  file system, uninstalling can no longer target the plugins folder itself,
+  and manifest IPC handlers check ids and sizes like the folder handlers.
 - Plugin process isolation can only be turned off outside packaged builds.
 
 ### Not in this release

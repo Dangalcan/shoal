@@ -633,8 +633,13 @@ export class PluginManager {
         const pluginsDir = path.resolve(pathService.getUserPluginsDir());
         const absPluginPath = path.resolve(pluginPath);
         const relative = path.relative(pluginsDir, absPluginPath);
+        // Strictly inside the user plugins directory: an empty relative path
+        // would be the directory itself, and rm -rf of it deletes every
+        // user plugin.
         const isUserPlugin =
-          !relative.startsWith('..') && !path.isAbsolute(relative);
+          relative !== '' &&
+          !relative.startsWith('..') &&
+          !path.isAbsolute(relative);
 
         if (isUserPlugin) {
           await fs.promises.rm(pluginPath, { recursive: true, force: true });

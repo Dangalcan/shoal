@@ -223,7 +223,7 @@ export function createMockElectronAPI(
     onPortForwardClosed: vi.fn().mockReturnValue(() => {}),
     checkForAppUpdates: vi
       .fn()
-      .mockResolvedValue({ success: true, data: false }),
+      .mockResolvedValue({ success: true, data: 'started' }),
     installAppUpdate: vi.fn().mockResolvedValue({ success: true, data: true }),
     onUpdateStatus: vi.fn().mockReturnValue(() => {}),
     ...overrides,

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, protocol, session } from 'electron';
+import { app, BrowserWindow, Menu, dialog, protocol, session } from 'electron';
 import path from 'path';
 import { pluginManager } from './services/plugins/plugin-manager';
 import { pluginHostManager } from './services/plugins/host/plugin-host-manager';
@@ -46,6 +46,7 @@ const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
 // existing window instead of opening a second app on the same databases.
 const isPrimaryInstance = app.requestSingleInstanceLock();
 if (!isPrimaryInstance) {
+  log.info('[Main] Another instance is already running, quitting this one');
   app.quit();
 } else {
   app.on('second-instance', () => {
@@ -199,7 +200,12 @@ app.whenReady().then(async () => {
 
   // 3. Register IPC handlers ONCE
   log.info('[Main] Registering IPC handlers...');
-  registerIpcHandlers();
+  try {
+    registerIpcHandlers();
+  } catch (error: unknown) {
+    failToStart('Could not set up the app bridge', error);
+    return;
+  }
 
   // 4. Initialize plugin system (async)
   try {
@@ -219,8 +225,28 @@ app.whenReady().then(async () => {
   }
 
   // 6. Create main window
-  createWindow();
+  try {
+    createWindow();
+  } catch (error: unknown) {
+    failToStart('Could not open the main window', error);
+  }
 });
+
+/**
+ * A startup step that throws would otherwise leave a windowless process
+ * behind (electron-log catches the exception without a dialog, and the
+ * single-instance lock makes a relaunch focus nothing). Tell the user and
+ * quit.
+ */
+function failToStart(what: string, error: unknown): void {
+  const message = getErrorMessage(error);
+  log.error(`[Main] ${what}:`, message);
+  dialog.showErrorBox(
+    'Shoal could not start',
+    `${what}.\n\n${message}\n\nDetails are in the log file (main.log).`
+  );
+  app.quit();
+}
 
 // Register custom protocol for local plugin assets
 app.whenReady().then(() => {
