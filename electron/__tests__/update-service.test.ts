@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   UpdateService,
   type UpdaterLike,
@@ -29,7 +29,14 @@ function makeUpdater() {
 }
 
 describe('UpdateService', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // A Linux runner without APPIMAGE looks like a package install, which
+    // never checks for updates: pretend the AppImage launcher set it.
+    vi.stubEnv('APPIMAGE', '/opt/Shoal.AppImage');
+  });
+
+  afterEach(() => vi.unstubAllEnvs());
 
   it('wires updater options and maps events to normalized statuses', () => {
     const updater = makeUpdater();
