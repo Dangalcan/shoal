@@ -176,7 +176,9 @@ jobs:
 
       - name: Install kind (Linux)
         if: runner.os == 'Linux'
-        uses: helm/kind-action@v1
+        # Third-party action in a job that holds a write token: pinned to a
+        # commit (Dependabot bumps the pin).
+        uses: helm/kind-action@1544676c07bb3570fcb70166beaa07c4528fd4aa # v1.15.1
         with:
           install_only: true
 
