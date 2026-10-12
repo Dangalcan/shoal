@@ -76,6 +76,40 @@ describe('PluginEventBus', () => {
     expect(spy).toHaveBeenCalledWith('test-plugin');
   });
 
+  it('pushes plugin state changes to the main window', () => {
+    const send = vi.fn();
+    bus.setMainWindow({
+      isDestroyed: () => false,
+      webContents: { send },
+    } as unknown as BrowserWindow);
+    const spy = vi.fn();
+    bus.on('plugin:state-changed', spy);
+    const change = { pluginId: 'p', state: 'enabled' as const };
+    bus.emitPluginStateChanged(change);
+    expect(spy).toHaveBeenCalledWith(change);
+    expect(send).toHaveBeenCalledWith('plugin-state-changed', change);
+  });
+
+  it('does not touch a destroyed or missing window', () => {
+    const send = vi.fn();
+    bus.setMainWindow({
+      isDestroyed: () => true,
+      webContents: { send },
+    } as unknown as BrowserWindow);
+    bus.emitPluginStateChanged({
+      pluginId: 'p',
+      state: 'error',
+      error: 'boom',
+    });
+    expect(send).not.toHaveBeenCalled();
+    expect(() =>
+      new PluginEventBus().emitPluginStateChanged({
+        pluginId: 'p',
+        state: 'disabled',
+      })
+    ).not.toThrow();
+  });
+
   it('exported pluginEventBus should be an instance of PluginEventBus', () => {
     expect(pluginEventBus).toBeInstanceOf(PluginEventBus);
   });

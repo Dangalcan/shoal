@@ -28,6 +28,7 @@ import { getErrorMessage } from '../../utils/error-utils';
 import { isPathInside } from '../../utils/fs-utils';
 import { isProduction } from '../../utils/env-utils';
 import log from '../../logger';
+import { pluginEventBus } from './plugin-events';
 
 export class PluginLoader {
   private pluginDirectories: string[] = [];
@@ -329,6 +330,7 @@ export class PluginLoader {
         delete plugin.error;
       }
     }
+    pluginEventBus.emitPluginStateChanged({ pluginId, state, error });
   }
 
   async getPluginPath(pluginId: string): Promise<string | null> {

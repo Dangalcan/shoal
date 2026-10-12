@@ -9,12 +9,16 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { app } from 'electron';
+import type { Rectangle } from 'electron';
 import log from '../../logger';
 import { getErrorMessage } from '../../utils/error-utils';
 
 export interface AppSettings {
   /** Value for KUBECONFIG (one path, or several joined by path.delimiter). */
   kubeconfigPath?: string;
+  /** Main window bounds in its normal state; restored while still on a display. */
+  windowBounds?: Rectangle;
+  windowMaximized?: boolean;
 }
 
 export class AppSettingsStore {

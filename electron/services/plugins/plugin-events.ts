@@ -6,6 +6,7 @@
 
 import { EventEmitter } from 'events';
 import type { BrowserWindow } from 'electron';
+import type { PluginStateChange } from '../../types/plugin-types';
 
 export class PluginEventBus extends EventEmitter {
   /** Reference to the main BrowserWindow, set by main.ts after window creation. */
@@ -73,6 +74,19 @@ export class PluginEventBus extends EventEmitter {
    */
   emitPluginDeactivated(pluginId: string): void {
     this.emit('plugin:deactivated', pluginId);
+  }
+
+  /**
+   * Emit a plugin state change and push it to the renderer, so the plugin
+   * list and the sidebar follow activations that finish after the window
+   * opened, as well as reloads and failures.
+   */
+  emitPluginStateChanged(change: PluginStateChange): void {
+    this.emit('plugin:state-changed', change);
+    const win = this.mainWindow;
+    if (win && !win.isDestroyed()) {
+      win.webContents.send('plugin-state-changed', change);
+    }
   }
 }
 

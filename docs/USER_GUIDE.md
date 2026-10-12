@@ -216,6 +216,8 @@ Click on **"Settings"** in the sidebar to customize your experience:
 
 The light or dark theme is switched with the sun or moon button at the bottom of the sidebar.
 
+Shoal remembers the window's size, position and maximized state. Press **Alt** to show the menu bar: **View** has zoom (Ctrl +, Ctrl −, and Ctrl 0 to reset), full screen (F11) and reload; **Help** opens this guide, a new GitHub issue, the logs folder and the About box.
+
 ---
 
 ## App Updates

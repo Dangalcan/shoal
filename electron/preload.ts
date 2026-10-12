@@ -4,6 +4,7 @@ import type {
   PluginNotificationData,
   PluginModalData,
   PluginScaffoldOptions,
+  PluginStateChange,
 } from './types/plugin-types';
 import type { MigrationImportArgs } from './types/migration-types';
 import type { RendererErrorReport } from './types/app-types';
@@ -88,6 +89,12 @@ contextBridge.exposeInMainWorld('electron', {
       callback(value);
     ipcRenderer.on('plugin-modal', handler);
     return () => ipcRenderer.off('plugin-modal', handler);
+  },
+  onPluginStateChanged: (callback: (change: PluginStateChange) => void) => {
+    const handler = (_event: IpcRendererEvent, value: PluginStateChange) =>
+      callback(value);
+    ipcRenderer.on('plugin-state-changed', handler);
+    return () => ipcRenderer.off('plugin-state-changed', handler);
   },
 
   // Plugin System

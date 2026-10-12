@@ -215,6 +215,15 @@ All plugin-related IPC methods are exposed on `window.electron`. See [API_REFERE
 9. plugin.afterActivate() called
 ```
 
+Start-up does not wait for the plugins: the window opens first and the
+enabled plugins are then activated one at a time, each with a 5-second budget
+(`STARTUP_ACTIVATION_WAIT_MS` in `plugin-manager.ts`). A plugin whose
+`activate()` takes longer (a `kubectl` call against an unreachable cluster,
+say) keeps activating in the background while the next one starts, and the
+renderer follows every state change through the `plugin-state-changed` event
+(`onPluginStateChanged` in the API reference), so the plugin list and the
+sidebar catch up when it finishes.
+
 ---
 
 ## Plugin Extension Points

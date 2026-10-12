@@ -5,6 +5,7 @@ import type {
   PluginNotificationData,
   PluginModalData,
   PluginScaffoldOptions,
+  PluginStateChange,
 } from '../electron/types/plugin-types';
 import type {
   KomposeStatus,
@@ -16,7 +17,12 @@ import type {
 import type { ToolStatus } from '../electron/types/tool-types';
 import type { AppInfo, RendererErrorReport } from '../electron/types/app-types';
 
-export type { PluginNotificationData, PluginModalData, PluginScaffoldOptions };
+export type {
+  PluginNotificationData,
+  PluginModalData,
+  PluginScaffoldOptions,
+  PluginStateChange,
+};
 export type { ToolStatus, AppInfo, RendererErrorReport };
 export type {
   KomposeStatus,
@@ -294,6 +300,9 @@ export interface ElectronAPI {
     callback: (data: PluginNotificationData) => void
   ) => () => void;
   onPluginModal: (callback: (data: PluginModalData) => void) => () => void;
+  onPluginStateChanged: (
+    callback: (change: PluginStateChange) => void
+  ) => () => void;
 }
 
 /**

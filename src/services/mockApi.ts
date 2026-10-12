@@ -5,6 +5,7 @@ import type {
   ManifestFolder,
   PluginNotificationData,
   PluginModalData,
+  PluginStateChange,
   PluginScaffoldOptions,
 } from '../types.d';
 
@@ -284,6 +285,8 @@ export const mockApi: ElectronAPI = {
   onPluginNotification:
     (_callback: (data: PluginNotificationData) => void) => () => {},
   onPluginModal: (_callback: (data: PluginModalData) => void) => () => {},
+  onPluginStateChanged:
+    (_callback: (change: PluginStateChange) => void) => () => {},
 
   // Terminal (mock stubs — not functional in browser)
   terminalCreate: async () => ({

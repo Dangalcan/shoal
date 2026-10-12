@@ -14,3 +14,6 @@ export const BUNDLED_DEFAULT_ENABLED: readonly string[] = [
   'namespace-watcher',
   'resource-monitor',
 ];
+
+/** The public repository: the Help menu, the About box and issue links. */
+export const REPO_URL = 'https://github.com/Dangalcan/shoal';

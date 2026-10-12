@@ -1,4 +1,12 @@
-import { app, BrowserWindow, Menu, dialog, protocol, session } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  nativeTheme,
+  protocol,
+  screen,
+  session,
+} from 'electron';
 import path from 'path';
 import { pluginManager } from './services/plugins/plugin-manager';
 import { pluginHostManager } from './services/plugins/host/plugin-host-manager';
@@ -26,6 +34,8 @@ import {
   applySavedKubeconfig,
 } from './services/settings/app-settings';
 import log from './logger';
+import { installApplicationMenu } from './menu';
+import { trackWindowState, usableBounds } from './window-state';
 
 // Desktop launchers do not read the shell profile: add the usual tool
 // directories (kubectl, kind, helm...) before any child process starts.
@@ -33,6 +43,12 @@ applyDesktopToolPath();
 
 const DEFAULT_WINDOW_WIDTH = 1200;
 const DEFAULT_WINDOW_HEIGHT = 800;
+const MIN_WINDOW_WIDTH = 960;
+const MIN_WINDOW_HEIGHT = 600;
+/** Show the window even if the renderer never reports its first paint. */
+const READY_TO_SHOW_FALLBACK_MS = 10_000;
+/** --bg-primary of the two themes (styles/variables.scss). */
+const WINDOW_BACKGROUND = { light: '#ffffff', dark: '#0f172a' } as const;
 
 process.env.DIST = path.join(__dirname, '../dist');
 process.env.VITE_PUBLIC = app.isPackaged
@@ -129,9 +145,28 @@ function createWindow(): void {
     throw new Error('DIST or VITE_PUBLIC is undefined');
   }
 
-  win = new BrowserWindow({
-    width: DEFAULT_WINDOW_WIDTH,
-    height: DEFAULT_WINDOW_HEIGHT,
+  const saved = appSettings.get();
+  const bounds = usableBounds(
+    saved.windowBounds,
+    screen.getAllDisplays().map((display) => display.workArea)
+  );
+
+  const mainWindow = new BrowserWindow({
+    ...(bounds ?? {
+      width: DEFAULT_WINDOW_WIDTH,
+      height: DEFAULT_WINDOW_HEIGHT,
+    }),
+    minWidth: MIN_WINDOW_WIDTH,
+    minHeight: MIN_WINDOW_HEIGHT,
+    // Shown on the first paint (ready-to-show): no empty frame, no flash.
+    show: false,
+    // The frame's own colour until that paint. The renderer puts the saved
+    // theme on <html> before React mounts (src/lib/theme-boot.ts).
+    backgroundColor: nativeTheme.shouldUseDarkColors
+      ? WINDOW_BACKGROUND.dark
+      : WINDOW_BACKGROUND.light,
+    // The menu bar appears with Alt; its accelerators always work.
+    autoHideMenuBar: true,
     icon: path.join(publicDir, 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -140,20 +175,75 @@ function createWindow(): void {
       sandbox: true,
     },
   });
+  win = mainWindow;
+
+  const show = () => {
+    if (mainWindow.isDestroyed() || mainWindow.isVisible()) return;
+    if (saved.windowMaximized) mainWindow.maximize();
+    mainWindow.show();
+  };
+  mainWindow.once('ready-to-show', show);
+  // A renderer that never paints (a broken build, a page that crashed while
+  // loading) must not leave an invisible process behind.
+  const showFallback = setTimeout(show, READY_TO_SHOW_FALLBACK_MS);
+  mainWindow.once('closed', () => clearTimeout(showFallback));
+
+  trackWindowState(mainWindow, (state) => {
+    appSettings
+      .update({
+        windowBounds: state.bounds,
+        windowMaximized: state.maximized,
+      })
+      .catch((error: unknown) =>
+        log.warn(
+          '[Main] Could not save the window state:',
+          getErrorMessage(error)
+        )
+      );
+  });
+
+  offerReloadWhenRendererDies(mainWindow);
 
   if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL);
+    mainWindow.loadURL(VITE_DEV_SERVER_URL);
   } else {
-    win.loadFile(path.join(dist, 'index.html'));
+    mainWindow.loadFile(path.join(dist, 'index.html'));
   }
 
-  pluginEventBus.setMainWindow(win);
+  pluginEventBus.setMainWindow(mainWindow);
 
   // Push update status to the renderer, then run a startup check (packaged only).
   updateService.init((status) => {
     win?.webContents.send('update-status', status);
   });
   void updateService.checkForUpdates();
+}
+
+/**
+ * A crashed or killed renderer used to leave a blank window with no way out;
+ * offer a reload instead.
+ */
+function offerReloadWhenRendererDies(mainWindow: BrowserWindow): void {
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    log.error(
+      `[Main] The renderer process is gone: ${details.reason} (exit code ${details.exitCode})`
+    );
+    if (details.reason === 'clean-exit' || mainWindow.isDestroyed()) return;
+    void dialog
+      .showMessageBox(mainWindow, {
+        type: 'error',
+        title: 'Shoal',
+        message: 'The Shoal window stopped working.',
+        detail: `Reason: ${details.reason}. Details are in the log file (main.log).`,
+        buttons: ['Reload', 'Quit'],
+        defaultId: 0,
+        cancelId: 1,
+      })
+      .then(({ response }) => {
+        if (response === 0) mainWindow.reload();
+        else app.quit();
+      });
+  });
 }
 
 app.on('window-all-closed', () => {
@@ -207,29 +297,32 @@ app.whenReady().then(async () => {
     return;
   }
 
-  // 4. Initialize plugin system (async)
+  // 4. Menu and main window. The window comes before the plugins: a plugin
+  // whose activate() waits on kubectl must not delay the first paint.
   try {
-    log.info('[Main] Initializing plugin system...');
-    await pluginManager.initialize();
-    log.info('[Main] Plugin system initialized');
-  } catch (error: unknown) {
-    log.error(
-      '[Main] Failed to initialize plugin system:',
-      getErrorMessage(error)
+    installApplicationMenu(
+      process.env.VITE_PUBLIC
+        ? path.join(process.env.VITE_PUBLIC, 'icon.png')
+        : undefined
     );
-  }
-
-  // 5. Hide menu in production
-  if (app.isPackaged) {
-    Menu.setApplicationMenu(null);
-  }
-
-  // 6. Create main window
-  try {
     createWindow();
   } catch (error: unknown) {
     failToStart('Could not open the main window', error);
+    return;
   }
+
+  // 5. Initialize the plugin system in the background; the renderer follows
+  // each plugin's state through plugin-state-changed events.
+  log.info('[Main] Initializing plugin system...');
+  pluginManager
+    .initialize()
+    .then(() => log.info('[Main] Plugin system initialized'))
+    .catch((error: unknown) =>
+      log.error(
+        '[Main] Failed to initialize plugin system:',
+        getErrorMessage(error)
+      )
+    );
 });
 
 /**

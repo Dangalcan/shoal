@@ -176,6 +176,7 @@ export function createMockElectronAPI(
 
     onPluginNotification: vi.fn().mockReturnValue(() => {}),
     onPluginModal: vi.fn().mockReturnValue(() => {}),
+    onPluginStateChanged: vi.fn().mockReturnValue(() => {}),
 
     // Terminal API
     terminalCreate: vi.fn().mockResolvedValue({

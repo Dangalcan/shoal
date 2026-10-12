@@ -12,6 +12,10 @@ yet, so Windows SmartScreen shows a warning on first launch.
 
 ### Added
 
+- An application menu, shown with Alt: zoom (Ctrl +, Ctrl −, Ctrl 0), full
+  screen (F11), reload, and a Help menu with the user guide, a new GitHub
+  issue, the logs folder and the About box. The window remembers its size,
+  position and maximized state.
 - Cluster management for local clusters created with kind or k3d, and any
   kubeconfig context.
 - Dashboard with the active context summary, the state of Docker and Podman
@@ -59,6 +63,15 @@ yet, so Windows SmartScreen shows a warning on first launch.
 
 ### Fixed
 
+- The window opens as soon as Shoal starts. It used to wait until every
+  enabled plugin had finished activating, and Namespace Watcher's first
+  `kubectl` call could hold it back for up to 30 seconds when the current
+  context was unreachable. Plugins now activate after the window is up, one
+  at a time with a 5-second budget each, and the plugin list and sidebar
+  follow their state.
+- A window in the dark theme no longer flashes light while it loads, it
+  cannot be shrunk below 960 by 600 pixels, and a crashed window offers to
+  reload instead of staying blank.
 - Local terminal: Ctrl+C now stops the running command (`ping`,
   `kubectl logs -f`) and leaves the shell usable. On Linux the interrupt
   only reached the shell; on Windows it stopped nothing at all (it looked

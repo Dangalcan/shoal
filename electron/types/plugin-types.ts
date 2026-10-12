@@ -229,6 +229,13 @@ export interface PluginConfigProperty {
 export type PluginState =
   'disabled' | 'enabled' | 'loading' | 'error' | 'trial' | 'expired';
 
+/** Pushed to the renderer on the `plugin-state-changed` channel. */
+export interface PluginStateChange {
+  pluginId: string;
+  state: PluginState;
+  error?: string;
+}
+
 export interface Plugin {
   manifest: PluginManifest;
   state: PluginState;

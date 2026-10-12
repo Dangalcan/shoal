@@ -60,6 +60,34 @@ async function callHookIfExists(
   );
 }
 
+/** How long start-up waits for one plugin to activate before moving on. */
+export const STARTUP_ACTIVATION_WAIT_MS = 5_000;
+
+/**
+ * Resolves true when `promise` settles within `ms`, false otherwise. The
+ * promise itself keeps running either way.
+ */
+export async function settledWithin(
+  promise: Promise<unknown>,
+  ms: number
+): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<boolean>((resolve) => {
+    timer = setTimeout(() => resolve(false), ms);
+  });
+  try {
+    return await Promise.race([
+      promise.then(
+        () => true,
+        () => true
+      ),
+      timeout,
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export class PluginManager {
   private initialized = false;
 
@@ -100,12 +128,21 @@ export class PluginManager {
       );
 
       for (const plugin of enabledPlugins) {
-        try {
-          await this.activatePlugin(plugin.manifest.id);
-        } catch (error: unknown) {
-          log.error(
-            `[PluginManager] Failed to auto-enable ${plugin.manifest.id}:`,
-            getErrorMessage(error)
+        const pluginId = plugin.manifest.id;
+        const activation = this.activatePlugin(pluginId).catch(
+          (error: unknown) => {
+            log.error(
+              `[PluginManager] Failed to auto-enable ${pluginId}:`,
+              getErrorMessage(error)
+            );
+          }
+        );
+        // A plugin whose activate() hangs (kubectl waiting on an unreachable
+        // cluster, a credential prompt) must not hold up the others: it keeps
+        // activating in the background and the UI follows its state events.
+        if (!(await settledWithin(activation, STARTUP_ACTIVATION_WAIT_MS))) {
+          log.warn(
+            `[PluginManager] ${pluginId} is still activating after ${STARTUP_ACTIVATION_WAIT_MS} ms; continuing start-up`
           );
         }
       }

@@ -658,6 +658,12 @@ All event listeners return an **unsubscribe function** `() => void`.
 
 - **Callback**: `(data: PluginModalData) => void`
 
+### `onPluginStateChanged(callback)`
+
+Fires whenever a plugin changes state in the main process (`loading`, `enabled`, `disabled`, `error`), including activations that finish after the window opened, reloads and failures. `PluginProvider` reloads the plugin list on every change.
+
+- **Callback**: `(change: PluginStateChange) => void`, with `change = { pluginId: string; state: PluginState; error?: string }`
+
 ### `onTerminalOutput(callback)`
 
 Fires when a terminal session produces output.

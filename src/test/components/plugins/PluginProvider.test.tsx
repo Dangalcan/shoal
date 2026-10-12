@@ -48,6 +48,7 @@ describe('PluginProvider', () => {
     reloadPlugin: vi.fn(),
     uninstallPlugin: vi.fn(),
     importLocalPlugin: vi.fn(),
+    onPluginStateChanged: vi.fn().mockReturnValue(() => {}),
   };
 
   beforeEach(() => {
@@ -98,6 +99,27 @@ describe('PluginProvider', () => {
 
     expect(mockApi.getPlugins).toHaveBeenCalled();
     expect(mockApi.checkForPluginUpdates).toHaveBeenCalled();
+  });
+
+  it('reloads the plugin list when the main process reports a state change', async () => {
+    let listener: (() => void) | undefined;
+    mockApi.onPluginStateChanged.mockImplementation((cb: () => void) => {
+      listener = cb;
+      return () => {};
+    });
+
+    render(
+      <PluginProvider>
+        <TestComponent />
+      </PluginProvider>
+    );
+    await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull());
+    const before = mockApi.getPlugins.mock.calls.length;
+
+    listener?.();
+    await waitFor(() =>
+      expect(mockApi.getPlugins.mock.calls.length).toBeGreaterThan(before)
+    );
   });
 
   it('should show error if loading fails', async () => {

@@ -10,9 +10,12 @@ import { PluginProvider } from './features/plugins/PluginProvider';
 import { PluginNotifications } from './features/plugins/PluginNotifications';
 import { PluginModalBridge } from './features/plugins/PluginModalBridge';
 import { installGlobalErrorHandlers } from './lib/error-reporting';
+import { applyInitialTheme } from './lib/theme-boot';
 
 // Uncaught errors and unhandled rejections go to the main log file.
 installGlobalErrorHandlers();
+// The saved theme goes on <html> before the first render: no light flash.
+applyInitialTheme();
 
 // Plugin UIs run in sandboxed iframes (see features/plugins/sandbox); the host
 // realm no longer exposes React/UI globals or executes plugin renderer code.

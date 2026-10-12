@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { PluginManager } from '../services/plugins/plugin-manager';
+import {
+  PluginManager,
+  STARTUP_ACTIVATION_WAIT_MS,
+  settledWithin,
+} from '../services/plugins/plugin-manager';
 import { pluginLoader } from '../services/plugins/plugin-loader';
 import { pluginRegistry } from '../services/plugins/plugin-registry';
 import { licenseManager } from '../services/security/license-manager';
@@ -1023,5 +1027,51 @@ describe('PluginManager', () => {
       );
       warnSpy.mockRestore();
     });
+  });
+});
+
+describe('start-up activation budget', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('settledWithin reports whether a promise settles in time', async () => {
+    expect(await settledWithin(Promise.resolve(1), 10)).toBe(true);
+    expect(await settledWithin(Promise.reject(new Error('x')), 10)).toBe(true);
+    const pending = settledWithin(new Promise(() => {}), 50);
+    await vi.advanceTimersByTimeAsync(60);
+    expect(await pending).toBe(false);
+  });
+
+  it('initialize moves on when a plugin keeps activating', async () => {
+    const manager = new PluginManager();
+    vi.mocked(pluginRegistry.initialize).mockResolvedValue(undefined);
+    vi.mocked(pluginLoader.discoverPlugins).mockResolvedValue([]);
+    vi.mocked(pluginRegistry.getEnabledPlugins).mockReturnValue([
+      { manifest: { id: 'slow' }, config: { enabled: true } } as any,
+      { manifest: { id: 'fast' }, config: { enabled: true } } as any,
+    ]);
+    const activateSpy = vi
+      .spyOn(manager as any, 'activatePlugin')
+      .mockImplementation(async (id: unknown) => {
+        if (id === 'slow') await new Promise(() => {});
+      });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const init = manager.initialize();
+    await vi.advanceTimersByTimeAsync(STARTUP_ACTIVATION_WAIT_MS + 1);
+    await init;
+
+    expect(activateSpy).toHaveBeenCalledWith('slow');
+    expect(activateSpy).toHaveBeenCalledWith('fast');
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('slow is still activating')
+    );
+    warn.mockRestore();
   });
 });

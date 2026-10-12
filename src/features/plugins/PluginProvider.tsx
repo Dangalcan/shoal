@@ -84,6 +84,15 @@ export function PluginProvider({ children }: PluginProviderProps) {
     actions.checkForUpdates();
   }, []);
 
+  // Plugins keep activating after the window opens, and can be reloaded or
+  // fail later: follow the main process so the list and the sidebar catch up.
+  useEffect(() => {
+    const unsubscribe = api.onPluginStateChanged?.(() => {
+      void refreshPlugins();
+    });
+    return () => unsubscribe?.();
+  }, []);
+
   const value: PluginContextType = {
     plugins,
     loading,
