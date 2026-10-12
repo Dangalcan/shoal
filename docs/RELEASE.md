@@ -90,7 +90,7 @@ for the "Update ready" toast, then restart. The sidebar must show the new
 version. This only works once the repository is public: electron-updater
 cannot read the releases of a private repository without a token. During the
 beta it is checked for the two newest release candidates (planned as
-`rc.3 → rc.4`) right after the repository goes public.
+`rc.1 → rc.2`) right after the repository goes public.
 
 ## Rollback
 
