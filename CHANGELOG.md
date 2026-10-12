@@ -128,6 +128,9 @@ yet, so Windows SmartScreen shows a warning on first launch.
   file system, uninstalling can no longer target the plugins folder itself,
   and manifest IPC handlers check ids and sizes like the folder handlers.
 - Plugin process isolation can only be turned off outside packaged builds.
+- The `MARKETPLACE_PUBLIC_KEY` override of the plugin signing key is ignored
+  in packaged builds, so an environment variable can no longer make an
+  installed Shoal trust plugins signed with another key.
 
 ### Not in this release
 

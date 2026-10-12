@@ -181,4 +181,12 @@ describe('SignatureService', () => {
     // Signed with the test key, checked against the embedded Shoal key.
     expect(await service.verifyPlugin(dir)).toBe(false);
   });
+
+  it('ignores MARKETPLACE_PUBLIC_KEY in packaged builds', async () => {
+    electronMock.app.isPackaged = true;
+    signPlugin(dir, privateKey);
+    // Signed with the override key, which an installed build must not trust:
+    // the environment would otherwise replace the plugin signing key.
+    expect(await service.verifyPlugin(dir)).toBe(false);
+  });
 });

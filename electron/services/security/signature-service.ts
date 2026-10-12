@@ -23,6 +23,7 @@ import path from 'path';
 import { app } from 'electron';
 import log from '../../logger';
 import { getErrorMessage } from '../../utils/error-utils';
+import { isProduction } from '../../utils/env-utils';
 import {
   SIGNATURE_FILE,
   canonicalPayload,
@@ -146,16 +147,29 @@ mTG4NWftfh6O1ZzUYCIoRqSP04p+X/t1PXuFh0IM7YCvOmzLq60UIX2ALjzymiRz
     }
   }
 
+  private overrideWarned = false;
+
   /**
    * The public key used to verify plugin signatures. Defaults to the embedded
-   * key, but a marketplace deployment can override it via MARKETPLACE_PUBLIC_KEY
-   * (PEM, with literal "\n" for line breaks) so the app trusts plugins signed by
-   * that marketplace — fetch it from the backend's /v1/signing-public-key. This
-   * makes key rotation a config change, not a code change.
+   * key. In development a marketplace instance can override it via
+   * MARKETPLACE_PUBLIC_KEY (PEM, with literal "\n" for line breaks) so the app
+   * trusts plugins signed by that marketplace — fetch it from the backend's
+   * /v1/signing-public-key. Packaged builds ignore the variable: otherwise
+   * anyone able to set the app's environment could replace the key and
+   * install their own plugins. Rotating the key for users is a code change.
    */
   private get verificationKey(): string {
     const override = process.env.MARKETPLACE_PUBLIC_KEY;
     if (override && override.includes('BEGIN PUBLIC KEY')) {
+      if (isProduction()) {
+        if (!this.overrideWarned) {
+          this.overrideWarned = true;
+          log.warn(
+            '[SignatureService] MARKETPLACE_PUBLIC_KEY is ignored in packaged builds; using the embedded key.'
+          );
+        }
+        return this.PUBLIC_KEY;
+      }
       return override.replace(/\\n/g, '\n');
     }
     return this.PUBLIC_KEY;
