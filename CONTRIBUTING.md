@@ -353,3 +353,5 @@ All contributors will be recognized in our release notes and README. Thank you f
 By contributing to Shoal, you agree that your contributions will be licensed under the LGPL-3.0-or-later License.
 
 New runtime dependencies must use a license compatible with LGPL-3.0 (MIT, ISC, BSD, Apache-2.0 and similar; no GPL or AGPL). Their notices are added to `THIRD_PARTY_NOTICES.txt` automatically when the app is packaged (`scripts/third-party-notices.js`).
+
+Where a package goes depends on who loads it. The main process requires its packages from `app.asar` at run time, so they are `dependencies`. The renderer's libraries (`react`, `react-dom`, `react-router-dom`, `lucide-react`, `sonner`, `clsx`, `tailwind-merge`, `@xterm/*`) are bundled by Vite into `dist/`, so they are `devDependencies` and are listed in `BUNDLED_RENDERER_PACKAGES` in `scripts/third-party-notices.js`; that keeps their notices in the installers without packing a second copy of the code. A test fails when the renderer imports a package that is in neither list, and ESLint stops the main process from importing a renderer library.

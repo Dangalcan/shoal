@@ -10,6 +10,19 @@ updates:
       # every test), so they and their types always move together.
       react:
         patterns: ['react', 'react-dom', '@types/react', '@types/react-dom']
+      # The other renderer libraries are devDependencies too (Vite bundles
+      # them into the app), but they change what users see, so they get their
+      # own PR instead of disappearing into the tooling group below.
+      renderer:
+        patterns:
+          [
+            '@xterm/*',
+            'clsx',
+            'lucide-react',
+            'react-router-dom',
+            'sonner',
+            'tailwind-merge',
+          ]
       # One PR for all dev tooling bumps instead of one per package.
       dev-dependencies:
         dependency-type: development

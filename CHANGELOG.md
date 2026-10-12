@@ -50,6 +50,12 @@ yet, so Windows SmartScreen shows a warning on first launch.
   rules, so merge keys keep working) and semver 7.8, plus build and test
   tooling (Vitest 5, Playwright 1.64, Tailwind CSS 4.3, Prettier 3.9).
   The GitHub Actions workflows use the Node 24 releases of their actions.
+- The installers no longer carry a second, unused copy of the renderer
+  libraries (React, React Router, lucide, sonner, xterm, clsx,
+  tailwind-merge): Vite already bundles them, so they are build-time
+  dependencies now. The packed application code (`app.asar`) shrinks from
+  50 MB to 8 MB; the compressed installers lose about 2 MB. The third-party
+  notices are unchanged.
 
 ### Fixed
 

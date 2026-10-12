@@ -8,12 +8,12 @@
  * package build gets a fresh file.
  *
  * Writes the license notices of every package that ships inside Shoal: the
- * production dependency tree (what electron-builder packs into app.asar and
- * what Vite bundles into the renderer) plus Tailwind CSS, whose base styles end
- * up in the generated stylesheet. electron-builder strips LICENSE files from
- * node_modules, so without this file the installers would carry no notices.
- * Electron and Chromium notices ship separately (LICENSE.electron.txt and
- * LICENSES.chromium.html next to the executable).
+ * production dependency tree (what electron-builder packs into app.asar) plus
+ * the devDependencies whose code or styles Vite bundles into the renderer
+ * output. electron-builder strips LICENSE files from node_modules, so without
+ * this file the installers would carry no notices. Electron and Chromium
+ * notices ship separately (LICENSE.electron.txt and LICENSES.chromium.html
+ * next to the executable).
  *
  * Default output: build/THIRD_PARTY_NOTICES.txt (gitignored), packaged as an
  * extraResource next to LICENSE.txt, COPYING.txt and COPYRIGHT.txt.
@@ -25,8 +25,28 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const DEFAULT_OUTPUT = path.join(ROOT, 'build', 'THIRD_PARTY_NOTICES.txt');
 
-// Build-time packages whose output is bundled into the app.
-const BUNDLED_DEV_PACKAGES = ['tailwindcss'];
+/**
+ * Libraries the renderer imports. They are devDependencies because Vite
+ * bundles them into dist/ and the main process never requires them, so
+ * electron-builder must not pack a second copy into app.asar. Keep this list
+ * equal to the bare imports under src/ (a test checks it) so their notices
+ * and their transitive dependencies still ship.
+ */
+const BUNDLED_RENDERER_PACKAGES = [
+  '@xterm/addon-fit',
+  '@xterm/xterm',
+  'clsx',
+  'lucide-react',
+  'react',
+  'react-dom',
+  'react-router-dom',
+  'sonner',
+  'tailwind-merge',
+];
+
+// Build-time packages whose output is bundled into the app: Tailwind's base
+// styles end up in the generated stylesheet, the renderer libraries in dist/.
+const BUNDLED_DEV_PACKAGES = ['tailwindcss', ...BUNDLED_RENDERER_PACKAGES];
 
 const LICENSE_FILE = /^(licen[cs]e|copying|notice)([.-].*)?$/i;
 
@@ -172,7 +192,14 @@ function generate(output = DEFAULT_OUTPUT, root = ROOT) {
   return { output, count: entries.length };
 }
 
-module.exports = { collectPackages, noticeText, render, generate };
+module.exports = {
+  BUNDLED_DEV_PACKAGES,
+  BUNDLED_RENDERER_PACKAGES,
+  collectPackages,
+  noticeText,
+  render,
+  generate,
+};
 
 // electron-builder `beforePack` hook.
 module.exports.default = async function beforePack() {

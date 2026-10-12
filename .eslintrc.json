@@ -60,6 +60,33 @@
         "react-hooks/rules-of-hooks": "off",
         "no-empty-pattern": "off"
       }
+    },
+    {
+      "files": ["electron/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "react",
+                  "react/*",
+                  "react-dom",
+                  "react-dom/*",
+                  "react-router-dom",
+                  "lucide-react",
+                  "sonner",
+                  "clsx",
+                  "tailwind-merge",
+                  "@xterm/*"
+                ],
+                "message": "Renderer-only library: a devDependency that Vite bundles into dist/, so it is not packaged for the main process (see BUNDLED_RENDERER_PACKAGES in scripts/third-party-notices.js)."
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }
