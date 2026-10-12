@@ -80,7 +80,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --prerelease
 
+      # Master and manual builds hand the installers to the smoke job as a
+      # one-day artifact. Tag builds skip this: the draft release already
+      # holds the files and the smoke job downloads them from there, so a
+      # release never depends on artifact storage (the free plan's quota is
+      # counted in GB-months and, once hit, blocks every upload until the
+      # billing cycle ends; 14 days of ~470 MB per run hit it on 2026-10-12).
       - name: Upload installers
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         uses: actions/upload-artifact@v7
         with:
           name: shoal-${{ matrix.os }}
@@ -90,9 +97,6 @@ jobs:
             release/*.deb
             release/latest*.yml
           if-no-files-found: error
-          # Only the smoke job below reads them, in this same run. Releases
-          # keep the real files; 14 days of ~470 MB per run filled the
-          # artifact storage quota and blocked every upload.
           retention-days: 1
 
   smoke:
@@ -129,11 +133,25 @@ jobs:
       - name: Install dependencies (Playwright)
         run: npm ci
 
-      - name: Download installers
+      - name: Download installers (workflow artifact)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         uses: actions/download-artifact@v8
         with:
           name: shoal-${{ matrix.os }}
           path: installers
+
+      # Tag builds take the installer from the draft release the release job
+      # just created (the workflow token can read drafts), so the smoke test
+      # checks exactly the file users will download.
+      - name: Download installers (draft release)
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY"
+          --dir installers
+          --pattern "${{ runner.os == 'Windows' && 'Shoal-Setup-*.exe' || '*.AppImage' }}"
 
       - name: Install Shoal silently (Windows)
         if: runner.os == 'Windows'
@@ -180,6 +198,8 @@ jobs:
 
       - name: Upload Playwright report
         if: always()
+        # A hit artifact quota must not turn a passing smoke test red.
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: e2e-report-${{ matrix.os }}

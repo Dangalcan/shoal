@@ -43,11 +43,13 @@ newest **non** pre-release.
    - Linux: `Shoal-<version>.AppImage`, `shoal_<version>_amd64.deb`,
      `latest-linux.yml`
 
-   The installers and `latest*.yml` are also kept as workflow artifacts for
-   one day, only for the `smoke` job of the same run (the `.blockmap` files
-   are not uploaded as artifacts; the release holds them). Longer retention
-   filled the artifact storage quota of the free plan and blocked every
-   upload.
+   Tag builds upload nothing as a workflow artifact: the `smoke` jobs
+   download the installer from the draft release itself, so a release never
+   waits on artifact storage. Master and manual builds keep their installers
+   as one-day artifacts for their own smoke job. The free plan's artifact
+   quota is counted in GB-months; 14 days of ~470 MB per run hit it on
+   2026-10-12 and blocked every upload until the billing cycle ends, which is
+   why the limit is one day and why releases do not depend on it.
 
    For a release candidate (a tag with a hyphen, such as `v0.9.0-rc.2`) the
    workflow then flags the draft as a pre-release with `gh release edit`.
@@ -70,8 +72,9 @@ Playwright needs `--inspect` for the smoke tests.
 ## Publishing the draft
 
 1. Wait for both `release` jobs and both `smoke` jobs to pass. The smoke jobs
-   install the new package on clean Windows and Linux runners and run the E2E
-   suite against it (Linux also creates kind clusters).
+   download the installer from the draft, install it on clean Windows and
+   Linux runners and run the E2E suite against it (Linux also creates kind
+   clusters).
 2. Download the installer of at least one platform from the draft and start it.
 3. On GitHub, edit the draft:
    - Paste the `CHANGELOG.md` section as release notes.
