@@ -27,33 +27,25 @@
         setLoading(true);
         setError(null);
 
-        const contextRes = await window.electron.getCurrentContext();
-        if (!contextRes.success)
-          throw new Error(contextRes.error || 'Failed to get context');
-
-        const context = contextRes.data;
+        const context = await window.k8sPlugin.kubernetes.getCurrentContext();
         setCurrentContext(context);
 
-        const result = await window.electron.getPods(context);
-        if (result.success) {
-          setPods(result.data);
-        } else {
-          setError(result.error);
-        }
+        const list = await window.k8sPlugin.kubernetes.getPods(context);
+        setPods(Array.isArray(list) ? list : []);
 
-        // Live usage from metrics-server — optional, page works without it
-        if (window.electron.getPodMetrics) {
-          const metricsRes = await window.electron.getPodMetrics({
+        // Live usage from metrics-server: optional, the page works without it
+        try {
+          const metrics = await window.k8sPlugin.kubernetes.getPodMetrics({
             contextName: context,
             namespace: 'all',
           });
-          if (metricsRes?.success) {
-            const map = {};
-            for (const m of metricsRes.data ?? []) {
-              map[`${m.namespace}/${m.name}`] = m;
-            }
-            setMetricsByPod(map);
+          const map = {};
+          for (const m of metrics ?? []) {
+            map[`${m.namespace}/${m.name}`] = m;
           }
+          setMetricsByPod(map);
+        } catch {
+          // no metrics-server in this cluster
         }
       } catch (err) {
         setError(err.message || 'An unknown error occurred');
@@ -644,12 +636,9 @@
     useEffect(() => {
       const update = async () => {
         try {
-          const ctxRes = await window.electron.getCurrentContext();
-          if (!ctxRes.success)
-            throw new Error(ctxRes.error || 'Failed to get current context');
-          const res = await window.electron.getPods(ctxRes.data);
-          if (!res.success) throw new Error(res.error || 'Failed to get pods');
-          const pods = Array.isArray(res.data) ? res.data : [];
+          const ctx = await window.k8sPlugin.kubernetes.getCurrentContext();
+          const list = await window.k8sPlugin.kubernetes.getPods(ctx);
+          const pods = Array.isArray(list) ? list : [];
           setStats({
             total: pods.length,
             // Guard status/phase: pods can momentarily lack a status.phase, and
@@ -658,20 +647,18 @@
           });
 
           // Cluster-wide CPU sample for the sparkline (metrics-server optional)
-          if (window.electron.getPodMetrics) {
-            const mRes = await window.electron.getPodMetrics({
-              contextName: ctxRes.data,
+          try {
+            const metrics = await window.k8sPlugin.kubernetes.getPodMetrics({
+              contextName: ctx,
               namespace: 'all',
             });
-            if (mRes?.success) {
-              const totalCpu = (mRes.data ?? []).reduce(
-                (sum, m) => sum + (m.cpuMillicores ?? 0),
-                0
-              );
-              setCpuHistory((prev) =>
-                [...prev, totalCpu].slice(-SPARK_SAMPLES)
-              );
-            }
+            const totalCpu = (metrics ?? []).reduce(
+              (sum, m) => sum + (m.cpuMillicores ?? 0),
+              0
+            );
+            setCpuHistory((prev) => [...prev, totalCpu].slice(-SPARK_SAMPLES));
+          } catch {
+            // metrics-server optional
           }
         } catch (err) {
           console.error('[Resource Monitor] widget update failed:', err);

@@ -5,13 +5,27 @@
    * Full-page namespace dashboard: list all namespaces with status, age, labels,
    * phase timeline, and quick resource counts (pods, deployments, services).
    *
-   * Data is fetched directly from the Kubernetes API via window.electron.
-   * Settings (showSystemNamespaces, refreshInterval) are read from plugin storage
-   * via window.electron.getPluginSettings.
+   * Data comes from the host through window.k8sPlugin.kubernetes (resolves
+   * with plain data, throws on failure). Settings (showSystemNamespaces,
+   * refreshInterval) come from window.k8sPlugin.settings.get().
    */
 
   var { React, K8sUI, pluginUIRegistry, LucideIcons } = window;
   var { useState, useEffect, useCallback, useMemo, useRef } = React;
+
+  /** A resource list from the host, or [] when the call fails. */
+  const listResources = (args) =>
+    window.k8sPlugin.kubernetes
+      .getResources(args)
+      .then((list) => (Array.isArray(list) ? list : []))
+      .catch(() => []);
+
+  /** Same, but null on failure so the UI can show "unknown" instead of 0. */
+  const listResourcesOrNull = (args) =>
+    window.k8sPlugin.kubernetes
+      .getResources(args)
+      .then((list) => (Array.isArray(list) ? list : []))
+      .catch(() => null);
   var { Card, Badge, Spinner, Button, Animate } = K8sUI;
   var {
     Eye,
@@ -146,26 +160,19 @@
         return;
       setGovernanceLoading(true);
       Promise.all([
-        window.electron
-          .getResources({
-            contextName: context,
-            resourceType: 'resourcequotas',
-            namespace: name,
-          })
-          .catch(() => ({ success: false })),
-        window.electron
-          .getResources({
-            contextName: context,
-            resourceType: 'limitranges',
-            namespace: name,
-          })
-          .catch(() => ({ success: false })),
+        listResources({
+          contextName: context,
+          resourceType: 'resourcequotas',
+          namespace: name,
+        }),
+        listResources({
+          contextName: context,
+          resourceType: 'limitranges',
+          namespace: name,
+        }),
       ])
-        .then(([qRes, lRes]) => {
-          setGovernance({
-            quotas: qRes.success ? (qRes.data ?? []) : [],
-            limitRanges: lRes.success ? (lRes.data ?? []) : [],
-          });
+        .then(([quotas, limitRanges]) => {
+          setGovernance({ quotas, limitRanges });
         })
         .finally(() => setGovernanceLoading(false));
     }, [expanded, governance, governanceLoading, context, name]);
@@ -479,21 +486,16 @@
         setLoading(true);
         setError(null);
 
-        const ctxRes = await window.electron.getCurrentContext();
-        const ctx = ctxRes.success ? ctxRes.data : null;
+        const ctx = await window.k8sPlugin.kubernetes.getCurrentContext();
         setContext(ctx);
 
-        const res = await window.electron.getResources({
+        const list = await window.k8sPlugin.kubernetes.getResources({
           contextName: ctx,
           resourceType: 'namespaces',
           namespace: 'all',
         });
-        if (res.success) {
-          setNamespaces(res.data ?? []);
-          setLastSync(new Date().toISOString());
-        } else {
-          setError(res.error || 'Failed to load namespaces');
-        }
+        setNamespaces(Array.isArray(list) ? list : []);
+        setLastSync(new Date().toISOString());
       } catch (err) {
         setError(err.message || 'Unexpected error');
       } finally {
@@ -506,50 +508,36 @@
       if (!nsList.length || !ctx) return;
       setCountsLoading(true);
       try {
-        const [podsRes, deploymentsRes, servicesRes] = await Promise.all([
-          window.electron
-            .getResources({
-              contextName: ctx,
-              resourceType: 'pods',
-              namespace: 'all',
-            })
-            .catch(() => ({ success: false })),
-          window.electron
-            .getResources({
-              contextName: ctx,
-              resourceType: 'deployments',
-              namespace: 'all',
-            })
-            .catch(() => ({ success: false })),
-          window.electron
-            .getResources({
-              contextName: ctx,
-              resourceType: 'services',
-              namespace: 'all',
-            })
-            .catch(() => ({ success: false })),
+        const [pods, deployments, services] = await Promise.all([
+          listResourcesOrNull({
+            contextName: ctx,
+            resourceType: 'pods',
+            namespace: 'all',
+          }),
+          listResourcesOrNull({
+            contextName: ctx,
+            resourceType: 'deployments',
+            namespace: 'all',
+          }),
+          listResourcesOrNull({
+            contextName: ctx,
+            resourceType: 'services',
+            namespace: 'all',
+          }),
         ]);
 
+        const inNamespace = (list, name) =>
+          list === null
+            ? null
+            : list.filter((r) => r.metadata?.namespace === name).length;
         const counts = {};
         for (const ns of nsList) {
           const name = ns.metadata?.name;
           if (!name) continue;
           counts[name] = {
-            pods: podsRes.success
-              ? (podsRes.data ?? []).filter(
-                  (p) => p.metadata?.namespace === name
-                ).length
-              : null,
-            deployments: deploymentsRes.success
-              ? (deploymentsRes.data ?? []).filter(
-                  (d) => d.metadata?.namespace === name
-                ).length
-              : null,
-            services: servicesRes.success
-              ? (servicesRes.data ?? []).filter(
-                  (s) => s.metadata?.namespace === name
-                ).length
-              : null,
+            pods: inNamespace(pods, name),
+            deployments: inNamespace(deployments, name),
+            services: inNamespace(services, name),
           };
         }
         setResourceCounts(counts);
@@ -571,9 +559,7 @@
     useEffect(() => {
       (async () => {
         try {
-          const settingsRes =
-            await window.electron.getPluginSettings('namespace-watcher');
-          const settings = settingsRes?.data ?? {};
+          const settings = (await window.k8sPlugin.settings.get()) ?? {};
           if (settings.showSystemNamespaces !== undefined) {
             setShowSystem(settings.showSystemNamespaces);
           }

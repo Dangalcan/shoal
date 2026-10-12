@@ -104,7 +104,7 @@ The `plugin.json` file defines the identity and capabilities of your plugin.
 ### Manifest Fields Detail
 
 - **dependencies**: A map of plugin IDs and semver version constraints. Required plugins will be auto-enabled or requested.
-- **data**: An array of file paths (relative to plugin root) to be automatically loaded into `context.storage` on activation. Accessible via `context.storage.get('data:filepath')`.
+- **data**: An array of file paths (relative to plugin root) to be automatically loaded into `context.storage` on activation. The storage key is `data/` plus the path without its extension, with a leading `data/` folder collapsed: `data/default-presets.json` is read with `context.storage.get('data/default-presets')`.
 - **configuration**: Defines a schema for settings. The UI is automatically generated with validation. Supported types: `string`, `number`, `boolean`, `select`.
 - **`secret: true` settings are encrypted at rest.** String properties flagged `secret` (like the `apiKey` above) are stored AES-256-GCM encrypted with a machine-bound key, both in memory snapshots and in `plugin-config.json`. The plugin still reads/writes them transparently via `settings.get`/`set`; the settings UI masks them.
 
@@ -132,9 +132,7 @@ module.exports = {
     context.logger.info('Plugin activated!');
 
     // Access auto-loaded data
-    const defaults = await context.storage.get(
-      'data:data/default-presets.json'
-    );
+    const defaults = await context.storage.get('data/default-presets');
 
     // Subscribe to app events
     context.events.onClusterConnected((cluster) => {
@@ -239,9 +237,13 @@ Add `"renderer": "renderer.js"` to your `plugin.json`. This file is loaded autom
 
 The following globals are injected into the renderer context:
 
-`renderer.js` runs inside an isolated, opaque-origin iframe. It has **no**
-`window.electron` and no access to the host DOM. The following globals are
-injected; all host access goes through `window.k8sPlugin` (see API reference).
+`renderer.js` runs inside an isolated, opaque-origin iframe with no access to
+the host DOM or to the real IPC bridge. The following globals are injected;
+all host access goes through `window.k8sPlugin` (see API reference), which
+resolves with plain data and throws on failure. A `window.electron` shim that
+mirrors the old `{ success, data }` IPC surface still exists for plugins
+written before the sandbox, but it is legacy: new code and the bundled
+examples use `window.k8sPlugin`.
 
 | Global                    | Description                                                                       |
 | ------------------------- | --------------------------------------------------------------------------------- |
@@ -373,12 +375,12 @@ The `EventsAPI` provides a global event bus for the application.
 
 #### context.storage
 
-| Method            | Description                            |
-| ----------------- | -------------------------------------- |
-| `get(key)`        | Retrieve data                          |
-| `set(key, value)` | Save data                              |
-| `delete(key)`     | Remove data                            |
-| `data:{filepath}` | Special key for auto-loaded data files |
+| Method            | Description                                                                       |
+| ----------------- | --------------------------------------------------------------------------------- |
+| `get(key)`        | Retrieve data                                                                     |
+| `set(key, value)` | Save data                                                                         |
+| `delete(key)`     | Remove data                                                                       |
+| `data/{file}`     | Auto-loaded data files (path without extension, leading `data/` folder collapsed) |
 
 #### context.logger
 

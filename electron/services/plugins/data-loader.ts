@@ -76,10 +76,12 @@ export class DataLoader {
     storageAPI: StorageAPI
   ): Promise<void> {
     for (const dataFile of dataFiles) {
-      // Store each data file's content in plugin storage
-      // Remove file extension since storage API adds .json automatically
-      // Use forward slash instead of colon to avoid Windows path issues
-      const pathWithoutExt = dataFile.path.replace(/\.(json|yaml|yml)$/i, '');
+      // Storage key: "data/" + the manifest path without its extension (the
+      // storage API adds .json), with a leading "data/" folder collapsed so
+      // the common layout data/foo.json is read back as "data/foo".
+      const pathWithoutExt = dataFile.path
+        .replace(/\.(json|yaml|yml)$/i, '')
+        .replace(/^data\//, '');
       const key = `data/${pathWithoutExt}`;
       await storageAPI.set(key, dataFile.content);
 

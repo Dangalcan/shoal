@@ -200,8 +200,7 @@ module.exports = {
         context.logger.error('Failed to fetch pods:', err.message);
       }
     }, refreshRate);
-
-    context.ui.showNotification('Resource Monitor is now active!', 'success');
+    // No "is now active" toast: bundled plugins start with the app.
   },
 
   deactivate: async (context) => {

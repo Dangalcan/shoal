@@ -14,7 +14,6 @@
     "spdx": "MIT"
   },
   "price": 0,
-  "icon": "https://api.iconify.design/lucide:eye.svg",
   "data": ["data/default-config.json"],
   "configuration": {
     "title": "Namespace Watcher Settings",

@@ -1,11 +1,12 @@
 /**
- * Namespace Watcher Plugin
+ * Namespace Watcher Plugin (bundled example)
  *
- * Demonstrates Phase 1 enhancements:
- * - Lifecycle hooks (beforeActivate, activate, afterActivate, etc.)
+ * Shows the main-process side of a plugin:
+ * - Lifecycle hooks (beforeActivate, activate, afterActivate, ...)
  * - Event subscriptions (cluster connected, resource events)
- * - Data loading (default-config.json)
- * - Configuration schema (in plugin.json)
+ * - A bundled data file (data/default-config.json, read as
+ *   "data/default-config" from plugin storage)
+ * - Settings declared in plugin.json, read from storage under "settings"
  */
 
 let refreshInterval = null;
@@ -152,9 +153,9 @@ module.exports = {
    * Runs after the plugin is fully activated
    */
   afterActivate: async (context) => {
+    // No "is now active" toast: bundled plugins start with the app, and a
+    // toast on every launch is noise.
     context.logger.info('Namespace Watcher fully activated and monitoring');
-
-    context.ui.showNotification('Namespace Watcher is now active', 'success');
   },
 
   /**
@@ -263,8 +264,21 @@ async function refreshNamespaces(context, config) {
   } catch (error) {
     context.logger.error('Failed to fetch namespaces:', error);
 
+    // Without a reachable cluster every refresh fails; say so once per
+    // cooldown instead of every interval.
     if (notificationLevel !== 'none') {
-      context.ui.showNotification('Failed to fetch namespaces', 'error');
+      if (typeof context.ui.notifyOnce === 'function') {
+        context.ui.notifyOnce(
+          'namespaces-unreachable',
+          'Namespace Watcher cannot reach the cluster',
+          'warning'
+        );
+      } else {
+        context.ui.showNotification(
+          'Namespace Watcher cannot reach the cluster',
+          'warning'
+        );
+      }
     }
   }
 }

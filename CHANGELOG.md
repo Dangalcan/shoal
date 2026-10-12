@@ -63,7 +63,14 @@ yet, so Windows SmartScreen shows a warning on first launch.
   not as an error; only an installed engine that is stopped is red.
 - A failure while the app starts shows an error dialog and quits instead of
   leaving an invisible process behind.
+- "Load Unpacked Plugin" checks the signature before copying a plugin, and an
   unsigned plugin is explained as unsigned instead of "may be tampered with".
+- The bundled example plugins no longer show an "is now active" toast on
+  every launch, Namespace Watcher warns once (not every 30 seconds) when
+  the cluster is unreachable, and its bundled data file is now actually
+  read: plugin data files are stored as `data/<name>` (the leading `data/`
+  folder is collapsed). Both examples use the sandbox API
+  (`window.k8sPlugin`) the plugin guide documents.
 - Manifest cards showed the save date in UTC (one day off late in the
   evening in Europe). SQLite timestamps are now read as UTC.
 - Plugin pages, widgets and modals render in installed builds. Sandboxed
