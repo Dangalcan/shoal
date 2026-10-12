@@ -48,6 +48,11 @@ yet, so Windows SmartScreen shows a warning on first launch.
 
 ### Fixed
 
+- Local terminal: on Linux, Ctrl+C now reaches the running command (`ping`,
+  `kubectl logs -f`) instead of only the shell; the terminal starts with the
+  right line endings from the first prompt instead of being recreated when
+  the shell list arrives; a shell that fails to start says so instead of
+  hanging; open shells are closed when Shoal quits.
 - Toasts no longer appear twice on the Clusters and cluster details pages.
 - Creating a cluster that fails showed a green "created" toast next to the
   red one; it now shows one toast with the result.

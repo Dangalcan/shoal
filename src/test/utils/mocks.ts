@@ -179,9 +179,10 @@ export function createMockElectronAPI(
     onPluginModal: vi.fn().mockReturnValue(() => {}),
 
     // Terminal API
-    terminalCreate: vi
-      .fn()
-      .mockResolvedValue({ success: true, data: 'test-session-id' }),
+    terminalCreate: vi.fn().mockResolvedValue({
+      success: true,
+      data: { sessionId: 'test-session-id', shellFamily: 'windows' },
+    }),
     terminalShells: vi.fn().mockResolvedValue({
       success: true,
       data: {

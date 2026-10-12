@@ -260,7 +260,7 @@ export interface ElectronAPI {
     shell?: string;
     cols?: number;
     rows?: number;
-  }) => Promise<Result<{ sessionId: string }>>;
+  }) => Promise<Result<{ sessionId: string; shellFamily: 'windows' | 'unix' }>>;
   terminalShells: () => Promise<
     Result<{ shells: LocalShellInfo[]; defaultShell: string }>
   >;

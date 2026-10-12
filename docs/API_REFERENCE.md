@@ -465,7 +465,7 @@ installation directory.
     path inside the container (default: `/bin/sh`).
   - `cols`: `number` (optional)
   - `rows`: `number` (optional)
-- **Returns**: `Promise<Result<{ sessionId: string }>>`
+- **Returns**: `Promise<Result<{ sessionId: string; shellFamily: 'windows' | 'unix' }>>`. `shellFamily` is the line-ending family of the shell that was started (`windows` for PowerShell and cmd, `unix` for Git Bash, WSL and pod shells), so the terminal can be configured from the first prompt.
 
 ### `terminalShells()`
 
@@ -501,7 +501,10 @@ Kills a terminal session.
 
 ### `terminalInterrupt(sessionId)`
 
-Sends an interrupt signal to the process (Ctrl+C).
+Sends an interrupt signal to the process (Ctrl+C). Sessions have no PTY, so the
+shell's children are signalled directly: on Windows they are stopped through
+`Stop-Process`, on Linux and macOS they get `SIGINT` through `pkill -INT -P <pid>`
+and the shell itself gets `SIGINT` too. The shell stays open either way.
 
 - **Parameters**: `sessionId`: `string`
 - **Returns**: `Promise<Result<boolean>>`

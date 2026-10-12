@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { app, ipcMain } from 'electron';
 import { spawn, ChildProcess } from 'child_process';
 import { randomUUID } from 'crypto';
 import {
@@ -60,6 +60,9 @@ export function registerTerminalIpcHandlers(): void {
         let file: string;
         let spawnArgs: string[];
         let cwd: string | undefined;
+        // Line-ending family the renderer needs from the start: a local
+        // PowerShell/cmd wants \r\n, Git Bash/WSL/pod shells want \n.
+        let shellFamily: 'windows' | 'unix' = 'unix';
 
         if (kind === 'local') {
           // args.shell is a shell id validated against the detected
@@ -68,6 +71,7 @@ export function registerTerminalIpcHandlers(): void {
           file = localShell.file;
           spawnArgs = [...localShell.args];
           cwd = getTerminalCwd();
+          shellFamily = localShell.family;
         } else {
           const { podName, namespace, contextName } = args;
           if (!podName || !namespace || !contextName) {
@@ -137,8 +141,30 @@ export function registerTerminalIpcHandlers(): void {
           log.info(`[Terminal] Session ${sessionId} exited`);
         });
 
+        // A spawn that fails (binary gone, permissions) emits 'error', not
+        // 'exit'. Without this listener the exception is uncaught in main
+        // and the renderer waits forever for a prompt.
+        child.on('error', (err: Error) => {
+          log.error(
+            `[Terminal] Session ${sessionId} could not start ${file}:`,
+            err.message
+          );
+          sessions.delete(sessionId);
+          if (!event.sender.isDestroyed()) {
+            event.sender.send('terminal:output', {
+              sessionId,
+              data: `\r\nCould not start ${file}: ${err.message}\r\n`,
+            });
+            event.sender.send('terminal:exited', { sessionId });
+          }
+        });
+        // Writing to a shell that just died raises EPIPE on its stdin.
+        child.stdin?.on('error', (err: Error) => {
+          log.warn(`[Terminal] Session ${sessionId} stdin:`, err.message);
+        });
+
         log.info(`[Terminal] Created session ${sessionId} (${kind})`);
-        return { sessionId };
+        return { sessionId, shellFamily };
       }
     )
   );
@@ -161,7 +187,11 @@ export function registerTerminalIpcHandlers(): void {
       ) => {
         const session = sessions.get(sessionId);
         if (!session) throw new Error(`No terminal session: ${sessionId}`);
-        session.process.stdin!.write(data);
+        const stdin = session.process.stdin;
+        if (!stdin || stdin.destroyed) {
+          throw new Error('Terminal session is closed');
+        }
+        stdin.write(data);
         return true;
       }
     )
@@ -224,6 +254,14 @@ export function registerTerminalIpcHandlers(): void {
             { windowsHide: true, stdio: 'ignore' }
           );
         } else {
+          // There is no PTY, so the shell's children are not in a
+          // foreground process group that SIGINT would reach: signal them
+          // directly (pkill is in procps on every desktop distro; if it is
+          // missing the shell still gets its SIGINT below).
+          spawn('pkill', ['-INT', '-P', String(pid)], { stdio: 'ignore' }).on(
+            'error',
+            () => undefined
+          );
           session.process.kill('SIGINT');
         }
 
@@ -231,4 +269,12 @@ export function registerTerminalIpcHandlers(): void {
       }
     )
   );
+
+  // Shells are plain child processes: without this they outlive the app.
+  app.on('will-quit', () => {
+    for (const [sessionId, session] of sessions) {
+      session.process.kill();
+      sessions.delete(sessionId);
+    }
+  });
 }

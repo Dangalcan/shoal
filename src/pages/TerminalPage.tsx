@@ -18,6 +18,12 @@ export function TerminalPage() {
   const [defaultShell, setDefaultShell] = useState<string>('');
   // null = backend default; set only by explicit user selection
   const [shell, setShell] = useState<string | null>(null);
+  // Known as soon as the session exists, so the terminal is created once
+  // with the right line endings instead of being recreated (and losing its
+  // first output) when the shell list arrives.
+  const [shellFamily, setShellFamily] = useState<'windows' | 'unix' | null>(
+    null
+  );
   const sessionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -39,6 +45,7 @@ export function TerminalPage() {
     });
     if (result.success) {
       sessionIdRef.current = result.data.sessionId;
+      setShellFamily(result.data.shellFamily ?? null);
       setSessionId(result.data.sessionId);
     } else {
       setError(result.error);
@@ -133,7 +140,7 @@ export function TerminalPage() {
             <Terminal
               sessionId={sessionId}
               kind="local"
-              shellFamily={activeShell?.family}
+              shellFamily={shellFamily ?? activeShell?.family}
             />
           </div>
         )}

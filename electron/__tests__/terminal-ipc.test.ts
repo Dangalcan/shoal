@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { IpcMainInvokeEvent } from 'electron';
-import { ipcMain } from 'electron';
+import { app, ipcMain } from 'electron';
 import { spawn } from 'child_process';
 import { registerTerminalIpcHandlers } from '../ipc/terminal-ipc';
 import {
@@ -18,6 +18,7 @@ vi.mock('../logger', () => ({
 }));
 
 vi.mock('electron', () => ({
+  app: { on: vi.fn() },
   ipcMain: {
     handle: vi.fn(),
   },
@@ -69,7 +70,7 @@ function makeFakeChild() {
   return {
     stdout: { on: vi.fn() },
     stderr: { on: vi.fn() },
-    stdin: { write: vi.fn() },
+    stdin: { write: vi.fn(), on: vi.fn(), destroyed: false },
     on: vi.fn(),
     kill: vi.fn(),
     pid: 1234,
@@ -94,6 +95,8 @@ function getHandler(channel: string): IpcHandler {
 describe('terminal-ipc', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // clearAllMocks keeps mockReturnValue overrides from earlier tests.
+    vi.mocked(mockEvent.sender.isDestroyed).mockReturnValue(false);
     vi.mocked(spawn).mockReturnValue(
       makeFakeChild() as unknown as ReturnType<typeof spawn>
     );
@@ -370,6 +373,118 @@ describe('terminal-ipc', () => {
       await expect(
         getHandler('terminal:kill')(mockEvent, { sessionId: 'missing' })
       ).resolves.toMatchObject({ success: true });
+    });
+  });
+
+  describe('session lifecycle', () => {
+    const originalPlatform = process.platform;
+    const setPlatform = (value: string) =>
+      Object.defineProperty(process, 'platform', { value, configurable: true });
+    afterEach(() => setPlatform(originalPlatform));
+
+    const listener = (child: ReturnType<typeof makeFakeChild>, name: string) =>
+      child.on.mock.calls.find(([event]) => event === name)?.[1] as
+        ((...args: unknown[]) => void) | undefined;
+
+    it('tells the renderer which line endings the shell uses', async () => {
+      const local = await getHandler('terminal:create')(mockEvent, {
+        kind: 'local',
+      });
+      const pod = await getHandler('terminal:create')(mockEvent, {
+        kind: 'pod-exec',
+        podName: 'web',
+        namespace: 'default',
+        contextName: 'kind-dev',
+      });
+
+      expect(local.data).toMatchObject({ shellFamily: 'windows' });
+      expect(pod.data).toMatchObject({ shellFamily: 'unix' });
+    });
+
+    it('reports a shell that fails to start and ends the session', async () => {
+      const child = makeFakeChild();
+      vi.mocked(spawn).mockReturnValue(
+        child as unknown as ReturnType<typeof spawn>
+      );
+      const result = await getHandler('terminal:create')(mockEvent, {
+        kind: 'local',
+      });
+      const { sessionId } = result.data as { sessionId: string };
+
+      listener(child, 'error')?.(new Error('spawn powershell.exe ENOENT'));
+
+      const sent = vi.mocked(mockEvent.sender.send).mock.calls;
+      expect(sent).toContainEqual([
+        'terminal:output',
+        expect.objectContaining({
+          sessionId,
+          data: expect.stringContaining('Could not start powershell.exe'),
+        }),
+      ]);
+      expect(sent).toContainEqual(['terminal:exited', { sessionId }]);
+      await expect(
+        getHandler('terminal:input')(mockEvent, { sessionId, data: 'x' })
+      ).resolves.toMatchObject({ success: false });
+    });
+
+    it('refuses input once the shell stdin is gone', async () => {
+      const child = makeFakeChild();
+      vi.mocked(spawn).mockReturnValue(
+        child as unknown as ReturnType<typeof spawn>
+      );
+      const { sessionId } = (
+        await getHandler('terminal:create')(mockEvent, { kind: 'local' })
+      ).data as { sessionId: string };
+      child.stdin.destroyed = true;
+
+      const result = await getHandler('terminal:input')(mockEvent, {
+        sessionId,
+        data: 'ls\n',
+      });
+
+      expect(result).toMatchObject({
+        success: false,
+        error: 'Terminal session is closed',
+      });
+      expect(child.stdin.write).not.toHaveBeenCalled();
+    });
+
+    it('interrupts the shell children on Linux, not only the shell', async () => {
+      setPlatform('linux');
+      const child = makeFakeChild();
+      vi.mocked(spawn).mockReturnValue(
+        child as unknown as ReturnType<typeof spawn>
+      );
+      const { sessionId } = (
+        await getHandler('terminal:create')(mockEvent, { kind: 'local' })
+      ).data as { sessionId: string };
+      vi.mocked(spawn).mockReturnValue({
+        on: vi.fn(),
+      } as unknown as ReturnType<typeof spawn>);
+
+      await getHandler('terminal:interrupt')(mockEvent, { sessionId });
+
+      expect(spawn).toHaveBeenLastCalledWith(
+        'pkill',
+        ['-INT', '-P', '1234'],
+        expect.objectContaining({ stdio: 'ignore' })
+      );
+      expect(child.kill).toHaveBeenCalledWith('SIGINT');
+    });
+
+    it('kills every open shell when the app quits', async () => {
+      const child = makeFakeChild();
+      vi.mocked(spawn).mockReturnValue(
+        child as unknown as ReturnType<typeof spawn>
+      );
+      await getHandler('terminal:create')(mockEvent, { kind: 'local' });
+      const quit = (
+        vi.mocked(app.on).mock.calls as unknown as [string, () => void][]
+      ).find(([event]) => event === 'will-quit')?.[1];
+
+      quit?.();
+
+      expect(child.kill).toHaveBeenCalled();
     });
   });
 });
