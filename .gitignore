@@ -26,13 +26,15 @@ plugins/log-aggregator/
 plugins/rbac-visualizer/
 plugins/secret-manager/
 
-# Stray compiler output in the dev mock backend (its build goes to dist/)
-marketplace-backend/src/**/*.js
-marketplace-backend/src/**/*.d.ts
-marketplace-backend/src/**/*.map
+# Other electron-builder output folders (e.g. release-master for comparisons)
+release-*/
 
 # MSYS2/Git Bash crash dumps
 *.stackdump
+
+# Claude Code local state
+.claude/settings.local.json
+.claude/worktrees/
 
 # Playwright MCP browser-tool artifacts
 .playwright-mcp/

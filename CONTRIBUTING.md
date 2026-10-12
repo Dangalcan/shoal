@@ -164,15 +164,7 @@ Before submitting, make sure:
    If a dependency you add needs its install script, run
    `npm rebuild <package>` and mention it in your PR.
 
-3. **Install marketplace backend dependencies:**
-
-   ```bash
-   cd marketplace-backend
-   npm install
-   cd ..
-   ```
-
-4. **Start development server:**
+3. **Start development server:**
 
    ```bash
    npm run dev
@@ -180,10 +172,11 @@ Before submitting, make sure:
 
    This starts:
    - Vite dev server (React app) on `http://localhost:5173`
-   - Electron main process
-   - Marketplace backend on `http://localhost:3000`
+   - Electron main process (the marketplace tab uses the sample catalog in
+     `electron/data/marketplace.json`; `npm run dev:full` also starts the
+     private kdMarket backend if you have it checked out next to this repo)
 
-5. **Open Developer Tools:**
+4. **Open Developer Tools:**
    - Press `Ctrl+Shift+I` (Windows/Linux) or `Cmd+Option+I` (macOS)
    - View console logs and debug
 

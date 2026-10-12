@@ -152,7 +152,6 @@ shoal/
 │   ├── lib/               # Utilities and resource definitions
 │   ├── App.tsx            # React Router setup
 │   └── main.tsx           # React entry point
-├── marketplace-backend/    # 🛒 Dev-only mock of the marketplace API (production uses kdMarket)
 ├── plugins/               # 🔌 Bundled example plugins (namespace-watcher, resource-monitor); the 6 marketplace plugins live in their own repos
 ├── styles/                # 🎨 SCSS stylesheets (variables, animations, components)
 ├── e2e/                   # 🎭 Playwright end-to-end tests and the screenshot capture (npm run screenshots)
@@ -309,16 +308,7 @@ The plugin ecosystem is powered by **kdMarket**, a standalone, contract-first ma
 
 The marketplace is off unless the app runs with `MARKETPLACE_ENABLED=true` (the 0.9 beta ships without it; `npm run dev` turns it on and falls back to bundled sample data when no backend is running). The app selects the backend via the `MARKETPLACE_BACKEND_URL` environment variable (e.g. `http://localhost:3001/v1` for a local kdMarket).
 
-### In-repo mock backend
-
-The bundled [marketplace-backend/](marketplace-backend/README.md) directory is a **dev-only, catalog-only mock** kept as an offline fallback — do not build new features against it. It serves at the bare root (`http://localhost:3001`, no `/v1`):
-
-```bash
-cd marketplace-backend
-npm install
-cp .env.example .env
-npm run dev
-```
+Without a backend, `npm run dev` falls back to the sample catalog in `electron/data/marketplace.json`.
 
 ## 🧪 Testing
 
@@ -450,17 +440,6 @@ npm run dev
 # Clear Vitest's cache, then re-run
 rm -rf node_modules/.vite
 npm run test
-```
-
-**Issue: The in-repo mock marketplace backend won't start**
-
-```bash
-cd marketplace-backend
-# Check if .env file exists
-ls -la .env
-# Copy example if missing
-cp .env.example .env
-npm run dev
 ```
 
 ### Getting Help

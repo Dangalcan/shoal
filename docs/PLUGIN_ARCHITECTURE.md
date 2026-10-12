@@ -250,21 +250,19 @@ without executing the plugin; the plugin registers the matching component in its
 
 ## Marketplace Backend
 
-The `marketplace-backend/` directory contains a **mock Express.js server** used for local development and testing. It serves a static plugin catalog from `marketplace-backend/public/catalog.json` and provides license activation endpoints backed by SQLite (`license-db-sqlite.ts`).
-
-This is **not** a production marketplace. A full marketplace backend (payment processing, developer portal, CDN, review workflow) is a future project.
+The marketplace is hidden in the 0.9 beta (`MARKETPLACE_ENABLED`). Its backend is **kdMarket**, a separate private repository (`/v1` API: catalog, licensing, checkout), planned for 1.0. In development, when no backend answers at `MARKETPLACE_BACKEND_URL`, `marketplace-service.ts` falls back to the sample catalog in `electron/data/marketplace.json`.
 
 ---
 
 ## Implementation Roadmap
 
-| Phase       | Description                                                                      | Status                     |
-| ----------- | -------------------------------------------------------------------------------- | -------------------------- |
-| **Phase 1** | Core plugin system: loader, registry, context, UI extensions, management page    | ✅ Complete                |
-| **Phase 2** | Licensing & monetization: license manager, trial periods, plugin signing         | ✅ Complete                |
-| **Phase 3** | Marketplace client: browse catalog, install/update plugins, mock backend         | ✅ Complete (mock backend) |
-| **Phase 4** | Production marketplace backend: payments, developer portal, CDN, review workflow | ⏳ Future                  |
-| **Phase 5** | Advanced features (see below)                                                    | ⚠️ Partial                 |
+| Phase       | Description                                                                      | Status                      |
+| ----------- | -------------------------------------------------------------------------------- | --------------------------- |
+| **Phase 1** | Core plugin system: loader, registry, context, UI extensions, management page    | ✅ Complete                 |
+| **Phase 2** | Licensing & monetization: license manager, trial periods, plugin signing         | ✅ Complete                 |
+| **Phase 3** | Marketplace client: browse catalog, install/update plugins (sample catalog)      | ✅ Complete (hidden in 0.9) |
+| **Phase 4** | Production marketplace backend: payments, developer portal, CDN, review workflow | ⏳ Future                   |
+| **Phase 5** | Advanced features (see below)                                                    | ⚠️ Partial                  |
 
 ### Phase 5 Feature Status
 

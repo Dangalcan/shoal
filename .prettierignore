@@ -7,4 +7,3 @@ plugins/*/plugin.json
 # Generated or foreign
 package-lock.json
 .playwright-mcp/
-marketplace-backend/

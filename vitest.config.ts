@@ -5,13 +5,10 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   test: {
-    // marketplace-backend has its own vitest suite and is being extracted to
-    // a separate repo; the app's test run (and CI) covers the app only.
     exclude: [
       ...configDefaults.exclude,
       '**/dist-electron/**',
       'e2e/**',
-      'marketplace-backend/**',
       // Claude Code worktrees live inside the project dir; without this the
       // main checkout's test run picks up a duplicate copy of every test.
       '**/.claude/**',
@@ -41,7 +38,6 @@ export default defineConfig({
         '**/dist/**',
         '**/dist-electron/**',
         '**/e2e/**',
-        'marketplace-backend/**',
         '**/.claude/**',
       ],
     },

@@ -9,8 +9,8 @@
     "price": 0,
     "icon": "",
     "screenshots": [],
-    "rating": 4.8,
-    "reviews": 120,
+    "rating": 0,
+    "reviews": 0,
     "downloadUrl": "local://resource-monitor-1.0.0.zip",
     "manifest": {
       "id": "resource-monitor",
@@ -38,8 +38,8 @@
     "price": 0,
     "icon": "",
     "screenshots": [],
-    "rating": 4.5,
-    "reviews": 85,
+    "rating": 0,
+    "reviews": 0,
     "downloadUrl": "local://namespace-watcher-1.0.0.zip",
     "manifest": {
       "id": "namespace-watcher",
