@@ -11,6 +11,7 @@ import { handleAsyncOperation } from '../../lib/async-operation-handler';
 import { useAsyncData } from '../../hooks/useAsyncData';
 import { Result } from '../../types/result';
 import { ClusterContextValue } from './types';
+import { isToolMissingMessage } from '../../lib/tool-errors';
 
 const ClusterContext = createContext<ClusterContextValue | null>(null);
 
@@ -31,6 +32,9 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
   } = useAsyncData({
     fetchFn,
     errorTitle: 'Failed to fetch clusters',
+    // The Dashboard and the cluster list show a notice with install links
+    // when kubectl is missing; a toast saying the same would be noise.
+    shouldReport: (message) => !isToolMissingMessage(message),
   });
 
   // Fetch current context on mount and after cluster list changes

@@ -107,6 +107,77 @@ describe('useAsyncData', () => {
     expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 
+  it('keeps the last data and reports the error when a refresh fails', async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce({ success: true, data: 'a' })
+      .mockResolvedValueOnce({ success: false, error: 'down' })
+      .mockResolvedValueOnce({ success: true, data: 'b' });
+    const { result } = renderHook(() =>
+      useAsyncData({ fetchFn, errorTitle: 'Load Failed' })
+    );
+    await waitFor(() => expect(result.current.data).toBe('a'));
+
+    await act(async () => {
+      await result.current.refetch();
+    });
+    expect(result.current.data).toBe('a');
+    expect(result.current.error).toBe('down');
+    expect(mockedHandleError).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await result.current.refetch();
+    });
+    expect(result.current.data).toBe('b');
+    expect(result.current.error).toBeNull();
+  });
+
+  it('keeps the error on screen while a retry is in flight', async () => {
+    let resolveSecond: (value: unknown) => void = () => {};
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce({ success: false, error: 'down' })
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSecond = resolve;
+          })
+      );
+    const { result } = renderHook(() => useAsyncData({ fetchFn }));
+    await waitFor(() => expect(result.current.error).toBe('down'));
+
+    act(() => {
+      void result.current.refetch();
+    });
+    expect(result.current.loading).toBe(true);
+    expect(result.current.error).toBe('down');
+
+    await act(async () => {
+      resolveSecond({ success: true, data: 1 });
+    });
+    expect(result.current.error).toBeNull();
+    expect(result.current.data).toBe(1);
+    expect(result.current.loading).toBe(false);
+  });
+
+  it('skips the toast when shouldReport returns false', async () => {
+    const fetchFn = vi.fn().mockResolvedValue({
+      success: false,
+      error: 'kubectl is not installed or not on the PATH',
+    });
+    const { result } = renderHook(() =>
+      useAsyncData({
+        fetchFn,
+        errorTitle: 'Load Failed',
+        shouldReport: (message) => !message.includes('not installed'),
+      })
+    );
+    await waitFor(() =>
+      expect(result.current.error).toContain('not installed')
+    );
+    expect(mockedHandleError).not.toHaveBeenCalled();
+  });
+
   describe('auto-refresh', () => {
     beforeEach(() => vi.useFakeTimers());
     afterEach(() => vi.useRealTimers());

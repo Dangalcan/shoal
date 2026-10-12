@@ -56,24 +56,31 @@ export const ClusterResourceDisplay: React.FC<ClusterResourceDisplayProps> = ({
   onRetry,
   selectedNamespace,
 }) => {
-  if (loading && items.length === 0) {
-    return (
-      <div className="loading-state">
-        <Loader2 className="loading-spinner" size={40} />
-        <p className="loading-text">Loading {activeTab}...</p>
-      </div>
-    );
-  }
-
-  if (error) {
+  // With nothing to show yet, a failure stays on screen while the next
+  // attempt runs; once a table exists it stays too (the toast reported the
+  // failure), so an unreachable cluster never flips between states.
+  if (error && items.length === 0) {
     return (
       <div className="error-state">
         <AlertCircle size={48} className="error-icon" />
         <h3 className="error-title">Error Loading Resources</h3>
         <p className="error-message">{error}</p>
-        <button onClick={onRetry} className="error-retry-button">
-          Try Again
+        <button
+          onClick={onRetry}
+          className="error-retry-button"
+          disabled={loading}
+        >
+          {loading ? 'Retrying…' : 'Try Again'}
         </button>
+      </div>
+    );
+  }
+
+  if (loading && items.length === 0) {
+    return (
+      <div className="loading-state">
+        <Loader2 className="loading-spinner" size={40} />
+        <p className="loading-text">Loading {activeTab}...</p>
       </div>
     );
   }

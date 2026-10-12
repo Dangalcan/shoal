@@ -47,7 +47,7 @@ export function ContextSwitcher() {
         className="context-switcher__trigger"
         onClick={() => setIsOpen(!isOpen)}
         disabled={isSwitching}
-        title="Switch Kubernetes Context"
+        title="Switch the active context (runs kubectl config use-context, so your terminal switches too)"
       >
         <span className="context-switcher__label">Context:</span>
         <span className="context-switcher__current">{displayName}</span>

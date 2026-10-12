@@ -43,7 +43,9 @@ export function Manifests() {
   } = useAsyncData<Manifest[]>({
     fetchFn: async () => {
       const result = await api.getManifests();
-      if (!result.success) throw new Error('Failed to fetch manifests');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch manifests');
+      }
       return result.data ?? [];
     },
     errorTitle: 'Failed to fetch manifests',

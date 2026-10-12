@@ -290,6 +290,10 @@ export function Dashboard() {
               <div className="dashboard-empty-state">
                 <Box size={32} />
                 <p>No clusters found</p>
+                <p className="dashboard-empty-state__hint">
+                  Shoal lists the contexts of your kubeconfig. Create a local
+                  cluster, or set another kubeconfig path in Settings.
+                </p>
                 <Button
                   variant="primary"
                   size="sm"

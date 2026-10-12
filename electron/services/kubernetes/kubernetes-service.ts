@@ -30,7 +30,7 @@ import log from '../../logger';
  * credential plugin waiting for a browser login, an unreachable API server
  * without a connect timeout) must not pile up. Writes keep no timeout.
  */
-const READ_TIMEOUT_MS = 30_000;
+export const READ_TIMEOUT_MS = 30_000;
 
 /** Builds ['--context', ctx] when a context is given, validating it. */
 function contextArgs(contextName?: string): string[] {

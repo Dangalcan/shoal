@@ -297,3 +297,9 @@
   gap: var(--spacing-sm);
   color: var(--text-muted);
 }
+
+.dashboard-empty-state__hint {
+  max-width: 28rem;
+  text-align: center;
+  font-size: 0.8rem;
+}

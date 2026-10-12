@@ -72,6 +72,21 @@ yet, so Windows SmartScreen shows a warning on first launch.
 - A window in the dark theme no longer flashes light while it loads, it
   cannot be shrunk below 960 by 600 pixels, and a crashed window offers to
   reload instead of staying blank.
+- Cluster details no longer alternate between a spinner and an error while
+  the cluster is unreachable: the last data stays on screen while a refresh
+  fails, and the error panel stays (with a "Retrying" hint) until a refresh
+  succeeds.
+- Namespace lists, logs, describe and YAML reads time out after 30 seconds
+  like the resource tables, instead of waiting for kubectl's own network
+  timeout.
+- A missing kubectl is explained once by the notice on the page, without a
+  second toast saying the same.
+- The empty cluster list and the Dashboard say where Shoal looks for
+  contexts (the kubeconfig) and how to point it elsewhere, and switching the
+  active context says that it runs `kubectl config use-context`, so the
+  terminal follows.
+- Manifests show the database error instead of a generic message when the
+  library cannot be read.
 - Local terminal: Ctrl+C now stops the running command (`ping`,
   `kubectl logs -f`) and leaves the shell usable. On Linux the interrupt
   only reached the shell; on Windows it stopped nothing at all (it looked

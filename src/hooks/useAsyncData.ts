@@ -16,17 +16,26 @@ export interface UseAsyncDataOptions<T> {
   skipInitialFetch?: boolean;
   /** Dependencies that trigger a refetch when changed */
   dependencies?: unknown[];
+  /**
+   * Decides whether a failure is reported with a toast (default: always).
+   * Pages that already explain a failure on screen, such as a missing
+   * kubectl, return false for it.
+   */
+  shouldReport?: (message: string) => boolean;
 }
 
 /**
  * Result returned by useAsyncData hook.
  */
 export interface UseAsyncDataResult<T> {
-  /** The fetched data (null if not yet loaded or error occurred) */
+  /**
+   * The fetched data: null until the first success, then the last
+   * successful value, which stays on screen while a refresh fails.
+   */
   data: T | null;
-  /** Loading state */
+  /** True while a fetch (initial or refresh) is in flight */
   loading: boolean;
-  /** Error message if fetch failed */
+  /** Message of the last failed fetch; cleared by the next success */
   error: string | null;
   /** Function to manually trigger a refetch */
   refetch: () => Promise<void>;
@@ -57,12 +66,14 @@ export function useAsyncData<T>(
   // Use refs for functions and options to avoid re-render loops
   const fetchFnRef = useRef(options.fetchFn);
   const errorTitleRef = useRef(options.errorTitle);
+  const shouldReportRef = useRef(options.shouldReport);
 
   // Keep the refs current after every commit. Effects run in declaration
   // order, so the fetch effect below always sees the latest options.
   useEffect(() => {
     fetchFnRef.current = options.fetchFn;
     errorTitleRef.current = options.errorTitle;
+    shouldReportRef.current = options.shouldReport;
   });
 
   // One toast per distinct failure: an auto-refresh that keeps failing the
@@ -72,6 +83,7 @@ export function useAsyncData<T>(
   const toastId = `async-data-${useId()}`;
   const reportError = (err: unknown, message: string) => {
     if (!errorTitleRef.current || lastToastedError.current === message) return;
+    if (shouldReportRef.current?.(message) === false) return;
     lastToastedError.current = message;
     handleError(err, errorTitleRef.current, { id: toastId });
   };
@@ -80,8 +92,10 @@ export function useAsyncData<T>(
     const requestId = ++requestCounter.current;
 
     try {
+      // A refresh keeps the current data and error on screen until it has
+      // a result of its own: an unreachable cluster must not turn the page
+      // into a spinner every interval.
       setLoading(true);
-      setError(null);
 
       const result = await fetchFnRef.current();
 
@@ -92,21 +106,21 @@ export function useAsyncData<T>(
         if (result.success) {
           lastToastedError.current = null;
           setData(result.data);
+          setError(null);
         } else {
           setError(result.error);
-          setData(null);
           reportError(new Error(result.error), result.error);
         }
       } else {
         lastToastedError.current = null;
         setData(result as T);
+        setError(null);
       }
     } catch (err) {
       if (requestId === requestCounter.current) {
         const errorMsg =
           err instanceof Error ? err.message : 'An error occurred';
         setError(errorMsg);
-        setData(null);
         reportError(err, errorMsg);
       }
     } finally {

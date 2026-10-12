@@ -212,7 +212,7 @@ describe('Clusters Page', () => {
       expect(screen.getByText('cluster-a')).toBeInTheDocument()
     );
 
-    fireEvent.click(screen.getByTitle('Set as Active Context'));
+    fireEvent.click(screen.getByTitle(/set as active context/i));
 
     await waitFor(() => {
       expect(mockApi.switchContext).toHaveBeenCalledWith('cluster-a');

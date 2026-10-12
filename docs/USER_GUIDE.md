@@ -59,7 +59,7 @@ Shoal makes it easy to spin up local development clusters.
 
 ### Switching Contexts
 
-If you have multiple clusters, you can switch between them with the context switcher at the top of the sidebar. The active context determines which cluster's resources are displayed.
+If you have multiple clusters, you can switch between them with the context switcher at the top of the sidebar, or with the check mark on a cluster card. The active context determines which cluster's resources are displayed. Switching runs `kubectl config use-context`, so your terminal and every other tool that reads the same kubeconfig switch with it.
 
 ### Deleting a Cluster or Removing a Context
 

@@ -134,7 +134,7 @@ export function Clusters() {
                       size="icon"
                       onClick={() => switchContext(cluster)}
                       loading={isSwitching}
-                      title="Set as Active Context"
+                      title="Set as active context (runs kubectl config use-context, so your terminal switches too)"
                     >
                       <CheckCircle2 size={20} />
                     </Button>
@@ -173,7 +173,10 @@ export function Clusters() {
             </div>
             <h3 className="clusters-empty-title">No clusters found</h3>
             <p className="clusters-empty-subtitle">
-              Create a new cluster or check your local setup.
+              Shoal lists the contexts of your kubeconfig (
+              <code>~/.kube/config</code>, or the files named in{' '}
+              <code>KUBECONFIG</code>). Create a local cluster with kind or k3d,
+              or point Settings → Kubeconfig Path at another file.
             </p>
           </div>
         </Animate>

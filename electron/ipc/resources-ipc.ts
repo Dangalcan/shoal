@@ -10,7 +10,10 @@
 
 import { ipcMain } from 'electron';
 import { safeExec } from '../utils/safe-exec';
-import { kubernetesService } from '../services/kubernetes/kubernetes-service';
+import {
+  kubernetesService,
+  READ_TIMEOUT_MS,
+} from '../services/kubernetes/kubernetes-service';
 import { resourceReadCache } from '../services/kubernetes/resource-read-cache';
 import {
   wrapIpcHandler,
@@ -43,14 +46,11 @@ export function registerResourcesIpcHandlers(): void {
     'get-namespaces',
     wrapIpcHandler('get-namespaces', async (_event, contextName) => {
       assertContext(contextName);
-      const { stdout } = await safeExec('kubectl', [
-        'get',
-        'namespaces',
-        '--context',
-        contextName,
-        '-o',
-        'name',
-      ]);
+      const { stdout } = await safeExec(
+        'kubectl',
+        ['get', 'namespaces', '--context', contextName, '-o', 'name'],
+        { timeout: READ_TIMEOUT_MS }
+      );
       return stdout
         .trim()
         .split('\n')
@@ -115,17 +115,21 @@ export function registerResourcesIpcHandlers(): void {
           Number.isInteger(sinceSeconds) && sinceSeconds > 0
             ? sinceSeconds
             : null;
-        const { stdout } = await safeExec('kubectl', [
-          'logs',
-          podName,
-          '--context',
-          contextName,
-          ...optionalNamespaceArgs(namespace),
-          `--tail=${tail}`,
-          ...(container ? ['-c', container] : []),
-          ...(timestamps === true ? ['--timestamps'] : []),
-          ...(since ? [`--since=${since}s`] : []),
-        ]);
+        const { stdout } = await safeExec(
+          'kubectl',
+          [
+            'logs',
+            podName,
+            '--context',
+            contextName,
+            ...optionalNamespaceArgs(namespace),
+            `--tail=${tail}`,
+            ...(container ? ['-c', container] : []),
+            ...(timestamps === true ? ['--timestamps'] : []),
+            ...(since ? [`--since=${since}s`] : []),
+          ],
+          { timeout: READ_TIMEOUT_MS }
+        );
         return stdout;
       }
     )
@@ -142,14 +146,18 @@ export function registerResourcesIpcHandlers(): void {
         assertContext(contextName);
         assertResourceType(resourceType);
         assertResourceName(resourceName);
-        const { stdout } = await safeExec('kubectl', [
-          'describe',
-          resourceType,
-          resourceName,
-          '--context',
-          contextName,
-          ...optionalNamespaceArgs(namespace),
-        ]);
+        const { stdout } = await safeExec(
+          'kubectl',
+          [
+            'describe',
+            resourceType,
+            resourceName,
+            '--context',
+            contextName,
+            ...optionalNamespaceArgs(namespace),
+          ],
+          { timeout: READ_TIMEOUT_MS }
+        );
         return stdout;
       }
     )
@@ -166,16 +174,20 @@ export function registerResourcesIpcHandlers(): void {
         assertContext(contextName);
         assertResourceType(resourceType);
         assertResourceName(resourceName);
-        const { stdout } = await safeExec('kubectl', [
-          'get',
-          resourceType,
-          resourceName,
-          '--context',
-          contextName,
-          ...optionalNamespaceArgs(namespace),
-          '-o',
-          'yaml',
-        ]);
+        const { stdout } = await safeExec(
+          'kubectl',
+          [
+            'get',
+            resourceType,
+            resourceName,
+            '--context',
+            contextName,
+            ...optionalNamespaceArgs(namespace),
+            '-o',
+            'yaml',
+          ],
+          { timeout: READ_TIMEOUT_MS }
+        );
         return stdout;
       }
     )
