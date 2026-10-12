@@ -89,7 +89,8 @@ Install the previous version, publish the new one, start the old app and wait
 for the "Update ready" toast, then restart. The sidebar must show the new
 version. This only works once the repository is public: electron-updater
 cannot read the releases of a private repository without a token. During the
-beta it is checked for `rc.2 → rc.3` right after the repository goes public.
+beta it is checked for the two newest release candidates (planned as
+`rc.3 → rc.4`) right after the repository goes public.
 
 ## Rollback
 
