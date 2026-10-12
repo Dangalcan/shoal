@@ -6,6 +6,20 @@ import AdmZip from 'adm-zip';
 import log from '../logger';
 
 /** Silently removes a temporary file, logging a warning on failure. */
+/**
+ * Throws when a file named by a plugin manifest (`main`, `data`, ...) resolves
+ * outside the plugin's own directory.
+ */
+export function assertInsidePlugin(
+  pluginDir: string,
+  file: string,
+  what: string
+): void {
+  if (!isPathInside(pluginDir, path.resolve(file))) {
+    throw new Error(`Plugin ${what} escapes the plugin directory: ${file}`);
+  }
+}
+
 export async function cleanupTempFile(
   filePath: string,
   label = 'temp file'

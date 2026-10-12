@@ -15,7 +15,11 @@ import {
 } from '../services/terminal/local-shells';
 
 vi.mock('fs', () => {
-  const fns = { existsSync: vi.fn(), mkdirSync: vi.fn() };
+  const fns = {
+    existsSync: vi.fn(),
+    mkdirSync: vi.fn(),
+    statSync: vi.fn(() => ({ isDirectory: () => true })),
+  };
   return { ...fns, default: fns };
 });
 
@@ -156,16 +160,14 @@ describe('local-shells (mocked environment branches)', () => {
   });
 
   describe('getTerminalCwd', () => {
-    it('returns the dedicated dir when mkdir succeeds', () => {
-      mockMkdirSync.mockReturnValue(undefined);
-      expect(getTerminalCwd()).toBe(path.join(os.tmpdir(), 'shoal-terminal'));
+    it('starts in the home directory', () => {
+      expect(getTerminalCwd()).toBe(os.homedir());
     });
 
-    it('falls back to the OS temp dir when mkdir fails', () => {
-      mockMkdirSync.mockImplementation(() => {
-        throw new Error('EACCES');
-      });
+    it('falls back to the OS temp dir without a usable home', () => {
+      const homedir = vi.spyOn(os, 'homedir').mockReturnValue('');
       expect(getTerminalCwd()).toBe(os.tmpdir());
+      homedir.mockRestore();
     });
   });
 });

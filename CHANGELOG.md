@@ -152,6 +152,28 @@ yet, so Windows SmartScreen shows a warning on first launch.
 
 ### Security
 
+- Plugin frames keep their Content Security Policy whatever document they
+  show: the `plugin-file:` protocol sends the policy as a header with every
+  file, the main process blocks navigation of a plugin frame away from its
+  host document, and the host hands the plugin its message port only once.
+- Installed builds ignore `VITE_DEV_SERVER_URL`, which could have pointed
+  the window, with its full IPC bridge, at any URL.
+- Manifests handed to `kubectl apply` are written to private temporary files
+  (owner-only, unguessable names, never over an existing file) instead of
+  predictable, world-readable ones.
+- Plugin resource events need the `kubernetes` permission, and a Secret
+  reaches a plugin without its `data`. `helm repo add` from a plugin no
+  longer repoints a repository name the user already has.
+- Plugin host processes get a minimal environment (no `KUBECONFIG`, no cloud
+  credentials), the `os` module is no longer exposed to plugin code, a
+  plugin's `main` and `data` entries must stay inside its directory, and the
+  signed file list refuses names that could forge the signed bytes.
+- IPC calls are accepted from the main frame only, plugin exports are looked
+  up as own properties (no `constructor` or prototype tricks) and lifecycle
+  hooks cannot be invoked as actions from the UI.
+- Local terminals start in the home directory instead of a shared folder
+  under the system temp directory, and the main log shows the home folder
+  as `~`.
 - Plugin signatures cover every file of the plugin, code included, not only
   `plugin.json`. A signed manifest can no longer vouch for swapped code, and an
   imported plugin can no longer take the id of a plugin bundled with Shoal.

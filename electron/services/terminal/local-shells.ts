@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, statSync } from 'fs';
 import os from 'os';
 import path from 'path';
 
@@ -172,16 +172,17 @@ export function resolveLocalShell(shellId?: string): ResolvedLocalShell {
 }
 
 /**
- * Default working directory for local terminals. Sessions start in a
- * dedicated temp folder instead of the app installation directory so
- * stray commands can't touch application files.
+ * Default working directory for local terminals: the user's home, like any
+ * terminal. Never the app installation directory (stray commands must not
+ * touch application files) and not a folder in the shared temp directory,
+ * which another user of the machine could own first.
  */
 export function getTerminalCwd(): string {
-  const dir = path.join(os.tmpdir(), 'shoal-terminal');
   try {
-    mkdirSync(dir, { recursive: true });
-    return dir;
+    const home = os.homedir();
+    if (home && statSync(home).isDirectory()) return home;
   } catch {
-    return os.tmpdir();
+    // No usable home directory: fall through.
   }
+  return os.tmpdir();
 }

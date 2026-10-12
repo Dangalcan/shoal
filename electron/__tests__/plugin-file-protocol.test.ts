@@ -16,7 +16,12 @@ vi.mock('electron', () => ({
   net: { fetch: vi.fn() },
 }));
 
-import { resolvePluginFile } from '../services/plugins/plugin-file-protocol';
+import {
+  resolvePluginFile,
+  withPluginCsp,
+  isPluginHostDocument,
+  PLUGIN_FILE_CSP,
+} from '../services/plugins/plugin-file-protocol';
 
 describe('plugin-file URL codec', () => {
   it('round-trips a Windows path', () => {
@@ -129,5 +134,39 @@ describe('resolvePluginFile', () => {
         path.join(tmp, 'does-not-exist'),
       ])
     ).toBeNull();
+  });
+});
+
+describe('plugin frame policy', () => {
+  it('attaches the frame CSP and keeps the rest of the response', async () => {
+    const original = new Response('<html></html>', {
+      status: 200,
+      headers: { 'content-type': 'text/html' },
+    });
+    const response = withPluginCsp(original);
+    expect(response.headers.get('Content-Security-Policy')).toBe(
+      PLUGIN_FILE_CSP
+    );
+    expect(response.headers.get('content-type')).toBe('text/html');
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('<html></html>');
+    expect(PLUGIN_FILE_CSP).toContain("connect-src 'none'");
+  });
+
+  it('recognises the host document and nothing else', () => {
+    expect(
+      isPluginHostDocument(
+        'plugin-file://local/C%3A/Shoal/resources/app.asar/dist/plugin-host/index.html'
+      )
+    ).toBe(true);
+    expect(
+      isPluginHostDocument('http://localhost:5173/plugin-host/index.html?x=1')
+    ).toBe(true);
+    expect(
+      isPluginHostDocument(
+        'plugin-file://local/home/ana/plugins/evil/page.html'
+      )
+    ).toBe(false);
+    expect(isPluginHostDocument('https://example.com/')).toBe(false);
   });
 });

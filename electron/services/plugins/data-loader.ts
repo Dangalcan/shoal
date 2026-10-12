@@ -15,6 +15,7 @@ import type {
 
 import { load, YAML11_SCHEMA } from 'js-yaml';
 import { getErrorMessage } from '../../utils/error-utils';
+import { assertInsidePlugin } from '../../utils/fs-utils';
 import log from '../../logger';
 
 export class DataLoader {
@@ -34,6 +35,7 @@ export class DataLoader {
     for (const dataPath of manifest.data) {
       try {
         const fullPath = path.join(pluginPath, dataPath);
+        assertInsidePlugin(pluginPath, fullPath, 'data file');
         const content = await fs.readFile(fullPath, 'utf-8');
         const extension = path.extname(dataPath).toLowerCase();
 

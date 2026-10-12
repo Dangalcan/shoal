@@ -12,7 +12,7 @@ A hybrid plugin architecture that extends Shoal through sandboxed third-party ex
 
 Shoal uses a **hybrid plugin architecture**:
 
-- **Main Process plugins** (`index.js`): Node.js code running in the Electron main process. Executed inside a `vm` sandbox with a built-in allowlist (`electron/services/plugins/plugin-sandbox.ts`) and a permission-gated `PluginContext`.
+- **Main Process plugins** (`index.js`): Node.js code running in the Electron main process. Executed inside a `vm` context with a built-in allowlist (`electron/services/plugins/plugin-sandbox.ts`: `path`, `util`, `url`, `events`, `stream`, `crypto`) and a permission-gated `PluginContext`. The `vm` context isolates modules and globals, it is not a security boundary (see `SECURITY.md`): trust comes from the plugin signature.
 - **Renderer plugins** (`renderer.js`): the plugin's UI, run inside an **isolated sandboxed iframe** (`sandbox="allow-scripts"`, opaque origin). The iframe has **no access** to `window.electron`, the host DOM, cookies, or other plugins. Its entire capability surface is `window.k8sPlugin`, a promise-based, permission-gated API delivered over a `MessageChannel` (see below).
 
 ### Monetization Model (planned for 1.0)
@@ -97,10 +97,13 @@ the app stylesheets, are served through the privileged `plugin-file:` scheme:
 - The plugin loader rejects a manifest whose `renderer` or `styles` point
   outside the plugin directory.
 
-**Content Security Policy of the frame** (`public/plugin-host/index.html`):
-scripts and styles only from the host document and `plugin-file:`, images
-and fonts also from `data:`/`blob:`, and `connect-src 'none'`. Plugin
-renderers cannot reach the network on their own; everything goes through
+**Content Security Policy of the frame** (`public/plugin-host/index.html`,
+and sent as a header with every `plugin-file:` response by
+`plugin-file-protocol.ts`): scripts and styles only from the host document
+and `plugin-file:`, images and fonts also from `data:`/`blob:`, and
+`connect-src 'none'`. The main process also refuses any navigation of a
+plugin frame away from the host document. Plugin renderers cannot reach the
+network on their own; everything goes through
 `window.k8sPlugin`. (A permission-gated network call in the SDK is planned
 for 1.0; the ci-pipeline-view, helm-manager and secret-manager marketplace
 plugins still call `fetch` directly and need it.)

@@ -24,6 +24,7 @@ import { getErrorMessage } from '../../utils/error-utils';
 import { pluginEventBus } from '../plugins/plugin-events';
 import { resourceReadCache } from './resource-read-cache';
 import log from '../../logger';
+import { privateTempPath, PRIVATE_FILE_WRITE } from '../../utils/temp-file';
 
 /**
  * List reads are polled by pages, widgets and plugins; one that hangs (a
@@ -165,12 +166,13 @@ export class KubernetesService {
    * Create a resource from manifest
    */
   async createResource(manifest: unknown, contextName?: string): Promise<void> {
-    const tempFile = path.join(
-      app.getPath('temp'),
-      `shoal-create-${Date.now()}.json`
-    );
+    const tempFile = privateTempPath('shoal-create', '.json');
     try {
-      await fs.writeFile(tempFile, JSON.stringify(manifest), 'utf-8');
+      await fs.writeFile(
+        tempFile,
+        JSON.stringify(manifest),
+        PRIVATE_FILE_WRITE
+      );
       await safeExec('kubectl', [
         'apply',
         ...contextArgs(contextName),
@@ -199,12 +201,13 @@ export class KubernetesService {
     manifest: unknown,
     contextName?: string
   ): Promise<void> {
-    const tempFile = path.join(
-      app.getPath('temp'),
-      `shoal-update-${Date.now()}.json`
-    );
+    const tempFile = privateTempPath('shoal-update', '.json');
     try {
-      await fs.writeFile(tempFile, JSON.stringify(manifest), 'utf-8');
+      await fs.writeFile(
+        tempFile,
+        JSON.stringify(manifest),
+        PRIVATE_FILE_WRITE
+      );
       await safeExec('kubectl', [
         'apply',
         ...contextArgs(contextName),

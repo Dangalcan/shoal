@@ -12,6 +12,7 @@ import fs from 'fs/promises';
 import { pathService } from './path-service';
 import { getErrorMessage } from '../../utils/error-utils';
 import log from '../../logger';
+import { tildify } from '../../utils/tildify';
 
 export class StorageService {
   private db: Database.Database | null = null;
@@ -37,7 +38,10 @@ export class StorageService {
       )
     `);
 
-    log.info('[StorageService] Plugin storage database initialized at', dbPath);
+    log.info(
+      '[StorageService] Plugin storage database initialized at',
+      tildify(dbPath)
+    );
   }
 
   /**

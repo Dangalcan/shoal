@@ -54,10 +54,9 @@ describe('local-shells', () => {
     );
   });
 
-  it('returns a terminal cwd inside the OS temp directory and creates it', () => {
+  it('returns the home directory as the terminal cwd', () => {
     const cwd = getTerminalCwd();
-    expect(cwd.startsWith(os.tmpdir())).toBe(true);
-    expect(existsSync(cwd)).toBe(true);
+    expect(cwd).toBe(os.homedir());
     expect(path.isAbsolute(cwd)).toBe(true);
   });
 });

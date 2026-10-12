@@ -183,7 +183,6 @@ describe('HelmService', () => {
         'add',
         'bitnami',
         'https://charts.bitnami.com/bitnami',
-        '--force-update',
       ]);
       expect(argsOfCall(1)).toEqual(['repo', 'update', 'bitnami']);
     });

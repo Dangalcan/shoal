@@ -258,6 +258,7 @@ describe('Plugin Context', () => {
           }),
         },
         stderr: { on: vi.fn() },
+        on: vi.fn(),
         kill: vi.fn(),
       };
       vi.mocked(child_process.spawn).mockReturnValue(watchProcessMock as any);
@@ -292,6 +293,7 @@ describe('Plugin Context', () => {
       vi.mocked(child_process.spawn).mockReturnValue({
         stdout: { on: vi.fn() },
         stderr: { on: vi.fn() },
+        on: vi.fn(),
         kill: vi.fn(),
       } as any);
 
@@ -319,6 +321,7 @@ describe('Plugin Context', () => {
             if (event === 'data') stderrCallback = cb;
           }),
         },
+        on: vi.fn(),
         kill: vi.fn(),
       };
       vi.mocked(child_process.spawn).mockReturnValue(watchProcessMock as any);
@@ -603,22 +606,61 @@ describe('Plugin Context', () => {
       const { pluginEventBus } =
         await import('../services/plugins/plugin-events');
       const emitSpy = vi.spyOn(pluginEventBus, 'on');
-      const handler = () => {};
+      const handler = vi.fn();
+      const ctx = createPluginContext(pluginId, pluginPath, ['kubernetes']);
 
-      context.events.onClusterConnected(handler);
+      ctx.events.onClusterConnected(handler);
       expect(emitSpy).toHaveBeenCalledWith('cluster:connected', handler);
 
-      context.events.onClusterDisconnected(handler);
+      ctx.events.onClusterDisconnected(handler);
       expect(emitSpy).toHaveBeenCalledWith('cluster:disconnected', handler);
 
-      context.events.onResourceCreated(handler);
-      expect(emitSpy).toHaveBeenCalledWith('resource:created', handler);
+      ctx.events.onResourceCreated(handler);
+      ctx.events.onResourceUpdated(handler);
+      ctx.events.onResourceDeleted(handler);
+      for (const name of [
+        'resource:created',
+        'resource:updated',
+        'resource:deleted',
+      ]) {
+        expect(emitSpy).toHaveBeenCalledWith(name, expect.any(Function));
+      }
 
-      context.events.onResourceUpdated(handler);
-      expect(emitSpy).toHaveBeenCalledWith('resource:updated', handler);
+      // Secret data never reaches a plugin through an event: call the
+      // listener the context registered, as the event bus would.
+      const listenerFor = (name: string) =>
+        emitSpy.mock.calls.find((call) => call[0] === name)?.[1] as (
+          resource: unknown
+        ) => void;
+      listenerFor('resource:created')({
+        kind: 'Secret',
+        metadata: { name: 's' },
+        data: { token: 'eA==' },
+        stringData: { x: 'y' },
+      });
+      expect(handler).toHaveBeenLastCalledWith({
+        kind: 'Secret',
+        metadata: { name: 's' },
+      });
+      listenerFor('resource:updated')({ kind: 'ConfigMap', data: { a: 'b' } });
+      expect(handler).toHaveBeenLastCalledWith({
+        kind: 'ConfigMap',
+        data: { a: 'b' },
+      });
+      emitSpy.mockRestore();
+    });
 
-      context.events.onResourceDeleted(handler);
-      expect(emitSpy).toHaveBeenCalledWith('resource:deleted', handler);
+    it('refuses resource events without the kubernetes permission', () => {
+      const ctx = createPluginContext(pluginId, pluginPath, ['ui']);
+      expect(() => ctx.events.onResourceCreated(() => {})).toThrow(
+        /kubernetes/
+      );
+      expect(() => ctx.events.onResourceUpdated(() => {})).toThrow(
+        /kubernetes/
+      );
+      expect(() => ctx.events.onResourceDeleted(() => {})).toThrow(
+        /kubernetes/
+      );
     });
 
     it('should handle cross-plugin broadcast events', async () => {

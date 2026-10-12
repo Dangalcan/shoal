@@ -60,6 +60,16 @@ async function callHookIfExists(
   );
 }
 
+/** Exports the plugin manager calls itself; the UI cannot invoke them as actions. */
+const LIFECYCLE_HOOKS = new Set([
+  'beforeActivate',
+  'activate',
+  'afterActivate',
+  'beforeDeactivate',
+  'deactivate',
+  'afterDeactivate',
+]);
+
 /** How long start-up waits for one plugin to activate before moving on. */
 export const STARTUP_ACTIVATION_WAIT_MS = 5_000;
 
@@ -577,6 +587,9 @@ export class PluginManager {
     actionId: string,
     args?: unknown
   ): Promise<unknown> {
+    if (LIFECYCLE_HOOKS.has(actionId)) {
+      throw new Error(`"${actionId}" is a lifecycle hook, not an action`);
+    }
     const entry = pluginRegistry.getPlugin(pluginId);
     if (!entry) {
       throw new Error(`Plugin ${pluginId} not found`);

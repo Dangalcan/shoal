@@ -65,6 +65,24 @@ export function canonicalPayload(files: Record<string, string>): string {
   return `${SIGNATURE_FORMAT}\n${lines.join('')}`;
 }
 
+/**
+ * A relative POSIX path a signature may list: no control characters (a line
+ * break would let two file lists sign the same bytes), no backslashes, no
+ * absolute paths and no `.`/`..` segments.
+ */
+export function isSafeRelativePath(rel: string): boolean {
+  if (typeof rel !== 'string' || rel === '') return false;
+  // eslint-disable-next-line no-control-regex
+  if (/[\x00-\x1f\x7f\\]/.test(rel)) return false;
+  if (rel.startsWith('/')) return false;
+  return rel
+    .split('/')
+    .every((part) => part !== '' && part !== '.' && part !== '..');
+}
+
+const hasOwn = (object: object, key: string): boolean =>
+  Object.prototype.hasOwnProperty.call(object, key);
+
 /** Parses `plugin.json.sig`; throws with a readable reason when malformed. */
 export function parseSignatureFile(content: string): PluginSignature {
   let data: unknown;
@@ -86,6 +104,13 @@ export function parseSignatureFile(content: string): PluginSignature {
   ) {
     throw new Error('plugin.json.sig is missing its file list or signature');
   }
+  for (const rel of Object.keys(sig.files)) {
+    if (!isSafeRelativePath(rel) || typeof sig.files[rel] !== 'string') {
+      throw new Error(
+        `plugin.json.sig lists an invalid file name: ${JSON.stringify(rel)}`
+      );
+    }
+  }
   return sig as PluginSignature;
 }
 
@@ -96,11 +121,11 @@ export function compareFiles(
 ): string[] {
   const problems: string[] = [];
   for (const rel of Object.keys(signed).sort()) {
-    if (!(rel in actual)) problems.push(`missing ${rel}`);
+    if (!hasOwn(actual, rel)) problems.push(`missing ${rel}`);
     else if (actual[rel] !== signed[rel]) problems.push(`modified ${rel}`);
   }
   for (const rel of Object.keys(actual).sort()) {
-    if (!(rel in signed)) problems.push(`unexpected ${rel}`);
+    if (!hasOwn(signed, rel)) problems.push(`unexpected ${rel}`);
   }
   return problems;
 }

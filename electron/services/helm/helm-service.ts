@@ -221,7 +221,9 @@ export class HelmService {
     assertRepoUrl(args.url);
     const { stdout } = await safeExec(
       'helm',
-      ['repo', 'add', args.name, args.url, '--force-update'],
+      // Without --force-update helm refuses a name that already points
+      // elsewhere: a plugin cannot redirect the user's existing repositories.
+      ['repo', 'add', args.name, args.url],
       { timeout: QUERY_TIMEOUT_MS }
     );
     await safeExec('helm', ['repo', 'update', args.name], {

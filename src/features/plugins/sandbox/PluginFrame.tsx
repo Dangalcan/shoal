@@ -107,9 +107,13 @@ export function PluginFrame({
     if (!iframe) return;
 
     let disposed = false;
+    // One port per frame: a document that replaced the host document (the
+    // main process blocks that, but belt and braces) gets nothing.
+    let initialized = false;
 
     const handleLoad = () => {
-      if (disposed || !iframe.contentWindow) return;
+      if (disposed || initialized || !iframe.contentWindow) return;
+      initialized = true;
 
       const channel = new MessageChannel();
       // Real MessagePort satisfies PortLike structurally; the interface uses a

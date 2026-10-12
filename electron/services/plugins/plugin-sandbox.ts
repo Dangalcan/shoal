@@ -15,7 +15,6 @@ import { isPathInside } from '../../utils/fs-utils';
 export const ALLOWED_BUILTINS = new Set([
   'path',
   'util',
-  'os',
   'url',
   'events',
   'stream',

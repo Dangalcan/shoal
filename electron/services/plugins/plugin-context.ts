@@ -25,6 +25,7 @@ import { getPluginExtensions, savePluginExtensions } from './plugin-extensions';
 import { getErrorMessage } from '../../utils/error-utils';
 import { kubernetesService } from '../kubernetes/kubernetes-service';
 import log from '../../logger';
+import { withoutSecretData } from '../kubernetes/secret-redaction';
 
 async function wrapK8sCall<T>(fn: () => Promise<T>, label: string): Promise<T> {
   try {
@@ -97,6 +98,12 @@ export function createPluginContext(
             '-o',
             'json',
           ]);
+          watchProcess.on('error', (error: Error) =>
+            log.error(
+              `[PluginContext] ${pluginId} watch of ${type} failed to start:`,
+              error.message
+            )
+          );
 
           let buffer = '';
 
@@ -367,6 +374,14 @@ export function createPluginContext(
 
   // Create Events API (always available)
   const emitter = new EventEmitter();
+  const requireClusterAccess = (what: string): void => {
+    if (!permissions.includes('kubernetes')) {
+      throw new Error(
+        `Permission denied: ${what} require the "kubernetes" permission`
+      );
+    }
+  };
+
   const events: EventsAPI = {
     // Subscribe to events
     on: (event: string, handler: (...args: unknown[]) => void) => {
@@ -420,15 +435,24 @@ export function createPluginContext(
         `[PluginContext] ${pluginId} subscribed to cluster:disconnected`
       );
     },
+    // Resource events carry whole manifests, so they need the permission
+    // that reading resources needs, and Secrets travel without their data.
     onResourceCreated: (handler: (resource: unknown) => void) => {
-      pluginEventBus.on('resource:created', handler);
+      requireClusterAccess('resource events');
+      pluginEventBus.on('resource:created', (resource: unknown) =>
+        handler(withoutSecretData(resource))
+      );
       log.info(`[PluginContext] ${pluginId} subscribed to resource:created`);
     },
     onResourceUpdated: (handler: (resource: unknown) => void) => {
-      pluginEventBus.on('resource:updated', handler);
+      requireClusterAccess('resource events');
+      pluginEventBus.on('resource:updated', (resource: unknown) =>
+        handler(withoutSecretData(resource))
+      );
       log.info(`[PluginContext] ${pluginId} subscribed to resource:updated`);
     },
     onResourceDeleted: (handler: (resource: unknown) => void) => {
+      requireClusterAccess('resource events');
       pluginEventBus.on('resource:deleted', handler);
       log.info(`[PluginContext] ${pluginId} subscribed to resource:deleted`);
     },

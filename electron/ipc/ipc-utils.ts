@@ -61,6 +61,13 @@ export const wrapIpcHandler = <T>(
     );
 
     try {
+      // Only the app's own document may call IPC. Plugin frames have no
+      // preload, so they cannot reach the bridge; a frame that somehow did
+      // is refused here.
+      const frame = event?.senderFrame;
+      if (frame && frame.parent !== null) {
+        throw new Error('IPC is only available to the main frame');
+      }
       const result = await handler(event, ...args);
       const formattedResult =
         result && typeof result === 'object' && 'success' in result

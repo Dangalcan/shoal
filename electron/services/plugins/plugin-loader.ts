@@ -25,7 +25,7 @@ import { LocalPluginModule } from './host/module-handle';
 import type { PluginModuleHandle } from './host/module-handle';
 import { pluginHostManager } from './host/plugin-host-manager';
 import { getErrorMessage } from '../../utils/error-utils';
-import { isPathInside } from '../../utils/fs-utils';
+import { isPathInside, assertInsidePlugin } from '../../utils/fs-utils';
 import { isProduction } from '../../utils/env-utils';
 import log from '../../logger';
 import { pluginEventBus } from './plugin-events';
@@ -182,6 +182,7 @@ export class PluginLoader {
         pluginPath,
         plugin.manifest.main || 'index.js'
       );
+      assertInsidePlugin(pluginPath, mainFile, 'main entry');
       await fs.access(mainFile);
 
       const code = await fs.readFile(mainFile, 'utf8');
@@ -276,6 +277,7 @@ export class PluginLoader {
         pluginPath,
         plugin.manifest.main || 'index.js'
       );
+      assertInsidePlugin(pluginPath, mainFile, 'main entry');
       await fs.access(mainFile);
 
       const handle = await pluginHostManager.spawn({

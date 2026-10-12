@@ -48,6 +48,41 @@ export async function resolvePluginFile(
   return null;
 }
 
+/**
+ * The policy of the plugin frames, sent with every plugin-file: response.
+ * The host document (public/plugin-host/index.html) carries the same text in
+ * a <meta>; the header makes sure any other document a frame could show
+ * keeps it: no network, no plugins, no forms, no nested frames.
+ */
+export const PLUGIN_FILE_CSP = [
+  "default-src 'none'",
+  "script-src 'self' plugin-file:",
+  "style-src 'self' 'unsafe-inline' plugin-file:",
+  "img-src 'self' data: blob: plugin-file:",
+  "font-src 'self' data: plugin-file:",
+  "connect-src 'none'",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'none'",
+  "frame-src 'none'",
+].join('; ');
+
+/** True for the plugin frames' host document (dev server or plugin-file:). */
+export function isPluginHostDocument(url: string): boolean {
+  return /\/plugin-host\/index\.html(?:[?#]|$)/.test(url);
+}
+
+/** Returns the same response with the plugin frame policy attached. */
+export function withPluginCsp(response: Response): Response {
+  const headers = new Headers(response.headers);
+  headers.set('Content-Security-Policy', PLUGIN_FILE_CSP);
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 /** `protocol.handle('plugin-file', ...)` callback. */
 export async function handlePluginFileRequest(
   request: Request
@@ -60,5 +95,5 @@ export async function handlePluginFileRequest(
     log.warn(`[Protocol] Refused plugin-file request: ${request.url}`);
     return new Response('Forbidden', { status: 403 });
   }
-  return net.fetch(pathToFileURL(file).toString());
+  return withPluginCsp(await net.fetch(pathToFileURL(file).toString()));
 }

@@ -21,6 +21,7 @@ import type {
 import { pluginEventBus } from '../plugin-events';
 import { getErrorMessage } from '../../../utils/error-utils';
 import log from '../../../logger';
+import { hostEnvironment } from './host-environment';
 
 const LOAD_TIMEOUT_MS = 15_000;
 const INVOKE_TIMEOUT_MS = 30_000;
@@ -89,6 +90,15 @@ function toCloneable(value: unknown): unknown {
   }
 }
 
+const MAX_LOGGED_OUTPUT = 2000;
+
+function clipOutput(data: Buffer): string {
+  const text = data.toString().trimEnd();
+  return text.length > MAX_LOGGED_OUTPUT
+    ? `${text.slice(0, MAX_LOGGED_OUTPUT)}... (${text.length} chars)`
+    : text;
+}
+
 function defaultFork(
   modulePath: string,
   serviceName: string
@@ -99,6 +109,7 @@ function defaultFork(
   return electron.utilityProcess.fork(modulePath, [], {
     serviceName,
     stdio: 'pipe',
+    env: hostEnvironment(),
   });
 }
 
@@ -166,11 +177,13 @@ class PluginHostHandle {
       this.handleMessage(message as HostToMainMessage)
     );
     child.on('exit', (code) => this.handleExit(code));
+    // Plugin output lands in main.log, which users attach to issues: keep
+    // each chunk bounded so a chatty (or careless) plugin cannot fill it.
     child.stdout?.on('data', (data: Buffer) =>
-      log.info(`[PluginHost:${pluginId}]`, data.toString().trimEnd())
+      log.info(`[PluginHost:${pluginId}]`, clipOutput(data))
     );
     child.stderr?.on('data', (data: Buffer) =>
-      log.error(`[PluginHost:${pluginId}]`, data.toString().trimEnd())
+      log.error(`[PluginHost:${pluginId}]`, clipOutput(data))
     );
   }
 

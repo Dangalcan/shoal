@@ -6,6 +6,7 @@ import { safeExec } from './utils/safe-exec';
 import { assertContext } from './utils/k8s-validate';
 import { cleanupTempFile } from './utils/fs-utils';
 import log from './logger';
+import { privateTempPath, PRIVATE_FILE_WRITE } from './utils/temp-file';
 
 export interface Manifest {
   id: number;
@@ -278,9 +279,9 @@ class ManifestDatabase {
 
     assertContext(manifest.cluster_context);
 
-    // Write content to a temporary file
-    const tempFilePath = path.join(app.getPath('temp'), `manifest-${id}.yaml`);
-    await fs.writeFile(tempFilePath, manifest.content);
+    // Write the content to a private temporary file (owner-only, random name)
+    const tempFilePath = privateTempPath('shoal-manifest', '.yaml');
+    await fs.writeFile(tempFilePath, manifest.content, PRIVATE_FILE_WRITE);
 
     try {
       const { stdout, stderr } = await safeExec('kubectl', [

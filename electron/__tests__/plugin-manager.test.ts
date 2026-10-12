@@ -328,6 +328,15 @@ describe('PluginManager', () => {
       expect(result).toBe('result');
     });
 
+    it('refuses lifecycle hooks as actions', async () => {
+      vi.mocked(pluginRegistry.getPlugin).mockReturnValue({} as any);
+      vi.mocked(pluginRegistry.isPluginEnabled).mockReturnValue(true);
+      await expect(
+        pluginManager.executePluginAction('p1', 'activate')
+      ).rejects.toThrow(/lifecycle hook/);
+      expect(pluginLoader.acquireModuleHandle).not.toHaveBeenCalled();
+    });
+
     it('should throw if plugin not found or disabled', async () => {
       vi.mocked(pluginRegistry.hasPlugin).mockReturnValue(false);
       await expect(

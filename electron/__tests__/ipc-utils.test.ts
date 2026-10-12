@@ -58,3 +58,23 @@ describe('wrapIpcHandler', () => {
     expect(logged).toContain('[redacted]');
   });
 });
+
+describe('wrapIpcHandler frame check', () => {
+  it('refuses calls that do not come from the main frame', async () => {
+    const handler = vi.fn(async () => 'ok');
+    const wrapped = wrapIpcHandler('x', handler);
+    const fromSubframe = {
+      senderFrame: { parent: {} },
+    } as unknown as IpcMainInvokeEvent;
+    const fromMain = {
+      senderFrame: { parent: null },
+    } as unknown as IpcMainInvokeEvent;
+
+    expect(await wrapped(fromSubframe)).toEqual({
+      success: false,
+      error: 'IPC is only available to the main frame',
+    });
+    expect(handler).not.toHaveBeenCalled();
+    expect(await wrapped(fromMain)).toEqual({ success: true, data: 'ok' });
+  });
+});

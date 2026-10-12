@@ -26,7 +26,10 @@ import { registerTerminalIpcHandlers } from './ipc/terminal-ipc';
 import { registerPortForwardIpcHandlers } from './ipc/portforward-ipc';
 import { registerUpdateIpcHandlers } from './ipc/update-ipc';
 import { updateService } from './services/update';
-import { handlePluginFileRequest } from './services/plugins/plugin-file-protocol';
+import {
+  handlePluginFileRequest,
+  isPluginHostDocument,
+} from './services/plugins/plugin-file-protocol';
 import { openExternalSafe } from './utils/url-utils';
 import { applyDesktopToolPath } from './utils/path-env';
 import {
@@ -56,7 +59,11 @@ process.env.VITE_PUBLIC = app.isPackaged
   : path.join(process.env.DIST, '../public');
 
 export let win: BrowserWindow | null;
-const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
+// Only development builds load the renderer from the Vite server: in an
+// installed build the variable could point the whole preload bridge at any URL.
+const VITE_DEV_SERVER_URL = app.isPackaged
+  ? undefined
+  : process.env['VITE_DEV_SERVER_URL'];
 
 // One running instance per user data directory: a second launch focuses the
 // existing window instead of opening a second app on the same databases.
@@ -87,6 +94,14 @@ app.on('web-contents-created', (_event, contents) => {
       log.warn(`[Main] Blocked navigation to ${url}`);
       event.preventDefault();
     }
+  });
+  // Plugin frames only ever show their host document: a plugin that
+  // navigated its own frame elsewhere would leave the host document's CSP
+  // behind (the protocol handler sends the same policy as a header too).
+  contents.on('will-frame-navigate', (event) => {
+    if (event.isMainFrame || isPluginHostDocument(event.url)) return;
+    log.warn(`[Main] Blocked frame navigation to ${event.url}`);
+    event.preventDefault();
   });
 });
 

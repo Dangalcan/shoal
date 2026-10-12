@@ -41,7 +41,16 @@ export class LocalPluginModule implements PluginModuleHandle {
   }
 
   has(name: string): boolean {
-    return typeof this.moduleExports[name] === 'function';
+    return this.ownFunction(name) !== undefined;
+  }
+
+  /** A function the module itself exports; nothing from the prototype chain. */
+  private ownFunction(name: string): unknown {
+    if (!Object.prototype.hasOwnProperty.call(this.moduleExports, name)) {
+      return undefined;
+    }
+    const target = this.moduleExports[name];
+    return typeof target === 'function' ? target : undefined;
   }
 
   async invoke(
@@ -49,7 +58,7 @@ export class LocalPluginModule implements PluginModuleHandle {
     options: PluginModuleInvokeOptions = {},
     context?: PluginContext
   ): Promise<unknown> {
-    const target = this.moduleExports[name];
+    const target = this.ownFunction(name);
     if (typeof target !== 'function') {
       throw new Error(`Export "${name}" is not a function`);
     }
