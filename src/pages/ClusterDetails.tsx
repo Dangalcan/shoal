@@ -242,7 +242,10 @@ export function ClusterDetails() {
           namespace={modals.selectedItem?.metadata.namespace || ''}
           containers={
             modals.selectedItem && isPod(modals.selectedItem)
-              ? (modals.selectedItem.spec?.containers ?? []).map((c) => c.name)
+              ? [
+                  ...(modals.selectedItem.spec?.containers ?? []),
+                  ...(modals.selectedItem.spec?.initContainers ?? []),
+                ].map((c) => c.name)
               : undefined
           }
         />

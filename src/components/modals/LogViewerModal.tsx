@@ -109,21 +109,31 @@ export function LogViewerModal({
   const followRef = useRef(follow);
   const scrollRef = useRef<HTMLDivElement>(null);
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // Snapshot requests are numbered: an answer for an earlier request (another
+  // pod or cluster, an older refresh) is dropped instead of replacing the
+  // lines. The spinner belongs to the newest user-triggered request.
+  const requestSeq = useRef(0);
+  const loadingSeq = useRef(0);
+  // The picker shows the first container until the user picks one; kubectl
+  // is asked for that same container, so the request matches the header.
+  const effectiveContainer = container ?? containers[0];
 
   // Snapshot fetches read the latest mode without re-running on toggles.
   useEffect(() => {
     followRef.current = follow;
   }, [follow]);
 
-  // A different pod starts from a blank viewer: the previous pod's lines
-  // must not show as the new pod's while its logs load.
+  // A different pod (or the same pod on another cluster) starts from a
+  // blank viewer: the previous pod's lines must not show as the new pod's
+  // while its logs load, and an answer still in flight for it is ignored.
   useEffect(() => {
+    requestSeq.current++;
     setBuffer(EMPTY_LOG_BUFFER);
     setError(null);
     setContainer(undefined);
     // Coming back to the followed pod later starts from a snapshot too.
     setFollowKey(null);
-  }, [podName, namespace]);
+  }, [clusterName, podName, namespace]);
 
   const pinToBottom = useCallback(() => {
     pinnedRef.current = true;
@@ -137,7 +147,7 @@ export function LogViewerModal({
     contextName: clusterName,
     podName,
     namespace,
-    container,
+    container: effectiveContainer,
     onStarted: () => {
       setBuffer({ ...EMPTY_LOG_BUFFER, source: 'stream' });
       setError(null);
@@ -149,7 +159,11 @@ export function LogViewerModal({
   const fetchLogs = useCallback(
     async (isAuto = false) => {
       if (!podName || !namespace || !clusterName) return;
-      if (!isAuto) setLoading(true);
+      const seq = ++requestSeq.current;
+      if (!isAuto) {
+        loadingSeq.current = seq;
+        setLoading(true);
+      }
       setError(null);
       try {
         const result = await api.getLogs({
@@ -157,8 +171,10 @@ export function LogViewerModal({
           podName,
           namespace,
           tailLines,
-          container,
+          container: effectiveContainer,
         });
+        // A newer request (another pod, container or refresh) owns the viewer.
+        if (seq !== requestSeq.current) return;
         // Follow was turned on meanwhile: the stream owns the lines now.
         if (followRef.current) return;
         if (result.success) {
@@ -171,14 +187,15 @@ export function LogViewerModal({
           setError(result.error);
         }
       } catch (err: unknown) {
+        if (seq !== requestSeq.current) return;
         setError(
           err instanceof Error ? err.message : 'An unexpected error occurred'
         );
       } finally {
-        if (!isAuto) setLoading(false);
+        if (!isAuto && loadingSeq.current === seq) setLoading(false);
       }
     },
-    [api, podName, namespace, clusterName, tailLines, container]
+    [api, podName, namespace, clusterName, tailLines, effectiveContainer]
   );
 
   // Snapshot mode: fetch on open and when the pod or container changes.

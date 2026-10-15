@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // Unmock component for unit testing
 vi.unmock('../../../components/modals/LogViewerModal');
 
-import { render, screen, waitFor, fireEvent } from '../../utils';
+import { render, screen, waitFor, fireEvent, act } from '../../utils';
 import { LogViewerModal } from '../../../components/modals/LogViewerModal';
 import { mockElectronAPI } from '../../setup';
 
@@ -201,8 +201,10 @@ describe('LogViewerModal', () => {
     await waitFor(() =>
       expect(screen.getByText('lines of pod-a')).toBeInTheDocument()
     );
+    // Until the user picks one, the first container is requested, which is
+    // also the one the picker shows.
     expect(window.electron.getLogs).toHaveBeenLastCalledWith(
-      expect.objectContaining({ podName: 'pod-a', container: undefined })
+      expect.objectContaining({ podName: 'pod-a', container: 'app' })
     );
 
     fireEvent.change(screen.getByLabelText('Container'), {
@@ -229,6 +231,69 @@ describe('LogViewerModal', () => {
     );
     expect(screen.getByText('Fetching logs...')).toBeInTheDocument();
     expect(screen.queryByLabelText('Container')).toBeNull();
+  });
+
+  it('ignores a late answer from the pod opened before', async () => {
+    let answerPodA: (value: { success: true; data: string }) => void = () => {};
+    mockElectronAPI.getLogs.mockImplementation(
+      ({ podName }: { podName: string }) =>
+        podName === 'pod-a'
+          ? new Promise<{ success: true; data: string }>((resolve) => {
+              answerPodA = resolve;
+            })
+          : Promise.resolve({ success: true as const, data: 'lines of pod-b' })
+    );
+    const props = {
+      isOpen: true,
+      onClose: vi.fn(),
+      clusterName: 'c',
+      namespace: 'default',
+    };
+    const { rerender } = render(<LogViewerModal {...props} podName="pod-a" />);
+    await waitFor(() =>
+      expect(window.electron.getLogs).toHaveBeenCalledTimes(1)
+    );
+
+    rerender(<LogViewerModal {...props} podName="pod-b" />);
+    await waitFor(() =>
+      expect(screen.getByText('lines of pod-b')).toBeInTheDocument()
+    );
+
+    // pod-a answers after pod-b is on screen: its lines must not win.
+    await act(async () => {
+      answerPodA({ success: true, data: 'lines of pod-a' });
+    });
+    expect(screen.getByText('lines of pod-b')).toBeInTheDocument();
+    expect(screen.queryByText('lines of pod-a')).not.toBeInTheDocument();
+    expect(screen.queryByText('Fetching logs...')).not.toBeInTheDocument();
+  });
+
+  it('starts blank when the same pod is opened on another cluster', async () => {
+    mockElectronAPI.getLogs.mockResolvedValue({
+      success: true,
+      data: 'lines on cluster one',
+    });
+    const props = {
+      isOpen: true,
+      onClose: vi.fn(),
+      podName: 'pod-a',
+      namespace: 'default',
+    };
+    const { rerender } = render(
+      <LogViewerModal {...props} clusterName="one" />
+    );
+    await waitFor(() =>
+      expect(screen.getByText('lines on cluster one')).toBeInTheDocument()
+    );
+
+    mockElectronAPI.getLogs.mockImplementation(() => new Promise(() => {}));
+    rerender(<LogViewerModal {...props} clusterName="two" />);
+    await waitFor(() =>
+      expect(screen.queryByText('lines on cluster one')).not.toBeInTheDocument()
+    );
+    expect(window.electron.getLogs).toHaveBeenLastCalledWith(
+      expect.objectContaining({ contextName: 'two', podName: 'pod-a' })
+    );
   });
 
   it('copies the visible lines', async () => {
