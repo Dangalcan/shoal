@@ -60,6 +60,22 @@ describe('ElectronService', () => {
     expect(getMockApi().getLogs).toHaveBeenCalledWith(args);
   });
 
+  it('log stream calls go to window.electron', async () => {
+    const args = { contextName: 'ctx', podName: 'pod', namespace: 'default' };
+    await electronService.logStreamStart(args);
+    expect(getMockApi().logStreamStart).toHaveBeenCalledWith(args);
+
+    await electronService.logStreamStop('stream-1');
+    expect(getMockApi().logStreamStop).toHaveBeenCalledWith('stream-1');
+
+    const onLines = vi.fn();
+    const onEnded = vi.fn();
+    expect(typeof electronService.onLogStreamLines(onLines)).toBe('function');
+    expect(getMockApi().onLogStreamLines).toHaveBeenCalledWith(onLines);
+    expect(typeof electronService.onLogStreamEnded(onEnded)).toBe('function');
+    expect(getMockApi().onLogStreamEnded).toHaveBeenCalledWith(onEnded);
+  });
+
   it('describeResource calls window.electron.describeResource', async () => {
     const args = {
       contextName: 'ctx',

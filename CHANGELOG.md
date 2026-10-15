@@ -5,6 +5,27 @@ All notable changes to Shoal are documented here. The format follows
 [Semantic Versioning](https://semver.org/). Release steps are in
 [docs/RELEASE.md](docs/RELEASE.md).
 
+## [Unreleased] - 0.9.1
+
+### Added
+
+- Live log streaming. **Follow** in the log viewer streams new lines as the
+  pod writes them (`kubectl logs -f`, starting from the last 200 lines), for
+  the container chosen in the picker. The view scrolls with new lines while
+  it is at the bottom and pauses when you scroll up to read, with a button to
+  jump back to the latest line. The viewer keeps the last 5,000 lines. When
+  the stream stops on its own (container stopped, pod deleted, kubectl
+  error), a banner shows kubectl's reason and a **Reconnect** button.
+  Streams stop when the viewer closes, the pod or container changes, Follow
+  is turned off or the window reloads, and every kubectl process ends with
+  Shoal.
+
+### Changed
+
+- The log viewer footer tells a snapshot (the last 200 lines, fetched on
+  demand) from a live stream. This lifts the 0.9.0 known limitation "Logs are
+  fetched on demand, not streamed".
+
 ## [Unreleased] - 0.9.0 public beta
 
 First public release, for Windows and Linux. Installers are not code-signed

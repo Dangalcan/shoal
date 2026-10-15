@@ -137,6 +137,40 @@ test('row actions appear on hover', async () => {
   await expect(window.locator('.action-button-logs').first()).toBeVisible();
 });
 
+test('log viewer follows a pod and stops following on request', async () => {
+  await window.locator('.tab-button', { hasText: 'Pods' }).click();
+  // CoreDNS writes its version banner at startup, so the stream's first
+  // batch (the last 200 lines) is never empty.
+  const row = window.locator('.table-row', { hasText: 'coredns' }).first();
+  await expect(row).toBeVisible({ timeout: 15_000 });
+  await row.hover();
+  await row.locator('.action-button-logs').click();
+
+  const modal = window.getByTestId('log-modal');
+  await expect(modal).toBeVisible();
+  const status = modal.getByTestId('log-stream-status');
+  await expect(status).toContainText('Snapshot');
+
+  const follow = modal.getByRole('button', { name: 'Follow' });
+  await follow.click();
+  await expect(follow).toHaveAttribute('aria-pressed', 'true');
+  await expect(status).toContainText('Live', { timeout: 15_000 });
+  await expect(modal.getByTestId('log-content')).toContainText('CoreDNS', {
+    timeout: 15_000,
+  });
+  // Snapshot controls make no sense while the stream fills the viewer.
+  await expect(
+    modal.getByRole('button', { name: 'Auto-refresh' })
+  ).not.toBeVisible();
+
+  await follow.click();
+  await expect(status).toContainText('Follow stopped');
+  await expect(modal.getByTestId('log-content')).toContainText('CoreDNS');
+
+  await modal.locator('.close-footer-button').click();
+  await expect(modal).not.toBeVisible();
+});
+
 test('settings dropdown opens, filters resource list, and closes', async () => {
   await window.locator('button[title="Display Settings"]').click();
   await expect(window.locator('.settings-dropdown')).toBeVisible();

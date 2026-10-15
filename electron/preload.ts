@@ -36,6 +36,39 @@ contextBridge.exposeInMainWorld('electron', {
     timestamps?: boolean;
     sinceSeconds?: number;
   }) => ipcRenderer.invoke('get-logs', args),
+  logStreamStart: (args: {
+    contextName: string;
+    podName: string;
+    namespace: string;
+    container?: string;
+  }) => ipcRenderer.invoke('logs:stream-start', args),
+  logStreamStop: (streamId: string) =>
+    ipcRenderer.invoke('logs:stream-stop', { streamId }),
+  onLogStreamLines: (callback: (streamId: string, lines: string[]) => void) => {
+    const handler = (
+      _event: IpcRendererEvent,
+      { streamId, lines }: { streamId: string; lines: string[] }
+    ) => callback(streamId, lines);
+    ipcRenderer.on('logs:stream-lines', handler);
+    return () => ipcRenderer.off('logs:stream-lines', handler);
+  },
+  onLogStreamEnded: (
+    callback: (
+      streamId: string,
+      end: { reason: string; exitCode: number | null }
+    ) => void
+  ) => {
+    const handler = (
+      _event: IpcRendererEvent,
+      {
+        streamId,
+        reason,
+        exitCode,
+      }: { streamId: string; reason: string; exitCode: number | null }
+    ) => callback(streamId, { reason, exitCode });
+    ipcRenderer.on('logs:stream-ended', handler);
+    return () => ipcRenderer.off('logs:stream-ended', handler);
+  },
   getPodMetrics: (args: { contextName: string; namespace: string }) =>
     ipcRenderer.invoke('get-pod-metrics', args),
   describeResource: (args: {

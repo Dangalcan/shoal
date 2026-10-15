@@ -69,6 +69,14 @@ export const mockApi: ElectronAPI = {
     console.log('[MockAPI] getLogs:', args);
     return { success: true, data: 'Mock logs...' };
   },
+  // Log streaming (mock stub — follow mode needs kubectl)
+  logStreamStart: async () => ({
+    success: false,
+    error: 'Not available in browser',
+  }),
+  logStreamStop: async () => ({ success: true, data: false }),
+  onLogStreamLines: () => () => {},
+  onLogStreamEnded: () => () => {},
   describeResource: async (args) => {
     console.log('[MockAPI] describeResource:', args);
     return { success: true, data: 'Mock description...' };
