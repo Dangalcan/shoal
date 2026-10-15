@@ -158,7 +158,10 @@ export function createMockElectronAPI(
     }),
     migrationSelectComposeFile: vi.fn().mockResolvedValue({
       success: true,
-      data: 'C:/project/docker-compose.yml',
+      data: {
+        token: 'mock-compose-token',
+        filePath: 'C:/project/docker-compose.yml',
+      },
     }),
     migrationConvertCompose: vi.fn().mockResolvedValue({
       success: true,

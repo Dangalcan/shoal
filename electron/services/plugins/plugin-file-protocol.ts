@@ -93,7 +93,9 @@ export async function handlePluginFileRequest(
   ]);
   if (!file) {
     log.warn(`[Protocol] Refused plugin-file request: ${request.url}`);
-    return new Response('Forbidden', { status: 403 });
+    // Error pages carry the frame policy too; a frame never shows a
+    // document without it.
+    return withPluginCsp(new Response('Forbidden', { status: 403 }));
   }
   return withPluginCsp(await net.fetch(pathToFileURL(file).toString()));
 }

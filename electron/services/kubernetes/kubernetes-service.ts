@@ -9,9 +9,7 @@
  * run through safeExec (execFile, no shell).
  */
 
-import path from 'path';
 import fs from 'fs/promises';
-import { app } from 'electron';
 import { safeExec } from '../../utils/safe-exec';
 import {
   assertContext,

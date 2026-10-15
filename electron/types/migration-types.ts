@@ -12,6 +12,15 @@ export interface KomposeStatus {
   version?: string;
 }
 
+/**
+ * A compose file picked in the native dialog. The renderer converts it by
+ * token, never by path; the path is only shown to the user.
+ */
+export interface ComposeFileSelection {
+  token: string;
+  filePath: string;
+}
+
 /** A single Kubernetes resource produced by kompose. */
 export interface ConvertedManifest {
   /** Suggested file/manifest name, e.g. "web-deployment.yaml". */

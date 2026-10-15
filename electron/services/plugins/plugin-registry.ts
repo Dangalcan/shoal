@@ -107,10 +107,12 @@ export class PluginRegistry {
         }
       }
 
+      // Owner-only, like the encryption salt next to it: the file holds
+      // license keys and the encrypted plugin secrets.
       await fs.writeFile(
         this.configFilePath,
         JSON.stringify(configToSave, null, 2),
-        'utf-8'
+        { encoding: 'utf-8', mode: 0o600 }
       );
 
       log.info(

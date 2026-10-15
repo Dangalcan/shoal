@@ -229,10 +229,16 @@ export const mockApi: ElectronAPI = {
   },
   migrationSelectComposeFile: async () => {
     console.log('[MockAPI] migrationSelectComposeFile');
-    return { success: true, data: '/mock/docker-compose.yml' };
+    return {
+      success: true,
+      data: {
+        token: 'mock-compose-token',
+        filePath: '/mock/docker-compose.yml',
+      },
+    };
   },
-  migrationConvertCompose: async (filePath: string) => {
-    console.log('[MockAPI] migrationConvertCompose:', filePath);
+  migrationConvertCompose: async (token: string) => {
+    console.log('[MockAPI] migrationConvertCompose:', token);
     return {
       success: true,
       data: {

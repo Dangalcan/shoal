@@ -85,8 +85,9 @@ describe('useMigration', () => {
 
     await act(() => result.current.selectAndConvert());
 
+    // The hook converts by the dialog's token and shows the path.
     expect(mockApi.migrationConvertCompose).toHaveBeenCalledWith(
-      'C:/project/docker-compose.yml'
+      'mock-compose-token'
     );
     expect(result.current.step).toBe('review');
     expect(result.current.composePath).toBe('C:/project/docker-compose.yml');

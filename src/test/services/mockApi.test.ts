@@ -344,10 +344,13 @@ describe('mockApi', () => {
   it('walks through a migration', async () => {
     expect(dataOf(await mockApi.migrationCheckKompose())?.available).toBe(true);
     const file = await mockApi.migrationSelectComposeFile();
-    expect(dataOf(file)).toBe('/mock/docker-compose.yml');
+    expect(dataOf(file)).toEqual({
+      token: 'mock-compose-token',
+      filePath: '/mock/docker-compose.yml',
+    });
 
     const conversion = await mockApi.migrationConvertCompose(
-      dataOf(file) as string
+      dataOf(file)!.token
     );
     expect(dataOf(conversion).manifests.map((m) => m.kind)).toEqual([
       'Deployment',
