@@ -42,6 +42,9 @@ test.beforeAll(async () => {
 
 test.afterAll(async () => {
   // ── Go back and delete the cluster ───────────────────────────────────────
+  // A test that failed with a modal open would otherwise block the sidebar
+  // and leave the cluster behind for the next spec (BaseModal closes on Escape).
+  await window.keyboard.press('Escape');
   await window.getByRole('link', { name: 'Clusters' }).click();
   await expect(window.locator('.clusters-title')).toBeVisible();
 
@@ -140,9 +143,14 @@ test('row actions appear on hover', async () => {
 test('log viewer follows a pod and stops following on request', async () => {
   await window.locator('.tab-button', { hasText: 'Pods' }).click();
   // CoreDNS writes its version banner at startup, so the stream's first
-  // batch (the last 200 lines) is never empty.
-  const row = window.locator('.table-row', { hasText: 'coredns' }).first();
-  await expect(row).toBeVisible({ timeout: 15_000 });
+  // batch (the last 200 lines) is never empty. The cluster was created a
+  // moment ago and kind does not wait for CoreDNS: until its container
+  // runs, `kubectl logs -f` only says "waiting to start" and gives up.
+  const row = window
+    .locator('.table-row', { hasText: 'coredns' })
+    .filter({ hasText: 'Running' })
+    .first();
+  await expect(row).toBeVisible({ timeout: 120_000 });
   await row.hover();
   await row.locator('.action-button-logs').click();
 
