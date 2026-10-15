@@ -95,7 +95,7 @@ describe('LogViewerModal follow mode', () => {
       contextName: 'kind-dev',
       podName: 'pod-a',
       namespace: 'default',
-      container: undefined,
+      container: 'app',
     });
     expect(followButton()).toHaveAttribute('aria-pressed', 'true');
     // The stream replaces the snapshot with its own last lines.

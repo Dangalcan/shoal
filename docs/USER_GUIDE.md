@@ -82,7 +82,7 @@ Navigate to **"Clusters"** in the sidebar to see a list of your connected cluste
 Hover a row to reveal its action buttons:
 
 - **Describe** and **YAML**: Inspect the resource as `kubectl describe` and `kubectl get -o yaml` show it.
-- **Logs**: Show the last 200 lines of a pod's log, with a filter box, a container picker for pods with several containers (sidecars), auto-refresh and a copy button. Turn on **Follow** to stream new lines as the pod writes them (like `kubectl logs -f`):
+- **Logs**: Show the last 200 lines of a pod's log, with a filter box, a container picker for pods with several containers (sidecars and init containers), auto-refresh and a copy button. Turn on **Follow** to stream new lines as the pod writes them (like `kubectl logs -f`):
   - The view scrolls with new lines while it is at the bottom. Scroll up to read and auto-scroll pauses; **Jump to latest** resumes it.
   - The viewer keeps the last 5,000 lines; older ones are dropped and the footer says so.
   - When the stream stops on its own (the container stopped, the pod was deleted, kubectl failed), a banner shows kubectl's reason and a **Reconnect** button.
