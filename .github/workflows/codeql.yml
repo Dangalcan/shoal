@@ -21,7 +21,7 @@ jobs:
   analyze:
     name: Analyze (javascript-typescript)
     if: ${{ !github.event.repository.private }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out git repository
         uses: actions/checkout@v7

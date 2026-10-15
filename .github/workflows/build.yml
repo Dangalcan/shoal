@@ -34,7 +34,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        # Pinned: ubuntu-latest moves to Ubuntu 26 from 19 October 2026, and the
+        # Linux build and smoke test rely on 24.04 (libfuse2t64, AppArmor).
+        os: [windows-latest, ubuntu-24.04]
 
     env:
       # Tag pushes (v*) upload the installers and update feeds to a DRAFT
@@ -114,7 +116,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        # Pinned: ubuntu-latest moves to Ubuntu 26 from 19 October 2026, and the
+        # Linux build and smoke test rely on 24.04 (libfuse2t64, AppArmor).
+        os: [windows-latest, ubuntu-24.04]
 
     steps:
       - name: Check out git repository
