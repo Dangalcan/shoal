@@ -98,6 +98,74 @@ exports.logSomething = () => {
 exports.explode = () => {
   throw new Error('plugin exploded');
 };
+
+exports.circular = () => {
+  const a = {};
+  a.self = a;
+  return a;
+};
+
+exports.k8sWrites = async () => {
+  await ctx.kubernetes.createResource({ kind: 'ConfigMap' });
+  await ctx.kubernetes.updateResource('configmaps', 'cm', { kind: 'ConfigMap' });
+  await ctx.kubernetes.deleteResource('configmaps', 'cm', 'default');
+  await ctx.kubernetes.executeCommand('pod-a', 'default', 'ls /');
+  return ctx.kubernetes.getPodMetrics('default');
+};
+
+exports.uiCalls = () => {
+  ctx.ui.registerSidebarItem({ id: 'side', label: 'Side' });
+  ctx.ui.registerPage('/page', 'PageComponent');
+  ctx.ui.registerResourceAction('pods', { id: 'act', label: 'Act' });
+  ctx.ui.showNotification('hello', 'success');
+  ctx.ui.openModal('modal-id', { a: 1 });
+  const errors = [];
+  try {
+    ctx.ui.registerPage('/page', () => null);
+  } catch (error) {
+    errors.push(error.message);
+  }
+  try {
+    ctx.ui.openModal(() => null);
+  } catch (error) {
+    errors.push(error.message);
+  }
+  return errors;
+};
+
+exports.storageCalls = async () => {
+  await ctx.storage.set('k', { v: 1 });
+  const got = await ctx.storage.get('k');
+  await ctx.storage.delete('k');
+  await ctx.storage.clear();
+  return got;
+};
+
+exports.eventsOnce = () => {
+  const seen = [];
+  ctx.events.once('tick', (value) => seen.push(value));
+  ctx.events.emit('tick', 1);
+  ctx.events.emit('tick', 2);
+  return seen;
+};
+
+exports.broadcasts = () => {
+  const handler = (value) => received.push(value);
+  ctx.events.broadcast('global', 'payload');
+  ctx.events.onBroadcast('global', handler);
+  ctx.events.offBroadcast('global', handler);
+  ctx.events.offBroadcast('global', () => {});
+  return 'ok';
+};
+
+exports.lifecycleSubscriptions = () => {
+  ctx.events.onClusterConnected(() => {});
+  ctx.events.onClusterDisconnected(() => {});
+  ctx.events.onResourceCreated(() => {});
+  ctx.events.onResourceUpdated(() => {});
+  ctx.events.onResourceDeleted(() => {});
+  return 'ok';
+};
 `;
 
 describe('PluginHostRuntime', () => {
@@ -134,6 +202,23 @@ describe('PluginHostRuntime', () => {
 
   const resultFor = (id: number) =>
     port.ofType('invoke-result').find((m) => m.id === id);
+
+  /**
+   * Answers the newest unanswered context call, once per entry in
+   * `results`. The plugin awaits each call before issuing the next one, so
+   * the replies have to be interleaved with flushes.
+   */
+  const answerCalls = async (results: unknown[]) => {
+    const answered = new Set<number>();
+    for (const result of results) {
+      await flush();
+      const call = port.ofType('context-call').find((c) => !answered.has(c.id));
+      if (!call) throw new Error('expected another context call');
+      answered.add(call.id);
+      port.emit({ type: 'context-result', id: call.id, ok: true, result });
+    }
+    await flush();
+  };
 
   beforeEach(() => {
     port = new FakePort();
@@ -332,5 +417,176 @@ describe('PluginHostRuntime', () => {
     init();
     port.emit({ type: 'shutdown' });
     expect(exit).toHaveBeenCalledWith(0);
+  });
+
+  it('exits the real process by default', () => {
+    const exitSpy = vi
+      .spyOn(process, 'exit')
+      .mockImplementation((() => undefined) as never);
+    const ownPort = new FakePort();
+    new PluginHostRuntime(ownPort);
+    ownPort.emit({ type: 'shutdown' });
+    expect(exitSpy).toHaveBeenCalledWith(0);
+    exitSpy.mockRestore();
+  });
+
+  it('turns results that cannot be cloned into strings', async () => {
+    init();
+    invoke(1, 'activate', true);
+    invoke(2, 'circular');
+    await flush();
+    expect(resultFor(2)).toMatchObject({
+      id: 2,
+      ok: true,
+      result: '[object Object]',
+    });
+  });
+
+  it('ignores a context result nobody is waiting for', () => {
+    init();
+    expect(() =>
+      port.emit({ type: 'context-result', id: 999, ok: true, result: null })
+    ).not.toThrow();
+  });
+
+  it('forwards every kubernetes write and exec through context calls', async () => {
+    init();
+    invoke(1, 'activate', true);
+    invoke(2, 'k8sWrites');
+    await answerCalls([null, null, null, 'ls output', [{ name: 'pod-a' }]]);
+
+    const calls = port.ofType('context-call').map((c) => [c.path, c.args]);
+    expect(calls).toEqual([
+      ['kubernetes.createResource', [{ kind: 'ConfigMap' }]],
+      [
+        'kubernetes.updateResource',
+        ['configmaps', 'cm', { kind: 'ConfigMap' }],
+      ],
+      ['kubernetes.deleteResource', ['configmaps', 'cm', 'default']],
+      ['kubernetes.executeCommand', ['pod-a', 'default', 'ls /']],
+      ['kubernetes.getPodMetrics', ['default']],
+    ]);
+    expect(resultFor(2)).toMatchObject({
+      ok: true,
+      result: [{ name: 'pod-a' }],
+    });
+  });
+
+  it('forwards UI registrations as notifications and rejects component functions', async () => {
+    init();
+    invoke(1, 'activate', true);
+    invoke(2, 'uiCalls');
+    await flush();
+
+    const notified = port.ofType('context-notify').map((m) => [m.path, m.args]);
+    expect(notified).toEqual([
+      ['ui.registerSidebarItem', [{ id: 'side', label: 'Side' }]],
+      ['ui.registerPage', ['/page', 'PageComponent']],
+      ['ui.registerResourceAction', ['pods', { id: 'act', label: 'Act' }]],
+      ['ui.showNotification', ['hello', 'success']],
+      ['ui.openModal', ['modal-id', { a: 1 }]],
+    ]);
+    expect(resultFor(2)).toMatchObject({
+      ok: true,
+      result: [
+        expect.stringContaining('registerPage: "component" must be a string'),
+        expect.stringContaining('openModal: "component" must be a string'),
+      ],
+    });
+  });
+
+  it('proxies the storage API when the permission is granted', async () => {
+    init(['kubernetes', 'ui', 'storage']);
+    invoke(1, 'activate', true);
+    invoke(2, 'storageCalls');
+    await answerCalls([null, { v: 1 }, null, null]);
+
+    const calls = port.ofType('context-call').map((c) => [c.path, c.args]);
+    expect(calls).toEqual([
+      ['storage.set', ['k', { v: 1 }]],
+      ['storage.get', ['k']],
+      ['storage.delete', ['k']],
+      ['storage.clear', []],
+    ]);
+    expect(resultFor(2)).toMatchObject({ ok: true, result: { v: 1 } });
+  });
+
+  it('keeps events.once local and fires it a single time', async () => {
+    init();
+    invoke(1, 'activate', true);
+    invoke(2, 'eventsOnce');
+    await flush();
+    expect(resultFor(2)).toMatchObject({ ok: true, result: [1] });
+  });
+
+  it('broadcasts through main and releases broadcast handlers', async () => {
+    init();
+    invoke(1, 'activate', true);
+    invoke(2, 'broadcasts');
+    await flush();
+
+    const broadcast = port
+      .ofType('context-notify')
+      .find((m) => m.path === 'events.broadcast');
+    expect(broadcast?.args).toEqual(['global', 'payload']);
+
+    const subscription = port
+      .ofType('context-call')
+      .find((c) => c.path === 'events.onBroadcast');
+    expect(subscription?.args).toEqual(['global']);
+    const cbId = subscription!.callbacks![0].cbId;
+    // offBroadcast with the registered handler releases it; an unknown
+    // handler is a no-op.
+    expect(port.ofType('unsubscribe')).toEqual([{ type: 'unsubscribe', cbId }]);
+    expect(resultFor(2)).toMatchObject({ ok: true, result: 'ok' });
+  });
+
+  it('subscribes to the cluster and resource lifecycle events', async () => {
+    init();
+    invoke(1, 'activate', true);
+    invoke(2, 'lifecycleSubscriptions');
+    await flush();
+
+    const paths = port
+      .ofType('context-call')
+      .filter((c) => c.path.startsWith('events.on'))
+      .map((c) => [c.path, c.args, c.callbacks?.length]);
+    expect(paths).toEqual([
+      ['events.onClusterConnected', [], 1],
+      ['events.onClusterDisconnected', [], 1],
+      ['events.onResourceCreated', [], 1],
+      ['events.onResourceUpdated', [], 1],
+      ['events.onResourceDeleted', [], 1],
+    ]);
+  });
+
+  it('logs a failed subscription instead of throwing inside the plugin', async () => {
+    init();
+    invoke(1, 'activate', true);
+    invoke(2, 'startWatch');
+    await flush();
+
+    const watchCall = port
+      .ofType('context-call')
+      .find((c) => c.path === 'kubernetes.watchResources');
+    port.emit({
+      type: 'context-result',
+      id: watchCall!.id,
+      ok: false,
+      error: 'watch refused',
+    });
+    await flush();
+
+    const errors = port
+      .ofType('context-notify')
+      .filter((m) => m.path === 'logger.error');
+    expect(errors).toEqual([
+      {
+        type: 'context-notify',
+        path: 'logger.error',
+        args: ['kubernetes.watchResources failed: watch refused'],
+      },
+    ]);
+    expect(resultFor(2)).toMatchObject({ ok: true, result: 'started' });
   });
 });
