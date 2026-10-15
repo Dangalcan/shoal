@@ -265,6 +265,23 @@ describe('mockApi', () => {
     expect((await mockApi.portForwardList()).success).toBe(true);
     mockApi.onPortForwardClosed(() => {})();
 
+    // Log streaming stubs: follow mode needs kubectl
+    expect(
+      (
+        await mockApi.logStreamStart({
+          contextName: 'c',
+          podName: 'p',
+          namespace: 'default',
+        })
+      ).success
+    ).toBe(false);
+    expect(await mockApi.logStreamStop('s')).toEqual({
+      success: true,
+      data: false,
+    });
+    mockApi.onLogStreamLines(() => {})();
+    mockApi.onLogStreamEnded(() => {})();
+
     // Listeners: verify they are functions, then invoke bodies + unsubscribe fns
     expect(typeof mockApi.onPluginModal).toBe('function');
     expect(typeof mockApi.onTerminalOutput).toBe('function');

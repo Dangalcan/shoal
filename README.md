@@ -51,6 +51,7 @@ A desktop app for your Kubernetes clusters: local clusters with kind or k3d, res
 - 🔍 Filter by namespace, with a default namespace in Settings
 - 🔁 Auto-refresh with a configurable interval
 - 📝 Describe, YAML and recent logs for any resource
+- 📡 Live log streaming (Follow, like `kubectl logs -f`) with a container picker and auto-scroll that pauses while you read
 - 🔄 Rollout restart for Deployments, DaemonSets, StatefulSets
 - ⚖️ Scale Deployments, StatefulSets, and ReplicaSets to any replica count
 - 🗑️ Delete any resource directly from the UI
@@ -131,10 +132,11 @@ shoal/
 │   ├── preload.ts         # ContextBridge — secure IPC surface
 │   ├── database.ts        # SQLite setup (manifests)
 │   ├── logger.ts          # electron-log setup (main.log)
-│   ├── ipc/               # IPC handler modules (cluster, resources, plugins, manifests, migration, terminal, portforward, update, app)
+│   ├── ipc/               # IPC handler modules (cluster, resources, logs, plugins, manifests, migration, terminal, portforward, update, app)
 │   ├── services/          # Business logic
 │   │   ├── cluster/       # Kind/K3d cluster management
 │   │   ├── kubernetes/    # kubectl API wrapper and read cache
+│   │   ├── logs/          # kubectl logs -f streams (log viewer Follow mode)
 │   │   ├── helm/          # helm CLI wrapper (used by the plugin SDK)
 │   │   ├── plugins/       # Plugin manager, loader, registry, context, events, sandbox, utility-process host
 │   │   ├── marketplace/   # Marketplace HTTP client (hidden in 0.9)
@@ -153,7 +155,7 @@ shoal/
 │   └── tsconfig.json      # Main process TS config
 ├── src/                    # ⚛️ Renderer Source (React)
 │   ├── components/        # Reusable UI components (tables, modals, sidebar, terminal)
-│   ├── features/          # Feature modules (clusters, manifests, migration, plugins, portforward, settings, updates)
+│   ├── features/          # Feature modules (clusters, logs, manifests, migration, plugins, portforward, settings, updates)
 │   ├── hooks/             # Custom React hooks
 │   ├── layouts/           # Page layouts
 │   ├── pages/             # Route-level components (Dashboard, Clusters, Manifests, Migration, Plugins, PortForwards, Terminal, Settings)
@@ -364,7 +366,7 @@ Releases are built and published by CI from `v*` tags; see [docs/RELEASE.md](doc
 
 ## 🗺 Roadmap
 
-- **0.9.x** (beta fixes): log streaming with a container picker, keyboard access to every table and card, and whatever the beta feedback shows first. Report what you miss on [GitHub Issues](https://github.com/Dangalcan/shoal/issues).
+- **0.9.x** (beta fixes): keyboard access to every table and card, and whatever the beta feedback shows first. Report what you miss on [GitHub Issues](https://github.com/Dangalcan/shoal/issues).
 - **1.0** (planned for Q1 2027): code-signed installers (no more SmartScreen warning), macOS builds, the plugin marketplace with third-party and paid plugins, plugin secrets in the OS keychain, and finer plugin permissions (read, write and Helm separated).
 - **Not planned**: telemetry or accounts. Shoal works offline and sends nothing anywhere except the update check against GitHub Releases.
 

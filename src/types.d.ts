@@ -72,6 +72,20 @@ export interface PortForwardInfo extends PortForwardArgs {
   startedAt: string;
 }
 
+/** A pod (and optionally one of its containers) to follow with `kubectl logs -f`. */
+export interface LogStreamArgs {
+  contextName: string;
+  podName: string;
+  namespace: string;
+  container?: string;
+}
+
+/** Why a log stream stopped on its own (pod deleted, kubectl exited...). */
+export interface LogStreamEnd {
+  reason: string;
+  exitCode: number | null;
+}
+
 /** Runtime feature switches decided by the main process. */
 export interface FeatureFlags {
   /** Plugin marketplace (catalog, installs, checkout, licenses). */
@@ -102,6 +116,16 @@ export interface ElectronAPI {
     timestamps?: boolean;
     sinceSeconds?: number;
   }) => Promise<Result<string>>;
+  logStreamStart: (
+    args: LogStreamArgs
+  ) => Promise<Result<{ streamId: string }>>;
+  logStreamStop: (streamId: string) => Promise<Result<boolean>>;
+  onLogStreamLines: (
+    callback: (streamId: string, lines: string[]) => void
+  ) => () => void;
+  onLogStreamEnded: (
+    callback: (streamId: string, end: LogStreamEnd) => void
+  ) => () => void;
   getPodMetrics: (args: { contextName: string; namespace: string }) => Promise<
     Result<
       Array<{

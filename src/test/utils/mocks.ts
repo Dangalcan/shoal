@@ -42,6 +42,12 @@ export function createMockElectronAPI(
     getNamespaces: vi.fn().mockResolvedValue({ success: true, data: [] }),
     getResources: vi.fn().mockResolvedValue({ success: true, data: [] }),
     getLogs: vi.fn().mockResolvedValue({ success: true, data: '' }),
+    logStreamStart: vi
+      .fn()
+      .mockResolvedValue({ success: true, data: { streamId: 'stream-1' } }),
+    logStreamStop: vi.fn().mockResolvedValue({ success: true, data: true }),
+    onLogStreamLines: vi.fn(() => () => {}),
+    onLogStreamEnded: vi.fn(() => () => {}),
     describeResource: vi.fn().mockResolvedValue({ success: true, data: '' }),
     getResourceYaml: vi.fn().mockResolvedValue({ success: true, data: '' }),
     rolloutRestart: vi

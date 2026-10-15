@@ -1,6 +1,8 @@
 import type { Result } from '../types/result';
 import type {
   AppInfo,
+  LogStreamArgs,
+  LogStreamEnd,
   Manifest,
   PluginScaffoldOptions,
   RendererErrorReport,
@@ -75,6 +77,28 @@ export class ElectronService {
     tailLines?: number;
   }): Promise<Result<string>> {
     return window.electron.getLogs(args);
+  }
+
+  async logStreamStart(
+    args: LogStreamArgs
+  ): Promise<Result<{ streamId: string }>> {
+    return window.electron.logStreamStart(args);
+  }
+
+  async logStreamStop(streamId: string): Promise<Result<boolean>> {
+    return window.electron.logStreamStop(streamId);
+  }
+
+  onLogStreamLines(
+    callback: (streamId: string, lines: string[]) => void
+  ): () => void {
+    return window.electron.onLogStreamLines(callback);
+  }
+
+  onLogStreamEnded(
+    callback: (streamId: string, end: LogStreamEnd) => void
+  ): () => void {
+    return window.electron.onLogStreamEnded(callback);
   }
 
   async describeResource(args: {

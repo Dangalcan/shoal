@@ -24,6 +24,7 @@ import { registerHelmIpcHandlers } from './ipc/helm-ipc';
 import { registerMigrationIpcHandlers } from './ipc/migration-ipc';
 import { registerTerminalIpcHandlers } from './ipc/terminal-ipc';
 import { registerPortForwardIpcHandlers } from './ipc/portforward-ipc';
+import { registerLogsIpcHandlers } from './ipc/logs-ipc';
 import { registerUpdateIpcHandlers } from './ipc/update-ipc';
 import { updateService } from './services/update';
 import {
@@ -156,6 +157,7 @@ function registerIpcHandlers(): void {
   registerMigrationIpcHandlers();
   registerTerminalIpcHandlers();
   registerPortForwardIpcHandlers();
+  registerLogsIpcHandlers();
   registerUpdateIpcHandlers();
 }
 

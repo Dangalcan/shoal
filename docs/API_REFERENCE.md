@@ -103,6 +103,8 @@ Retrieves logs for a specific pod.
   - `sinceSeconds`: `number` (optional — only logs newer than this)
 - **Returns**: `Promise<Result<string>>`
 
+For new lines as the pod writes them, see the [Log Streaming API](#log-streaming-api).
+
 ### `getPodMetrics(args)`
 
 Returns CPU and memory usage for the pods in a namespace via the cluster's
@@ -545,6 +547,63 @@ Stops a tunnel. Resolves `false` if the id is unknown.
 Lists active tunnels.
 
 - **Returns**: `Promise<Result<PortForwardInfo[]>>`
+
+---
+
+## Log Streaming API
+
+Follow mode of the log viewer: a long-running `kubectl logs -f` per stream
+(`electron/services/logs/log-stream-service.ts`, IPC channels `logs:*`).
+kubectl is spawned without a shell and the arguments are validated like
+`getLogs`. Lines reach the window that started the stream as events, sent to
+its main frame only. A stream lives until `logStreamStop`, until kubectl
+exits, until that window reloads, crashes or closes, or until the app quits.
+Not available to plugins.
+
+### `logStreamStart(args)`
+
+Starts `kubectl logs <pod> -n <namespace> --follow --tail=200 [-c <container>]`
+and resolves at once with the stream id; kubectl's last 200 lines arrive as
+the first `onLogStreamLines` batch. Failures after the start (pod not found,
+container not running, kubectl missing) arrive through `onLogStreamEnded`.
+
+- **Arguments** (`LogStreamArgs`):
+  - `contextName`: `string`
+  - `podName`: `string`
+  - `namespace`: `string` (the pod's namespace; `all` is rejected)
+  - `container`: `string` (optional — kubectl picks the default container)
+- **Returns**: `Promise<Result<{ streamId: string }>>`. Fails on invalid
+  input or when 10 streams are already running.
+
+### `logStreamStop(streamId)`
+
+Stops a stream (kills kubectl) without an `onLogStreamEnded` event. Resolves
+`false` if the id is unknown or the stream already ended.
+
+- **Parameters**: `streamId`: `string`
+- **Returns**: `Promise<Result<boolean>>`
+
+### `onLogStreamLines(callback)`
+
+Subscribes to new lines (channel `logs:stream-lines`). Lines come in batches
+about every 100 ms, without the trailing newline (and `\r`). Output is
+decoded as UTF-8 across chunk boundaries, so a multibyte character split
+between two chunks arrives intact. A batch carries at most 5,000 lines (the
+oldest are dropped first), and a line longer than 64 KiB is cut into pieces.
+
+- **Parameters**: `callback`: `(streamId: string, lines: string[]) => void`
+- **Returns**: `() => void` (unsubscribe)
+
+### `onLogStreamEnded(callback)`
+
+Subscribes to streams that stopped on their own (channel
+`logs:stream-ended`), after their last lines were delivered. `reason` is
+kubectl's error output when there is one, otherwise a description of the exit
+(a clean exit means the container stopped or the pod was deleted).
+
+- **Parameters**: `callback`: `(streamId: string, end: LogStreamEnd) => void`
+  - `LogStreamEnd`: `{ reason: string; exitCode: number | null }`
+- **Returns**: `() => void` (unsubscribe)
 
 ---
 
