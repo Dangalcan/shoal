@@ -6,6 +6,20 @@
   gap: var(--spacing-md);
 }
 
+/* The log text must scroll inside .log-content-text (auto-scroll and its
+   pause read that element), not in the modal body. A fixed modal height
+   gives the flex chain below a definite size; with only max-height the
+   viewer grew with its text and the modal body scrolled instead. */
+.log-modal {
+  height: 90vh;
+
+  .base-modal-content {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+}
+
 .log-header-actions {
   display: flex;
   align-items: center;
@@ -103,7 +117,8 @@
   border: 1px solid var(--border-color);
   border-radius: 0.75rem;
   padding: var(--spacing-md);
-  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
 
   /* Dark theme overrides for better contrast in logs */
