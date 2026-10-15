@@ -197,6 +197,7 @@ jobs:
           e2e/features/plugins.spec.ts
           e2e/features/sandbox-widget.spec.ts
           e2e/features/sandbox-theme.spec.ts
+          e2e/features/sandbox-escape.spec.ts
 
       - name: Smoke tests on the AppImage (Linux, with kind clusters)
         if: runner.os == 'Linux'

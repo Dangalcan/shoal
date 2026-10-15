@@ -1,0 +1,15 @@
+{
+  "id": "escape-probe",
+  "name": "Escape Probe",
+  "version": "1.0.0",
+  "description": "Test plugin that tries to break out of the plugin sandbox. Every probe must report blocked.",
+  "author": "Shoal end-to-end tests",
+  "main": "index.js",
+  "renderer": "renderer.js",
+  "permissions": [],
+  "category": "Testing",
+  "license": {
+    "type": "free",
+    "spdx": "LGPL-3.0-or-later"
+  }
+}

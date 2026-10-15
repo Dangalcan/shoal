@@ -2,6 +2,7 @@ dist
 dist-electron
 release
 plugins
+!e2e/fixtures/plugins
 node_modules
 coverage
 *.d.ts
