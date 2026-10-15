@@ -250,12 +250,27 @@ export class LogStreamService {
   }
 }
 
+/**
+ * The useful end of kubectl's stderr. While a container is still starting,
+ * `kubectl logs -f` repeats "is waiting to start: ..." every second for up
+ * to 20 seconds and then gives up with "context deadline exceeded", so
+ * repeated lines are collapsed and only the last two distinct ones kept.
+ */
+function stderrReason(stderr: string): string {
+  const lines = stderr
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const distinct = lines.filter((line, i) => line !== lines[i - 1]);
+  return distinct.slice(-2).join(' · ');
+}
+
 function endReason(
   code: number | null,
   signal: NodeJS.Signals | null,
   stderr: string
 ): string {
-  const message = stderr.trim();
+  const message = stderrReason(stderr);
   if (message) return message;
   if (signal) return `kubectl was stopped (${signal})`;
   if (code === 0) {

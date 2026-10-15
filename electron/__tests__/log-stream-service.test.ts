@@ -196,6 +196,29 @@ describe('LogStreamService', () => {
     });
   });
 
+  it('keeps the last two distinct stderr lines of a container that never started', () => {
+    const { child, onEnded } = startStream(service);
+    const waiting = (why: string) =>
+      `container "app" in pod "my-pod" is waiting to start: ${why}\n`;
+
+    child.stderr.emit(
+      'data',
+      Buffer.from(
+        waiting('ContainerCreating').repeat(3) +
+          waiting("image can't be pulled").repeat(5) +
+          'error: context deadline exceeded\n'
+      )
+    );
+    child.emit('close', 1, null);
+
+    expect(onEnded).toHaveBeenCalledWith({
+      reason:
+        'container "app" in pod "my-pod" is waiting to start: ' +
+        "image can't be pulled · error: context deadline exceeded",
+      exitCode: 1,
+    });
+  });
+
   it('reports the exit code or signal when stderr is empty', () => {
     const a = startStream(service);
     a.child.emit('close', 2, null);
