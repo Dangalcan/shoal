@@ -66,39 +66,6 @@ export const mockToolStatus = (
 };
 
 /**
- * Configure mock Kubernetes resource response
- *
- * @param resourceType - Type of resource (pods, deployments, etc.)
- * @param items - Array of resource items
- * @param success - Whether the operation succeeded
- *
- * @example
- * ```typescript
- * mockResourceResponse('pods', mockPods, true)
- * ```
- */
-export const mockResourceResponse = <T>(
-  resourceType: 'pods' | 'namespaces' | 'resources',
-  items: T[],
-  success: boolean = true
-) => {
-  switch (resourceType) {
-    case 'pods':
-      mockElectronAPI.getPods.mockResolvedValue({ success, data: items });
-      break;
-    case 'namespaces':
-      mockElectronAPI.getNamespaces.mockResolvedValue({
-        success,
-        data: items,
-      });
-      break;
-    case 'resources':
-      mockElectronAPI.getResources.mockResolvedValue({ success, data: items });
-      break;
-  }
-};
-
-/**
  * Reset all Electron API mocks to their default successful state
  *
  * Call this in beforeEach to ensure clean state between tests.
@@ -156,8 +123,8 @@ export const resetElectronMocks = () => {
  * @param provider - Cluster provider (kind or k3d)
  */
 export const mockSuccessfulClusterCreation = (
-  clusterName: string,
-  provider: 'kind' | 'k3d' = 'kind'
+  _clusterName: string,
+  _provider: 'kind' | 'k3d' = 'kind'
 ) => {
   mockElectronAPI.createCluster.mockResolvedValue({
     success: true,

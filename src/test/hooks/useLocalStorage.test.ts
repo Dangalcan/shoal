@@ -72,7 +72,7 @@ describe('useLocalStorage', () => {
     const { result } = renderHook(() => useLocalStorage(key, initialValue));
 
     act(() => {
-      result.current[1]({ data: 'too big' });
+      result.current[1]({ foo: 'too big' });
     });
 
     expect(spy).toHaveBeenCalledWith(

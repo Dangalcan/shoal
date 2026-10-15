@@ -225,7 +225,8 @@ CI runs `npm run lint:eslint` and `npm run lint:prettier`, so a pull request
 with an ESLint error or unformatted files fails (ESLint warnings are
 allowed). The pre-commit hook formats staged files, lints the staged
 `.js`, `.jsx`, `.ts` and `.tsx` files and type-checks both processes; the
-full test suite runs in CI. `any` is an error in `src/` and
+full test suite and the type check of the test files (`npm run
+typecheck:test`, `tsconfig.test.json`) run in CI. `any` is an error in `src/` and
 `electron/` (use a typed shape, or `isRecord()` from `src/lib/type-guards.ts`
 for unknown API fields) and allowed in tests and e2e specs. Line endings are
 LF everywhere (`.gitattributes`); on Windows, git converts on checkout, so

@@ -828,7 +828,7 @@ describe('PluginProvider', () => {
       mockApi.getPluginExtensions.mockRejectedValue(new Error('crash'));
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const { container } = render(
+      render(
         <PluginProvider>
           <ExtensionsConsumer extensionPoint="test" />
         </PluginProvider>

@@ -5,6 +5,7 @@ vi.unmock('../../../components/modals/PodViewerModal');
 import { render, screen, waitFor, fireEvent } from '../../utils';
 import { PodViewerModal } from '../../../components/modals/PodViewerModal';
 import { mockElectronAPI } from '../../setup';
+import type { K8sResource } from '../../../types/k8s-types';
 
 describe('PodViewerModal', () => {
   const defaultProps = {
@@ -30,7 +31,7 @@ describe('PodViewerModal', () => {
       },
       spec: { containers: [{}] },
     },
-  ];
+  ] as unknown as K8sResource[];
 
   beforeEach(() => {
     vi.clearAllMocks();

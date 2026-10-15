@@ -27,7 +27,7 @@ describe('useClusterData', () => {
 
   it('should return empty array if contextName is undefined', async () => {
     const { result } = renderHook(() =>
-      useClusterData(undefined, 'pod', 'default')
+      useClusterData(undefined, 'pods', 'default')
     );
 
     expect(result.current.items).toEqual([]);
@@ -45,7 +45,7 @@ describe('useClusterData', () => {
     mockApi.getResources.mockResolvedValue([{ metadata: { name: 'pod1' } }]);
 
     const { result } = renderHook(() =>
-      useClusterData('my-context', 'pod', 'default')
+      useClusterData('my-context', 'pods', 'default')
     );
 
     await waitFor(() => {
@@ -54,7 +54,7 @@ describe('useClusterData', () => {
 
     expect(mockApi.getResources).toHaveBeenCalledWith({
       contextName: 'my-context',
-      resourceType: 'pod',
+      resourceType: 'pods',
       namespace: 'default',
     });
 
@@ -72,7 +72,7 @@ describe('useClusterData', () => {
     );
 
     const { result } = renderHook(() =>
-      useClusterData('my-context', 'pod', 'default')
+      useClusterData('my-context', 'pods', 'default')
     );
     expect(result.current.loading).toBe(true);
   });

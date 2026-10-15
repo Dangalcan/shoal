@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '../../utils';
 import { createMockElectronAPI } from '../../utils/mocks';
 import { LicenseActivationModal } from '../../../features/plugins/LicenseActivationModal';
@@ -18,11 +18,11 @@ const paid = makePlugin({
 
 describe('LicenseActivationModal', () => {
   let api: ReturnType<typeof createMockElectronAPI>;
-  let onClose: ReturnType<typeof vi.fn>;
+  let onClose: Mock<() => void>;
 
   beforeEach(() => {
     api = createMockElectronAPI();
-    onClose = vi.fn();
+    onClose = vi.fn<() => void>();
   });
 
   const renderModal = (plugin = paid) =>

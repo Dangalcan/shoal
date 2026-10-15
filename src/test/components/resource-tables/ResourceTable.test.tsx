@@ -12,7 +12,7 @@ describe('ResourceTable', () => {
     visibleColumns: ['name', 'status'],
     sortConfig: { key: 'name', direction: 'asc' as const },
     onSort: vi.fn(),
-    getColumnWidth: (id: string, def: number) => def,
+    getColumnWidth: (_id: string, def: number) => def,
     onResize: vi.fn(),
     resizingId: null,
   };

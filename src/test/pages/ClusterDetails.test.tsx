@@ -12,8 +12,6 @@ import { createMockElectronAPI } from '../utils/mocks';
 // Imports from test-utils consolidated above
 import '../mocks/component-mocks';
 import '../mocks/modal-mocks';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { toast } from 'sonner';
 import {
   mockNamespaces,
   mockPods,

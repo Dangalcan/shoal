@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { mockApi } from '../../services/mockApi';
+import type { Result } from '../../types/result';
+
+/** Unwraps a successful Result; a failure fails the test with its error. */
+function dataOf<T>(result: Result<T>): T {
+  if (!result.success) throw new Error(result.error);
+  return result.data;
+}
 
 describe('mockApi', () => {
   it('should manage clusters', async () => {
@@ -7,7 +14,6 @@ describe('mockApi', () => {
     let result = await mockApi.getClusters();
     expect(result.success).toBe(true);
     if (!result.success) throw new Error('Failed to get clusters');
-    const initialCount = result.data.length;
 
     // Create cluster
     await mockApi.createCluster('new-cluster', 'minikube');
@@ -293,57 +299,57 @@ describe('mockApi', () => {
   });
 
   it('answers app info, tool, metrics and update calls with canned data', async () => {
-    expect((await mockApi.getToolStatus('kubectl')).data).toMatchObject({
+    expect(dataOf(await mockApi.getToolStatus('kubectl'))).toMatchObject({
       tool: 'kubectl',
       installed: true,
     });
-    expect((await mockApi.getFeatureFlags()).data).toEqual({
+    expect(dataOf(await mockApi.getFeatureFlags())).toEqual({
       marketplace: true,
     });
-    expect((await mockApi.getAppInfo()).data?.logsPath).toBe('/mock/logs');
+    expect(dataOf(await mockApi.getAppInfo())?.logsPath).toBe('/mock/logs');
     expect((await mockApi.openLogsFolder()).success).toBe(true);
     expect((await mockApi.logRendererError({} as never)).success).toBe(true);
     expect(
-      (
+      dataOf(
         await mockApi.getPodMetrics({
           contextName: 'ctx',
           namespace: 'default',
         })
-      ).data
+      )
     ).toEqual([]);
-    expect((await mockApi.checkForAppUpdates()).data).toBe('dev');
+    expect(dataOf(await mockApi.checkForAppUpdates())).toBe('dev');
     expect((await mockApi.installAppUpdate()).success).toBe(true);
     mockApi.onUpdateStatus(() => {})();
   });
 
   it('answers Helm calls with canned output', async () => {
-    expect((await mockApi.helmInstall({} as never)).data).toBe(
+    expect(dataOf(await mockApi.helmInstall({} as never))).toBe(
       'Mock install success'
     );
-    expect((await mockApi.helmUpgrade({} as never)).data).toBe(
+    expect(dataOf(await mockApi.helmUpgrade({} as never))).toBe(
       'Mock upgrade success'
     );
-    expect((await mockApi.helmRollback({} as never)).data).toBe(
+    expect(dataOf(await mockApi.helmRollback({} as never))).toBe(
       'Mock rollback success'
     );
-    expect((await mockApi.helmUninstall({} as never)).data).toBe(
+    expect(dataOf(await mockApi.helmUninstall({} as never))).toBe(
       'Mock uninstall success'
     );
     expect(
-      (await mockApi.helmRepoAdd({ name: 'a', url: 'https://a' })).data
+      dataOf(await mockApi.helmRepoAdd({ name: 'a', url: 'https://a' }))
     ).toBe('Mock repo added');
-    expect((await mockApi.helmRepoList()).data).toEqual([]);
+    expect(dataOf(await mockApi.helmRepoList())).toEqual([]);
   });
 
   it('walks through a migration', async () => {
-    expect((await mockApi.migrationCheckKompose()).data?.available).toBe(true);
+    expect(dataOf(await mockApi.migrationCheckKompose())?.available).toBe(true);
     const file = await mockApi.migrationSelectComposeFile();
-    expect(file.data).toBe('/mock/docker-compose.yml');
+    expect(dataOf(file)).toBe('/mock/docker-compose.yml');
 
     const conversion = await mockApi.migrationConvertCompose(
-      file.data as string
+      dataOf(file) as string
     );
-    expect(conversion.data?.manifests.map((m) => m.kind)).toEqual([
+    expect(dataOf(conversion).manifests.map((m) => m.kind)).toEqual([
       'Deployment',
       'Service',
     ]);
@@ -351,11 +357,11 @@ describe('mockApi', () => {
     const imported = await mockApi.migrationImportManifests({
       projectName: 'web',
       contextName: 'kind-dev',
-      manifests: (conversion.data?.manifests ?? []).map((m) => ({
+      manifests: dataOf(conversion).manifests.map((m) => ({
         name: m.name,
         content: m.content,
       })) as never,
     });
-    expect(imported.data).toEqual({ folderId: 1, manifestIds: [1, 2] });
+    expect(dataOf(imported)).toEqual({ folderId: 1, manifestIds: [1, 2] });
   });
 });

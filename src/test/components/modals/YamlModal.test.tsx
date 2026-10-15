@@ -41,7 +41,7 @@ describe('YamlModal', () => {
 
   it('should handle save to database success', async () => {
     if (!mockElectronAPI.saveManifest) mockElectronAPI.saveManifest = vi.fn();
-    mockElectronAPI.saveManifest.mockResolvedValue({ success: true });
+    mockElectronAPI.saveManifest.mockResolvedValue({ success: true, data: 1 });
     render(<YamlModal {...defaultProps} />);
 
     await waitFor(() =>

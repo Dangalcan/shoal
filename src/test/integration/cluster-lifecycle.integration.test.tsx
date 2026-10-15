@@ -5,13 +5,9 @@ import { Layout } from '../../layouts/Layout';
 import { Dashboard } from '../../pages/Dashboard';
 import { CreateCluster } from '../../pages/CreateCluster';
 import { Clusters } from '../../pages/Clusters';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
-import {
-  mockClusters,
-  deleteClusterViaUI,
-} from '../helpers/cluster-test-utils';
+import { deleteClusterViaUI } from '../helpers/cluster-test-utils';
 
 let mockApi: ReturnType<typeof createMockElectronAPI>;
 

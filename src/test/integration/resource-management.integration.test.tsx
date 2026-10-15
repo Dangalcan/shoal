@@ -5,7 +5,6 @@ import { Layout } from '../../layouts/Layout';
 import { ClusterDetails } from '../../pages/ClusterDetails';
 import { Routes, Route } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import {
   PodBuilder,
   DeploymentBuilder,

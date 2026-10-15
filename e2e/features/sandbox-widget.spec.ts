@@ -40,7 +40,7 @@ test('plugin page frame is height-bounded so long pages scroll', async ({
 }) => {
   // Navigate to the resource-monitor plugin page (HashRouter).
   await window.evaluate(() => {
-    window.location.hash = '#/plugin/resource-monitor';
+    globalThis.location.hash = '#/plugin/resource-monitor';
   });
 
   const pageFrame = window.locator('.plugin-page-container iframe');
@@ -51,7 +51,7 @@ test('plugin page frame is height-bounded so long pages scroll', async ({
   // the iframe taller than the window and the container would clip it (no
   // scrollbar) — the original bug.
   const box = await pageFrame.boundingBox();
-  const viewportH = await window.evaluate(() => window.innerHeight);
+  const viewportH = await window.evaluate(() => globalThis.innerHeight);
   expect(box).not.toBeNull();
   expect(box!.height).toBeLessThanOrEqual(viewportH + 2);
   expect(box!.height).toBeGreaterThan(100);

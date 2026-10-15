@@ -7,7 +7,6 @@ import { CreateCluster } from '../../pages/CreateCluster';
 import { Routes, Route } from 'react-router-dom';
 import { mockElectronAPI } from '../setup';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 
 describe('App Navigation Integration', () => {
   beforeEach(() => {

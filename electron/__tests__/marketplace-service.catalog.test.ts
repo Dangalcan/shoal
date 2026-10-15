@@ -9,7 +9,7 @@ vi.mock('electron', () => ({
   },
 }));
 
-vi.mock('../../../electron/services/plugins/plugin-manager', () => ({
+vi.mock('../services/plugins/plugin-manager', () => ({
   pluginManager: { refreshDiscovery: vi.fn().mockResolvedValue(undefined) },
 }));
 
@@ -21,7 +21,7 @@ vi.mock('adm-zip', () => ({
   default: vi.fn(() => ({ extractAllTo: vi.fn() })),
 }));
 
-import { MarketplaceService } from '../../../electron/services/marketplace/marketplace-service';
+import { MarketplaceService } from '../services/marketplace/marketplace-service';
 
 const mockEntry = {
   id: 'test-plugin',
@@ -90,7 +90,7 @@ describe('MarketplaceService', () => {
 
       const productionService = new MarketplaceService();
       // Override isProduction to simulate production
-      vi.doMock('../../../electron/utils/env-utils', () => ({
+      vi.doMock('../utils/env-utils', () => ({
         isProduction: () => true,
       }));
 

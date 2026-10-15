@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '../utils';
+import { render, screen, fireEvent } from '../utils';
 import { createMockElectronAPI } from '../utils/mocks';
 import { Settings } from '../../pages/Settings';
 
 // Mock simple hooks
 vi.mock('../../hooks/useLocalStorage', () => ({
-  useLocalStorage: (key: string, initial: any) => {
+  useLocalStorage: (_key: string, initial: any) => {
     // We need a way to store/retrieve values to simulate state persistence if needed,
     // but for simple interactions, a mock implementation that behaves like useState is enough.
     // However, since we want to verify values, we can just use a simple state impl.

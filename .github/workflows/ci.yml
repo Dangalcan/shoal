@@ -43,6 +43,10 @@ jobs:
       - name: Typecheck (renderer)
         run: npx tsc --noEmit
 
+      - name: Typecheck (tests)
+        # The Vitest and Playwright files are outside the two configs above.
+        run: npm run typecheck:test
+
       - name: Lint (Prettier)
         run: npm run lint:prettier
 
