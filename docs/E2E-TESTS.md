@@ -18,16 +18,19 @@ The same specs run in two modes:
 e2e/
 ├── fixtures/
 │   ├── launch.ts                 # launchApp() + mainWindow(): dev build or packaged app
-│   └── app.fixture.ts            # Shared Electron launch fixture (app + window)
+│   ├── app.fixture.ts            # Shared Electron launch fixture (app + window)
+│   └── plugins/escape-probe/     # Unsigned plugin that tries to escape the sandbox
 ├── features/
 │   ├── navigation.spec.ts        # Sidebar navigation and theme toggle
+│   ├── first-run.spec.ts         # Empty kubeconfig and unreachable context (own KUBECONFIG)
 │   ├── cluster-lifecycle.spec.ts # Create and delete a cluster end-to-end
-│   ├── cluster-details.spec.ts   # Cluster details UI: tabs, sorting, filters, settings
+│   ├── cluster-details.spec.ts   # Cluster details UI: tabs, sorting, filters, logs, settings
 │   ├── manifests.spec.ts         # Manifest library: create, edit, templates, folders
 │   ├── plugins.spec.ts           # Bundled plugins: list, enable/disable, plugin page
 │   ├── terminal.spec.ts          # Local shell sessions, Ctrl+C on a running command
-│   ├── sandbox-theme.spec.ts     # Plugin iframe follows host theme toggles
-│   └── sandbox-widget.spec.ts    # Plugin dashboard widget + page frame stability
+│   ├── sandbox-theme.spec.ts     # Host theme toggles while a plugin frame is mounted
+│   ├── sandbox-widget.spec.ts    # Plugin dashboard widget + page frame stability
+│   └── sandbox-escape.spec.ts    # A hostile plugin cannot leave its frame
 ├── screenshots/
 │   ├── capture.spec.ts           # README and landing page screenshots (not auto-run)
 │   └── demo-workload.yaml        # Demo namespace shown in the screenshots
@@ -102,8 +105,10 @@ SHOAL_E2E_EXECUTABLE="$PWD/release/win-unpacked/Shoal.exe" npx playwright test
 ```
 
 On Linux CI the AppImage runs under `xvfb-run -a` with
-`APPIMAGE_EXTRACT_AND_RUN=1` (no libfuse2 on the runners). The Windows smoke
-job skips the two cluster specs because the runner cannot run Linux containers.
+`APPIMAGE_EXTRACT_AND_RUN=1` (no libfuse2 on the runners) and runs every
+spec. The Windows smoke job lists the specs it runs (`build.yml`) and leaves
+out `cluster-lifecycle`, `cluster-details` and `first-run`: the runner cannot
+run Linux containers for kind, and the first-run spec needs `kubectl`.
 
 ### Screenshots
 
@@ -174,7 +179,7 @@ Tests the full create → delete flow using the Clusters page UI.
 
 ### `cluster-details.spec.ts`
 
-Creates a cluster once (`beforeAll`), runs 10 UI tests against its details page, then deletes it (`afterAll`).
+Creates a cluster once (`beforeAll`), runs 11 UI tests against its details page, then deletes it (`afterAll`).
 
 | Test               | What is verified                                             |
 | ------------------ | ------------------------------------------------------------ |
@@ -185,6 +190,7 @@ Creates a cluster once (`beforeAll`), runs 10 UI tests against its details page,
 | Sort by Name       | Column header click cycles asc → desc, sort icon visible     |
 | Sort by Namespace  | Sort icon appears on different column                        |
 | Row hover actions  | Describe, YAML, Logs buttons appear on row hover             |
+| Log viewer Follow  | Streams a CoreDNS pod live, pauses on scroll, reconnects     |
 | Settings filter    | Typing in search narrows the resource list                   |
 | Settings toggle    | Jobs toggle switch changes CSS class (on → off → on)         |
 | Settings columns   | Column section title matches the active tab name             |
@@ -215,7 +221,7 @@ checks that **New Terminal** starts a session without the old scrollback.
 
 ### `sandbox-theme.spec.ts`
 
-Verifies that a mounted plugin iframe follows the host app's theme: toggles dark/light mode while a plugin frame is open and asserts the frame's `data-theme` updates. Does not need a cluster.
+Toggles dark/light mode while a plugin dashboard widget is mounted and asserts that the host document's `data-theme` changes and the frame stays mounted. The frame itself mirrors the theme through the `host:theme` event, which the unit tests cover (the frame document is opaque-origin, so the spec reads only the host). Does not need a cluster.
 
 ### `sandbox-widget.spec.ts`
 
@@ -223,6 +229,26 @@ Covers the sandboxed plugin UI surfaces (no cluster needed):
 
 - A plugin dashboard widget renders inside its iframe and stays stable (no iframe remount thrash).
 - A plugin page frame is height-bounded so long plugin pages scroll inside the frame instead of growing the app layout.
+
+### `sandbox-escape.spec.ts`
+
+The sandbox under a hostile plugin (no cluster needed). Before launch, the
+spec copies `e2e/fixtures/plugins/escape-probe` into the user data
+directory as a user-installed plugin. The plugin declares no permissions;
+its page tries to reach the host DOM, navigate the top window, open a
+popup, use `fetch`, XHR and WebSocket, read the clipboard, find Node
+globals and call the bridge beyond its permissions (`k8sPlugin` and the
+legacy `window.electron` shim). It prints one `name=outcome` line per probe
+inside the frame; the spec reads them through `frameLocator` and expects
+every one to be `blocked`, the CSP to have reported `connect-src`
+violations and the host window to be the only window. A last test asks the
+frame, from outside, to navigate itself to an outside URL: the host
+document's CSP (`frame-src`) refuses it (the frame shows an error page,
+nothing from outside loads) and the host stays where it was.
+
+Against a packaged build (`SHOAL_E2E_EXECUTABLE`) unsigned plugins never
+load, so the spec checks that instead: the bundled plugins are listed and
+the fixture is not.
 
 ---
 
