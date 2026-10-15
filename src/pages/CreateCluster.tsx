@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useId, useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Server, ArrowLeft } from 'lucide-react';
 import { handleAsyncOperation } from '../lib/async-operation-handler';
@@ -13,6 +13,7 @@ export function CreateCluster() {
   const { fetchClusters } = useClusterContext();
   const [name, setName] = useState('');
   const [provider, setProvider] = useState('kind');
+  const nameInputId = useId();
 
   const [isCreating, setIsCreating] = useState(false);
 
@@ -71,8 +72,11 @@ export function CreateCluster() {
 
       <form onSubmit={handleCreate} className="create-cluster-form">
         <div>
-          <label className="form-group-label">Cluster Name</label>
+          <label className="form-group-label" htmlFor={nameInputId}>
+            Cluster Name
+          </label>
           <input
+            id={nameInputId}
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}

@@ -15,6 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import type { MarketplaceEntry } from '../../types';
+import { activateOnKey } from '../../lib/a11y';
 import { StarRating } from './StarRating';
 import { useInstallPlugin } from './useInstallPlugin';
 import { usePurchasePlugin } from './usePurchasePlugin';
@@ -81,7 +82,7 @@ export function MarketplaceCard({
       onClick={() => onOpenDetail(entry)}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && onOpenDetail(entry)}
+      onKeyDown={(e) => activateOnKey(e, () => onOpenDetail(entry))}
     >
       {badge}
 

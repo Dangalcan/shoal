@@ -7,6 +7,7 @@
  * dismissal; the plugin owns the modal content.
  */
 
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { PluginFrame } from './PluginFrame';
 import type { PluginFrameUrls } from './frame-props';
@@ -27,6 +28,16 @@ export function PluginModalHost({
   props,
   onClose,
 }: PluginModalHostProps) {
+  // Escape closes the overlay while focus is in the host document (keys
+  // pressed inside the plugin's own frame stay there).
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
   return createPortal(
     <div
       className="plugin-modal-overlay"

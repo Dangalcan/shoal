@@ -71,7 +71,7 @@ describe('PodTerminalModal', () => {
       expect(screen.getByTestId('terminal')).toBeInTheDocument()
     );
 
-    fireEvent.change(screen.getByRole('combobox'), {
+    fireEvent.change(screen.getByLabelText('Shell'), {
       target: { value: '/bin/bash' },
     });
 

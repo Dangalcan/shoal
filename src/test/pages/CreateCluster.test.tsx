@@ -20,7 +20,9 @@ describe('CreateCluster Page', () => {
     expect(
       screen.getByText(/configure your new kubernetes cluster/i)
     ).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('my-cluster')).toBeInTheDocument();
+    expect(screen.getByLabelText('Cluster Name')).toBe(
+      screen.getByPlaceholderText('my-cluster')
+    );
   });
 
   it('should have kind selected as default provider', () => {

@@ -82,6 +82,7 @@ export function SettingsDropdown() {
             <input
               type="text"
               placeholder="Filter resources..."
+              aria-label="Filter resources"
               className="settings-search-input"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}

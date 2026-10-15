@@ -46,6 +46,7 @@ export function ManifestEditor({
       </div>
       {expanded && (
         <textarea
+          aria-label={`YAML of ${manifest.fileName}`}
           className="migration-page__manifest-content"
           value={manifest.content}
           onChange={(event) => onChange(index, event.target.value)}

@@ -5,7 +5,7 @@
  * Similar to Odoo's automatic settings UI generation.
  */
 
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import type {
   PluginConfigurationSchema,
   PluginConfigProperty,
@@ -27,6 +27,9 @@ export function PluginConfigurationForm({
   const [values, setValues] = useState<Record<string, unknown>>(initialValues);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  // One id per field, so each label points at its control.
+  const idPrefix = useId();
+  const fieldId = (key: string) => `${idPrefix}-${key}`;
 
   const validateField = (
     _key: string,
@@ -128,6 +131,7 @@ export function PluginConfigurationForm({
         if (property.multiline) {
           return (
             <textarea
+              id={fieldId(key)}
               value={(value as string) || ''}
               onChange={(e) => handleChange(key, e.target.value, property)}
               placeholder={property.placeholder}
@@ -138,6 +142,7 @@ export function PluginConfigurationForm({
         }
         return (
           <input
+            id={fieldId(key)}
             type={property.secret ? 'password' : 'text'}
             value={(value as string) || ''}
             onChange={(e) => handleChange(key, e.target.value, property)}
@@ -149,6 +154,7 @@ export function PluginConfigurationForm({
       case 'number':
         return (
           <input
+            id={fieldId(key)}
             type="number"
             value={(value as number) ?? ''}
             onChange={(e) =>
@@ -176,6 +182,7 @@ export function PluginConfigurationForm({
       case 'select':
         return (
           <select
+            id={fieldId(key)}
             value={(value as string) || ''}
             onChange={(e) => handleChange(key, e.target.value, property)}
             className="config-select"
@@ -196,6 +203,7 @@ export function PluginConfigurationForm({
               <div key={index} className="config-array-item">
                 <input
                   type="text"
+                  aria-label={`${property.label} ${index + 1}`}
                   value={item}
                   onChange={(e) => {
                     const newItems = [...items];
@@ -242,7 +250,10 @@ export function PluginConfigurationForm({
       {Object.entries(schema.properties).map(([key, property]) => (
         <div key={key} className="config-field">
           {property.type !== 'boolean' && (
-            <label className="config-label">
+            <label
+              className="config-label"
+              htmlFor={property.type === 'array' ? undefined : fieldId(key)}
+            >
               {property.label}
               {property.required && <span className="required">*</span>}
             </label>

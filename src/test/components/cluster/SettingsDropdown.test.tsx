@@ -83,7 +83,7 @@ describe('SettingsDropdown', () => {
 
   it('filters resources based on search query', () => {
     renderWithContext({ isSettingsOpen: true });
-    const searchInput = screen.getByPlaceholderText('Filter resources...');
+    const searchInput = screen.getByLabelText('Filter resources');
 
     fireEvent.change(searchInput, { target: { value: 'pods' } });
     expect(screen.getByText('Pods')).toBeInTheDocument();

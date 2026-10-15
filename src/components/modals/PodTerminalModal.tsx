@@ -99,6 +99,7 @@ export function PodTerminalModal({
         <div className="pod-terminal-modal__toolbar">
           <span className="pod-terminal-modal__shell-label">Shell:</span>
           <select
+            aria-label="Shell"
             value={shell}
             onChange={(e) => setShell(e.target.value)}
             className="pod-terminal-modal__shell-select"
