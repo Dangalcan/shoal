@@ -114,8 +114,9 @@ describe('MarketplaceCard ownership states', () => {
     expect(screen.getByLabelText('4.5 out of 5 stars')).toBeInTheDocument();
 
     fireEvent.keyDown(card, { key: 'Enter' });
+    fireEvent.keyDown(card, { key: ' ' });
     fireEvent.click(card);
-    expect(onOpenDetail).toHaveBeenCalledTimes(2);
+    expect(onOpenDetail).toHaveBeenCalledTimes(3);
   });
 
   it('shows the update state and installs without opening card details', async () => {

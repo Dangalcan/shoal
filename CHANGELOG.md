@@ -77,6 +77,10 @@ yet, so Windows SmartScreen shows a warning on first launch.
   showing its lines as the new pod's, starts blank when the same pod is
   opened on another cluster, and asks kubectl for the container shown in
   the picker. Init containers appear in the picker too.
+- Screen readers get the names of the plugin settings fields, the shell
+  picker of the pod terminal, the resource filter, the Compose manifest
+  editor and the cluster name field; a plugin modal closes with Escape;
+  marketplace cards open with Space as well as Enter.
 - The window opens as soon as Shoal starts. It used to wait until every
   enabled plugin had finished activating, and Namespace Watcher's first
   `kubectl` call could hold it back for up to 30 seconds when the current

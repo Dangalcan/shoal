@@ -27,7 +27,7 @@ describe('ManifestEditor', () => {
       screen.getByRole('button', { name: /web-deployment\.yaml/ })
     );
 
-    const editor = screen.getByRole('textbox');
+    const editor = screen.getByLabelText('YAML of web-deployment.yaml');
     expect(editor).toHaveValue(manifest.content);
     fireEvent.change(editor, { target: { value: 'kind: Service' } });
     expect(onChange).toHaveBeenCalledWith(2, 'kind: Service');

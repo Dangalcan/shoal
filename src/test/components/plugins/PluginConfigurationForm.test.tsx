@@ -71,6 +71,21 @@ const save = () =>
   fireEvent.click(screen.getByRole('button', { name: 'Save Settings' }));
 
 describe('PluginConfigurationForm', () => {
+  it('labels every control', () => {
+    renderForm({ tags: ['alpha'] });
+
+    expect(screen.getByLabelText(/^URL/)).toHaveAttribute('placeholder', 'url');
+    expect(screen.getByLabelText('Token')).toHaveAttribute('type', 'password');
+    expect(screen.getByLabelText('Notes').tagName).toBe('TEXTAREA');
+    expect(screen.getByLabelText('Retries')).toHaveAttribute('type', 'number');
+    expect(screen.getByLabelText('Verbose logging')).toHaveAttribute(
+      'type',
+      'checkbox'
+    );
+    expect(screen.getByLabelText('Level').tagName).toBe('SELECT');
+    expect(screen.getByLabelText('Tags 1')).toHaveValue('alpha');
+  });
+
   it('renders one control per field type', () => {
     renderForm();
 

@@ -34,7 +34,7 @@ import { Result } from '../types/result';
  * ```typescript
  * const deleteCluster = async (name: string) => {
  *   return handleAsyncOperation(
- *     () => electronService.deleteCluster(name),
+ *     () => api.deleteCluster(name),
  *     {
  *       loadingMessage: `Deleting cluster "${name}"...`,
  *       successMessage: `Cluster "${name}" deleted.`,
