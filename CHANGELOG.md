@@ -5,27 +5,6 @@ All notable changes to Shoal are documented here. The format follows
 [Semantic Versioning](https://semver.org/). Release steps are in
 [docs/RELEASE.md](docs/RELEASE.md).
 
-## [Unreleased] - 0.9.1
-
-### Added
-
-- Live log streaming. **Follow** in the log viewer streams new lines as the
-  pod writes them (`kubectl logs -f`, starting from the last 200 lines), for
-  the container chosen in the picker. The view scrolls with new lines while
-  it is at the bottom and pauses when you scroll up to read, with a button to
-  jump back to the latest line. The viewer keeps the last 5,000 lines. When
-  the stream stops on its own (container stopped, pod deleted, kubectl
-  error), a banner shows kubectl's reason and a **Reconnect** button.
-  Streams stop when the viewer closes, the pod or container changes, Follow
-  is turned off or the window reloads, and every kubectl process ends with
-  Shoal.
-
-### Changed
-
-- The log viewer footer tells a snapshot (the last 200 lines, fetched on
-  demand) from a live stream. This lifts the 0.9.0 known limitation "Logs are
-  fetched on demand, not streamed".
-
 ## [Unreleased] - 0.9.0 public beta
 
 First public release, for Windows and Linux. Installers are not code-signed
@@ -46,6 +25,16 @@ yet, so Windows SmartScreen shows a warning on first launch.
   sortable columns and a column picker, describe, YAML and recent logs,
   rollout restart, scaling and deletion. Settings hold the default
   namespace and the auto-refresh interval.
+- Live log streaming. **Follow** in the log viewer streams new lines as the
+  pod writes them (`kubectl logs -f`, starting from the last 200 lines), for
+  the container chosen in the picker. The view scrolls with new lines while
+  it is at the bottom and pauses when you scroll up to read, with a button to
+  jump back to the latest line; the footer tells a snapshot from a live
+  stream. The viewer keeps the last 5,000 lines. When the stream stops on its
+  own (container stopped, pod deleted, kubectl error), a banner shows
+  kubectl's reason and a **Reconnect** button. Streams stop when the viewer
+  closes, the pod or container changes, Follow is turned off or the window
+  reloads, and every kubectl process ends with Shoal.
 - Manifest library with folders, templates, file import and one-click apply.
 - Docker Compose to Kubernetes migration through kompose.
 - Local terminal and pod exec sessions, and port-forward management.
@@ -242,7 +231,6 @@ yet, so Windows SmartScreen shows a warning on first launch.
 - Terminal sessions have no pseudo-terminal: the shell is not resized with
   the window and full-screen programs such as `vim` or `top` do not render
   correctly.
-- Logs are fetched on demand (the last 200 lines), not streamed.
 - Installed builds only run plugins signed with the Shoal key, which means
   the two bundled ones; third-party plugins load in development builds.
 - The Windows portable build and the `.deb` package do not update

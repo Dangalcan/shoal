@@ -366,7 +366,7 @@ Releases are built and published by CI from `v*` tags; see [docs/RELEASE.md](doc
 
 ## 🗺 Roadmap
 
-- **0.9.x** (beta fixes): live log streaming in 0.9.1, keyboard access to every table and card, and whatever the beta feedback shows first. Report what you miss on [GitHub Issues](https://github.com/Dangalcan/shoal/issues).
+- **0.9.x** (beta fixes): keyboard access to every table and card, and whatever the beta feedback shows first. Report what you miss on [GitHub Issues](https://github.com/Dangalcan/shoal/issues).
 - **1.0** (planned for Q1 2027): code-signed installers (no more SmartScreen warning), macOS builds, the plugin marketplace with third-party and paid plugins, plugin secrets in the OS keychain, and finer plugin permissions (read, write and Helm separated).
 - **Not planned**: telemetry or accounts. Shoal works offline and sends nothing anywhere except the update check against GitHub Releases.
 
