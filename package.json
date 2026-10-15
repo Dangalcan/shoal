@@ -20,6 +20,7 @@
     "test": "vitest --run",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --run --coverage",
+    "typecheck:test": "tsc -p tsconfig.test.json --noEmit",
     "test:e2e": "npm run build:react && npm run build:electron && playwright test",
     "test:e2e:interactive": "npm run build:react && npm run build:electron && playwright test -c e2e/explore.config.ts --debug",
     "test:e2e:report": "playwright show-report e2e-report",

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '../../utils';
 import { Button } from '../../../components/ui/Button';
-import React from 'react';
 
 describe('Button Component', () => {
   it('renders correctly with children', () => {

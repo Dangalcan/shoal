@@ -325,6 +325,9 @@ npx vitest
 # Coverage report
 npm run test:coverage
 
+# Type-check the test files (CI runs this too)
+npm run typecheck:test
+
 # UI mode
 npm run test:ui
 ```

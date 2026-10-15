@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '../../utils';
 import { Card } from '../../../components/ui/Card';
-import React from 'react';
 
 describe('Card Component', () => {
   it('renders children correctly', () => {

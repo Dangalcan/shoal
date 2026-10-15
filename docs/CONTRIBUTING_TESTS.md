@@ -23,7 +23,6 @@ src/test/
 ├── hooks/            # Custom hook tests
 ├── pages/            # Page-level integration tests
 ├── features/         # Feature hook and component tests
-├── electron/         # A few main-process tests that need the renderer setup
 ├── lib/              # Utility logic tests
 ├── integration/      # Multi-component flow tests
 ├── fixtures/         # Test data and builders
@@ -175,6 +174,24 @@ npm run test:coverage
 
 ---
 
+## Type Checking
+
+The test files are type-checked separately from the two production configs:
+`tsconfig.test.json` covers `src/test/`, `e2e/` and the Vitest and Playwright
+config files with the renderer settings (plus the Vitest, jest-dom and Node
+types), and `electron/tsconfig.json` already covers `electron/__tests__/`.
+CI runs both, so a test that calls an API which no longer exists fails even
+when a mock would have hidden it at run time:
+
+```bash
+npm run typecheck:test
+```
+
+The test config relaxes only `noUncheckedIndexedAccess` (tests index
+`mock.calls` all the time) and allows ES2022 library calls.
+
+---
+
 ## Best Practices
 
 ### ✅ DO
@@ -197,5 +214,6 @@ npm run test:coverage
 | `npm run test`                 | Run all Vitest tests           |
 | `npm run test:ui`              | Open Vitest UI (interactive)   |
 | `npm run test:coverage`        | Generate coverage report       |
+| `npm run typecheck:test`       | Type-check the test files      |
 | `npm run test:e2e`             | Run Playwright E2E tests       |
 | `npm run test:e2e:interactive` | Explore locators interactively |

@@ -89,7 +89,10 @@ describe('PluginFrame', () => {
     expect(bridges.instances).toHaveLength(1);
     expect(bridges.instances[0].start).toHaveBeenCalledTimes(1);
     expect(postSpy).toHaveBeenCalledTimes(1);
-    const [message, targetOrigin, transfer] = postSpy.mock.calls[0];
+    // postMessage(message, targetOrigin, transfer): three arguments at run
+    // time, but the DOM typings only know the two-argument overloads.
+    const [message, targetOrigin, transfer] = postSpy.mock
+      .calls[0] as unknown as [unknown, string, unknown[]];
     expect((message as { type: string }).type).toBe(PLUGIN_PORT_INIT);
     expect((message as { pluginId: string }).pluginId).toBe('p1');
     expect((message as { entryUrl: string }).entryUrl).toBe(
@@ -97,7 +100,7 @@ describe('PluginFrame', () => {
     );
     expect(targetOrigin).toBe('*');
     expect(Array.isArray(transfer)).toBe(true);
-    expect((transfer as unknown[]).length).toBe(1);
+    expect(transfer.length).toBe(1);
   });
 
   it('maps each notification type to the matching toast', () => {

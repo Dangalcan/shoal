@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '../../utils';
 import { createMockElectronAPI } from '../../utils/mocks';
 import { PluginSettingsModal } from '../../../features/plugins/PluginSettingsModal';
@@ -24,7 +24,7 @@ const configurable = makePlugin({
 
 describe('PluginSettingsModal', () => {
   let api: ReturnType<typeof createMockElectronAPI>;
-  let onClose: ReturnType<typeof vi.fn>;
+  let onClose: Mock<() => void>;
 
   beforeEach(() => {
     api = createMockElectronAPI({
@@ -32,7 +32,7 @@ describe('PluginSettingsModal', () => {
         .fn()
         .mockResolvedValue({ success: true, data: { endpoint: 'https://a' } }),
     });
-    onClose = vi.fn();
+    onClose = vi.fn<() => void>();
   });
 
   it('loads stored settings over the schema defaults and saves them', async () => {

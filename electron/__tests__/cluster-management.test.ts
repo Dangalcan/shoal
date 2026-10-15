@@ -1,14 +1,14 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ClusterManagementService } from '../../../electron/services/cluster/cluster-management-service';
-import { safeExec } from '../../../electron/utils/safe-exec';
+import { ClusterManagementService } from '../services/cluster/cluster-management-service';
+import { safeExec } from '../utils/safe-exec';
 
-vi.mock('../../../electron/utils/safe-exec', () => ({
+vi.mock('../utils/safe-exec', () => ({
   safeExec: vi.fn(),
   ALLOWED_TOOLS: new Set(['kubectl', 'kind', 'k3d']),
 }));
 
-vi.mock('../../../electron/services/plugins/plugin-events', () => ({
+vi.mock('../services/plugins/plugin-events', () => ({
   pluginEventBus: {
     emitClusterConnected: vi.fn(),
     emitClusterDisconnected: vi.fn(),

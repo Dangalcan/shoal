@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { vi, type Mocked } from 'vitest';
 import type { ElectronAPI } from '../../types.d';
 
 /**
@@ -19,8 +19,8 @@ import type { ElectronAPI } from '../../types.d';
  * ```
  */
 export function createMockElectronAPI(
-  overrides?: Partial<ElectronAPI>
-): vi.Mocked<ElectronAPI> {
+  overrides?: Partial<Mocked<ElectronAPI>>
+): Mocked<ElectronAPI> {
   return {
     getToolStatus: vi.fn().mockImplementation(async (tool: string) => ({
       success: true,

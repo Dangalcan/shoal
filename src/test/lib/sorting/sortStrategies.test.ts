@@ -38,7 +38,7 @@ describe('sortStrategies', () => {
     });
 
     it('should return 0 for equal strings', () => {
-      const sorter = sortByString((r) => 'same');
+      const sorter = sortByString(() => 'same');
       const a = makeResource();
       const b = makeResource();
       expect(sorter(a, b)).toBe(0);

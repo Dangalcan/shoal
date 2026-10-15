@@ -6,7 +6,6 @@ import {
   mockServices,
   mockNodes,
   mockPVC,
-  mockNamespaces,
   mockConfigMaps,
   mockSecrets,
   mockStatefulSets,

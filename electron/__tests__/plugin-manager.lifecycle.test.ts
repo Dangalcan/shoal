@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { LocalPluginModule } from '../../../electron/services/plugins/host/module-handle';
+import { LocalPluginModule } from '../services/plugins/host/module-handle';
 
 vi.mock('electron', () => ({
   app: {
@@ -77,43 +77,43 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../../../electron/services/plugins/plugin-registry', () => ({
+vi.mock('../services/plugins/plugin-registry', () => ({
   pluginRegistry: mocks.registry,
 }));
-vi.mock('../../../electron/services/plugins/plugin-loader', () => ({
+vi.mock('../services/plugins/plugin-loader', () => ({
   pluginLoader: mocks.loader,
 }));
-vi.mock('../../../electron/services/security/license-manager', () => ({
+vi.mock('../services/security/license-manager', () => ({
   licenseManager: mocks.license,
 }));
-vi.mock('../../../electron/services/plugins/dependency-resolver', () => ({
+vi.mock('../services/plugins/dependency-resolver', () => ({
   dependencyResolver: mocks.depResolver,
 }));
-vi.mock('../../../electron/services/plugins/storage-service', () => ({
+vi.mock('../services/plugins/storage-service', () => ({
   storageService: mocks.storage,
 }));
-vi.mock('../../../electron/services/plugins/data-loader', () => ({
+vi.mock('../services/plugins/data-loader', () => ({
   dataLoader: mocks.dataLoader,
 }));
-vi.mock('../../../electron/services/plugins/plugin-events', () => ({
+vi.mock('../services/plugins/plugin-events', () => ({
   pluginEventBus: mocks.eventBus,
 }));
-vi.mock('../../../electron/services/plugins/plugin-watcher', () => ({
+vi.mock('../services/plugins/plugin-watcher', () => ({
   pluginWatcher: mocks.watcher,
 }));
-vi.mock('../../../electron/services/marketplace/marketplace-service', () => ({
+vi.mock('../services/marketplace/marketplace-service', () => ({
   marketplaceService: mocks.marketplace,
 }));
-vi.mock('../../../electron/services/plugins/path-service', () => ({
+vi.mock('../services/plugins/path-service', () => ({
   pathService: mocks.pathService,
 }));
-vi.mock('../../../electron/services/plugins/plugin-extensions', () => ({
+vi.mock('../services/plugins/plugin-extensions', () => ({
   getAllPluginExtensions: vi.fn().mockReturnValue([]),
   clearPluginExtensions: vi.fn(),
   getPluginExtensions: vi.fn().mockReturnValue({}),
   savePluginExtensions: vi.fn(),
 }));
-vi.mock('../../../electron/services/plugins/plugin-context', () => ({
+vi.mock('../services/plugins/plugin-context', () => ({
   createPluginContext: vi.fn().mockReturnValue({
     pluginId: 'test-plugin',
     pluginPath: '/mock/plugin',
@@ -132,7 +132,7 @@ vi.mock('fs', () => ({
   },
 }));
 
-import { PluginManager } from '../../../electron/services/plugins/plugin-manager';
+import { PluginManager } from '../services/plugins/plugin-manager';
 
 function makePluginEntry(id: string, enabled = true) {
   return {

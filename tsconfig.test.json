@@ -1,0 +1,21 @@
+{
+  // Type-checks the Vitest and Playwright test files, which the production
+  // configs leave out (tsconfig.json excludes src/test; e2e/ is in neither).
+  // CI runs `npm run typecheck:test`.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Tests run on Node 22 and Chromium, so ES2022 (Array.prototype.at, ...)
+    // is safe here; production stays on ES2020.
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["vitest/globals", "@testing-library/jest-dom/vitest", "node"],
+    // Tests index mock call arrays all the time (`mock.calls[0][1]`); an
+    // undefined there fails the test anyway, so the production-only strictness
+    // would just add `!` noise.
+    "noUncheckedIndexedAccess": false
+  },
+  "include": ["src", "e2e", "playwright.config.ts", "vitest.config.ts"],
+  // The main-process tests under src/test/electron are checked with
+  // electron/tsconfig.json (see electron/__tests__), not with the renderer
+  // settings.
+  "exclude": ["src/test/electron"]
+}

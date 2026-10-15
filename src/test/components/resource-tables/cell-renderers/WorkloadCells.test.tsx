@@ -10,7 +10,6 @@ import {
   DurationCell,
 } from '../../../../components/resource-tables/cell-renderers/WorkloadCells';
 import { K8sResource } from '../../../../types/k8s-types';
-import { ResourceType } from '../../../../lib/resource-definitions';
 
 describe('WorkloadCells', () => {
   const emptyResource: K8sResource = {

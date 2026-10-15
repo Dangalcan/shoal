@@ -18,19 +18,19 @@ const { mockGetPlugin, mockUpdateConfig } = vi.hoisted(() => ({
   mockUpdateConfig: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('../../../electron/services/plugins/plugin-registry', () => ({
+vi.mock('../services/plugins/plugin-registry', () => ({
   pluginRegistry: {
     getPlugin: mockGetPlugin,
     updatePluginConfig: mockUpdateConfig,
   },
 }));
 
-vi.mock('../../../electron/utils/env-utils', () => ({
+vi.mock('../utils/env-utils', () => ({
   isProduction: vi.fn(() => false),
 }));
 
-import { LicenseManager } from '../../../electron/services/security/license-manager';
-import type { PluginLicenseInfo } from '../../../electron/types/plugin-types';
+import { LicenseManager } from '../services/security/license-manager';
+import type { PluginLicenseInfo } from '../types/plugin-types';
 
 function makePlugin(
   licenseType: 'free' | 'paid',
