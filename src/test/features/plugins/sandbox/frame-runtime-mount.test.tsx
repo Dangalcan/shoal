@@ -45,6 +45,9 @@ async function bootFrame(data: Record<string, unknown>): Promise<TestHarness> {
       new MessageEvent('message', {
         data: { type: PLUGIN_PORT_INIT, pluginId: 'p1', ...data },
         ports: [channel.port2],
+        // The runtime only takes the port from its parent window; in jsdom
+        // the test window is its own parent.
+        source: window.parent,
       })
     );
   });
