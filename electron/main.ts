@@ -30,6 +30,7 @@ import { updateService } from './services/update';
 import {
   handlePluginFileRequest,
   isPluginHostDocument,
+  withPluginCsp,
 } from './services/plugins/plugin-file-protocol';
 import { openExternalSafe } from './utils/url-utils';
 import { applyDesktopToolPath } from './utils/path-env';
@@ -374,7 +375,9 @@ app.whenReady().then(() => {
     } catch (e: unknown) {
       const msg = getErrorMessage(e);
       log.error('[Protocol] Failed to handle plugin-file request:', msg);
-      return new Response('File not found: ' + msg, { status: 404 });
+      return withPluginCsp(
+        new Response('File not found: ' + msg, { status: 404 })
+      );
     }
   });
 });

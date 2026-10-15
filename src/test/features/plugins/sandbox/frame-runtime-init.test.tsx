@@ -10,10 +10,13 @@ const PLUGIN_PORT_INIT = 'k8s-plugin-port-init';
 
 function dispatchInit(
   data: Record<string, unknown>,
-  ports?: MessagePort[]
+  ports?: MessagePort[],
+  // In jsdom the test window is its own parent, so this is what a message
+  // from the host document looks like.
+  source: MessageEventSource | null = window.parent
 ): void {
   window.dispatchEvent(
-    new MessageEvent('message', { data, ports: ports ?? [] })
+    new MessageEvent('message', { data, ports: ports ?? [], source })
   );
 }
 
@@ -38,6 +41,14 @@ describe('frame-runtime bootstrap message handler', () => {
 
   it('ignores an init message that carries no port', () => {
     dispatchInit({ type: PLUGIN_PORT_INIT });
+    expect(
+      (window as unknown as { k8sPlugin?: unknown }).k8sPlugin
+    ).toBeUndefined();
+  });
+
+  it('ignores an init message that does not come from the parent window', () => {
+    const channel = new MessageChannel();
+    dispatchInit({ type: PLUGIN_PORT_INIT }, [channel.port2], null);
     expect(
       (window as unknown as { k8sPlugin?: unknown }).k8sPlugin
     ).toBeUndefined();

@@ -180,6 +180,12 @@ yet, so Windows SmartScreen shows a warning on first launch.
 
 ### Security
 
+- The Compose conversion takes a token for the file chosen in the native
+  dialog instead of a path from the renderer. `plugin-config.json`, which
+  holds license keys and encrypted plugin secrets, is written owner-only.
+  The `plugin-file:` error responses carry the frame policy too, and a
+  plugin frame accepts its message port only from the host document that
+  created it.
 - Plugin frames keep their Content Security Policy whatever document they
   show: the `plugin-file:` protocol sends the policy as a header with every
   file, the main process blocks navigation of a plugin frame away from its

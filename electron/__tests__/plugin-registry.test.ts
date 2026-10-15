@@ -90,7 +90,7 @@ describe('PluginRegistry', () => {
       expect(fs.writeFile).toHaveBeenCalledWith(
         expect.stringContaining('plugin-config.json'),
         expect.any(String),
-        'utf-8'
+        { encoding: 'utf-8', mode: 0o600 }
       );
     });
 

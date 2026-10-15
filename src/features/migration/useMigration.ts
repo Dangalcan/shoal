@@ -75,11 +75,11 @@ export function useMigration(): UseMigrationResult {
     }
     if (!selected.data) return; // dialog cancelled
 
-    const filePath = selected.data;
+    const { token, filePath } = selected.data;
     setConverting(true);
     try {
       const result = await handleAsyncOperation(
-        () => api.migrationConvertCompose(filePath),
+        () => api.migrationConvertCompose(token),
         {
           loadingMessage: 'Converting compose file with kompose...',
           successMessage: 'Compose file converted.',

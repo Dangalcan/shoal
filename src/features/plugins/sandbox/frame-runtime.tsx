@@ -239,6 +239,8 @@ function observeHeight(sdk: K8sPluginSdk): void {
 window.addEventListener('message', function onInit(event: MessageEvent) {
   const data = event.data as InitMessage | undefined;
   if (!data || data.type !== PLUGIN_PORT_INIT) return;
+  // Only the host document that created this frame hands over the port.
+  if (event.source !== window.parent) return;
   const port = event.ports && event.ports[0];
   if (!port) return;
   window.removeEventListener('message', onInit);

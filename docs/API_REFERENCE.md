@@ -683,14 +683,21 @@ Probes for the kompose binary. Absence is a valid state, not an error.
 
 Opens a native file picker filtered to `.yml`/`.yaml` files.
 
-- **Returns**: `Promise<Result<string | null>>` — `null` when cancelled
+- **Returns**: `Promise<Result<ComposeFileSelection | null>>` — `null` when
+  cancelled
+  - `ComposeFileSelection`: `{ token: string; filePath: string }`. The
+    `token` names the chosen file in `migrationConvertCompose`; the
+    `filePath` is for display only. The main process keeps the last eight
+    selections.
 
-### `migrationConvertCompose(filePath)`
+### `migrationConvertCompose(token)`
 
-Runs `kompose convert` on the given compose file. The file must exist,
-have a `.yml`/`.yaml` extension, and be at most 1 MiB.
+Runs `kompose convert` on a file chosen with `migrationSelectComposeFile`.
+The renderer never passes a path: a token the dialog did not issue (or one
+older than the last eight) is refused. The file must exist, have a
+`.yml`/`.yaml` extension, and be at most 1 MiB.
 
-- **Parameters**: `filePath`: `string`
+- **Parameters**: `token`: `string`
 - **Returns**: `Promise<Result<ComposeConversion>>`
   - `ComposeConversion`:
     - `manifests`: `ConvertedManifest[]` — one entry per Kubernetes resource

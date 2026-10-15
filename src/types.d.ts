@@ -8,6 +8,7 @@ import type {
   PluginStateChange,
 } from '../electron/types/plugin-types';
 import type {
+  ComposeFileSelection,
   KomposeStatus,
   ComposeConversion,
   ConvertedManifest,
@@ -25,6 +26,7 @@ export type {
 };
 export type { ToolStatus, AppInfo, RendererErrorReport };
 export type {
+  ComposeFileSelection,
   KomposeStatus,
   ComposeConversion,
   ConvertedManifest,
@@ -272,9 +274,11 @@ export interface ElectronAPI {
 
   // Migration (Docker Compose → Kubernetes)
   migrationCheckKompose: () => Promise<Result<KomposeStatus>>;
-  migrationSelectComposeFile: () => Promise<Result<string | null>>;
+  migrationSelectComposeFile: () => Promise<
+    Result<ComposeFileSelection | null>
+  >;
   migrationConvertCompose: (
-    filePath: string
+    token: string
   ) => Promise<Result<ComposeConversion>>;
   migrationImportManifests: (
     args: MigrationImportArgs

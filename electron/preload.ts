@@ -222,8 +222,8 @@ contextBridge.exposeInMainWorld('electron', {
   migrationCheckKompose: () => ipcRenderer.invoke('migration:check-kompose'),
   migrationSelectComposeFile: () =>
     ipcRenderer.invoke('migration:select-compose-file'),
-  migrationConvertCompose: (filePath: string) =>
-    ipcRenderer.invoke('migration:convert', filePath),
+  migrationConvertCompose: (token: string) =>
+    ipcRenderer.invoke('migration:convert', token),
   migrationImportManifests: (args: MigrationImportArgs) =>
     ipcRenderer.invoke('migration:import', args),
 

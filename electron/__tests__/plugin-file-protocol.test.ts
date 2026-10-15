@@ -16,7 +16,9 @@ vi.mock('electron', () => ({
   net: { fetch: vi.fn() },
 }));
 
+import { app } from 'electron';
 import {
+  handlePluginFileRequest,
   resolvePluginFile,
   withPluginCsp,
   isPluginHostDocument,
@@ -134,6 +136,26 @@ describe('resolvePluginFile', () => {
         path.join(tmp, 'does-not-exist'),
       ])
     ).toBeNull();
+  });
+});
+
+describe('handlePluginFileRequest', () => {
+  it('answers a refused request with 403 and the frame policy', async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'shoal-proto-'));
+    vi.mocked(app.getPath).mockReturnValue(userData);
+    vi.mocked(app.getAppPath).mockReturnValue(userData);
+    try {
+      const outside = path.join(os.tmpdir(), 'elsewhere', 'renderer.js');
+      const response = await handlePluginFileRequest(
+        new Request(toPluginFileUrl(outside))
+      );
+      expect(response.status).toBe(403);
+      expect(response.headers.get('Content-Security-Policy')).toBe(
+        PLUGIN_FILE_CSP
+      );
+    } finally {
+      fs.rmSync(userData, { recursive: true, force: true });
+    }
   });
 });
 

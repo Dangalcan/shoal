@@ -103,7 +103,10 @@ describe('migration-ipc handlers', () => {
 
       expect(result).toEqual({
         success: true,
-        data: 'C:/project/docker-compose.yml',
+        data: {
+          token: expect.any(String),
+          filePath: 'C:/project/docker-compose.yml',
+        },
       });
     });
 
@@ -133,7 +136,22 @@ describe('migration-ipc handlers', () => {
   });
 
   describe('migration:convert', () => {
-    it('delegates a valid path to the service', async () => {
+    /** Picks a file through the dialog and returns the token it was given. */
+    async function selectFile(
+      filePath = 'C:/project/docker-compose.yml'
+    ): Promise<string> {
+      vi.mocked(pluginEventBus.getMainWindow).mockReturnValue({} as never);
+      vi.mocked(dialog.showOpenDialog).mockResolvedValue({
+        canceled: false,
+        filePaths: [filePath],
+      });
+      const result = await getHandler('migration:select-compose-file')(
+        mockEvent
+      );
+      return (result.data as { token: string }).token;
+    }
+
+    it('converts the file behind a token from the dialog', async () => {
       const conversion = {
         manifests: [
           {
@@ -150,10 +168,8 @@ describe('migration-ipc handlers', () => {
         conversion
       );
 
-      const result = await getHandler('migration:convert')(
-        mockEvent,
-        'C:/project/docker-compose.yml'
-      );
+      const token = await selectFile();
+      const result = await getHandler('migration:convert')(mockEvent, token);
 
       expect(result).toEqual({ success: true, data: conversion });
       expect(migrationService.convertComposeFile).toHaveBeenCalledWith(
@@ -161,12 +177,45 @@ describe('migration-ipc handlers', () => {
       );
     });
 
-    it('rejects a missing path', async () => {
+    it('never takes a path from the renderer', async () => {
+      const result = await getHandler('migration:convert')(
+        mockEvent,
+        'C:/project/docker-compose.yml'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/pick the file again/i);
+      expect(migrationService.convertComposeFile).not.toHaveBeenCalled();
+    });
+
+    it('rejects a missing token', async () => {
       const result = await getHandler('migration:convert')(mockEvent, '   ');
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/path is required/i);
+      expect(result.error).toMatch(/token is required/i);
       expect(migrationService.convertComposeFile).not.toHaveBeenCalled();
+    });
+
+    it('keeps the newest selections and forgets the oldest', async () => {
+      const first = await selectFile('C:/project/first.yml');
+      for (let i = 0; i < 8; i++) {
+        await selectFile(`C:/project/later-${i}.yml`);
+      }
+      vi.mocked(migrationService.convertComposeFile).mockResolvedValue({
+        manifests: [],
+        warnings: [],
+        locallyBuiltImages: [],
+      });
+
+      const expired = await getHandler('migration:convert')(mockEvent, first);
+      expect(expired.success).toBe(false);
+
+      const latest = await selectFile('C:/project/latest.yml');
+      const result = await getHandler('migration:convert')(mockEvent, latest);
+      expect(result.success).toBe(true);
+      expect(migrationService.convertComposeFile).toHaveBeenCalledWith(
+        'C:/project/latest.yml'
+      );
     });
   });
 
