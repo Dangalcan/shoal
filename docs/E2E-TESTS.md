@@ -21,7 +21,7 @@ e2e/
 │   ├── app.fixture.ts            # Shared Electron launch fixture (app + window)
 │   └── plugins/escape-probe/     # Unsigned plugin that tries to escape the sandbox
 ├── features/
-│   ├── navigation.spec.ts        # Sidebar navigation and theme toggle
+│   ├── navigation.spec.ts        # Sidebar navigation, theme toggle, window guards
 │   ├── first-run.spec.ts         # Empty kubeconfig and unreachable context (own KUBECONFIG)
 │   ├── cluster-lifecycle.spec.ts # Create and delete a cluster end-to-end
 │   ├── cluster-details.spec.ts   # Cluster details UI: tabs, sorting, filters, logs, settings
@@ -107,8 +107,9 @@ SHOAL_E2E_EXECUTABLE="$PWD/release/win-unpacked/Shoal.exe" npx playwright test
 On Linux CI the AppImage runs under `xvfb-run -a` with
 `APPIMAGE_EXTRACT_AND_RUN=1` (no libfuse2 on the runners) and runs every
 spec. The Windows smoke job lists the specs it runs (`build.yml`) and leaves
-out `cluster-lifecycle`, `cluster-details` and `first-run`: the runner cannot
-run Linux containers for kind, and the first-run spec needs `kubectl`.
+out `cluster-lifecycle` and `cluster-details`: the runner cannot run Linux
+containers for kind. It installs `kubectl` (setup-kubectl) for the first-run
+spec.
 
 ### Screenshots
 
@@ -195,9 +196,17 @@ Creates a cluster once (`beforeAll`), runs 11 UI tests against its details page,
 | Settings toggle    | Jobs toggle switch changes CSS class (on → off → on)         |
 | Settings columns   | Column section title matches the active tab name             |
 
+### `navigation.spec.ts`
+
+Walks the sidebar, toggles the theme, and checks the main window's guards:
+a page script that calls `window.open` or sets `location.href` to an
+outside URL changes nothing (the main process denies new windows and
+navigation away from the app). No cluster needed.
+
 ### `first-run.spec.ts`
 
-Two launches with their own `KUBECONFIG`, no cluster needed. With a
+Two launches with their own `KUBECONFIG`, no cluster needed; it runs on both
+smoke runners. With a
 kubeconfig that holds no context, the Dashboard and the cluster list say
 where contexts come from and no error toast appears. With a context whose
 server is an address that never answers (TEST-NET-3), the window must open
