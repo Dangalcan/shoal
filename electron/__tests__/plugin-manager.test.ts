@@ -1116,33 +1116,40 @@ describe('start-up activation budget', () => {
   });
 });
 
+/**
+ * Registry, license, loader and data mocks for a plugin that can activate.
+ * Earlier tests leave rejecting implementations behind and clearAllMocks only
+ * clears the calls, so every dependency is set explicitly.
+ */
+function stubActivatablePlugin(pluginId: string): void {
+  vi.mocked(pluginRegistry.hasPlugin).mockReturnValue(true);
+  vi.mocked(pluginRegistry.getPlugin).mockReturnValue({
+    plugin: { manifest: { id: pluginId, permissions: [] } },
+    config: { enabled: true },
+  } as any);
+  vi.mocked(licenseManager.checkLicense).mockReturnValue({ valid: true });
+  vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
+  vi.mocked(dependencyResolver.validateDependencies).mockReturnValue({
+    valid: true,
+  } as any);
+  vi.mocked(dataLoader.loadPluginData).mockResolvedValue([]);
+  vi.mocked(storageService.migrateFromJson).mockResolvedValue(undefined);
+  vi.mocked(pluginRegistry.enablePlugin).mockResolvedValue(undefined);
+  vi.mocked(pluginRegistry.disablePlugin).mockResolvedValue(undefined);
+  vi.mocked(pluginLoader.unloadPluginCode).mockResolvedValue(undefined);
+  vi.mocked(pluginLoader.acquireModuleHandle).mockImplementation(
+    async (id: string, pluginPath: string) =>
+      new LocalPluginModule(await pluginLoader.loadPluginCode(id, pluginPath))
+  );
+}
+
 describe('lifecycle hook budget', () => {
   const pluginId = 'hanging';
 
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
-    vi.mocked(pluginRegistry.hasPlugin).mockReturnValue(true);
-    vi.mocked(pluginRegistry.getPlugin).mockReturnValue({
-      plugin: { manifest: { id: pluginId, permissions: [] } },
-      config: { enabled: true },
-    } as any);
-    vi.mocked(licenseManager.checkLicense).mockReturnValue({ valid: true });
-    vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
-    vi.mocked(dependencyResolver.validateDependencies).mockReturnValue({
-      valid: true,
-    } as any);
-    // Earlier tests leave rejecting implementations behind; clearAllMocks
-    // only clears the calls.
-    vi.mocked(dataLoader.loadPluginData).mockResolvedValue([]);
-    vi.mocked(storageService.migrateFromJson).mockResolvedValue(undefined);
-    vi.mocked(pluginRegistry.enablePlugin).mockResolvedValue(undefined);
-    vi.mocked(pluginRegistry.disablePlugin).mockResolvedValue(undefined);
-    vi.mocked(pluginLoader.unloadPluginCode).mockResolvedValue(undefined);
-    vi.mocked(pluginLoader.acquireModuleHandle).mockImplementation(
-      async (id: string, pluginPath: string) =>
-        new LocalPluginModule(await pluginLoader.loadPluginCode(id, pluginPath))
-    );
+    stubActivatablePlugin(pluginId);
   });
 
   afterEach(() => {
