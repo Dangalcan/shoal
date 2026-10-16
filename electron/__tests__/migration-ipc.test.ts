@@ -280,6 +280,55 @@ describe('migration-ipc handlers', () => {
       expect(manifestDb.saveFolder).not.toHaveBeenCalled();
     });
 
+    it('rejects a project name over 100 characters', async () => {
+      const result = await getHandler('migration:import')(mockEvent, {
+        ...validImportArgs,
+        projectName: 'x'.repeat(101),
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/at most 100 characters/);
+      expect(manifestDb.saveFolder).not.toHaveBeenCalled();
+    });
+
+    it('rejects a manifest entry that is not an object', async () => {
+      const result = await getHandler('migration:import')(mockEvent, {
+        ...validImportArgs,
+        manifests: [null],
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/Invalid manifest entry/);
+    });
+
+    it('rejects a manifest without a name, or with a name over 200 characters', async () => {
+      const unnamed = await getHandler('migration:import')(mockEvent, {
+        ...validImportArgs,
+        manifests: [{ name: ' ', content: 'kind: Pod' }],
+      });
+      expect(unnamed.success).toBe(false);
+      expect(unnamed.error).toMatch(/Manifest name is required/);
+
+      const long = await getHandler('migration:import')(mockEvent, {
+        ...validImportArgs,
+        manifests: [{ name: 'n'.repeat(201), content: 'kind: Pod' }],
+      });
+      expect(long.success).toBe(false);
+      expect(long.error).toMatch(/at most 200 characters/);
+      expect(manifestDb.saveFolder).not.toHaveBeenCalled();
+    });
+
+    it('rejects a manifest over 1 MiB', async () => {
+      const result = await getHandler('migration:import')(mockEvent, {
+        ...validImportArgs,
+        manifests: [{ name: 'big.yaml', content: 'x'.repeat(1024 * 1024 + 1) }],
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/too large/);
+      expect(manifestDb.saveFolder).not.toHaveBeenCalled();
+    });
+
     it('rejects a manifest without content', async () => {
       const result = await getHandler('migration:import')(mockEvent, {
         ...validImportArgs,

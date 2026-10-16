@@ -143,6 +143,7 @@ describe('createPluginSdk edge cases', () => {
       podName: 'p',
       namespace: 'n',
     });
+    void sdk.kubernetes.getPodMetrics({ contextName: 'c', namespace: 'n' });
     void sdk.kubernetes.describeResource({ a: 1 });
     void sdk.kubernetes.getResourceYaml({ a: 1 });
     void sdk.kubernetes.deleteResource({ a: 1 });
@@ -150,6 +151,16 @@ describe('createPluginSdk edge cases', () => {
     void sdk.kubernetes.getClusters();
     void sdk.manifests.apply(5);
     void sdk.manifests.save({ kind: 'Pod' });
+    const release = { contextName: 'c', namespace: 'n', releaseName: 'r' };
+    void sdk.helm.install({ ...release, chart: 'bitnami/nginx' });
+    void sdk.helm.upgrade({ ...release, chart: 'bitnami/nginx' });
+    void sdk.helm.rollback({ ...release, revision: 2 });
+    void sdk.helm.uninstall(release);
+    void sdk.helm.repoAdd({
+      name: 'bitnami',
+      url: 'https://charts.bitnami.com',
+    });
+    void sdk.helm.repoList();
     void sdk.settings.get();
     void sdk.settings.set({ theme: 'dark' });
     void sdk.ui.openExternal('https://x.test');
@@ -160,6 +171,7 @@ describe('createPluginSdk edge cases', () => {
       'kubernetes.getPods',
       'kubernetes.getNamespaces',
       'kubernetes.getLogs',
+      'kubernetes.getPodMetrics',
       'kubernetes.describeResource',
       'kubernetes.getResourceYaml',
       'kubernetes.deleteResource',
@@ -167,6 +179,12 @@ describe('createPluginSdk edge cases', () => {
       'kubernetes.getClusters',
       'manifests.apply',
       'manifests.save',
+      'helm.install',
+      'helm.upgrade',
+      'helm.rollback',
+      'helm.uninstall',
+      'helm.repoAdd',
+      'helm.repoList',
       'settings.get',
       'settings.set',
       'ui.openExternal',

@@ -137,15 +137,18 @@ describe('CreateCluster Page', () => {
 
   it('should show loading state while creating', async () => {
     const user = userEvent.setup();
-    // Delay resolution to check loading state
-    mockApi.createCluster = vi
-      .fn()
-      .mockImplementation(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(() => resolve({ success: true }), 100)
-          )
-      );
+    // Hold the creation until the loading state has been checked; a timer
+    // raced the assertions under load.
+    let finishCreate: (value: {
+      success: true;
+      data: undefined;
+    }) => void = () => {};
+    mockApi.createCluster = vi.fn().mockImplementation(
+      () =>
+        new Promise<{ success: true; data: undefined }>((resolve) => {
+          finishCreate = resolve;
+        })
+    );
 
     render(<CreateCluster />, { api: mockApi });
 
@@ -163,6 +166,7 @@ describe('CreateCluster Page', () => {
     ).toBeInTheDocument();
 
     // After resolution, it should navigate (which removes the form)
+    finishCreate({ success: true, data: undefined });
     await waitFor(() => {
       expect(
         screen.queryByRole('button', { name: /creating.../i })
