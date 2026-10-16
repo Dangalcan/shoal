@@ -62,6 +62,45 @@
       }
     },
     {
+      "files": ["src/test/**", "electron/__tests__/**", "e2e/**"],
+      "rules": {
+        "max-lines-per-function": "off",
+        "complexity": "off",
+        "max-lines": "off"
+      }
+    },
+    {
+      "files": ["electron/**/*.ts"],
+      "parserOptions": { "project": ["./electron/tsconfig.json"] },
+      "rules": {
+        "@typescript-eslint/no-floating-promises": "error",
+        "@typescript-eslint/no-misused-promises": [
+          "error",
+          { "checksVoidReturn": { "attributes": false } }
+        ],
+        "@typescript-eslint/await-thenable": "error"
+      }
+    },
+    {
+      "files": [
+        "src/**/*.{ts,tsx}",
+        "e2e/**/*.ts",
+        "playwright.config.ts",
+        "vitest.config.ts"
+      ],
+      "parserOptions": {
+        "project": ["./tsconfig.json", "./tsconfig.test.json"]
+      },
+      "rules": {
+        "@typescript-eslint/no-floating-promises": "warn",
+        "@typescript-eslint/no-misused-promises": [
+          "warn",
+          { "checksVoidReturn": { "attributes": false } }
+        ],
+        "@typescript-eslint/await-thenable": "warn"
+      }
+    },
+    {
       "files": ["electron/**"],
       "rules": {
         "no-restricted-imports": [

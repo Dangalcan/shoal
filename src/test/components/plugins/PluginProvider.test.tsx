@@ -1030,7 +1030,9 @@ const ExtensionsConsumer = ({ extensionPoint }: { extensionPoint: string }) => {
   const [count, setCount] = React.useState(0);
 
   React.useEffect(() => {
-    getPluginExtensions(extensionPoint).then((exts) => setCount(exts.length));
+    void getPluginExtensions(extensionPoint).then((exts) =>
+      setCount(exts.length)
+    );
   }, [extensionPoint, getPluginExtensions]);
 
   return <div>Found: {count}</div>;
@@ -1041,7 +1043,7 @@ const SettingsConsumer = ({ pluginId }: { pluginId: string }) => {
   const [settings, setSettings] = React.useState<any>(null);
 
   React.useEffect(() => {
-    getSettings(pluginId).then(setSettings);
+    void getSettings(pluginId).then(setSettings);
   }, [pluginId, getSettings]);
 
   if (!settings || Object.keys(settings).length === 0)

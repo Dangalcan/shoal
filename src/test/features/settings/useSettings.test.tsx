@@ -106,17 +106,27 @@ describe('useSettings', () => {
     await act(async () => {});
     expect(result.current.localSettingsSaved).toBe(false);
 
-    act(() => result.current.setDefaultNamespace('team-a'));
+    act(() => {
+      result.current.setDefaultNamespace('team-a');
+    });
     expect(result.current.defaultNamespace).toBe('team-a');
     expect(result.current.localSettingsSaved).toBe(true);
 
     // A second change inside the window restarts the timer.
-    act(() => vi.advanceTimersByTime(1500));
-    act(() => result.current.setRefreshInterval(30));
-    act(() => vi.advanceTimersByTime(1500));
+    act(() => {
+      vi.advanceTimersByTime(1500);
+    });
+    act(() => {
+      result.current.setRefreshInterval(30);
+    });
+    act(() => {
+      vi.advanceTimersByTime(1500);
+    });
     expect(result.current.localSettingsSaved).toBe(true);
 
-    act(() => vi.advanceTimersByTime(500));
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
     expect(result.current.localSettingsSaved).toBe(false);
   });
 });
