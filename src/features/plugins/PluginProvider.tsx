@@ -59,10 +59,10 @@ export function PluginProvider({ children }: PluginProviderProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const refreshPlugins = async () => {
+  // Reads the plugin list; the loading state is already on when this runs
+  // (initial render or `refreshPlugins`).
+  const loadPlugins = async () => {
     try {
-      setLoading(true);
-      setError(null);
       const result = await api.getPlugins();
       if (result.success) {
         setPlugins(result.data);
@@ -76,11 +76,17 @@ export function PluginProvider({ children }: PluginProviderProps) {
     }
   };
 
+  const refreshPlugins = async () => {
+    setLoading(true);
+    setError(null);
+    await loadPlugins();
+  };
+
   const actions = usePluginActions(plugins, refreshPlugins);
 
   // Load plugins on mount
   useEffect(() => {
-    refreshPlugins();
+    void loadPlugins();
     actions.checkForUpdates();
   }, []);
 

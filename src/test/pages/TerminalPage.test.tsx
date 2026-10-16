@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '../utils';
 import userEvent from '@testing-library/user-event';
+import { createMockElectronAPI } from '../utils/mocks';
 import { TerminalPage } from '../../pages/TerminalPage';
 
 vi.mock('../../components/Terminal', () => ({
@@ -28,27 +29,29 @@ const shellsData = {
   defaultShell: 'powershell',
 };
 
+let api: ReturnType<typeof createMockElectronAPI>;
+
 describe('TerminalPage', () => {
   beforeEach(() => {
-    window.electron.terminalShells = vi
-      .fn()
-      .mockResolvedValue({ success: true, data: shellsData });
-    window.electron.terminalCreate = vi
-      .fn()
-      .mockResolvedValue({ success: true, data: { sessionId: 's1' } });
-    window.electron.terminalKill = vi
-      .fn()
-      .mockResolvedValue({ success: true, data: true });
+    api = createMockElectronAPI({
+      terminalShells: vi
+        .fn()
+        .mockResolvedValue({ success: true, data: shellsData }),
+      terminalCreate: vi
+        .fn()
+        .mockResolvedValue({ success: true, data: { sessionId: 's1' } }),
+      terminalKill: vi.fn().mockResolvedValue({ success: true, data: true }),
+    });
   });
 
   it('creates a default-shell session and shows the shell badge', async () => {
-    render(<TerminalPage />);
+    render(<TerminalPage />, { api });
 
     await waitFor(() => {
       expect(screen.getByTestId('terminal')).toBeInTheDocument();
     });
 
-    expect(window.electron.terminalCreate).toHaveBeenCalledWith({
+    expect(api.terminalCreate).toHaveBeenCalledWith({
       kind: 'local',
       shell: undefined,
     });
@@ -62,7 +65,7 @@ describe('TerminalPage', () => {
   });
 
   it('lists detected shells in the picker', async () => {
-    render(<TerminalPage />);
+    render(<TerminalPage />, { api });
 
     const select = await screen.findByLabelText('Shell type');
     const options = [...select.querySelectorAll('option')].map(
@@ -73,23 +76,30 @@ describe('TerminalPage', () => {
   });
 
   it('starts a new session with the picked shell and kills the old one', async () => {
-    render(<TerminalPage />);
+    render(<TerminalPage />, { api });
     await screen.findByTestId('terminal');
 
-    window.electron.terminalCreate = vi
-      .fn()
-      .mockResolvedValue({ success: true, data: { sessionId: 's2' } });
+    api.terminalCreate.mockResolvedValue({
+      success: true,
+      data: { sessionId: 's2', shellFamily: 'unix' },
+    });
 
     const select = await screen.findByLabelText('Shell type');
     await userEvent.selectOptions(select, 'wsl');
 
     await waitFor(() => {
-      expect(window.electron.terminalCreate).toHaveBeenCalledWith({
+      expect(api.terminalCreate).toHaveBeenCalledWith({
         kind: 'local',
         shell: 'wsl',
       });
     });
-    expect(window.electron.terminalKill).toHaveBeenCalledWith('s1');
+    expect(api.terminalKill).toHaveBeenCalledWith('s1');
+    await waitFor(() =>
+      expect(screen.getByTestId('terminal')).toHaveAttribute(
+        'data-session',
+        's2'
+      )
+    );
     expect(screen.getByTestId('terminal')).toHaveAttribute(
       'data-family',
       'unix'
@@ -100,25 +110,28 @@ describe('TerminalPage', () => {
   });
 
   it('hides the picker when shell detection fails', async () => {
-    window.electron.terminalShells = vi
-      .fn()
-      .mockResolvedValue({ success: false, error: 'boom' });
+    api.terminalShells.mockResolvedValue({ success: false, error: 'boom' });
 
-    render(<TerminalPage />);
+    render(<TerminalPage />, { api });
     await screen.findByTestId('terminal');
 
     expect(screen.queryByLabelText('Shell type')).not.toBeInTheDocument();
   });
 
   it('shows the error state and retries', async () => {
-    window.electron.terminalCreate = vi
-      .fn()
+    api.terminalCreate
       .mockResolvedValueOnce({ success: false, error: 'spawn failed' })
-      .mockResolvedValueOnce({ success: true, data: { sessionId: 's3' } });
+      .mockResolvedValueOnce({
+        success: true,
+        data: { sessionId: 's3', shellFamily: 'windows' },
+      });
 
-    render(<TerminalPage />);
+    render(<TerminalPage />, { api });
 
     expect(await screen.findByText('spawn failed')).toBeInTheDocument();
+    expect(
+      document.querySelector('.terminal-page__session-badge')
+    ).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Retry'));
 
@@ -131,11 +144,11 @@ describe('TerminalPage', () => {
   });
 
   it('kills the active session on unmount', async () => {
-    const { unmount } = render(<TerminalPage />);
+    const { unmount } = render(<TerminalPage />, { api });
     await screen.findByTestId('terminal');
 
     unmount();
 
-    expect(window.electron.terminalKill).toHaveBeenCalledWith('s1');
+    expect(api.terminalKill).toHaveBeenCalledWith('s1');
   });
 });
