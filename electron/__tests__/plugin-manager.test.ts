@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
+  HOOK_TIMEOUT_MS,
   PluginManager,
   STARTUP_ACTIVATION_WAIT_MS,
   settledWithin,
@@ -179,7 +180,11 @@ vi.mock('fs', async (importOriginal) => {
 import { marketplaceService } from '../services/marketplace/marketplace-service';
 import { LocalPluginModule } from '../services/plugins/host/module-handle';
 import { createPluginContext } from '../services/plugins/plugin-context';
-import { getAllPluginExtensions } from '../services/plugins/plugin-extensions';
+import {
+  clearPluginExtensions,
+  getAllPluginExtensions,
+} from '../services/plugins/plugin-extensions';
+import { pluginEventBus } from '../services/plugins/plugin-events';
 import { dependencyResolver } from '../services/plugins/dependency-resolver';
 import { dataLoader } from '../services/plugins/data-loader';
 import fs from 'fs';
@@ -1106,6 +1111,111 @@ describe('start-up activation budget', () => {
     expect(activateSpy).toHaveBeenCalledWith('fast');
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('slow is still activating')
+    );
+    warn.mockRestore();
+  });
+});
+
+describe('lifecycle hook budget', () => {
+  const pluginId = 'hanging';
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+    vi.mocked(pluginRegistry.hasPlugin).mockReturnValue(true);
+    vi.mocked(pluginRegistry.getPlugin).mockReturnValue({
+      plugin: { manifest: { id: pluginId, permissions: [] } },
+      config: { enabled: true },
+    } as any);
+    vi.mocked(licenseManager.checkLicense).mockReturnValue({ valid: true });
+    vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
+    vi.mocked(dependencyResolver.validateDependencies).mockReturnValue({
+      valid: true,
+    } as any);
+    // Earlier tests leave rejecting implementations behind; clearAllMocks
+    // only clears the calls.
+    vi.mocked(dataLoader.loadPluginData).mockResolvedValue([]);
+    vi.mocked(storageService.migrateFromJson).mockResolvedValue(undefined);
+    vi.mocked(pluginRegistry.enablePlugin).mockResolvedValue(undefined);
+    vi.mocked(pluginRegistry.disablePlugin).mockResolvedValue(undefined);
+    vi.mocked(pluginLoader.unloadPluginCode).mockResolvedValue(undefined);
+    vi.mocked(pluginLoader.acquireModuleHandle).mockImplementation(
+      async (id: string, pluginPath: string) =>
+        new LocalPluginModule(await pluginLoader.loadPluginCode(id, pluginPath))
+    );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('marks a plugin whose activate() never returns as errored and rolls back', async () => {
+    const mod = {
+      activate: vi.fn(() => new Promise<void>(() => {})),
+      deactivate: vi.fn(),
+    };
+    vi.mocked(pluginLoader.loadPluginCode).mockResolvedValue(mod);
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const manager = new PluginManager();
+
+    const outcome = manager.enablePlugin(pluginId).catch((e: Error) => e);
+    await vi.advanceTimersByTimeAsync(HOOK_TIMEOUT_MS + 1);
+
+    expect(await outcome).toEqual(
+      new Error(`activate() timed out after ${HOOK_TIMEOUT_MS} ms`)
+    );
+    expect(mod.deactivate).toHaveBeenCalled();
+    expect(clearPluginExtensions).toHaveBeenCalledWith(pluginId);
+    expect(pluginLoader.releaseModuleHandle).toHaveBeenCalledWith(pluginId);
+    expect(pluginLoader.updatePluginState).toHaveBeenCalledWith(
+      pluginId,
+      'error',
+      `activate() timed out after ${HOOK_TIMEOUT_MS} ms`
+    );
+    expect(pluginEventBus.emitPluginActivated).not.toHaveBeenCalled();
+    error.mockRestore();
+  });
+
+  it('activates a plugin whose hooks finish within the budget', async () => {
+    const mod = {
+      activate: vi.fn(
+        () => new Promise<void>((resolve) => setTimeout(resolve, 1_000))
+      ),
+    };
+    vi.mocked(pluginLoader.loadPluginCode).mockResolvedValue(mod);
+    const manager = new PluginManager();
+
+    const enabling = manager.enablePlugin(pluginId);
+    await vi.advanceTimersByTimeAsync(1_001);
+    await enabling;
+
+    expect(pluginLoader.updatePluginState).toHaveBeenCalledWith(
+      pluginId,
+      'enabled'
+    );
+    expect(pluginEventBus.emitPluginActivated).toHaveBeenCalledWith(pluginId);
+  });
+
+  it('does not let a hanging deactivate() block disabling', async () => {
+    vi.mocked(pluginLoader.loadPluginCode).mockResolvedValue({
+      deactivate: vi.fn(() => new Promise<void>(() => {})),
+    });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const manager = new PluginManager();
+
+    const disabling = manager.disablePlugin(pluginId);
+    await vi.advanceTimersByTimeAsync(HOOK_TIMEOUT_MS + 1);
+    await disabling;
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('Could not execute deactivation hooks'),
+      expect.objectContaining({
+        message: `deactivate() timed out after ${HOOK_TIMEOUT_MS} ms`,
+      })
+    );
+    expect(pluginLoader.updatePluginState).toHaveBeenCalledWith(
+      pluginId,
+      'disabled'
     );
     warn.mockRestore();
   });

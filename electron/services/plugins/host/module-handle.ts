@@ -13,6 +13,34 @@ export interface PluginModuleInvokeOptions {
   withContext?: boolean;
   /** Positional arguments when withContext is false (actions). */
   args?: unknown[];
+  /**
+   * Upper bound for the call, in milliseconds. In-process code cannot be
+   * interrupted, so the call keeps running in the background and the caller
+   * gets a rejection instead of waiting forever. Isolated modules apply the
+   * host's own timeouts and ignore this.
+   */
+  timeoutMs?: number;
+}
+
+/**
+ * Rejects when `promise` has not settled within `ms`. The promise itself
+ * keeps running; its later outcome is dropped.
+ */
+export function withinTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  what: string
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const expiry = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`${what} timed out after ${ms} ms`)),
+      ms
+    );
+  });
+  return Promise.race([promise, expiry]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
 }
 
 export interface PluginModuleHandle {
@@ -63,7 +91,11 @@ export class LocalPluginModule implements PluginModuleHandle {
       throw new Error(`Export "${name}" is not a function`);
     }
     const args = options.withContext ? [context] : (options.args ?? []);
-    return await (target as (...a: unknown[]) => unknown)(...args);
+    const fn = target as (...a: unknown[]) => unknown;
+    // The async wrapper turns a synchronous throw into a rejection too.
+    const call = (async () => fn(...args))();
+    if (options.timeoutMs === undefined) return await call;
+    return await withinTimeout(call, options.timeoutMs, `${name}()`);
   }
 
   dispose(): void {

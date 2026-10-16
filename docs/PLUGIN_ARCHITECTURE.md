@@ -227,6 +227,15 @@ renderer follows every state change through the `plugin-state-changed` event
 (`onPluginStateChanged` in the API reference), so the plugin list and the
 sidebar catch up when it finishes.
 
+Each lifecycle hook of an in-process plugin (the bundled ones) has a
+30-second budget (`HOOK_TIMEOUT_MS` in `plugin-manager.ts`). A hook that has
+not returned by then fails the activation: it is rolled back (`deactivate()`,
+extensions cleared) and the plugin shows as errored with the reason, and
+Enable or Reload report it instead of hanging. JavaScript in the main process
+cannot be interrupted, so the hook itself keeps running in the background.
+Isolated plugins have the host's own limits instead (`LOAD_TIMEOUT_MS` and
+`INVOKE_TIMEOUT_MS` in `plugin-host-manager.ts`).
+
 ---
 
 ## Plugin Extension Points

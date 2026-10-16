@@ -5,6 +5,16 @@ All notable changes to Shoal are documented here. The format follows
 [Semantic Versioning](https://semver.org/). Release steps are in
 [docs/RELEASE.md](docs/RELEASE.md).
 
+## [Unreleased]
+
+### Fixed
+
+- A bundled plugin whose `activate()` never returns (a `kubectl` call
+  against an unreachable cluster, say) is marked as errored after 30
+  seconds, with the reason, instead of staying "loading", and Enable and
+  Reload report it instead of hanging. The hook itself keeps running in the
+  background.
+
 ## [Unreleased] - 0.9.0 public beta
 
 First public release, for Windows and Linux. Installers are not code-signed
