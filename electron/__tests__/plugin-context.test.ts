@@ -171,7 +171,7 @@ describe('Plugin Context', () => {
       const context = createPluginContext(pluginId, pluginPath, []);
 
       expect(() => context.kubernetes.getResources('pods', 'default')).toThrow(
-        /Permission denied/
+        'Permission denied: "getResources" requires the "kubernetes" permission'
       );
       expect(() => context.ui.showNotification('test', 'info')).toThrow(
         /Permission denied/
@@ -197,7 +197,121 @@ describe('Plugin Context', () => {
   });
 
   describe('Kubernetes API', () => {
-    const context = createPluginContext(pluginId, pluginPath, ['kubernetes']);
+    const context = createPluginContext(pluginId, pluginPath, [
+      'kubernetes',
+      'kubernetes:write',
+    ]);
+
+    it('separates cluster reads from cluster changes', () => {
+      const readOnly = createPluginContext(pluginId, pluginPath, [
+        'kubernetes',
+      ]);
+      const writeOnly = createPluginContext(pluginId, pluginPath, [
+        'kubernetes:write',
+      ]);
+      const needsWrite = 'requires the "kubernetes:write" permission';
+      const needsRead = 'requires the "kubernetes" permission';
+
+      expect(() => readOnly.kubernetes.createResource({})).toThrow(needsWrite);
+      expect(() => readOnly.kubernetes.updateResource('pods', 'p', {})).toThrow(
+        needsWrite
+      );
+      expect(() =>
+        readOnly.kubernetes.deleteResource('pods', 'p', 'ns')
+      ).toThrow(needsWrite);
+      expect(() => readOnly.kubernetes.executeCommand('p', 'ns', 'ls')).toThrow(
+        needsWrite
+      );
+
+      expect(() => writeOnly.kubernetes.getResources('pods', 'ns')).toThrow(
+        needsRead
+      );
+      expect(() => writeOnly.kubernetes.getPodMetrics('ns')).toThrow(needsRead);
+      expect(() =>
+        writeOnly.kubernetes.watchResources('pods', () => {})
+      ).toThrow(needsRead);
+      expect(() => writeOnly.events.onResourceCreated(() => {})).toThrow(
+        needsRead
+      );
+      expect(mockSafeExec).not.toHaveBeenCalled();
+      expect(child_process.spawn).not.toHaveBeenCalled();
+    });
+
+    it('getResources strips Secret data unless the plugin holds secrets', async () => {
+      const secret = {
+        kind: 'Secret',
+        metadata: {
+          name: 's',
+          annotations: {
+            'kubectl.kubernetes.io/last-applied-configuration':
+              '{"kind":"Secret","data":{"token":"eA=="}}',
+            team: 'a',
+          },
+        },
+        data: { token: 'eA==' },
+        stringData: { x: 'y' },
+      };
+      const configMap = { kind: 'ConfigMap', data: { a: 'b' } };
+      mockSafeExec.mockResolvedValue({
+        stdout: JSON.stringify({ items: [secret, configMap] }),
+        stderr: '',
+      });
+
+      const readOnly = createPluginContext(pluginId, pluginPath, [
+        'kubernetes',
+      ]);
+      await expect(
+        readOnly.kubernetes.getResources('secrets', 'default')
+      ).resolves.toEqual([
+        { kind: 'Secret', metadata: { name: 's', annotations: { team: 'a' } } },
+        configMap,
+      ]);
+
+      const { resourceReadCache } =
+        await import('../services/kubernetes/resource-read-cache');
+      resourceReadCache.clear();
+      const trusted = createPluginContext(pluginId, pluginPath, [
+        'kubernetes',
+        'secrets',
+      ]);
+      await expect(
+        trusted.kubernetes.getResources('secrets', 'default')
+      ).resolves.toEqual([secret, configMap]);
+    });
+
+    it('watchResources strips Secret data from events unless the plugin holds secrets', () => {
+      const secret = {
+        kind: 'Secret',
+        metadata: { name: 's' },
+        data: { token: 'eA==' },
+      };
+      const watchWith = (permissions: string[]) => {
+        let stdoutCallback: any;
+        vi.mocked(child_process.spawn).mockReturnValue({
+          stdout: {
+            on: vi.fn((event, cb) => {
+              if (event === 'data') stdoutCallback = cb;
+            }),
+          },
+          stderr: { on: vi.fn() },
+          on: vi.fn(),
+          kill: vi.fn(),
+        } as any);
+        const events: any[] = [];
+        createPluginContext(
+          pluginId,
+          pluginPath,
+          permissions
+        ).kubernetes.watchResources('secrets', (e) => events.push(e));
+        stdoutCallback(Buffer.from(JSON.stringify(secret)));
+        return events;
+      };
+
+      expect(watchWith(['kubernetes'])).toEqual([
+        { kind: 'Secret', metadata: { name: 's' } },
+      ]);
+      expect(watchWith(['kubernetes', 'secrets'])).toEqual([secret]);
+    });
 
     it('getResources should call kubectl get', async () => {
       mockSafeExec.mockResolvedValue({
@@ -650,6 +764,28 @@ describe('Plugin Context', () => {
       emitSpy.mockRestore();
     });
 
+    it('delivers Secret data in resource events only with the secrets permission', async () => {
+      const { pluginEventBus } =
+        await import('../services/plugins/plugin-events');
+      const onSpy = vi.spyOn(pluginEventBus, 'on');
+      const handler = vi.fn();
+      createPluginContext(pluginId, pluginPath, [
+        'kubernetes',
+        'secrets',
+      ]).events.onResourceUpdated(handler);
+      const listener = onSpy.mock.calls.find(
+        (call) => call[0] === 'resource:updated'
+      )?.[1] as (resource: unknown) => void;
+      const secret = {
+        kind: 'Secret',
+        metadata: { name: 's' },
+        data: { token: 'eA==' },
+      };
+      listener(secret);
+      expect(handler).toHaveBeenCalledWith(secret);
+      onSpy.mockRestore();
+    });
+
     it('refuses resource events without the kubernetes permission', () => {
       const ctx = createPluginContext(pluginId, pluginPath, ['ui']);
       expect(() => ctx.events.onResourceCreated(() => {})).toThrow(
@@ -712,8 +848,11 @@ describe('Plugin Context', () => {
   describe('createDeniedAPI', () => {
     it('should throw error when any property is accessed', () => {
       const context = createPluginContext(pluginId, pluginPath, []);
-      expect(() => (context.kubernetes as any).anyMethod()).toThrow(
-        /Permission denied: Plugin does not have 'kubernetes' permission/
+      expect(() => (context.ui as any).anyMethod()).toThrow(
+        /Permission denied: Plugin does not have 'ui' permission/
+      );
+      expect(() => (context.storage as any).anyMethod()).toThrow(
+        /Permission denied: Plugin does not have 'storage' permission/
       );
     });
   });

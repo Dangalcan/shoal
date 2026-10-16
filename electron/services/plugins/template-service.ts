@@ -127,7 +127,9 @@ module.exports = {
  * ${nameComment} - Renderer (sandboxed UI)
  *
  * Runs in an isolated iframe. Use window.k8sPlugin for all host access:
- *   - k8sPlugin.kubernetes.*   (requires "kubernetes" permission)
+ *   - k8sPlugin.kubernetes.*   (reads need "kubernetes"; deleteResource and
+ *       manifests.* need "kubernetes:write"; helm.* needs "helm"; Secret
+ *       data needs "secrets")
  *   - k8sPlugin.settings.get/set  (this plugin's own settings)
  *   - k8sPlugin.ui.openExternal / showNotification  (requires "ui")
  *   - k8sPlugin.ui.showModal(id, props) / closeModal  (requires "ui";
