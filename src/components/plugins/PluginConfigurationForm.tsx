@@ -195,7 +195,7 @@ export function PluginConfigurationForm({
           </select>
         );
 
-      case 'array':
+      case 'array': {
         const items = Array.isArray(value) ? value : [];
         return (
           <div className="config-array">
@@ -235,6 +235,7 @@ export function PluginConfigurationForm({
             </button>
           </div>
         );
+      }
 
       default:
         return <div>Unsupported field type: {property.type}</div>;

@@ -56,7 +56,7 @@ export class StorageService {
 
     try {
       return JSON.parse(row.value);
-    } catch (e) {
+    } catch {
       log.error(
         `[StorageService] Failed to parse value for ${pluginId}:${key}`
       );
@@ -108,7 +108,7 @@ export class StorageService {
     for (const row of rows) {
       try {
         result.set(row.plugin_id, JSON.parse(row.value));
-      } catch (e) {
+      } catch {
         log.error(
           `[StorageService] Failed to parse value for ${row.plugin_id}:${key}`
         );
