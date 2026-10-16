@@ -191,7 +191,7 @@ export function PortForwards() {
 ### ❌ DON'T
 
 - **Don't skip validation**: Never pass renderer-provided strings directly to `exec` or `spawn` without validation.
-- **Don't put business logic in Pages**: Pages should be thin wrappers that combine features.
+- **Don't put business logic in Pages**: Pages should be thin wrappers that combine features. `src/pages/ClusterDetails.tsx` and `src/pages/Manifests.tsx` are the reference: each reads one page hook (`src/features/clusters/useClusterDetails.ts`, `src/features/manifests/useManifestsPage.ts`) and renders components; the hooks compose smaller ones (tabs, deletion, editor, import, folder dialogs) that are tested on their own.
 - **Don't ignore the `Result` wrapper**: Always check `result.success` before accessing `result.data`.
 
 ---
