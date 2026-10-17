@@ -121,8 +121,9 @@ be trusted:
   `v*` tag publishes, so the tag is the release key until the installers are
   code-signed.
 - **Actions**: the default `GITHUB_TOKEN` is read-only (workflows that need
-  more ask for it explicitly), and workflows from first-time outside
-  contributors wait for approval. `build.yml` only publishes from tags and
+  more ask for it explicitly), workflows from first-time outside
+  contributors wait for approval, and every action is pinned to a commit
+  (Dependabot bumps the pins; the version is in the trailing comment). `build.yml` only publishes from tags and
   from pushes to `master`, never from fork pull requests.
 - **Security features**: Dependabot alerts and security updates, secret
   scanning with push protection, private vulnerability reporting (the link
