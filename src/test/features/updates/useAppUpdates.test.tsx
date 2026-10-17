@@ -29,6 +29,20 @@ import { useAppUpdates } from '../../../features/updates/useAppUpdates';
 const { api, toast, off, installAppUpdate, getUpdateStatus } = h;
 const fire = (s: UpdateStatus) => h.state.cb!(s);
 
+describe('useAppUpdates without update events on the bridge', () => {
+  it('does nothing', () => {
+    const subscribe = api.onUpdateStatus;
+    (api as { onUpdateStatus?: unknown }).onUpdateStatus = undefined;
+    try {
+      renderHook(() => useAppUpdates());
+      expect(getUpdateStatus).not.toHaveBeenCalled();
+      expect(toast.info).not.toHaveBeenCalled();
+    } finally {
+      api.onUpdateStatus = subscribe;
+    }
+  });
+});
+
 describe('useAppUpdates', () => {
   beforeEach(() => {
     vi.clearAllMocks();
