@@ -72,7 +72,7 @@ export function LicenseActivationModal({
 
   const footer = (
     <p className="license-modal__footer-text">
-      Don't have a license?{' '}
+      Don&apos;t have a license?{' '}
       <a
         href={plugin.manifest.homepage ?? 'https://shoal.dangalcan.com'}
         target="_blank"

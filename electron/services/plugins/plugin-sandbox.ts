@@ -39,6 +39,9 @@ export function executeInSandbox(
 
   const sandboxedRequire = (specifier: string): unknown => {
     if (ALLOWED_BUILTINS.has(specifier)) {
+      // The sandbox hands out the real built-in on purpose; the allowlist
+      // above is the gate.
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       return require(specifier);
     }
 
