@@ -92,12 +92,12 @@
         "project": ["./tsconfig.json", "./tsconfig.test.json"]
       },
       "rules": {
-        "@typescript-eslint/no-floating-promises": "warn",
+        "@typescript-eslint/no-floating-promises": "error",
         "@typescript-eslint/no-misused-promises": [
-          "warn",
+          "error",
           { "checksVoidReturn": { "attributes": false } }
         ],
-        "@typescript-eslint/await-thenable": "warn"
+        "@typescript-eslint/await-thenable": "error"
       }
     },
     {

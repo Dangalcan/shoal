@@ -53,7 +53,8 @@ export function usePortForwards(): UsePortForwardsResult {
           `(localhost:${info.localPort}) closed` +
           (closeError ? `: ${closeError}` : '')
       );
-      refetch();
+      // refetch reports its own failures (useAsyncData's error toast).
+      void refetch();
     });
     return unsubscribe;
   }, [api, refetch]);

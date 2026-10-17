@@ -200,16 +200,20 @@ function LogViewerDialog({
   );
 
   // Snapshot mode: fetch on open and when the pod or container changes.
-  // While following, the stream supplies the lines instead.
+  // While following, the stream supplies the lines instead. fetchLogs keeps
+  // its failures in the `error` state, so the promise can be dropped.
   useEffect(() => {
     if (isOpen && !followRef.current) {
-      fetchLogs();
+      void fetchLogs();
     }
   }, [isOpen, fetchLogs]);
 
   useEffect(() => {
     if (isOpen && autoRefresh && !follow) {
-      refreshIntervalRef.current = setInterval(() => fetchLogs(true), 5000);
+      refreshIntervalRef.current = setInterval(
+        () => void fetchLogs(true),
+        5000
+      );
     } else {
       if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
     }

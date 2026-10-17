@@ -9,6 +9,7 @@ import {
 import { Terminal } from '../components/Terminal';
 import type { LocalShellInfo } from '../types';
 import { useApi } from '../services/api-context';
+import { handleError } from '../lib/error-handler';
 import { useTerminalSession } from '../features/terminal/useTerminalSession';
 
 export function TerminalPage() {
@@ -20,12 +21,15 @@ export function TerminalPage() {
   const [shell, setShell] = useState<string | null>(null);
 
   useEffect(() => {
-    api.terminalShells().then((result) => {
-      if (result.success && result.data) {
-        setShells(result.data.shells);
-        setDefaultShell(result.data.defaultShell);
-      }
-    });
+    api
+      .terminalShells()
+      .then((result) => {
+        if (result.success && result.data) {
+          setShells(result.data.shells);
+          setDefaultShell(result.data.defaultShell);
+        }
+      })
+      .catch((err) => handleError(err, 'Failed to list the shells'));
   }, [api]);
 
   // A new shell choice or "New Terminal" replaces the session; the previous

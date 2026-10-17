@@ -22,7 +22,7 @@ export interface UseManifestFolderDialogsResult {
   createFolder: () => void;
   renameFolder: (folder: ManifestFolder) => void;
   closeFolderName: () => void;
-  submitFolderName: (name: string) => void;
+  submitFolderName: (name: string) => Promise<void>;
   deleteFolderTarget: ManifestFolder | null;
   requestDeleteFolder: (folder: ManifestFolder) => void;
   closeDeleteFolder: () => void;
@@ -30,7 +30,7 @@ export interface UseManifestFolderDialogsResult {
   moveManifest: (manifest: Manifest) => void;
   moveFolder: (folder: ManifestFolder) => void;
   closeMove: () => void;
-  move: (targetFolderId: number | null) => void;
+  move: (targetFolderId: number | null) => Promise<void>;
 }
 
 /** The create, rename, delete and move dialogs of the manifest folders. */
@@ -44,20 +44,23 @@ export function useManifestFolderDialogs(
   const [moveTarget, setMoveTarget] = useState<MoveTarget>(null);
   const { getSubtreeIds } = folders;
 
-  const submitFolderName = (name: string) => {
+  const submitFolderName = async (name: string) => {
     if (folderNameModal?.mode === 'rename') {
-      folders.renameFolder(folderNameModal.folder.id, name);
+      await folders.renameFolder(folderNameModal.folder.id, name);
     } else {
-      folders.createFolder(name);
+      await folders.createFolder(name);
     }
   };
 
-  const move = (targetFolderId: number | null) => {
+  const move = async (targetFolderId: number | null) => {
     if (!moveTarget) return;
     if (moveTarget.kind === 'manifest') {
-      folders.moveManifestToFolder(moveTarget.manifest.id, targetFolderId);
+      await folders.moveManifestToFolder(
+        moveTarget.manifest.id,
+        targetFolderId
+      );
     } else {
-      folders.moveFolder(moveTarget.folder.id, targetFolderId);
+      await folders.moveFolder(moveTarget.folder.id, targetFolderId);
     }
   };
 
