@@ -229,11 +229,12 @@ function createWindow(): void {
 
   offerReloadWhenRendererDies(mainWindow);
 
-  if (VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(VITE_DEV_SERVER_URL);
-  } else {
-    mainWindow.loadFile(path.join(dist, 'index.html'));
-  }
+  const load = VITE_DEV_SERVER_URL
+    ? mainWindow.loadURL(VITE_DEV_SERVER_URL)
+    : mainWindow.loadFile(path.join(dist, 'index.html'));
+  load.catch((error: unknown) =>
+    log.error('[Main] Failed to load the window:', getErrorMessage(error))
+  );
 
   pluginEventBus.setMainWindow(mainWindow);
 
@@ -289,7 +290,7 @@ app.on('activate', () => {
   }
 });
 
-app.whenReady().then(async () => {
+async function startApp(): Promise<void> {
   if (!isPrimaryInstance) return;
 
   restrictPermissions();
@@ -348,7 +349,12 @@ app.whenReady().then(async () => {
         getErrorMessage(error)
       )
     );
-});
+}
+
+app
+  .whenReady()
+  .then(startApp)
+  .catch((error: unknown) => failToStart('Could not start Shoal', error));
 
 /**
  * A startup step that throws would otherwise leave a windowless process
@@ -367,7 +373,7 @@ function failToStart(what: string, error: unknown): void {
 }
 
 // Register custom protocol for local plugin assets
-app.whenReady().then(() => {
+void app.whenReady().then(() => {
   // Only files inside the plugin directories are served (403 otherwise).
   protocol.handle('plugin-file', async (request) => {
     try {

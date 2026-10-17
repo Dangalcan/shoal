@@ -1092,8 +1092,12 @@ describe('start-up activation budget', () => {
       { manifest: { id: 'fast' }, config: { enabled: true } } as any,
     ]);
     const activateSpy = vi
-      .spyOn(manager as any, 'activatePlugin')
-      .mockImplementation(async (id: unknown) => {
+      .spyOn(
+        manager as unknown as { activatePlugin: (id: string) => Promise<void> },
+        'activatePlugin'
+      )
+      .mockImplementation(async (id) => {
+        // A hanging activation is the point of this test.
         if (id === 'slow') await new Promise(() => {});
       });
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});

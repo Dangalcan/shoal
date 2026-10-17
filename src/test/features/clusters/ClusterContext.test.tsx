@@ -39,7 +39,7 @@ vi.mock('../../../hooks/useAsyncData', () => ({
     }, [fetchFn]);
 
     React.useEffect(() => {
-      refetch();
+      void refetch();
     }, []);
 
     return { data, loading, refetch };
