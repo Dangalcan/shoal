@@ -190,12 +190,20 @@ jobs:
         with:
           install_only: true
 
+      - name: Install kubectl (Windows)
+        if: runner.os == 'Windows'
+        # The first-run spec needs kubectl on the PATH. Third-party action in
+        # a job that holds a write token: pinned to a commit.
+        uses: azure/setup-kubectl@bda439f5f36b99b262ebdcd3613869bddb064c8e # v5.2.0
+
       - name: Smoke tests on the installed app (Windows, no clusters)
         if: runner.os == 'Windows'
-        # The Windows runner cannot run Linux containers, so kind is skipped.
+        # The Windows runner cannot run Linux containers, so the two specs
+        # that create kind clusters are left out.
         run: >-
           npx playwright test
           e2e/features/navigation.spec.ts
+          e2e/features/first-run.spec.ts
           e2e/features/terminal.spec.ts
           e2e/features/manifests.spec.ts
           e2e/features/plugins.spec.ts
