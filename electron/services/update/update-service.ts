@@ -32,16 +32,41 @@ export type UpdateCheckStart =
 export interface UpdaterLike {
   autoDownload: boolean;
   autoInstallOnAppQuit: boolean;
+  /** Whether a check may pick a pre-release; set per check, see runCheck. */
+  allowPrerelease: boolean;
+  /** The running version as electron-updater parsed it. */
+  readonly currentVersion: {
+    readonly prerelease: ReadonlyArray<string | number>;
+  };
   logger: unknown;
   on(event: string, listener: (...args: unknown[]) => void): unknown;
   checkForUpdates(): Promise<unknown>;
   quitAndInstall(): void;
 }
 
+/**
+ * electron-updater's GitHub provider raises these when the stable lookup
+ * (`/releases/latest`) finds nothing: the repository has no published
+ * release that is not a pre-release. The lookup wraps every failure in the
+ * first code, so a network error ends up here too; the retry with
+ * pre-releases then reports the real cause.
+ */
+const NO_STABLE_RELEASE_CODES = new Set([
+  'ERR_UPDATER_LATEST_VERSION_NOT_FOUND',
+  'ERR_UPDATER_NO_PUBLISHED_VERSIONS',
+]);
+
+function isNoStableRelease(err: unknown): boolean {
+  const code = (err as { code?: unknown } | null)?.code;
+  return typeof code === 'string' && NO_STABLE_RELEASE_CODES.has(code);
+}
+
 export class UpdateService {
   private onStatus?: (s: UpdateStatus) => void;
   private wired = false;
   private lastStatus: UpdateStatus | null = null;
+  /** True while a pre-release build probes the stable channel (runCheck). */
+  private probingStable = false;
 
   constructor(private readonly updater: UpdaterLike) {}
 
@@ -78,9 +103,12 @@ export class UpdateService {
     this.updater.on('update-downloaded', (info) =>
       this.emit({ state: 'downloaded', version: versionOf(info) })
     );
-    this.updater.on('error', (err) =>
-      this.emit({ state: 'error', message: getErrorMessage(err) })
-    );
+    this.updater.on('error', (err) => {
+      // The stable probe of a pre-release build is allowed to find nothing:
+      // runCheck retries with pre-releases, so this is not an error yet.
+      if (this.probingStable && isNoStableRelease(err)) return;
+      this.emit({ state: 'error', message: getErrorMessage(err) });
+    });
   }
 
   /**
@@ -109,12 +137,47 @@ export class UpdateService {
       return 'package';
     }
     try {
-      await this.updater.checkForUpdates();
+      await this.runCheck();
       return 'started';
     } catch (err: unknown) {
       this.emit({ state: 'error', message: getErrorMessage(err) });
       return 'error';
     }
+  }
+
+  /**
+   * Runs the check against the stable channel first, and only falls back to
+   * pre-releases when the running build is itself a pre-release and no
+   * stable release exists yet.
+   *
+   * electron-updater turns `allowPrerelease` on by itself for a pre-release
+   * build, and its GitHub provider then only follows releases of the same
+   * pre-release channel: a `0.9.0-rc.3` build would skip `v0.9.0` and stay
+   * on `rc.3` for good. Asking for the stable release first gives every
+   * pre-release build the next stable version as soon as it is published;
+   * until then, release candidates still update to the next candidate. A
+   * stable build never looks at pre-releases.
+   */
+  private async runCheck(): Promise<void> {
+    this.updater.allowPrerelease = false;
+    if (this.updater.currentVersion.prerelease.length === 0) {
+      await this.updater.checkForUpdates();
+      return;
+    }
+    this.probingStable = true;
+    try {
+      await this.updater.checkForUpdates();
+      return;
+    } catch (err: unknown) {
+      if (!isNoStableRelease(err)) throw err;
+      log.info(
+        '[UpdateService] No stable release published yet; checking pre-releases'
+      );
+    } finally {
+      this.probingStable = false;
+    }
+    this.updater.allowPrerelease = true;
+    await this.updater.checkForUpdates();
   }
 
   /** Quit and install a downloaded update. */
