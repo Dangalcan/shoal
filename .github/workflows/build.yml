@@ -58,6 +58,21 @@ jobs:
           # Build steps must not find a write token in .git/config.
           persist-credentials: false
 
+      # electron-builder names the draft release after package.json, not after
+      # the tag, so a tag pushed before the version bump (v0.9.0-rc.3 while
+      # package.json still says 0.9.0-rc.2) would upload into the previous
+      # draft and overwrite its installers and update feeds. Refuse the
+      # mismatch before anything is built.
+      - name: Check that the tag matches package.json
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          expected="v$(node -p "require('./package.json').version")"
+          if [ "$GITHUB_REF_NAME" != "$expected" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json ($expected). Bump the version or move the tag."
+            exit 1
+          fi
+
       - name: Install Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -87,21 +102,22 @@ jobs:
         run: gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --prerelease
 
       # Master and manual builds hand the installers to the smoke job as a
-      # one-day artifact. Tag builds skip this: the draft release already
-      # holds the files and the smoke job downloads them from there, so a
-      # release never depends on artifact storage (the free plan's quota is
-      # counted in GB-months and, once hit, blocks every upload until the
-      # billing cycle ends; 14 days of ~470 MB per run hit it on 2026-10-12).
+      # one-day artifact holding only what that job installs (the NSIS setup
+      # on Windows, the AppImage on Linux; the portable build, the .deb and
+      # the update feeds stay on the runner). Tag builds skip this: the draft
+      # release already holds the files and the smoke job downloads them from
+      # there, so a release never depends on artifact storage (the free plan's
+      # quota is counted in GB-months and, once hit, blocks every upload until
+      # the billing cycle ends; 14 days of ~470 MB per run hit it on
+      # 2026-10-12).
       - name: Upload installers
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: shoal-${{ matrix.os }}
           path: |
-            release/*.exe
+            release/Shoal-Setup-*.exe
             release/*.AppImage
-            release/*.deb
-            release/latest*.yml
           if-no-files-found: error
           retention-days: 1
 

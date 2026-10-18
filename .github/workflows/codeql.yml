@@ -1,9 +1,9 @@
 name: CodeQL
 
 # GitHub's static analysis for JavaScript and TypeScript. Code scanning is
-# free for public repositories only, so the job skips itself while the
+# free for public repositories only, so the analysis skips itself while the
 # repository is private (like the smoke job in build.yml) and starts on the
-# first push after the repository goes public.
+# first run after the repository goes public.
 on:
   push:
     branches: [master]
@@ -18,9 +18,29 @@ permissions:
   security-events: write
 
 jobs:
+  # Pushes, pull requests and manual runs carry the repository in their event
+  # payload, but scheduled runs have no payload at all (github.event holds
+  # only the cron expression), so `github.event.repository.private` is empty
+  # there and a plain `if` on it would run the weekly analysis against a
+  # private repository, where it fails. Ask the API instead, for every event.
+  visibility:
+    name: Repository visibility
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      private: ${{ steps.repo.outputs.private }}
+    steps:
+      - name: Read the repository visibility
+        id: repo
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: echo "private=$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)" >> "$GITHUB_OUTPUT"
+
   analyze:
     name: Analyze (javascript-typescript)
-    if: ${{ !github.event.repository.private }}
+    needs: visibility
+    if: needs.visibility.outputs.private == 'false'
     runs-on: ubuntu-24.04
     steps:
       - name: Check out git repository
