@@ -5,16 +5,6 @@ All notable changes to Shoal are documented here. The format follows
 [Semantic Versioning](https://semver.org/). Release steps are in
 [docs/RELEASE.md](docs/RELEASE.md).
 
-## [Unreleased]
-
-### Fixed
-
-- A bundled plugin whose `activate()` never returns (a `kubectl` call
-  against an unreachable cluster, say) is marked as errored after 30
-  seconds, with the reason, instead of staying "loading", and Enable and
-  Reload report it instead of hanging. The hook itself keeps running in the
-  background.
-
 ## [Unreleased] - 0.9.0 public beta
 
 First public release, for Windows and Linux. Installers are not code-signed
@@ -65,7 +55,7 @@ yet, so Windows SmartScreen shows a warning on first launch.
 
 - Renamed from Kubernetes Desktop to Shoal (Linux Foundation trademark
   guidelines), with a new app icon.
-- Electron 44 and Node 22 toolchain.
+- Electron 44.9 and Node 22 toolchain.
 - The app version shown in the sidebar now always comes from `package.json`.
 - Cluster cards show the real provider (kind or k3d, from the context name)
   and no longer label every context as running.
@@ -83,6 +73,14 @@ yet, so Windows SmartScreen shows a warning on first launch.
 
 ### Fixed
 
+- A bundled plugin whose `activate()` never returns (a `kubectl` call
+  against an unreachable cluster, say) is marked as errored after 30
+  seconds, with the reason, instead of staying "loading", and Enable and
+  Reload report it instead of hanging. The hook itself keeps running in the
+  background.
+- A pre-release build moves to the stable release as soon as it is
+  published: the update check asks for the stable channel first and only
+  falls back to pre-releases while no stable release exists.
 - The log viewer drops a late answer from the pod opened before instead of
   showing its lines as the new pod's, starts blank when the same pod is
   opened on another cluster, and asks kubectl for the container shown in
@@ -267,4 +265,4 @@ yet, so Windows SmartScreen shows a warning on first launch.
   AppArmor profile and keeps it.
 - The AppImage needs `libfuse2` (`libfuse2t64` on Ubuntu 24.04).
 
-[Unreleased]: https://github.com/Dangalcan/shoal/compare/v0.9.0-rc.2...HEAD
+[Unreleased]: https://github.com/Dangalcan/shoal/compare/v0.9.0-rc.3...HEAD
