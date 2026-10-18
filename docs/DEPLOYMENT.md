@@ -110,6 +110,15 @@ Releases are built and uploaded by `.github/workflows/build.yml` when a `v*`
 tag is pushed. The full process, including how to publish the draft and how
 to roll back, is in [RELEASE.md](RELEASE.md).
 
+### Package managers
+
+Manifests for winget (`Dangalcan.Shoal`), Scoop (`shoal`, in our own bucket)
+and the AUR (`shoal-bin`, repackaging the `.deb`) live in
+[`packaging/`](../packaging/README.md), written for the first stable release
+with the hashes left to fill in on release day. That README has the steps per
+ecosystem: hashes, validation and submission (pull request to
+microsoft/winget-pkgs, push to the Scoop bucket, push to the AUR).
+
 ---
 
 ## Troubleshooting

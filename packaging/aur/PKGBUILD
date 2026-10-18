@@ -1,0 +1,66 @@
+# Maintainer: Daniel Galván Cancio <92941017+Dangalcan@users.noreply.github.com>
+#
+# Binary package from the upstream .deb (built by electron-builder). A .deb is
+# an ar archive, so makepkg extracts it into $srcdir on its own (control.tar.gz,
+# data.tar.xz, debian-binary); package() unpacks data.tar.xz and does what the
+# .deb's postinst would do. Validation and release steps: README.md next to
+# this file.
+
+pkgname=shoal-bin
+_pkgname=shoal
+pkgver=0.9.0
+pkgrel=1
+pkgdesc='Desktop app for managing Kubernetes clusters'
+arch=('x86_64')
+url='https://shoal.dangalcan.com'
+license=('LGPL-3.0-or-later')
+# Runtime dependencies declared by the .deb (electron-builder's defaults for
+# the deb target: libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils
+# libatspi2.0-0 libuuid1 libsecret-1-0), mapped to Arch packages.
+depends=(
+  'gtk3'
+  'libnotify'
+  'nss'
+  'libxss'
+  'libxtst'
+  'xdg-utils'
+  'at-spi2-core'
+  'util-linux-libs'
+  'libsecret'
+)
+optdepends=(
+  'kubectl: required for anything cluster-related'
+  'kind: create and delete local clusters with kind (needs Docker)'
+  'k3d: create and delete local clusters with k3d (needs Docker)'
+  'docker: container runtime that kind and k3d clusters run on'
+  'kompose: migrate Docker Compose projects to Kubernetes manifests'
+)
+provides=("${_pkgname}=${pkgver}")
+conflicts=("${_pkgname}")
+backup=("etc/apparmor.d/${_pkgname}")
+options=('!strip' '!debug')
+source=("https://github.com/Dangalcan/shoal/releases/download/v${pkgver}/${_pkgname}_${pkgver}_amd64.deb")
+# Release day: the digest GitHub shows next to the asset, or `updpkgsums`.
+sha256sums=('0000000000000000000000000000000000000000000000000000000000000000')
+
+package() {
+  bsdtar -xf "${srcdir}/data.tar.xz" -C "${pkgdir}"
+
+  # The .deb creates this link in its postinst instead of shipping it.
+  install -dm755 "${pkgdir}/usr/bin"
+  ln -s "/opt/Shoal/${_pkgname}" "${pkgdir}/usr/bin/${_pkgname}"
+
+  # The postinst makes chrome-sandbox SUID only on kernels without user
+  # namespaces; Arch kernels have them, so a plain executable is enough.
+  chmod 0755 "${pkgdir}/opt/Shoal/chrome-sandbox"
+
+  # AppArmor profile shipped in the .deb; only read where AppArmor is enabled.
+  install -Dm644 "${pkgdir}/opt/Shoal/resources/apparmor-profile" \
+    "${pkgdir}/etc/apparmor.d/${_pkgname}"
+
+  # Debian packaging leftovers (fpm's generated changelog).
+  rm -rf "${pkgdir}/usr/share/doc" "${pkgdir}/usr/share/lintian"
+
+  install -Dm644 "${pkgdir}/opt/Shoal/resources/LICENSE.txt" \
+    "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}
