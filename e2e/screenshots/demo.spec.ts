@@ -109,7 +109,13 @@ async function settled() {
 test.beforeAll(async () => {
   fs.rmSync(OUT_DIR, { recursive: true, force: true });
   fs.mkdirSync(FRAMES_DIR, { recursive: true });
-  app = await launchApp();
+  // The terminal opens in the home directory and its prompt shows the path,
+  // so the app gets a neutral home: no user name in the recording. kubectl
+  // and kind keep working because KUBECONFIG is set explicitly.
+  const home =
+    process.platform === 'win32' ? 'C:\\Users\\Public' : '/tmp/shoal-demo';
+  fs.mkdirSync(home, { recursive: true });
+  app = await launchApp({ env: { HOME: home, USERPROFILE: home } });
   window = await mainWindow(app);
   recorder = new FrameRecorder(window);
   await app.evaluate(
@@ -238,8 +244,14 @@ test('records the README tour', async () => {
   await expect(window.locator('.terminal-page__session-badge')).toBeVisible({
     timeout: 30_000,
   });
+  // Windows shells print a prompt through the pipe; unix shells do not, so
+  // the app writes a "Shell ready" line instead. Type only once it is there.
+  await expect(window.locator('.xterm-rows')).toContainText(
+    process.platform === 'win32' ? 'PS ' : 'Shell ready',
+    { timeout: 30_000 }
+  );
   await window.locator('.xterm').click();
-  await window.waitForTimeout(500);
+  await window.waitForTimeout(800);
   recorder.start();
   await window.keyboard.type('kubectl get pods -A', { delay: TYPING_DELAY });
   await window.keyboard.press('Enter');

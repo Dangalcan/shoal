@@ -155,7 +155,9 @@ smaller widths and frame rates until it is under 5 MB.
 Same setup as the screenshots (packaged build in `SHOAL_E2E_EXECUTABLE`, the
 `shoal-demo` cluster with the demo workload, a `KUBECONFIG` that only holds
 it) plus a running Docker, because the tour creates a second kind cluster; the
-spec deletes that cluster when it finishes. The frames stay in
+spec deletes that cluster when it finishes. The app runs with a neutral home
+directory (`C:\Users\Public` on Windows, `/tmp/shoal-demo` on Linux) so the
+terminal prompt shows no user name. The frames stay in
 `test-results/demo/` for a re-run of the script alone
 (`node scripts/demo-gif.js [frames.txt] [output.gif]`). Watch the GIF before
 committing it, for the same reasons as the screenshots.
