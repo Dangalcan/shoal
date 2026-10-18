@@ -36,7 +36,7 @@ When creating a bug report, please include:
 - **Screenshots** (if applicable)
 - **Environment details:**
   - OS and version (e.g., Windows 11, Ubuntu 24.04)
-  - Application version and installer (Settings → About & Support shows both)
+  - Application version and platform (Settings → About & Support shows both) and how you installed it
   - Relevant lines from `main.log` (Settings → About & Support → Open logs folder)
 
 The issue form on GitHub asks for exactly these fields, and **Settings → About & Support → Report a problem** opens it with the version, OS and logs path already filled in.
@@ -170,8 +170,7 @@ Before submitting, make sure:
    This starts:
    - Vite dev server (React app) on `http://localhost:5173`
    - Electron main process (the marketplace tab uses the sample catalog in
-     `electron/data/marketplace.json`; `npm run dev:full` also starts the
-     private kdMarket backend if you have it checked out next to this repo)
+     `electron/data/marketplace.json`)
 
 4. **Open Developer Tools** (development builds only):
    - Press `Ctrl+Shift+I`

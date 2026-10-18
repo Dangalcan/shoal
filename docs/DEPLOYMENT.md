@@ -40,7 +40,8 @@ npm run build
 - Runs `tsc` on the `electron/` directory
 - Executes `electron-builder`, whose `beforePack` hook
   (`scripts/third-party-notices.js`) writes `build/THIRD_PARTY_NOTICES.txt`;
-  it ships in `resources` with `LICENSE.txt` and `COPYRIGHT.txt`
+  it ships in `resources` with `LICENSE.txt`, `COPYING.txt` and
+  `COPYRIGHT.txt`
 
 ### 3. Platform-Specific Commands
 
@@ -96,9 +97,12 @@ publish:
 ```
 
 The installed app checks for updates on startup (NSIS installer and AppImage
-only; the Windows portable build and the `.deb` never self-update).
-Pre-release versions such as `0.9.0-rc.1` also receive pre-releases, stable
-versions only stable releases.
+only; the Windows portable build and the `.deb` never self-update). The check
+asks the stable channel first (`/releases/latest`); only when no stable
+release exists yet and the installed version is a pre-release does it check
+again accepting pre-releases. A release candidate therefore updates to the
+next candidate until `0.9.0` is published and to `0.9.0` after that; stable
+versions never receive pre-releases.
 
 ### Cutting a release
 
@@ -123,8 +127,8 @@ npm ci
 ### AppImage does not launch on Linux
 
 ```bash
-chmod +x Shoal.AppImage
-./Shoal.AppImage
+chmod +x Shoal-<version>.AppImage
+./Shoal-<version>.AppImage
 ```
 
 - Ubuntu 22.04 and later do not install `libfuse2`, which AppImages need:

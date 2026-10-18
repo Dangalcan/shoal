@@ -8,18 +8,25 @@ it. Tags are `v` + that version.
 
 ## Versions
 
-| Kind              | Example      | GitHub release           | Who gets it through auto-update          |
-| ----------------- | ------------ | ------------------------ | ---------------------------------------- |
-| Release candidate | `0.9.0-rc.1` | Published as pre-release | Only users already on a pre-release      |
-| Stable            | `0.9.0`      | Published as release     | Everyone (and the landing page download) |
-| Patch             | `0.9.1`      | Published as release     | Everyone                                 |
+| Kind              | Example      | GitHub release           | Who gets it through auto-update                                      |
+| ----------------- | ------------ | ------------------------ | -------------------------------------------------------------------- |
+| Release candidate | `0.9.0-rc.1` | Published as pre-release | Users on a pre-release, while no stable release exists               |
+| Stable            | `0.9.0`      | Published as release     | Everyone, pre-release users included (and the landing page download) |
+| Patch             | `0.9.1`      | Published as release     | Everyone                                                             |
+
+The updater asks for the stable channel first (`/releases/latest`); only when
+no stable release exists yet and the installed version is a pre-release does
+it check again accepting pre-releases. So a release candidate updates to the
+next candidate until `0.9.0` is published and to `0.9.0` after that, and a
+stable version never receives a pre-release.
 
 The landing page links to `/releases/latest`, which GitHub resolves to the
 newest **non** pre-release.
 
 ## Cutting a release
 
-1. Make sure `master` is green (CI, gitleaks, Build/Release).
+1. Make sure `master` is green: CI and gitleaks; Build/Release green once the
+   repository is public.
 2. On a branch, bump `version` in `package.json` (and the two version fields at
    the top of `package-lock.json`), update `CHANGELOG.md`, open a PR and
    merge it. Release candidates accumulate under the
@@ -46,10 +53,9 @@ newest **non** pre-release.
    Tag builds upload nothing as a workflow artifact: the `smoke` jobs
    download the installer from the draft release itself, so a release never
    waits on artifact storage. Master and manual builds keep their installers
-   as one-day artifacts for their own smoke job. The free plan's artifact
-   quota is counted in GB-months; 14 days of ~470 MB per run hit it on
-   2026-10-12 and blocked every upload until the billing cycle ends, which is
-   why the limit is one day and why releases do not depend on it.
+   as one-day artifacts for their own smoke job (the free plan's artifact
+   quota is counted in GB-months, and two weeks of ~470 MB per run exhausted
+   it once).
 
    For a release candidate (a tag with a hyphen, such as `v0.9.0-rc.2`) the
    workflow then flags the draft as a pre-release with `gh release edit`.
@@ -88,10 +94,11 @@ Playwright needs `--inspect` for the smoke tests.
 Install the previous version, publish the new one, start the old app and wait
 for the "Update ready" toast, then restart. The sidebar must show the new
 version. This only works once the repository is public: electron-updater
-cannot read the releases of a private repository without a token. During the
-beta it is checked for the two newest release candidates (planned as
-`rc.2 → rc.3`; `v0.9.0-rc.1` was tagged but its draft was never
-published) right after the repository goes public.
+cannot read the releases of a private repository without a token. The plan
+for the beta: `rc.2 → rc.3` on 2026-10-29, the day the repository goes
+public, and `rc.3 → 0.9.0` on 2026-11-02, which also checks that a
+pre-release moves to the stable channel (`v0.9.0-rc.1` was tagged but its
+draft was never published).
 
 ## Rollback
 

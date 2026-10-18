@@ -88,7 +88,7 @@ Hover a row to reveal its action buttons:
   - When the stream stops on its own (the container stopped, the pod was deleted, kubectl failed), a banner shows kubectl's reason and a **Reconnect** button.
   - Turning Follow off stops the stream and keeps its lines on screen. Closing the viewer, choosing another container or opening another pod stops it too.
 - **Rollout Restart** and **Delete**: Perform rollouts or deletions directly from the UI, after a confirmation.
-- **Scale**: Set the replica count for Deployments, StatefulSets, and ReplicaSets (0–1000).
+- **Scale**: Set the replica count for Deployments and StatefulSets (0–1000).
 - **Open Shell**: Start a terminal session inside a pod (see [Terminal](#terminal)).
 - **Forward Port**: Open a `kubectl port-forward` tunnel to a pod or service (see [Port Forwarding](#port-forwarding)).
 
@@ -109,7 +109,7 @@ You can also **drag and drop** a `.yaml` or `.json` file onto the editor, or use
 
 ### Starting from a Template
 
-When creating a new manifest, you can pick one of the built-in **templates** (Deployment, Service, ConfigMap, and more) instead of starting from a blank editor, then adjust the YAML to your needs.
+The **Examples** button on the Manifests page lists the built-in **templates** (Deployment, Service, ConfigMap, and more). Picking one opens the editor with the template's name and YAML filled in; adjust them to your needs and save.
 
 ### Organizing with Folders
 
@@ -155,9 +155,9 @@ The **Terminal** page provides direct shell access — either a local shell on y
 
 1. Click **"Terminal"** in the left sidebar.
 2. A local shell session opens automatically using your default shell.
-3. Use the **shell picker** to switch to any other shell detected on your machine — PowerShell, PowerShell 7, Git Bash, or WSL on Windows; `bash`, `zsh`, or `sh` on Linux.
+3. Use the **shell picker** to switch to any other shell detected on your machine — PowerShell, PowerShell 7, Command Prompt, Git Bash, or WSL on Windows; `bash`, `zsh`, or `sh` on Linux.
 4. Type commands as normal. Press **Ctrl+C** to interrupt a running process.
-5. Close the session with the **Kill** button or by typing `exit`.
+5. Type `exit` to end the session; **New Terminal** starts a fresh one.
 
 ### Opening a Pod Exec Session
 
@@ -170,7 +170,7 @@ The **Terminal** page provides direct shell access — either a local shell on y
 
 - Sessions run without a pseudo-terminal (PTY): resizing the window does not resize the shell, and full-screen programs such as `vim` or `top` may not display correctly.
 - **Ctrl+C** stops the command running in the shell (for example `ping` or `kubectl logs -f`) and leaves the shell open.
-- Each session is independent; multiple sessions are not currently supported from a single Terminal page visit.
+- One local session at a time: **New Terminal**, or picking another shell, replaces the current session.
 - Open sessions are closed when Shoal quits.
 
 ---
@@ -181,9 +181,9 @@ Port forwarding opens a local tunnel to a pod or service in your cluster (`kubec
 
 ### Starting a Tunnel
 
-1. In **Cluster Details**, open the action menu of a **Pod** or **Service** and choose **"Port Forward"**.
+1. In **Cluster Details**, hover a **Pod** or **Service** row and click **"Forward Port"**.
 2. Pick the remote (container/service) port — exposed ports are suggested automatically — and a free local port.
-3. Click **"Start"**. The tunnel stays open until you stop it or quit the app.
+3. Click **"Start Forward"**. The tunnel stays open until you stop it or quit the app.
 
 ### Managing Tunnels
 
@@ -231,12 +231,13 @@ Shoal updates itself automatically from GitHub Releases:
 - When a new version is found, a toast tells you it is downloading in the background.
 - Once downloaded, a persistent **"Restart"** prompt appears — click it to install the update and relaunch. You can also keep working and the update installs on the next app restart.
 - To check right away, use **Settings → About & Support → Check for updates**. The portable Windows version and the `.deb` package cannot update themselves: download the new release instead.
+- On Linux the update arrives as a new file named after the new version (`Shoal-<version>.AppImage`) and the old AppImage is deleted, unless you had renamed yours to a name without a version number, in which case it is replaced in place. Desktop entries, launchers or scripts that point at the old file name need updating afterwards.
 
 ---
 
 ## Support & Feedback
 
 - **Report a Bug**: Use **Settings → About & Support → Report a problem** (also offered on the error screen). It opens a GitHub issue prefilled with your version and OS; nothing is sent until you submit it.
-- **Logs**: Errors are written to a local `main.log` (Windows `%APPDATA%\Shoal\logs`, Linux `~/.config/Shoal/logs`). **Open logs folder** takes you there; attach the file to your issue if you are comfortable sharing it. Shoal sends no telemetry or crash reports.
+- **Logs**: Errors are written to a local `main.log` (Windows `%APPDATA%\shoal\logs`, Linux `~/.config/shoal/logs`). **Open logs folder** takes you there; attach the file to your issue if you are comfortable sharing it. Shoal sends no telemetry or crash reports.
 - **Propose a Feature**: Use our feature request template on GitHub.
 - **Discussions**: Join the community in [GitHub Discussions](https://github.com/Dangalcan/shoal/discussions).

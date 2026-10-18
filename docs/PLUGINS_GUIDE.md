@@ -13,7 +13,6 @@ Shoal uses a **Hybrid Plugin Architecture**.
 
 Before developing plugins, ensure you have:
 
-- **Shoal** installed and running
 - **Shoal running from source** (`git clone`, `npm install`, `npm run dev`; Node.js v22.12+). Only development builds load unsigned plugins
 - **TypeScript** knowledge (recommended)
 - **React** knowledge (for UI extensions)
@@ -23,8 +22,8 @@ Before developing plugins, ensure you have:
 
 1.  **Run Shoal from source** with `npm run dev`. Development builds load unsigned plugins (`ALLOW_UNSIGNED_PLUGINS=true`); installed releases only load plugins signed with the Shoal key.
 2.  **Create Plugin Directory**:
-    - Windows: `%APPDATA%\Shoal\plugins\my-plugin\`
-    - Linux: `~/.config/Shoal/plugins/my-plugin/`
+    - Windows: `%APPDATA%\shoal\plugins\my-plugin\`
+    - Linux: `~/.config/shoal/plugins/my-plugin/`
 3.  **Initialize Project**:
     ```bash
     mkdir my-plugin
@@ -93,8 +92,7 @@ The `plugin.json` file defines the identity and capabilities of your plugin.
     }
   },
   "dependencies": {
-    "core-utils": "^1.2.0",
-    "monitoring-base": ">=2.0.0"
+    "namespace-watcher": ">=1.0.0"
   },
   "data": ["data/default-presets.json"]
 }
@@ -234,8 +232,6 @@ Plugins can extend the Shoal UI by providing a **renderer script** — a JavaScr
 Add `"renderer": "renderer.js"` to your `plugin.json`. This file is loaded automatically when the plugin is enabled.
 
 ### Available Globals
-
-The following globals are injected into the renderer context:
 
 `renderer.js` runs inside an isolated, opaque-origin iframe with no access to
 the host DOM or to the real IPC bridge. The following globals are injected;
@@ -424,8 +420,8 @@ Every call returns a Promise; anything outside the table is rejected.
 
 Package your plugin as a `.zip` archive containing `plugin.json`, `index.js`, and any other files. Users install it via **"Load Unpacked Plugin"** (directory picker) or by placing the unzipped folder in the plugins directory:
 
-- **Windows**: `%APPDATA%\Shoal\plugins\`
-- **Linux**: `~/.config/Shoal/plugins/`
+- **Windows**: `%APPDATA%\shoal\plugins\`
+- **Linux**: `~/.config/shoal/plugins/`
 
 Packaged builds only load plugins that carry a valid `plugin.json.sig`. The signature covers the whole plugin: the file lists the SHA-256 of every file in the plugin directory (manifest and code) and an RSA-SHA256 signature over that list, made with the Shoal signing key. Any file changed, added or removed after signing makes the plugin fail to load, so sign last. Plugin ids of the plugins bundled with Shoal are reserved and cannot be imported. Unsigned or out-of-date plugins load only in development (`npm run dev`, which sets `ALLOW_UNSIGNED_PLUGINS=true`). In installed builds, **"Load Unpacked Plugin"** checks the signature before copying anything and refuses an unsigned plugin with an explanation. During the 0.9 beta there is no way to get a third-party plugin signed yet; signing through the marketplace arrives with 1.0.
 
@@ -461,4 +457,4 @@ At runtime the app enforces the license state: an expired trial or missing licen
 
 ### Marketplace Submission
 
-Production plugin distribution goes through **kdMarket**, the standalone marketplace API (plugin catalog, licensing, and checkout), planned for 1.0. Submission/developer-portal tooling is still being rolled out — see [PLUGIN_ARCHITECTURE.md](./PLUGIN_ARCHITECTURE.md) for the architecture and the roadmap in the README for the release plan.
+There is no submission process in 0.9; publishing comes with 1.0, together with the marketplace. See [PLUGIN_ARCHITECTURE.md](./PLUGIN_ARCHITECTURE.md) for the architecture and the roadmap in the README for the release plan.

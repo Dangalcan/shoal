@@ -53,11 +53,21 @@ body:
     attributes:
       label: Electron version
       description: Filled in by "Report a problem"; leave empty otherwise.
+  - type: input
+    id: cluster
+    attributes:
+      label: Cluster and kubectl
+      description: >-
+        Optional. The kind of cluster (kind, k3d, other) and the kubectl
+        version (`kubectl version --client`).
+      placeholder: kind 0.24, kubectl 1.31
   - type: textarea
     id: logs
     attributes:
       label: Logs
       description: >-
-        The logs folder is shown in Settings, About & Support ("Open logs
-        folder"). Attach main.log, or paste the relevant lines, only if you are
-        comfortable sharing them; they can contain cluster and namespace names.
+        The logs folder is %APPDATA%\shoal\logs on Windows and
+        ~/.config/shoal/logs on Linux ("Open logs folder" in Settings, About &
+        Support takes you there). Attach main.log, or paste the relevant lines,
+        only if you are comfortable sharing them; they can contain cluster and
+        namespace names.

@@ -87,13 +87,18 @@ We use **BEM (Block Element Modifier)** naming for component-specific SCSS.
 }
 ```
 
+Components do not import SCSS files. Register the new file once in `styles/index.scss`, the single stylesheet entry that Vite bundles:
+
+```scss
+@use 'components/ui/MyComponent';
+```
+
 ### 2. Merging Classes (`cn` utility)
 
 Use the `cn` utility from `src/lib/utils.ts` to merge SCSS classes with Tailwind utility classes.
 
 ```typescript
 import { cn } from '../../lib/utils';
-import '../../styles/components/ui/MyComponent.scss';
 
 export function MyComponent({ className, isActive }: Props) {
   return (
