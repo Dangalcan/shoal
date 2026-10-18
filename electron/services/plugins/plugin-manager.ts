@@ -44,6 +44,15 @@ import { isMarketplaceEnabled } from '../../utils/env-utils';
 import fs from 'fs';
 import path from 'path';
 
+/**
+ * Upper bound for one lifecycle hook of an in-process (bundled) plugin. A
+ * hook that has not returned by then fails the activation, which is rolled
+ * back and reported, so Enable, Reload and start-up never hang on it; the
+ * hook itself cannot be interrupted and keeps running in the background.
+ * Isolated plugins have the host's own timeouts (plugin-host-manager.ts).
+ */
+export const HOOK_TIMEOUT_MS = 30_000;
+
 /** Calls a lifecycle hook through a plugin module handle if it exists. */
 async function callHookIfExists(
   handle: PluginModuleHandle,
@@ -55,7 +64,7 @@ async function callHookIfExists(
   log.info(`[PluginManager] Executing ${hookName} for ${pluginId}`);
   await handle.invoke(
     hookName,
-    { withContext: context !== undefined },
+    { withContext: context !== undefined, timeoutMs: HOOK_TIMEOUT_MS },
     context
   );
 }

@@ -185,6 +185,11 @@ module.exports = {
 };
 ```
 
+Every hook must return within 30 seconds; one that does not fails the
+activation and the plugin is shown as errored. Start long-running work
+(watchers, polling, a slow first `kubectl` call) without awaiting it, and
+stop it in `deactivate`.
+
 ## Testing Your Plugin
 
 ### Manual Testing
