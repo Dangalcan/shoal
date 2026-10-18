@@ -113,6 +113,9 @@ yet, so Windows SmartScreen shows a warning on first launch.
   their sort state.
 - A page that throws no longer takes the sidebar with it: the error shows in
   the page area and the rest of the app stays usable.
+- Native commands run from a Windows shell (`kubectl get pods`, `docker ps`)
+  no longer print their output as a staircase: their bare line feeds return
+  the cursor to the first column, like PowerShell's own `\r\n` does.
 - Terminal output no longer splits a multibyte character (accented letters,
   box drawing) across two chunks.
 - The main bundle no longer carries every Lucide icon for plugin resource

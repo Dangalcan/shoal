@@ -145,10 +145,13 @@ describe('Terminal', () => {
     expect(termWrite).toHaveBeenCalledWith('x\r\n');
   });
 
-  it('writes local output without newline replacement', () => {
-    renderTerminal('local');
-    capturedOutput('s1', 'raw');
-    expect(termWrite).toHaveBeenCalledWith('raw');
+  it('returns to column 0 after bare line feeds from a Windows shell', () => {
+    renderTerminal('local', 's1', 'windows');
+    // PowerShell prints \r\n; a native command such as kubectl prints \n.
+    capturedOutput('s1', 'PS C:\\> kubectl get pods\r\nNAME\nweb-1\n');
+    expect(termWrite).toHaveBeenCalledWith(
+      'PS C:\\> kubectl get pods\r\nNAME\r\nweb-1\r\n'
+    );
   });
 
   it('writes process-exited banner only for matching session', () => {
