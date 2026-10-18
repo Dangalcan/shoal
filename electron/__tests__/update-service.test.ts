@@ -7,14 +7,19 @@ import { isProduction } from '../utils/env-utils';
 
 vi.mock('../utils/env-utils', () => ({ isProduction: vi.fn() }));
 
-/** A fake updater that records listeners so tests can fire events. */
-function makeUpdater() {
+/**
+ * A fake updater that records listeners so tests can fire events. The
+ * running version is stable unless `prerelease` says otherwise.
+ */
+function makeUpdater(prerelease: ReadonlyArray<string | number> = []) {
   const listeners = new Map<string, (...a: unknown[]) => void>();
   const updater: UpdaterLike & {
     fire: (e: string, ...a: unknown[]) => void;
   } = {
     autoDownload: false,
     autoInstallOnAppQuit: false,
+    allowPrerelease: true,
+    currentVersion: { prerelease },
     logger: null,
     on: vi.fn((event: string, cb: (...a: unknown[]) => void) => {
       listeners.set(event, cb);
@@ -168,5 +173,142 @@ describe('UpdateService', () => {
     const svc = new UpdateService(updater);
     svc.quitAndInstall();
     expect(updater.quitAndInstall).toHaveBeenCalled();
+  });
+
+  describe('channels', () => {
+    /** What electron-updater raises when `/releases/latest` finds nothing. */
+    function noStableRelease() {
+      const err = new Error('Unable to find latest version on GitHub');
+      (err as Error & { code: string }).code =
+        'ERR_UPDATER_LATEST_VERSION_NOT_FOUND';
+      return err;
+    }
+
+    /**
+     * Rejects like electron-updater's checkForUpdates: it emits 'error'
+     * before the promise rejects.
+     */
+    function rejectingCheck(
+      updater: ReturnType<typeof makeUpdater>,
+      err: Error
+    ) {
+      return async () => {
+        updater.fire('error', err);
+        throw err;
+      };
+    }
+
+    beforeEach(() => vi.mocked(isProduction).mockReturnValue(true));
+
+    it('a stable build only looks at stable releases', async () => {
+      const updater = makeUpdater([]);
+      const svc = new UpdateService(updater);
+      svc.init(() => {});
+
+      expect(await svc.checkForUpdates()).toBe('started');
+      expect(updater.allowPrerelease).toBe(false);
+      expect(updater.checkForUpdates).toHaveBeenCalledTimes(1);
+    });
+
+    it('a stable build reports a missing stable release as an error', async () => {
+      const updater = makeUpdater([]);
+      updater.checkForUpdates = vi
+        .fn()
+        .mockImplementation(rejectingCheck(updater, noStableRelease()));
+      const svc = new UpdateService(updater);
+      const statuses: unknown[] = [];
+      svc.init((s) => statuses.push(s));
+
+      expect(await svc.checkForUpdates()).toBe('error');
+      expect(updater.checkForUpdates).toHaveBeenCalledTimes(1);
+      expect(statuses).toContainEqual({
+        state: 'error',
+        message: 'Unable to find latest version on GitHub',
+      });
+    });
+
+    it('a pre-release build takes the stable release when there is one', async () => {
+      const updater = makeUpdater(['rc', 3]);
+      const svc = new UpdateService(updater);
+      svc.init(() => {});
+
+      expect(await svc.checkForUpdates()).toBe('started');
+      expect(updater.checkForUpdates).toHaveBeenCalledTimes(1);
+      expect(updater.allowPrerelease).toBe(false);
+    });
+
+    it('a pre-release build falls back to pre-releases when no stable release exists', async () => {
+      const updater = makeUpdater(['rc', 2]);
+      const seen: boolean[] = [];
+      updater.checkForUpdates = vi
+        .fn()
+        .mockImplementationOnce(async () => {
+          seen.push(updater.allowPrerelease);
+          await rejectingCheck(updater, noStableRelease())();
+        })
+        .mockImplementationOnce(async () => {
+          seen.push(updater.allowPrerelease);
+          return {};
+        });
+      const svc = new UpdateService(updater);
+      const statuses: unknown[] = [];
+      svc.init((s) => statuses.push(s));
+
+      expect(await svc.checkForUpdates()).toBe('started');
+      expect(seen).toEqual([false, true]);
+      expect(statuses).not.toContainEqual(
+        expect.objectContaining({ state: 'error' })
+      );
+    });
+
+    it('a pre-release build reports any other failure of the stable probe', async () => {
+      const updater = makeUpdater(['rc', 2]);
+      updater.checkForUpdates = vi
+        .fn()
+        .mockImplementation(rejectingCheck(updater, new Error('bad feed')));
+      const svc = new UpdateService(updater);
+      const statuses: unknown[] = [];
+      svc.init((s) => statuses.push(s));
+
+      expect(await svc.checkForUpdates()).toBe('error');
+      expect(updater.checkForUpdates).toHaveBeenCalledTimes(1);
+      expect(statuses).toContainEqual({ state: 'error', message: 'bad feed' });
+    });
+
+    it('a pre-release build reports the failure of the pre-release check', async () => {
+      const updater = makeUpdater(['rc', 2]);
+      updater.checkForUpdates = vi
+        .fn()
+        .mockImplementationOnce(rejectingCheck(updater, noStableRelease()))
+        .mockImplementationOnce(rejectingCheck(updater, new Error('offline')));
+      const svc = new UpdateService(updater);
+      const statuses: unknown[] = [];
+      svc.init((s) => statuses.push(s));
+
+      expect(await svc.checkForUpdates()).toBe('error');
+      expect(updater.checkForUpdates).toHaveBeenCalledTimes(2);
+      expect(statuses).toContainEqual({ state: 'error', message: 'offline' });
+      expect(statuses).not.toContainEqual(
+        expect.objectContaining({
+          message: 'Unable to find latest version on GitHub',
+        })
+      );
+    });
+
+    it('starts every check from the stable channel again', async () => {
+      const updater = makeUpdater(['rc', 2]);
+      updater.checkForUpdates = vi
+        .fn()
+        .mockImplementationOnce(rejectingCheck(updater, noStableRelease()))
+        .mockResolvedValue({});
+      const svc = new UpdateService(updater);
+      svc.init(() => {});
+
+      await svc.checkForUpdates();
+      expect(updater.allowPrerelease).toBe(true);
+      await svc.checkForUpdates();
+      expect(updater.allowPrerelease).toBe(false);
+      expect(updater.checkForUpdates).toHaveBeenCalledTimes(3);
+    });
   });
 });
