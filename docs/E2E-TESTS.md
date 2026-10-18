@@ -138,6 +138,32 @@ kind delete cluster --name shoal-demo
 Check every image by hand before committing: no personal contexts, paths or
 hostnames.
 
+### README demo GIF
+
+`npm run demo-gif` records a short tour of the app (`e2e/screenshots/demo.spec.ts`)
+and turns it into `docs/images/demo.gif` (`scripts/demo-gif.js`). The tour
+starts on the Dashboard, creates a kind cluster called `demo`, opens the logs
+of a pod of the demo workload, applies the Deployment example from the
+Manifests page and runs `kubectl get pods -A` in the terminal; the wait for
+kind is left out. Playwright cannot record a video of an Electron window, so
+the spec takes 1280×800 screenshots back to back (light theme, about ten per
+second) only while a take runs (the waits for kubectl, for the pod logs and
+for the apply result are left out, so the length does not depend on the
+machine), and lists them with their real durations in
+`test-results/demo/frames.txt` for ffmpeg's concat demuxer; the script joins
+them (ffmpeg must be on the PATH) and encodes a palette-optimised GIF, trying
+smaller widths and frame rates until it is under 5 MB.
+
+Same setup as the screenshots (packaged build in `SHOAL_E2E_EXECUTABLE`, the
+`shoal-demo` cluster with the demo workload, a `KUBECONFIG` that only holds
+it) plus a running Docker, because the tour creates a second kind cluster; the
+spec deletes that cluster when it finishes. The app runs with a neutral home
+directory (`C:\Users\Public` on Windows, `/tmp/shoal-demo` on Linux) so the
+terminal prompt shows no user name. The frames stay in
+`test-results/demo/` for a re-run of the script alone
+(`node scripts/demo-gif.js [frames.txt] [output.gif]`). Watch the GIF before
+committing it, for the same reasons as the screenshots.
+
 ---
 
 ## Configuration
