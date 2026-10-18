@@ -45,7 +45,7 @@ Use the custom `render` utility from `src/test/utils/render.tsx`. It automatical
 ### 1. Basic Component Test
 
 ```typescript
-import { render, screen } from '../utils';
+import { render, screen, fireEvent } from '../utils';
 import { Button } from '../../components/ui/Button';
 
 it('should render children and handle clicks', async () => {
@@ -131,7 +131,7 @@ import { test, expect } from '../fixtures/app.fixture';
 test('create a manifest', async ({ window }) => {
   await window.getByRole('link', { name: 'Manifests' }).click();
   await window.getByRole('button', { name: 'New Manifest' }).click();
-  await window.getByPlaceholder('Manifest Name').fill('test-manifest');
+  await window.getByPlaceholder('e.g., Nginx Deployment').fill('test-manifest');
   await window.getByRole('button', { name: 'Save' }).click();
 
   await expect(window.getByText('test-manifest')).toBeVisible();

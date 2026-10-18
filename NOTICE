@@ -41,7 +41,8 @@ Third-party components keep their own licenses. Packaged builds include
 Electron and Chromium (LICENSE.electron.txt and LICENSES.chromium.html next
 to the executable) and the npm packages listed, with their license texts, in
 THIRD_PARTY_NOTICES.txt next to this file. scripts/third-party-notices.js
-generates that list from the production dependencies at package time.
+generates that list at package time from the production dependencies and
+from the renderer libraries that Vite bundles into the app.
 
 Kubernetes is a registered trademark of The Linux Foundation. Shoal is an
 independent project and is not affiliated with or endorsed by The Linux

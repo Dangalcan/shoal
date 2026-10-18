@@ -2,8 +2,6 @@
 
 A hybrid plugin architecture that extends Shoal through sandboxed third-party extensions. The marketplace and licensing side is implemented but hidden in the 0.9 beta; it ships with 1.0.
 
-> **Note:** This document was originally written as an implementation plan. The core plugin system (Phases 1–3) is now fully implemented. Sections below reflect the current architecture.
-
 ---
 
 ## Architecture Decisions
@@ -58,7 +56,8 @@ is trusted. `plugin-loader.shouldIsolatePlugin()` decides per plugin:
   `BUNDLED_DEFAULT_ENABLED`
   (`electron/constants.ts`) are enabled on first run.
 - `PLUGIN_ISOLATION=all` forces isolation for every plugin;
-  `PLUGIN_ISOLATION=off` disables it (useful for debugging).
+  `PLUGIN_ISOLATION=off` disables it (development only: packaged builds
+  ignore it).
 
 The RPC protocol lives in `host/host-protocol.ts`; callbacks
 (`watchResources`, `events.onBroadcast`, app lifecycle events) are bridged by
@@ -105,8 +104,7 @@ and `plugin-file:`, images and fonts also from `data:`/`blob:`, and
 plugin frame away from the host document. Plugin renderers cannot reach the
 network on their own; everything goes through
 `window.k8sPlugin`. (A permission-gated network call in the SDK is planned
-for 1.0; the ci-pipeline-view, helm-manager and secret-manager marketplace
-plugins still call `fetch` directly and need it.)
+for 1.0.)
 
 The complete method allowlist lives in
 `src/features/plugins/sandbox/protocol.ts` (`METHOD_TABLE`). To grant a new
@@ -142,10 +140,13 @@ k8sPlugin.ui.setHeight(480);          // resize the frame
 k8sPlugin.ready();                     // call once mounted
 ```
 
-Plugins own their rendering stack (plain DOM, React, etc.) and mount into
-`#root`; the host does not provide a framework. The scaffold written by
-`generatePlugin` (`template-service.ts`, reachable from the Plugins page in
-development builds) emits a working `renderer.js` reference.
+Plugins mount into `#root`. Before `renderer.js` runs, the frame runtime
+(`src/features/plugins/sandbox/frame-runtime.tsx`, built into
+`public/plugin-host/bootstrap.js`) exposes React, ReactDOM, the `K8sUI`
+component kit, `LucideIcons` and the `pluginUIRegistry` shim as globals, so a
+plugin renders with React without bundling it; plain DOM works too. The
+`generatePlugin` IPC (`template-service.ts`) scaffolds a plugin directory with
+a working `renderer.js`; the Plugins page has no button for it yet.
 
 ---
 
@@ -165,7 +166,7 @@ development builds) emits a working `renderer.js` reference.
 | `plugin-context.ts`           | Creates the scoped API surface (`kubernetes`, `ui`, `storage`, `logger`, `events`) injected into each plugin.                                                                                                                                     |
 | `plugin-events.ts`            | Global event bus used by `context.events`. Supports `on`, `once`, `off`, `emit` and app-level events.                                                                                                                                             |
 | `dependency-resolver.ts`      | Topological sort for activation order; detects circular dependencies; cascades disable to dependents.                                                                                                                                             |
-| `path-service.ts`             | Platform-aware path resolution for the plugins directory (`<userData>/plugins/`, i.e. `%APPDATA%\Shoal\plugins\` on Windows and `~/.config/Shoal/plugins/` on Linux) and the bundled plugins directory (`resources/plugins/` in packaged builds). |
+| `path-service.ts`             | Platform-aware path resolution for the plugins directory (`<userData>/plugins/`, i.e. `%APPDATA%\shoal\plugins\` on Windows and `~/.config/shoal/plugins/` on Linux) and the bundled plugins directory (`resources/plugins/` in packaged builds). |
 | `storage-service.ts`          | Key-value storage scoped per plugin, one SQLite table (`plugin_kv` in `plugins_storage.db`) with JSON-serialised values.                                                                                                                          |
 | `data-loader.ts`              | Auto-loads files declared in the `data` manifest field into `context.storage`.                                                                                                                                                                    |
 | `template-service.ts`         | Scaffolds new plugin directories from a built-in template.                                                                                                                                                                                        |
@@ -274,19 +275,19 @@ without executing the plugin; the plugin registers the matching component in its
 
 ## Marketplace Backend
 
-The marketplace is hidden in the 0.9 beta (`MARKETPLACE_ENABLED`). Its backend is **kdMarket**, a separate private repository (`/v1` API: catalog, licensing, checkout), planned for 1.0. In development, when no backend answers at `MARKETPLACE_BACKEND_URL`, `marketplace-service.ts` falls back to the sample catalog in `electron/data/marketplace.json`.
+The marketplace is hidden in the 0.9 beta (`MARKETPLACE_ENABLED`). It talks to a separate backend that is not public yet (`/v1` API: catalog, licensing, checkout), planned for 1.0. In development, when no backend answers at `MARKETPLACE_BACKEND_URL`, `marketplace-service.ts` falls back to the sample catalog in `electron/data/marketplace.json`.
 
 ---
 
 ## Implementation Roadmap
 
-| Phase       | Description                                                                      | Status                      |
-| ----------- | -------------------------------------------------------------------------------- | --------------------------- |
-| **Phase 1** | Core plugin system: loader, registry, context, UI extensions, management page    | ✅ Complete                 |
-| **Phase 2** | Licensing & monetization: license manager, trial periods, plugin signing         | ✅ Complete                 |
-| **Phase 3** | Marketplace client: browse catalog, install/update plugins (sample catalog)      | ✅ Complete (hidden in 0.9) |
-| **Phase 4** | Production marketplace backend: payments, developer portal, CDN, review workflow | ⏳ Future                   |
-| **Phase 5** | Advanced features (see below)                                                    | ⚠️ Partial                  |
+| Phase       | Description                                                                      | Status                           |
+| ----------- | -------------------------------------------------------------------------------- | -------------------------------- |
+| **Phase 1** | Core plugin system: loader, registry, context, UI extensions, management page    | ✅ Complete                      |
+| **Phase 2** | Licensing & monetization: license manager, trial periods, plugin signing         | ✅ Implemented, hidden until 1.0 |
+| **Phase 3** | Marketplace client: browse catalog, install/update plugins (sample catalog)      | ✅ Complete (hidden in 0.9)      |
+| **Phase 4** | Production marketplace backend: payments, developer portal, CDN, review workflow | ⏳ Future                        |
+| **Phase 5** | Advanced features (see below)                                                    | ⚠️ Partial                       |
 
 ### Phase 5 Feature Status
 

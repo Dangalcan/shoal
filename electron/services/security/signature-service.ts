@@ -61,10 +61,10 @@ export class SignatureService {
   // RSA-2048 public key — generated 2026-10-10 (rotated; the 2026-03-10 key's
   // private half was lost). Replace both this key AND the private key in your
   // secrets manager if you need to rotate. After rotation, all plugins must be
-  // re-signed. kdMarket does not sign with this pair yet: it uses its own
-  // key and the manifest-only format, which this service rejects, so
-  // marketplace-signed plugins only load once kdMarket signs in format 2
-  // with this pair (docs/PENDING_WORK.md).
+  // re-signed. The marketplace does not sign with this pair yet: it uses its
+  // own key and the manifest-only format, which this service rejects, so
+  // marketplace-signed plugins only load once the marketplace signs in
+  // format 2 with this pair (planned for 1.0).
   private readonly PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyrPH0qaxd66sPXUtKC8U
 EH35T5TXkRffe8VxTTyCqNKloQcAzOTF5ELbSfsloCcD77iNG7JetpLtRaBm+qa2

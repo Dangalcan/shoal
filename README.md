@@ -9,7 +9,9 @@
 
 A desktop app for your Kubernetes clusters: local clusters with kind or k3d, resources, manifests, logs, terminals and port-forwards in one window. Built with Electron, React, TypeScript and Vite.
 
-> **Public beta (0.9).** Windows and Linux only; macOS arrives with 1.0. Installers are not code-signed yet, so Windows SmartScreen shows "Windows protected your PC": choose **More info → Run anyway**. The plugin marketplace and paid plugins also arrive with 1.0; the beta ships two bundled plugins. Please report problems on [GitHub Issues](https://github.com/Dangalcan/shoal/issues).
+Website and downloads: [shoal.dangalcan.com](https://shoal.dangalcan.com).
+
+> **Public beta (0.9).** Windows and Linux (x64) only; macOS arrives with 1.0. Installers are not code-signed yet, so Windows SmartScreen shows "Windows protected your PC": choose **More info → Run anyway**. The plugin marketplace and paid plugins also arrive with 1.0; the beta ships two bundled plugins. Please report problems on [GitHub Issues](https://github.com/Dangalcan/shoal/issues).
 
 ![Shoal dashboard](docs/images/dashboard-light.png)
 
@@ -17,17 +19,26 @@ A desktop app for your Kubernetes clusters: local clusters with kind or k3d, res
 | ---------------------------------------------------------------- | ---------------------------------------------- |
 | ![Pods of a kind cluster](docs/images/cluster-details-light.png) | ![Plugins page](docs/images/plugins-light.png) |
 
+## 📥 Installation
+
+Download the latest release from [Releases](https://github.com/Dangalcan/shoal/releases). The installers are 64-bit (x64) only.
+
+- **Windows 10 or later:** `Shoal-Setup-<version>.exe` installs per user and updates itself; `Shoal-<version>-portable.exe` needs no install and does not auto-update. Neither is code-signed yet, so SmartScreen shows "Windows protected your PC" on first start: choose **More info → Run anyway**.
+- **Linux** (Ubuntu 22.04+ or equivalent, X11 or Wayland): `Shoal-<version>.AppImage` (`chmod +x` it, then run it) updates itself and needs `libfuse2` (`libfuse2t64` on Ubuntu 24.04). The `.deb` package (`sudo apt install ./shoal_<version>_amd64.deb`) needs no FUSE and does not auto-update. On Ubuntu 24.04 prefer the `.deb`: it installs an AppArmor profile that keeps Chromium's sandbox, which the AppImage has to turn off there.
+
+Shoal drives your clusters through tools you install separately: **kubectl** (required for anything cluster-related; Shoal tells you when it is missing), **kind** or **k3d** plus **Docker** running to create local clusters, and **kompose** (optional) for the Docker Compose migration. The [User Guide](docs/USER_GUIDE.md) covers the rest.
+
 ## Table of Contents
 
+- [Installation](#-installation)
 - [Features](#-features)
 - [Architecture](#-architecture)
+- [Project Structure](#-project-structure)
 - [Tech Stack](#-tech-stack)
 - [Getting Started](#-getting-started)
   - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
   - [Development](#development)
 - [Plugin System](#-plugin-system)
-- [Marketplace (planned for 1.0)](#-marketplace-planned-for-10)
 - [Testing](#-testing)
 - [Deployment](#-deployment)
 - [Roadmap](#-roadmap)
@@ -53,7 +64,7 @@ A desktop app for your Kubernetes clusters: local clusters with kind or k3d, res
 - 📝 Describe, YAML and recent logs for any resource
 - 📡 Live log streaming (Follow, like `kubectl logs -f`) with a container picker and auto-scroll that pauses while you read
 - 🔄 Rollout restart for Deployments, DaemonSets, StatefulSets
-- ⚖️ Scale Deployments, StatefulSets, and ReplicaSets to any replica count
+- ⚖️ Scale Deployments and StatefulSets to any replica count
 - 🗑️ Delete any resource directly from the UI
 
 ### Manifest Management
@@ -72,7 +83,7 @@ A desktop app for your Kubernetes clusters: local clusters with kind or k3d, res
 
 ### Terminal
 
-- 💻 Local shell sessions with a shell picker (PowerShell, PowerShell 7, Git Bash, WSL on Windows; bash, zsh, sh on Linux)
+- 💻 Local shell sessions with a shell picker (PowerShell, PowerShell 7, Command Prompt, Git Bash, WSL on Windows; bash, zsh, sh on Linux)
 - 🐚 Pod exec (`kubectl exec`) sessions inside any running container
 - ⏹️ Ctrl+C reaches the running command. Sessions have no PTY, so full-screen programs such as `vim` or `top` are not supported
 
@@ -191,7 +202,7 @@ shoal/
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) + SCSS
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Routing**: [React Router v7](https://reactrouter.com/)
-- **Database**: [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) (manifests & plugin registry)
+- **Database**: [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) (manifests & plugin key-value storage)
 - **Terminal**: [xterm.js](https://xtermjs.org/) frontend over spawned shell processes
 - **Auto-Update**: [electron-updater](https://github.com/electron-userland/electron-builder/tree/master/packages/electron-updater) (GitHub Releases)
 - **Notifications**: [Sonner](https://sonner.emilkowal.ski/) (toasts)
@@ -201,24 +212,10 @@ shoal/
 
 ### Prerequisites
 
-To use Shoal:
-
-- **Windows 10 or later**, or **Linux** (Ubuntu 22.04+ or equivalent, X11 or Wayland). The AppImage needs `libfuse2` (`libfuse2t64` on Ubuntu 24.04); the `.deb` does not.
-- **kubectl** on your `PATH` (required for anything cluster-related; Shoal tells you when it is missing)
-- **kind** or **k3d**, plus **Docker** running, to create local clusters
-- **kompose** (optional, for the Docker Compose migration)
-
-To develop Shoal:
+To use Shoal, see [Installation](#-installation). To develop it:
 
 - **Node.js** v22.12+ ([Download](https://nodejs.org/)), see `.nvmrc`
 - **npm** v9+ (comes with Node.js)
-
-### Installation
-
-Download the latest release from [Releases](https://github.com/Dangalcan/shoal/releases):
-
-- **Windows:** `Shoal-Setup-<version>.exe` (installs per user and updates itself) or `Shoal-<version>-portable.exe` (no install, no auto-update).
-- **Linux:** `Shoal-<version>.AppImage` (`chmod +x` it, then run it; updates itself) or the `.deb` package (no auto-update). On Ubuntu 24.04 prefer the `.deb`: it installs an AppArmor profile that keeps Chromium's sandbox, which the AppImage has to turn off there.
 
 ### Development
 
@@ -238,8 +235,6 @@ Download the latest release from [Releases](https://github.com/Dangalcan/shoal/r
     ```bash
     npm run dev
     ```
-
-    Maintainers with the private `kdMarket` repository checked out next to this one can run `npm run dev:full` to start the real marketplace backend as well.
 
 ### Production Build
 
@@ -295,12 +290,6 @@ module.exports = {
 ```
 
 For the architecture (sandbox, isolation, signing), see [Plugin Architecture](docs/PLUGIN_ARCHITECTURE.md).
-
-## 🛒 Marketplace (planned for 1.0)
-
-The marketplace client (catalog, installs, trials, licenses and checkout) is in the code base but hidden in the 0.9 beta: the Marketplace tab only appears when the app runs with `MARKETPLACE_ENABLED=true`, which `npm run dev` sets. Its backend is **kdMarket**, a separate private repository with a `/v1` API, selected through `MARKETPLACE_BACKEND_URL` (for example `http://localhost:3001/v1`). Without a backend, development builds fall back to the sample catalog in `electron/data/marketplace.json`.
-
-Paid plugins, payments and the publishing flow for third-party plugins ship with 1.0 (see the [roadmap](#-roadmap)).
 
 ## 🧪 Testing
 
@@ -371,7 +360,10 @@ Releases are built and published by CI from `v*` tags; see [docs/RELEASE.md](doc
 
 - **0.9.x** (beta fixes): keyboard access to every table and card, and whatever the beta feedback shows first. Report what you miss on [GitHub Issues](https://github.com/Dangalcan/shoal/issues).
 - **1.0** (planned for Q1 2027): code-signed installers (no more SmartScreen warning), macOS builds, the plugin marketplace with third-party and paid plugins, plugin secrets in the OS keychain, and finer plugin permissions (read, write and Helm separated).
+- **Marketplace** (planned for 1.0): the marketplace client (catalog, installs, trials, licenses and checkout) is in the code base but hidden in the 0.9 beta: the Marketplace tab only appears when the app runs with `MARKETPLACE_ENABLED=true`, which `npm run dev` sets. It talks to a separate backend that is not public yet, selected through `MARKETPLACE_BACKEND_URL`; without one, development builds fall back to the sample catalog in `electron/data/marketplace.json`.
 - **Not planned**: telemetry or accounts. Shoal works offline and sends nothing anywhere except the update check against GitHub Releases.
+
+What changed in each version is in [CHANGELOG.md](CHANGELOG.md). How to contribute, how to report a vulnerability and how we treat each other: [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ## 🤝 Contributing
 
@@ -410,6 +402,21 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 ## 🔧 Troubleshooting
 
 ### Common Issues
+
+**Issue: Windows says "Windows protected your PC"**
+
+The 0.9 installers are not code-signed yet, so SmartScreen warns on first start. Choose **More info → Run anyway**. Download installers only from this repository's [Releases](https://github.com/Dangalcan/shoal/releases); [SECURITY.md](SECURITY.md) explains how to check a file's hash.
+
+**Issue: The AppImage does not start on Linux**
+
+- Make it executable first: `chmod +x Shoal-<version>.AppImage`
+- AppImages need `libfuse2`, which Ubuntu 22.04 and later do not install by default: `sudo apt install libfuse2` (`libfuse2t64` on Ubuntu 24.04). Without it the AppImage still runs with `APPIMAGE_EXTRACT_AND_RUN=1 ./Shoal-<version>.AppImage`
+- On Ubuntu 24.04 prefer the `.deb` (see [Installation](#-installation))
+
+**Issue: Where are the logs, and which version is this?**
+
+- `main.log` is in `%APPDATA%\shoal\logs` on Windows and `~/.config/shoal/logs` on Linux; **Settings → About & Support → Open logs folder** takes you there
+- **Settings → About & Support** shows the version and platform, and `shoal --version` (the installed executable with `--version`) prints it on the console
 
 **Issue: Electron window doesn't open**
 

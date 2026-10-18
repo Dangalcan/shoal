@@ -132,7 +132,7 @@ Gets the YAML representation of a resource.
 
 ### `rolloutRestart(args)`
 
-Triggers a rollout restart for a deployment or daemonset.
+Triggers a rollout restart for a Deployment, StatefulSet or DaemonSet.
 
 - **Arguments**: Same as `getResourceYaml`
 - **Returns**: `Promise<Result<void>>`
@@ -387,7 +387,7 @@ Starts a trial period for a paid plugin.
 
 Fetches the list of plugins available in the marketplace.
 
-- **Returns**: `Promise<Result<MarketplacePlugin[]>>`
+- **Returns**: `Promise<Result<MarketplaceEntry[]>>`
 
 ### `installPlugin(pluginId)`
 
@@ -423,8 +423,8 @@ progress is pushed from the main process on the `update-status` channel
 
 ### `checkForAppUpdates()`
 
-Triggers a manual update check. Forced even in development so the button
-always gives feedback.
+Triggers a manual update check. Development builds do not check: they answer
+`dev`, so the button still gives feedback.
 
 - **Returns**: `Promise<Result<UpdateCheckStart>>` where `UpdateCheckStart` is
   `'started' | 'portable' | 'package' | 'dev' | 'error'`: `started` means the
@@ -508,7 +508,7 @@ Kills a terminal session.
 
 Sends an interrupt signal to the process (Ctrl+C). Sessions have no PTY, so the
 shell's children are signalled directly: on Windows they are stopped through
-`taskkill /T` on every child except the console host, on Linux and macOS they get `SIGINT` through `pkill -INT -P <pid>`
+`taskkill /T` on every child except the console host, on Linux they get `SIGINT` through `pkill -INT -P <pid>`
 and the shell itself gets `SIGINT` too. The shell stays open either way.
 
 - **Parameters**: `sessionId`: `string`
