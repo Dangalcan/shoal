@@ -112,9 +112,11 @@ export function Terminal({
     const cleanupOutput = window.electron.onTerminalOutput(
       (sid: string, data: string) => {
         if (sid !== sessionId) return;
-        // Unix shells output bare \n; xterm needs \r\n to return to column 0.
-        const output = isWindowsShell ? data : data.replace(/\r?\n/g, '\r\n');
-        terminal.write(output);
+        // xterm needs \r\n to return to column 0. Unix shells output bare
+        // \n, and so do native commands under a Windows shell (kubectl
+        // writes \n even though PowerShell itself prints \r\n), so every
+        // bare line feed becomes \r\n; a \r\n already there stays as it is.
+        terminal.write(data.replace(/\r?\n/g, '\r\n'));
       }
     );
 
