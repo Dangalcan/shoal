@@ -13,7 +13,7 @@ Website and downloads: [shoal.dangalcan.com](https://shoal.dangalcan.com).
 
 > **Public beta (0.9).** Windows and Linux (x64) only; macOS arrives with 1.0. Installers are not code-signed yet, so Windows SmartScreen shows "Windows protected your PC": choose **More info → Run anyway**. The plugin marketplace and paid plugins also arrive with 1.0; the beta ships two bundled plugins. Please report problems on [GitHub Issues](https://github.com/Dangalcan/shoal/issues).
 
-![Shoal dashboard](docs/images/dashboard-light.png)
+![Shoal in action: a kind cluster created from the Clusters page, pod logs, a manifest applied in one click and kubectl in the terminal](docs/images/demo.gif)
 
 | Cluster resources                                                | Bundled plugins                                |
 | ---------------------------------------------------------------- | ---------------------------------------------- |

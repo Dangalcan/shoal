@@ -100,6 +100,17 @@ class FrameRecorder {
 
 let recorder: FrameRecorder;
 
+/**
+ * Runs a wait with the recorder paused, so a slow machine (kubectl against
+ * a cluster that is still settling, say) does not stretch the take: the
+ * frames jump from the action to its result.
+ */
+async function offCamera(wait: () => Promise<unknown>): Promise<void> {
+  await recorder.stop();
+  await wait();
+  recorder.start();
+}
+
 async function settled() {
   await expect(window.locator('[data-sonner-toast]')).toHaveCount(0, {
     timeout: 15_000,
@@ -199,16 +210,18 @@ test('records the README tour', async () => {
     .locator('.table-row', { hasText: 'web-' })
     .filter({ hasText: 'Running' })
     .first();
-  await expect(row).toBeVisible({ timeout: 60_000 });
-  await window.waitForTimeout(600);
+  await offCamera(() => expect(row).toBeVisible({ timeout: 60_000 }));
+  await window.waitForTimeout(800);
   await row.hover();
   await window.waitForTimeout(400);
   await row.locator('.action-button-logs').click();
   const modal = window.getByTestId('log-modal');
   await expect(modal).toBeVisible();
-  await expect(modal.getByTestId('log-content')).not.toBeEmpty({
-    timeout: 30_000,
-  });
+  await offCamera(() =>
+    expect(modal.getByTestId('log-content')).not.toBeEmpty({
+      timeout: 30_000,
+    })
+  );
   await window.waitForTimeout(1_800);
   await window.keyboard.press('Escape');
   await expect(modal).toBeHidden();
@@ -232,9 +245,12 @@ test('records the README tour', async () => {
   await expect(card).toBeVisible();
   await window.waitForTimeout(500);
   await card.getByTitle('Apply to Cluster').click();
-  await expect(window.getByText('Manifest applied successfully!')).toBeVisible({
-    timeout: 60_000,
-  });
+  await window.waitForTimeout(400);
+  await offCamera(() =>
+    expect(window.getByText('Manifest applied successfully!')).toBeVisible({
+      timeout: 60_000,
+    })
+  );
   await window.waitForTimeout(1_200);
   await recorder.stop();
   await settled();
@@ -255,9 +271,12 @@ test('records the README tour', async () => {
   recorder.start();
   await window.keyboard.type('kubectl get pods -A', { delay: TYPING_DELAY });
   await window.keyboard.press('Enter');
-  await expect(window.locator('.xterm-rows')).toContainText('kube-system', {
-    timeout: 30_000,
-  });
-  await window.waitForTimeout(1_500);
+  await window.waitForTimeout(300);
+  await offCamera(() =>
+    expect(window.locator('.xterm-rows')).toContainText('kube-system', {
+      timeout: 30_000,
+    })
+  );
+  await window.waitForTimeout(1_800);
   await recorder.stop();
 });

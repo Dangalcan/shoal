@@ -147,7 +147,9 @@ of a pod of the demo workload, applies the Deployment example from the
 Manifests page and runs `kubectl get pods -A` in the terminal; the wait for
 kind is left out. Playwright cannot record a video of an Electron window, so
 the spec takes 1280×800 screenshots back to back (light theme, about ten per
-second) only while a take runs, and lists them with their real durations in
+second) only while a take runs (the waits for kubectl, for the pod logs and
+for the apply result are left out, so the length does not depend on the
+machine), and lists them with their real durations in
 `test-results/demo/frames.txt` for ffmpeg's concat demuxer; the script joins
 them (ffmpeg must be on the PATH) and encodes a palette-optimised GIF, trying
 smaller widths and frame rates until it is under 5 MB.
