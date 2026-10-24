@@ -55,7 +55,7 @@ yet, so Windows SmartScreen shows a warning on first launch.
 
 - Renamed from Kubernetes Desktop to Shoal (Linux Foundation trademark
   guidelines), with a new app icon.
-- Electron 44.9 and Node 22 toolchain.
+- Electron 44.9.3 and Node 22 toolchain.
 - The app version shown in the sidebar now always comes from `package.json`.
 - Cluster cards show the real provider (kind or k3d, from the context name)
   and no longer label every context as running.
@@ -199,6 +199,9 @@ yet, so Windows SmartScreen shows a warning on first launch.
 
 ### Security
 
+- Electron 44.9.3 blocks the compromised eMudhra intermediate certificates
+  in Chromium and in Node's `tls`, `https` and `fetch`
+  (GHSA-jr5w-w6x2-84p9).
 - The Compose conversion takes a token for the file chosen in the native
   dialog instead of a path from the renderer. `plugin-config.json`, which
   holds license keys and encrypted plugin secrets, is written owner-only.
