@@ -1,6 +1,6 @@
 {
   "name": "shoal",
-  "version": "0.9.0-rc.3",
+  "version": "0.9.0-rc.4",
   "description": "Desktop app for managing Kubernetes clusters.",
   "desktopName": "shoal.desktop",
   "main": "dist-electron/main.js",
