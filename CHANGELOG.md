@@ -82,6 +82,15 @@ yet, so Windows SmartScreen shows a warning on first launch.
   seconds, with the reason, instead of staying "loading", and Enable and
   Reload report it instead of hanging. The hook itself keeps running in the
   background.
+- Disabling a bundled plugin stops it. Resource Monitor and Namespace
+  Watcher kept polling kubectl every 10 seconds after Disable, because
+  their deactivation hooks ran in a fresh copy of the plugin module, whose
+  timers were empty. The module `activate()` ran in now serves the
+  deactivation hooks and plugin actions until the plugin is disabled,
+  reloaded or uninstalled, and a plugin that is active or still activating
+  is not activated a second time when start-up and an Enable click
+  overlap. Resource Monitor 1.1.1 no longer expects an argument in
+  `deactivate()`, which made every Disable log a failed hook.
 - A pre-release build moves to the stable release as soon as it is
   published: the update check asks for the stable channel first and only
   falls back to pre-releases while no stable release exists.
