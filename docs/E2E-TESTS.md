@@ -246,13 +246,16 @@ every auto-refresh.
 Local shell only, no cluster. Starts a session, checks the shell picker,
 round-trips an `echo` through the real shell, and interrupts a running
 command: it starts a child process that would hold the shell for a minute
-(`ping -n 60 127.0.0.1` on Windows, `sleep 60` on Linux), presses Ctrl+C
-and expects a following `echo` to answer within 20 seconds. Sessions have
-no PTY, so this proves the interrupt reaches the child itself (`taskkill /T`
-per child on Windows, `pkill -INT -P` on Linux) and not only the shell. The
-spec was what revealed that the Windows interrupt had never killed anything
-(it matched processes by name). The last test
-checks that **New Terminal** starts a session without the old scrollback.
+(`ping -n 60 127.0.0.1` on Windows, `sleep 60` on Linux), presses Ctrl+C,
+waits a second (PowerShell drops keys typed while it is still handling the
+interrupt) and expects a following `echo` to answer within 20 seconds.
+With a pseudo-terminal the shell delivers the interrupt to its child as any
+terminal does; in a build whose node-pty binary is missing the session runs
+over pipes and the same test proves the fallback reaches the child itself
+(`taskkill /T` per child on Windows, `pkill -INT -P` on Linux) and not only
+the shell. The spec was what revealed that the Windows interrupt had never
+killed anything (it matched processes by name). The last test checks that
+**New Terminal** starts a session without the old scrollback.
 
 ### `sandbox-theme.spec.ts`
 

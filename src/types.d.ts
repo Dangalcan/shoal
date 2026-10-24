@@ -60,6 +60,23 @@ export interface LocalShellInfo {
   family: 'windows' | 'unix';
 }
 
+/**
+ * What carries a terminal session's bytes: a pseudo-terminal (`pty`, local
+ * shells when node-pty is available) or plain pipes (`pipe`, pod-exec
+ * sessions and the fallback without node-pty).
+ */
+export type TerminalTransport = 'pty' | 'pipe';
+
+/**
+ * The Windows pseudo-terminal behind a `pty` session, in the shape of
+ * xterm's `windowsPty` option (ConPTY reflows its own screen buffer on
+ * resize, so xterm must not reflow as well). Absent on Linux and for pipes.
+ */
+export interface TerminalWindowsPty {
+  backend: 'conpty';
+  buildNumber?: number;
+}
+
 export interface PortForwardArgs {
   contextName: string;
   namespace: string;
@@ -293,7 +310,14 @@ export interface ElectronAPI {
     shell?: string;
     cols?: number;
     rows?: number;
-  }) => Promise<Result<{ sessionId: string; shellFamily: 'windows' | 'unix' }>>;
+  }) => Promise<
+    Result<{
+      sessionId: string;
+      shellFamily: 'windows' | 'unix';
+      transport: TerminalTransport;
+      windowsPty?: TerminalWindowsPty;
+    }>
+  >;
   terminalShells: () => Promise<
     Result<{ shells: LocalShellInfo[]; defaultShell: string }>
   >;

@@ -5,6 +5,26 @@ All notable changes to Shoal are documented here. The format follows
 [Semantic Versioning](https://semver.org/). Release steps are in
 [docs/RELEASE.md](docs/RELEASE.md).
 
+## [Unreleased]
+
+### Added
+
+- Local terminal sessions run in a pseudo-terminal (ConPTY on Windows, a
+  pty on Linux) through node-pty: the shell prints its own prompt, edits
+  the line and shows its colours, Ctrl+C reaches the running command as in
+  any terminal, the shell follows the window size, and full-screen programs
+  such as `vim`, `less`, `top` or `k9s` work. When the pseudo-terminal
+  cannot start (no node-pty binary for the platform) the session falls
+  back to pipes with the previous behaviour, and the log says why. Pod
+  exec sessions still run on pipes.
+
+### Changed
+
+- The Linux build compiles node-pty (`npm run rebuild:node-pty`, part of
+  `build:linux` and of the Linux release job; needs `make`, `g++` and
+  `python3`). The Windows build uses the prebuilt binary that ships in the
+  package.
+
 ## [Unreleased] - 0.9.0 public beta
 
 First public release, for Windows and Linux. Installers are not code-signed

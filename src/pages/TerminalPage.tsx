@@ -7,7 +7,11 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { Terminal } from '../components/Terminal';
-import type { LocalShellInfo } from '../types';
+import type {
+  LocalShellInfo,
+  TerminalTransport,
+  TerminalWindowsPty,
+} from '../types';
 import { useApi } from '../services/api-context';
 
 export function TerminalPage() {
@@ -25,6 +29,12 @@ export function TerminalPage() {
   // first output) when the shell list arrives.
   const [shellFamily, setShellFamily] = useState<'windows' | 'unix' | null>(
     null
+  );
+  // Whether the shell runs in a pseudo-terminal (it echoes and edits the
+  // line itself) or on pipes (the terminal echoes locally).
+  const [transport, setTransport] = useState<TerminalTransport>('pipe');
+  const [windowsPty, setWindowsPty] = useState<TerminalWindowsPty | undefined>(
+    undefined
   );
   const sessionIdRef = useRef<string | null>(null);
 
@@ -48,6 +58,8 @@ export function TerminalPage() {
     if (result.success) {
       sessionIdRef.current = result.data.sessionId;
       setShellFamily(result.data.shellFamily ?? null);
+      setTransport(result.data.transport ?? 'pipe');
+      setWindowsPty(result.data.windowsPty);
       setSessionId(result.data.sessionId);
     } else {
       setError(result.error);
@@ -143,6 +155,8 @@ export function TerminalPage() {
               sessionId={sessionId}
               kind="local"
               shellFamily={shellFamily ?? activeShell?.family}
+              transport={transport}
+              windowsPty={windowsPty}
             />
           </div>
         )}

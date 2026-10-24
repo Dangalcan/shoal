@@ -85,7 +85,7 @@ Shoal drives your clusters through tools you install separately: **kubectl** (re
 
 - 💻 Local shell sessions with a shell picker (PowerShell, PowerShell 7, Command Prompt, Git Bash, WSL on Windows; bash, zsh, sh on Linux)
 - 🐚 Pod exec (`kubectl exec`) sessions inside any running container
-- ⏹️ Ctrl+C reaches the running command. Sessions have no PTY, so full-screen programs such as `vim` or `top` are not supported
+- ⏹️ Local shells run in a real pseudo-terminal: prompt, line editing, Ctrl+C, resize and full-screen programs such as `vim`, `less` or `k9s`
 
 ### Port Forwarding
 
@@ -203,7 +203,7 @@ shoal/
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Routing**: [React Router v7](https://reactrouter.com/)
 - **Database**: [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) (manifests & plugin key-value storage)
-- **Terminal**: [xterm.js](https://xtermjs.org/) frontend over spawned shell processes
+- **Terminal**: [xterm.js](https://xtermjs.org/) over [node-pty](https://github.com/microsoft/node-pty) pseudo-terminals (plain pipes for pod exec)
 - **Auto-Update**: [electron-updater](https://github.com/electron-userland/electron-builder/tree/master/packages/electron-updater) (GitHub Releases)
 - **Notifications**: [Sonner](https://sonner.emilkowal.ski/) (toasts)
 - **Testing**: [Vitest 5](https://vitest.dev/) (unit) + [Playwright](https://playwright.dev/) (E2E)
@@ -226,9 +226,12 @@ To use Shoal, see [Installation](#-installation). To develop it:
     npm run prepare
     ```
 
-    No C++ toolchain is needed. The project `.npmrc` turns dependency install
-    scripts off (better-sqlite3 ships prebuilt binaries), so npm does not run
-    the `prepare` hook by itself.
+    No C++ toolchain is needed on Windows. The project `.npmrc` turns
+    dependency install scripts off (better-sqlite3 and node-pty ship prebuilt
+    binaries for Windows), so npm does not run the `prepare` hook by itself.
+    On Linux node-pty has no prebuilt binary: run `npm run rebuild:node-pty`
+    once (needs `make`, `g++` and `python3`) so local terminals get a
+    pseudo-terminal; without it they run over pipes.
 
 2.  Run the development server (starts React and Electron; development builds also load unsigned plugins and show the hidden Marketplace tab with bundled sample data):
 

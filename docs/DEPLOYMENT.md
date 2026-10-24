@@ -6,9 +6,12 @@ This guide covers building and distributing Shoal for production environments.
 
 - **Node.js**: v22.12+ (CI and local development use Node 22, see `.nvmrc`)
 - **npm**: v9+
-- No C++ toolchain. The only native module, better-sqlite3, ships prebuilt
-  binaries, and the project `.npmrc` turns dependency install scripts off so
-  npm does not try to compile it (npm/cli#9837).
+- A C++ toolchain only on Linux (`make`, `g++`, `python3`). Two native
+  modules ship: better-sqlite3 has prebuilt binaries for every platform,
+  node-pty only for Windows and macOS, so the Linux build compiles it
+  (`npm run rebuild:node-pty`, part of `build:linux` and of the Linux
+  release job). The project `.npmrc` turns dependency install scripts off,
+  so `npm ci` compiles nothing (npm/cli#9837).
 - No platform-specific tools: electron-builder downloads what it needs
   (NSIS on Windows, its packaging tools for the AppImage and the `.deb` on
   Linux). Each platform is built on its own OS; the CI runners are
