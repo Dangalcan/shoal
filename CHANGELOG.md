@@ -73,6 +73,10 @@ yet, so Windows SmartScreen shows a warning on first launch.
 
 ### Fixed
 
+- The Plugins page keeps its list on screen while it refreshes (a plugin
+  activating at start-up, Enable, Disable, Reload) instead of swapping it
+  for the loading spinner each time: the cards no longer flicker, and a
+  click on a card button that arrived during the swap is no longer lost.
 - A bundled plugin whose `activate()` never returns (a `kubectl` call
   against an unreachable cluster, say) is marked as errored after 30
   seconds, with the reason, instead of staying "loading", and Enable and

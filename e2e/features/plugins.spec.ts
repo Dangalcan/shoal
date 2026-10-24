@@ -34,6 +34,10 @@ function pluginCard() {
   return window.locator('.plugin-card', { hasText: PLUGIN_NAME });
 }
 
+function sidebarEntry() {
+  return window.locator('.sidebar-nav a', { hasText: SIDEBAR_LABEL });
+}
+
 test('lists the bundled plugins', async () => {
   await expect(pluginCard()).toBeVisible({ timeout: 15_000 });
   const cardCount = await window.locator('.plugin-card').count();
@@ -43,39 +47,40 @@ test('lists the bundled plugins', async () => {
 test('disable/enable round-trip updates state and sidebar', async () => {
   const card = pluginCard();
   const stateBadge = card.locator('.plugin-state');
-  const toggle = card
-    .locator('button')
-    .filter({ hasText: /^(Enable|Disable)$/ })
-    .first();
+  // One locator per action. A single toggle locator that matched both labels
+  // followed the button through a state change: Playwright re-resolves a
+  // locator when it retries a click, and "click Enable" pressed Disable.
+  const enableButton = card.getByRole('button', {
+    name: 'Enable',
+    exact: true,
+  });
+  const disableButton = card.getByRole('button', {
+    name: 'Disable',
+    exact: true,
+  });
 
-  // Normalize to enabled first if needed.
-  if ((await toggle.innerText()).trim() === 'Enable') {
-    await toggle.click();
-    await expect(stateBadge).toHaveText('Enabled', { timeout: 20_000 });
-  }
+  // A fresh user data directory starts the bundled plugins enabled, and
+  // start-up activates them in the background after the window opens (the
+  // Namespace Watcher runs kubectl first). Wait for that to settle instead
+  // of racing it with a click.
+  await expect(stateBadge).toHaveText('Enabled', { timeout: 30_000 });
 
   // Enabled plugins with a renderer appear in the sidebar plugin section.
-  await expect(
-    window.locator('.sidebar-nav a', { hasText: SIDEBAR_LABEL })
-  ).toBeVisible({ timeout: 10_000 });
+  await expect(sidebarEntry()).toBeVisible({ timeout: 10_000 });
 
   // Disable → state flips and the sidebar entry disappears.
-  await toggle.click();
+  await disableButton.click();
   await expect(stateBadge).toHaveText('Disabled', { timeout: 20_000 });
-  await expect(
-    window.locator('.sidebar-nav a', { hasText: SIDEBAR_LABEL })
-  ).not.toBeVisible();
+  await expect(sidebarEntry()).not.toBeVisible();
 
   // Re-enable → back in the sidebar.
-  await toggle.click();
+  await enableButton.click();
   await expect(stateBadge).toHaveText('Enabled', { timeout: 20_000 });
-  await expect(
-    window.locator('.sidebar-nav a', { hasText: SIDEBAR_LABEL })
-  ).toBeVisible({ timeout: 10_000 });
+  await expect(sidebarEntry()).toBeVisible({ timeout: 10_000 });
 });
 
 test('enabled plugin page renders its sandboxed frame', async () => {
-  await window.locator('.sidebar-nav a', { hasText: SIDEBAR_LABEL }).click();
+  await sidebarEntry().click();
 
   // The plugin UI is hosted in the sandboxed iframe; the host page mounts
   // the frame element (its inner document is opaque-origin by design).
