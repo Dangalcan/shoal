@@ -49,7 +49,7 @@ export function CreateCluster() {
     if (result.success) {
       setName('');
       await fetchClusters();
-      navigate('/clusters');
+      await navigate('/clusters');
     }
   };
 

@@ -150,12 +150,18 @@ describe('Dashboard Page', () => {
   it('should refresh data on button click', async () => {
     render(<Dashboard />, { api: mockApi });
 
-    await waitFor(() => expect(mockApi.getClusters).toHaveBeenCalledTimes(1));
+    // The provider fetches on mount and the dashboard refreshes when it opens.
+    await waitFor(() => expect(mockApi.getClusters).toHaveBeenCalledTimes(2));
+    const probes = mockApi.getToolStatus.mock.calls.length;
 
     const rBtn = screen.getByTitle('Refresh Data');
 
     fireEvent.click(rBtn);
-    await waitFor(() => expect(mockApi.getClusters).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(mockApi.getClusters).toHaveBeenCalledTimes(3));
+    // Both engines are probed again.
+    await waitFor(() =>
+      expect(mockApi.getToolStatus).toHaveBeenCalledTimes(probes + 2)
+    );
   });
 
   it('should handle empty clusters list', async () => {

@@ -15,7 +15,7 @@ interface UseResourceActionsResult {
 
 export function useResourceActions(
   contextName: string | undefined,
-  onActionComplete: () => void
+  onActionComplete: () => void | Promise<void>
 ): UseResourceActionsResult {
   const api = useApi();
 

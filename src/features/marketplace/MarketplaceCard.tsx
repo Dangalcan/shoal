@@ -39,14 +39,14 @@ export function MarketplaceCard({
   const isPaid = entry.price > 0;
   const ownership = getOwnershipState(installedPlugin, isPaid);
 
-  const handleInstallClick = (e: React.MouseEvent) => {
+  const handleInstallClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    handleInstall();
+    await handleInstall();
   };
 
-  const handleBuyClick = (e: React.MouseEvent) => {
+  const handleBuyClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    handlePurchase();
+    await handlePurchase();
   };
 
   const handleCancelClick = (e: React.MouseEvent) => {

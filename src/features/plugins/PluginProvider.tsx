@@ -59,10 +59,10 @@ export function PluginProvider({ children }: PluginProviderProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const refreshPlugins = async () => {
+  // Reads the plugin list; the loading state is already on when this runs
+  // (initial render or `refreshPlugins`).
+  const loadPlugins = async () => {
     try {
-      setLoading(true);
-      setError(null);
       const result = await api.getPlugins();
       if (result.success) {
         setPlugins(result.data);
@@ -76,12 +76,19 @@ export function PluginProvider({ children }: PluginProviderProps) {
     }
   };
 
+  const refreshPlugins = async () => {
+    setLoading(true);
+    setError(null);
+    await loadPlugins();
+  };
+
   const actions = usePluginActions(plugins, refreshPlugins);
 
-  // Load plugins on mount
+  // Load plugins on mount. loadPlugins keeps its error in state and
+  // checkForUpdates toasts its own, so neither promise needs a handler here.
   useEffect(() => {
-    refreshPlugins();
-    actions.checkForUpdates();
+    void loadPlugins();
+    void actions.checkForUpdates();
   }, []);
 
   // Plugins keep activating after the window opens, and can be reloaded or
@@ -132,8 +139,9 @@ export function usePluginExtensions(extensionPoint: string) {
   const { getPluginExtensions, plugins } = usePlugins();
   const [extensions, setExtensions] = useState<unknown[]>([]);
 
+  // getPluginExtensions toasts its failures and resolves to [] on them.
   useEffect(() => {
-    getPluginExtensions(extensionPoint).then(setExtensions);
+    void getPluginExtensions(extensionPoint).then(setExtensions);
   }, [extensionPoint, plugins]);
 
   return extensions;

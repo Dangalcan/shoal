@@ -166,7 +166,7 @@ shoal/
 │   └── tsconfig.json      # Main process TS config
 ├── src/                    # ⚛️ Renderer Source (React)
 │   ├── components/        # Reusable UI components (tables, modals, sidebar, terminal)
-│   ├── features/          # Feature modules (clusters, logs, manifests, migration, plugins, portforward, settings, updates)
+│   ├── features/          # Feature modules (clusters, logs, manifests, migration, plugins, portforward, settings, terminal, updates)
 │   ├── hooks/             # Custom React hooks
 │   ├── layouts/           # Page layouts
 │   ├── pages/             # Route-level components (Dashboard, Clusters, Manifests, Migration, Plugins, PortForwards, Terminal, Settings)
