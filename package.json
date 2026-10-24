@@ -142,6 +142,7 @@
       "!node_modules/better-sqlite3/src/**",
       "!node_modules/better-sqlite3/prebuilds/{darwin-*,linuxmusl-*,linux-arm64,win32-arm64}.node",
       "!node_modules/node-pty/{src,deps,third_party,scripts}/**",
+      "!node_modules/node-pty/node_modules/**",
       "!node_modules/node-pty/binding.gyp",
       "!node_modules/node-pty/lib/*.test.js",
       "!node_modules/node-pty/lib/*.test.js.map",
