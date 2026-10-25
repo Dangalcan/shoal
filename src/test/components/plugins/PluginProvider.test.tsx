@@ -1,4 +1,10 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import {
+  act,
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+} from '@testing-library/react';
 import {
   PluginProvider,
   usePlugins,
@@ -120,6 +126,55 @@ describe('PluginProvider', () => {
     await waitFor(() =>
       expect(mockApi.getPlugins.mock.calls.length).toBeGreaterThan(before)
     );
+  });
+
+  it('keeps the loaded list on screen while a state change refreshes it', async () => {
+    let listener: (() => void) | undefined;
+    mockApi.onPluginStateChanged.mockImplementation((cb: () => void) => {
+      listener = cb;
+      return () => {};
+    });
+
+    render(
+      <PluginProvider>
+        <TestComponent />
+      </PluginProvider>
+    );
+    await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull());
+    expect(screen.getByText('Test Plugin - enabled')).toBeDefined();
+
+    // A slow refresh: the list must stay mounted until the new one arrives.
+    let finishRefresh!: (value: unknown) => void;
+    mockApi.getPlugins.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishRefresh = resolve;
+      })
+    );
+    const before = mockApi.getPlugins.mock.calls.length;
+    act(() => listener?.());
+    await waitFor(() =>
+      expect(mockApi.getPlugins.mock.calls.length).toBeGreaterThan(before)
+    );
+    expect(screen.queryByText('Loading...')).toBeNull();
+    expect(screen.getByText('Test Plugin - enabled')).toBeDefined();
+
+    await act(async () => {
+      finishRefresh({
+        success: true,
+        data: [
+          {
+            manifest: {
+              id: 'test-plugin',
+              name: 'Test Plugin',
+              version: '1.0.0',
+            },
+            state: 'disabled',
+          },
+        ],
+      });
+    });
+    expect(screen.getByText('Test Plugin - disabled')).toBeDefined();
+    expect(screen.queryByText('Loading...')).toBeNull();
   });
 
   it('should show error if loading fails', async () => {

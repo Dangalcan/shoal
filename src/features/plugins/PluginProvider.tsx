@@ -9,6 +9,7 @@ import {
   useContext,
   ReactNode,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 import type {
@@ -58,14 +59,20 @@ export function PluginProvider({ children }: PluginProviderProps) {
   const [plugins, setPlugins] = useState<Plugin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Set once the first list has arrived. Later refreshes (plugin state
+  // events, enable/disable, reload) update the list in place: showing the
+  // loading state again would swap the list for a spinner and remount every
+  // card, and a click that straddles that remount is lost.
+  const hasLoaded = useRef(false);
 
   const refreshPlugins = async () => {
     try {
-      setLoading(true);
+      if (!hasLoaded.current) setLoading(true);
       setError(null);
       const result = await api.getPlugins();
       if (result.success) {
         setPlugins(result.data);
+        hasLoaded.current = true;
       } else {
         setError(result.error || 'Failed to load plugins');
       }
