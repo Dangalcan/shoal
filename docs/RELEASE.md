@@ -100,6 +100,56 @@ public, and `rc.3 → 0.9.0` on 2026-11-02, which also checks that a
 pre-release moves to the stable channel (`v0.9.0-rc.1` was tagged but its
 draft was never published).
 
+## When Actions cannot run
+
+If GitHub cannot start the release jobs (the account's included minutes or
+storage are used up, for example), the same artifacts can be built by hand
+and uploaded to a draft. Used for `v0.9.0-rc.3` on 2026-10-24.
+
+1. A clean checkout of the tag with its own dependencies, so the lockfile
+   decides every version (the shared `node_modules` of a long-lived checkout
+   may hold an older Electron):
+
+   ```bash
+   git worktree add ../shoal-rc3 v0.9.0-rc.3 && cd ../shoal-rc3 && npm ci
+   ```
+
+2. Windows, on a Windows machine:
+
+   ```bash
+   npm run build:react && npm run build:electron && npx electron-builder --win --publish never
+   ```
+
+3. Linux, from the same worktree, inside electron-builder's image (Docker
+   Desktop running; the volumes keep the Linux `node_modules` and caches
+   apart from the Windows ones):
+
+   ```bash
+   MSYS_NO_PATHCONV=1 docker run --rm -v "$PWD:/project" -v shoal-rc3-nm:/project/node_modules \
+     -v shoal-electron-cache:/root/.cache/electron -v shoal-npm-cache:/root/.npm -w /project \
+     electronuserland/builder:22 bash -lc "npm ci && npm run build:react && npm run build:electron && npx electron-builder --linux --publish never"
+   ```
+
+4. The checks above (asar contents, `resources`, fuses), plus: the `sha512`
+   in `latest.yml` and `latest-linux.yml` matches the installers
+   (`openssl dgst -sha512 -binary <file> | openssl base64 -A`), the asar
+   `package.json` carries the tagged version, and `dpkg-deb --info` on the
+   `.deb` lists the expected dependencies. Run the E2E suite against the
+   packaged executable (`SHOAL_E2E_EXECUTABLE=release/win-unpacked/Shoal.exe
+npx playwright test`) in place of the Windows smoke job; the Linux smoke
+   has no local substitute, so install the AppImage and the `.deb` on a Linux
+   desktop by hand.
+
+5. Upload the seven files to a draft, flagged as a pre-release for a release
+   candidate, with the CHANGELOG section as notes, and publish it the usual
+   way:
+
+   ```bash
+   gh release create v0.9.0-rc.3 --draft --prerelease --title "0.9.0-rc.3" --notes-file notes.md \
+     release/Shoal-Setup-*.exe release/Shoal-Setup-*.exe.blockmap release/Shoal-*-portable.exe release/latest.yml \
+     release/Shoal-*.AppImage release/shoal_*_amd64.deb release/latest-linux.yml
+   ```
+
 ## Rollback
 
 A bad release that is already published:
