@@ -362,6 +362,17 @@ export class PluginManager {
       if (!entry) throw new Error(`Plugin ${pluginId} not found`);
       const plugin = entry.plugin;
 
+      // Start-up activates every enabled plugin while the user may already be
+      // clicking Enable: a second activation would run activate() again (two
+      // timers, two event subscriptions), so an active or activating plugin
+      // is left alone.
+      if (plugin.state === 'enabled' || plugin.state === 'loading') {
+        log.info(
+          `[PluginManager] ${pluginId} is already ${plugin.state === 'enabled' ? 'active' : 'activating'}; skipping a second activation`
+        );
+        return;
+      }
+
       await this.validateAndEnableDeps(plugin, pluginId);
 
       const licenseCheck = licenseManager.checkLicense(pluginId);
@@ -513,8 +524,9 @@ export class PluginManager {
       const context = pluginRegistry.getPluginContext(pluginId) as
         PluginContext | undefined;
 
-      // Run deactivation hooks through the module handle (reuses the running
-      // utility process for isolated plugins)
+      // Run deactivation hooks through the module handle (the running
+      // utility process of an isolated plugin, the vm instance activate()
+      // ran in for an in-process one)
       try {
         const handle = await pluginLoader.acquireModuleHandle(
           pluginId,
@@ -615,7 +627,7 @@ export class PluginManager {
     }
 
     // Get a module handle (running utility process for isolated plugins,
-    // fresh vm execution for in-process plugins)
+    // the activated vm instance for in-process plugins)
     const context = pluginRegistry.getPluginContext(pluginId) as
       PluginContext | undefined;
     const handle = await pluginLoader.acquireModuleHandle(

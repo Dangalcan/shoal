@@ -232,6 +232,26 @@ describe('PluginManager', () => {
       expect(pluginRegistry.enablePlugin).toHaveBeenCalledWith(pluginId);
     });
 
+    it('leaves a plugin that is already active or activating alone', async () => {
+      // Start-up activation and an Enable click can overlap; the second
+      // activation must not run activate() again.
+      for (const state of ['enabled', 'loading'] as const) {
+        vi.clearAllMocks();
+        vi.mocked(pluginRegistry.hasPlugin).mockReturnValue(true);
+        vi.mocked(pluginRegistry.getPlugin).mockReturnValue({
+          plugin: { manifest: { id: 'p1', permissions: [] }, state },
+          config: { enabled: true },
+        } as any);
+
+        await pluginManager.enablePlugin('p1');
+
+        expect(pluginRegistry.enablePlugin).toHaveBeenCalledWith('p1');
+        expect(pluginLoader.acquireModuleHandle).not.toHaveBeenCalled();
+        expect(pluginLoader.updatePluginState).not.toHaveBeenCalled();
+        expect(pluginEventBus.emitPluginActivated).not.toHaveBeenCalled();
+      }
+    });
+
     it('should execute optional lifecycle hooks during activation', async () => {
       const pluginId = 'test-plugin';
       vi.mocked(pluginRegistry.hasPlugin).mockReturnValue(true);

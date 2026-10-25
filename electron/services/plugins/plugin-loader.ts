@@ -37,6 +37,12 @@ export class PluginLoader {
   private sandboxCaches: Map<string, Map<string, unknown>> = new Map();
   /** Live handles for plugins running in isolated utility processes. */
   private remoteHandles: Map<string, PluginModuleHandle> = new Map();
+  /**
+   * Live handles of in-process plugins: one vm instance from activation
+   * until release, so deactivate() and actions reach the module activate()
+   * ran in (its timers, listeners and caches), not a fresh copy.
+   */
+  private localHandles: Map<string, PluginModuleHandle> = new Map();
 
   constructor() {
     this.pluginDirectories = pathService.getDiscoveryDirectories();
@@ -209,6 +215,7 @@ export class PluginLoader {
   /** Unload plugin code — clears the sandbox module cache. */
   async unloadPluginCode(pluginId: string, _pluginPath: string): Promise<void> {
     try {
+      this.localHandles.delete(pluginId);
       this.sandboxCaches.delete(pluginId);
       log.info(`[PluginLoader] Unloaded plugin code for ${pluginId}`);
     } catch (error: unknown) {
@@ -251,8 +258,9 @@ export class PluginLoader {
 
   /**
    * Get a callable handle to the plugin module. Isolated plugins reuse their
-   * running utility process; in-process plugins re-execute the vm sandbox
-   * (same semantics as loadPluginCode).
+   * running utility process; in-process plugins reuse the vm instance created
+   * by the first call (the one activate() ran in) until releaseModuleHandle
+   * or unloadPluginCode drops it.
    */
   async acquireModuleHandle(
     pluginId: string,
@@ -291,12 +299,17 @@ export class PluginLoader {
       return handle;
     }
 
+    const local = this.localHandles.get(pluginId);
+    if (local) return local;
     const moduleExports = await this.loadPluginCode(pluginId, pluginPath);
-    return new LocalPluginModule(moduleExports);
+    const handle = new LocalPluginModule(moduleExports);
+    this.localHandles.set(pluginId, handle);
+    return handle;
   }
 
   /** Dispose any isolated host process and clear caches for a plugin. */
   releaseModuleHandle(pluginId: string): void {
+    this.localHandles.delete(pluginId);
     const handle = this.remoteHandles.get(pluginId);
     this.remoteHandles.delete(pluginId);
     handle?.dispose();
@@ -308,6 +321,7 @@ export class PluginLoader {
   }
 
   unregisterPlugin(pluginId: string): void {
+    this.localHandles.delete(pluginId);
     this.loadedPlugins.delete(pluginId);
   }
 

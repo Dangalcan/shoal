@@ -1,6 +1,6 @@
 {
   "name": "shoal",
-  "version": "0.9.0-rc.3",
+  "version": "0.9.0-rc.4",
   "description": "Desktop app for managing Kubernetes clusters.",
   "desktopName": "shoal.desktop",
   "main": "dist-electron/main.js",
@@ -101,7 +101,7 @@
     "clsx": "^2.1.1",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
-    "electron": "^44.9.0",
+    "electron": "^44.9.3",
     "electron-builder": "^26.15.3",
     "eslint": "^9.39.2",
     "eslint-plugin-react": "^7.37.5",
