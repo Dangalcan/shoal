@@ -156,7 +156,7 @@ The **Terminal** page provides direct shell access — either a local shell on y
 1. Click **"Terminal"** in the left sidebar.
 2. A local shell session opens automatically using your default shell.
 3. Use the **shell picker** to switch to any other shell detected on your machine — PowerShell, PowerShell 7, Command Prompt, Git Bash, or WSL on Windows; `bash`, `zsh`, or `sh` on Linux.
-4. Type commands as normal. Press **Ctrl+C** to interrupt a running process.
+4. Type commands as normal: the shell edits the line, keeps its history and shows its colours. Press **Ctrl+C** to interrupt a running process.
 5. Type `exit` to end the session; **New Terminal** starts a fresh one.
 
 ### Opening a Pod Exec Session
@@ -168,8 +168,10 @@ The **Terminal** page provides direct shell access — either a local shell on y
 
 ### Notes
 
-- Sessions run without a pseudo-terminal (PTY): resizing the window does not resize the shell, and full-screen programs such as `vim` or `top` may not display correctly.
-- **Ctrl+C** stops the command running in the shell (for example `ping` or `kubectl logs -f`) and leaves the shell open.
+- Local shells run in a pseudo-terminal (ConPTY on Windows, a pty on Linux): the shell prints its own prompt and edits the line, **Ctrl+C** stops the running command (for example `ping` or `kubectl logs -f`) and leaves the shell open, the shell follows the window size, and full-screen programs such as `vim`, `less`, `top` or `k9s` work.
+- If the pseudo-terminal cannot start (the log says why; usually the node-pty binary is missing for the platform), the session runs over plain pipes as earlier versions did: the terminal echoes what you type, the shell is not resized and full-screen programs do not work.
+- Pod exec sessions run over `kubectl exec` without a TTY: the terminal echoes what you type and full-screen programs may not display correctly.
+- On Windows, resizing the window while the scrollback holds output written at another width can leave lines misplaced (ConPTY repaints its own copy of the screen). `clear` or `cls` restores the display.
 - One local session at a time: **New Terminal**, or picking another shell, replaces the current session.
 - Open sessions are closed when Shoal quits.
 

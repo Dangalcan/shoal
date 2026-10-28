@@ -190,7 +190,12 @@ export function createMockElectronAPI(
     // Terminal API
     terminalCreate: vi.fn().mockResolvedValue({
       success: true,
-      data: { sessionId: 'test-session-id', shellFamily: 'windows' },
+      data: {
+        sessionId: 'test-session-id',
+        shellFamily: 'windows',
+        transport: 'pipe',
+        windowsPty: undefined,
+      },
     }),
     terminalShells: vi.fn().mockResolvedValue({
       success: true,

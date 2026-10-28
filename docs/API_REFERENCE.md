@@ -468,9 +468,21 @@ directory, never in the app installation directory.
     `terminalShells()` (e.g. `powershell`, `cmd`, `gitbash`, `wsl`) —
     validated against the detected allowlist. For `pod-exec`, the shell
     path inside the container (default: `/bin/sh`).
-  - `cols`: `number` (optional)
-  - `rows`: `number` (optional)
-- **Returns**: `Promise<Result<{ sessionId: string; shellFamily: 'windows' | 'unix' }>>`. `shellFamily` is the line-ending family of the shell that was started (`windows` for PowerShell and cmd, `unix` for Git Bash, WSL and pod shells), so the terminal can be configured from the first prompt.
+  - `cols`, `rows`: `number` (optional). Initial size of the
+    pseudo-terminal: integers from 1 to 1000, default 80×24. Ignored by
+    `pipe` sessions.
+- **Returns**: `Promise<Result<{ sessionId: string; shellFamily: 'windows' | 'unix'; transport: 'pty' | 'pipe'; windowsPty?: { backend: 'conpty'; buildNumber?: number } }>>`.
+  - `shellFamily` is the line-ending family of the shell that was started (`windows` for PowerShell and cmd, `unix` for Git Bash, WSL and pod shells), so the terminal can be configured from the first prompt.
+  - `transport` says what carries the session's bytes. `pty`: a
+    pseudo-terminal (node-pty), so the shell echoes, edits the line, handles
+    Ctrl+C and follows resizes itself; the terminal sends every keystroke
+    as it is. `pipe`: plain pipes, so the terminal buffers and echoes the
+    line and emulates Ctrl+C. Local sessions are `pty` when node-pty loads
+    and `pipe` otherwise (the main-process log says why); pod-exec sessions
+    are always `pipe`.
+  - `windowsPty` is set for `pty` sessions on Windows, in the shape of
+    xterm's `windowsPty` option: ConPTY reflows its own screen buffer on
+    resize, and xterm has to know so it does not reflow as well.
 
 ### `terminalShells()`
 
@@ -492,9 +504,12 @@ Sends input data to a terminal session.
 
 ### `terminalResize(sessionId, cols, rows)`
 
-Resizes a terminal session (Note: currently no-op for piped processes).
+Resizes the pseudo-terminal of a `pty` session, so the shell and the
+program it runs see the new size. A no-op for `pipe` sessions, which have
+no size.
 
-- **Parameters**: `sessionId`, `cols`, `rows`
+- **Parameters**: `sessionId`, `cols`, `rows` (integers from 1 to 1000;
+  anything else is rejected)
 - **Returns**: `Promise<Result<boolean>>`
 
 ### `terminalKill(sessionId)`
@@ -506,10 +521,15 @@ Kills a terminal session.
 
 ### `terminalInterrupt(sessionId)`
 
-Sends an interrupt signal to the process (Ctrl+C). Sessions have no PTY, so the
-shell's children are signalled directly: on Windows they are stopped through
-`taskkill /T` on every child except the console host, on Linux they get `SIGINT` through `pkill -INT -P <pid>`
-and the shell itself gets `SIGINT` too. The shell stays open either way.
+Ctrl+C. For a `pty` session the byte `0x03` is written to the
+pseudo-terminal, which delivers the interrupt to the foreground program as
+any terminal does (the terminal itself sends Ctrl+C through
+`terminalInput`, so this channel is only needed by callers without a
+keyboard). A `pipe` session has no PTY, so the shell's children are
+signalled directly: on Windows they are stopped through `taskkill /T` on
+every child except the console host, on Linux they get `SIGINT` through
+`pkill -INT -P <pid>` and the shell itself gets `SIGINT` too. The shell
+stays open either way.
 
 - **Parameters**: `sessionId`: `string`
 - **Returns**: `Promise<Result<boolean>>`

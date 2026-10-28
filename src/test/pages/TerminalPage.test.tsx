@@ -7,14 +7,20 @@ vi.mock('../../components/Terminal', () => ({
   Terminal: ({
     sessionId,
     shellFamily,
+    transport,
+    windowsPty,
   }: {
     sessionId: string;
     shellFamily?: string;
+    transport?: string;
+    windowsPty?: { backend: string; buildNumber?: number };
   }) => (
     <div
       data-testid="terminal"
       data-session={sessionId}
       data-family={shellFamily}
+      data-transport={transport}
+      data-windows-pty={windowsPty ? JSON.stringify(windowsPty) : undefined}
     />
   ),
 }));
@@ -58,6 +64,36 @@ describe('TerminalPage', () => {
     expect(screen.getByTestId('terminal')).toHaveAttribute(
       'data-family',
       'windows'
+    );
+    // No transport in the answer (older main process): pipe behaviour.
+    expect(screen.getByTestId('terminal')).toHaveAttribute(
+      'data-transport',
+      'pipe'
+    );
+  });
+
+  it('tells the terminal when the session has a pseudo-terminal', async () => {
+    window.electron.terminalCreate = vi.fn().mockResolvedValue({
+      success: true,
+      data: {
+        sessionId: 's1',
+        shellFamily: 'windows',
+        transport: 'pty',
+        windowsPty: { backend: 'conpty', buildNumber: 22631 },
+      },
+    });
+
+    render(<TerminalPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('terminal')).toHaveAttribute(
+        'data-transport',
+        'pty'
+      );
+    });
+    expect(screen.getByTestId('terminal')).toHaveAttribute(
+      'data-windows-pty',
+      '{"backend":"conpty","buildNumber":22631}'
     );
   });
 

@@ -1,5 +1,4 @@
 import { app, ipcMain } from 'electron';
-import { spawn, ChildProcess } from 'child_process';
 import { randomUUID } from 'crypto';
 import {
   wrapIpcHandler,
@@ -13,8 +12,13 @@ import {
   getTerminalCwd,
   resolveLocalShell,
 } from '../services/terminal/local-shells';
+import { spawnPipeSession } from '../services/terminal/pipe-session';
+import { spawnPtySession } from '../services/terminal/pty-session';
+import type {
+  TerminalSession,
+  TerminalSessionEvents,
+} from '../services/terminal/terminal-session';
 import log from '../logger';
-import { StringDecoder } from 'string_decoder';
 
 interface CreateTerminalArgs {
   kind: 'local' | 'pod-exec';
@@ -24,10 +28,6 @@ interface CreateTerminalArgs {
   shell?: string;
   cols?: number;
   rows?: number;
-}
-
-interface Session {
-  process: ChildProcess;
 }
 
 // Shells we agree to exec inside a pod. The renderer offers exactly these
@@ -48,7 +48,25 @@ function assertPodShell(v: string): void {
   if (!POD_EXEC_SHELLS.has(v)) throw new Error(`Invalid pod shell: "${v}"`);
 }
 
-const sessions = new Map<string, Session>();
+// Terminal sizes the renderer may send. xterm's fit addon produces small
+// positive integers; anything else comes from a broken or hostile caller.
+const DEFAULT_COLS = 80;
+const DEFAULT_ROWS = 24;
+const MAX_DIMENSION = 1000;
+
+function assertDimension(value: unknown, name: string): number {
+  if (
+    typeof value !== 'number' ||
+    !Number.isInteger(value) ||
+    value < 1 ||
+    value > MAX_DIMENSION
+  ) {
+    throw new Error(`Invalid terminal ${name}: ${String(value)}`);
+  }
+  return value;
+}
+
+const sessions = new Map<string, TerminalSession>();
 
 export function registerTerminalIpcHandlers(): void {
   ipcMain.handle(
@@ -105,72 +123,58 @@ export function registerTerminalIpcHandlers(): void {
           ];
         }
 
+        const cols =
+          args.cols === undefined
+            ? DEFAULT_COLS
+            : assertDimension(args.cols, 'cols');
+        const rows =
+          args.rows === undefined
+            ? DEFAULT_ROWS
+            : assertDimension(args.rows, 'rows');
+
         const sessionId = randomUUID();
+        const send = (channel: string, payload: object) => {
+          if (!event.sender.isDestroyed()) event.sender.send(channel, payload);
+        };
+        const events: TerminalSessionEvents = {
+          onData: (data) => send('terminal:output', { sessionId, data }),
+          onExit: () => {
+            sessions.delete(sessionId);
+            send('terminal:exited', { sessionId });
+            log.info(`[Terminal] Session ${sessionId} exited`);
+          },
+          onError: (message) => {
+            log.error(`[Terminal] Session ${sessionId}: ${message}`);
+            send('terminal:output', { sessionId, data: `\r\n${message}\r\n` });
+          },
+        };
 
-        const child = spawn(file, spawnArgs, {
-          stdio: ['pipe', 'pipe', 'pipe'],
-          env: process.env,
-          windowsHide: true,
-          cwd,
-        });
-
-        sessions.set(sessionId, { process: child });
-
-        // A multibyte character can straddle two chunks; a StringDecoder
-        // keeps the partial bytes until the next chunk completes them.
-        const stdoutDecoder = new StringDecoder('utf8');
-        const stderrDecoder = new StringDecoder('utf8');
-
-        child.stdout!.on('data', (data: Buffer) => {
-          if (!event.sender.isDestroyed()) {
-            event.sender.send('terminal:output', {
-              sessionId,
-              data: stdoutDecoder.write(data),
-            });
-          }
-        });
-
-        child.stderr!.on('data', (data: Buffer) => {
-          if (!event.sender.isDestroyed()) {
-            event.sender.send('terminal:output', {
-              sessionId,
-              data: stderrDecoder.write(data),
-            });
-          }
-        });
-
-        child.on('exit', () => {
-          sessions.delete(sessionId);
-          if (!event.sender.isDestroyed()) {
-            event.sender.send('terminal:exited', { sessionId });
-          }
-          log.info(`[Terminal] Session ${sessionId} exited`);
-        });
-
-        // A spawn that fails (binary gone, permissions) emits 'error', not
-        // 'exit'. Without this listener the exception is uncaught in main
-        // and the renderer waits forever for a prompt.
-        child.on('error', (err: Error) => {
-          log.error(
-            `[Terminal] Session ${sessionId} could not start ${file}:`,
-            err.message
+        // Local shells get a pseudo-terminal when node-pty is available;
+        // pod shells always run on pipes (kubectl exec carries the bytes).
+        let session: TerminalSession | null = null;
+        if (kind === 'local' && cwd !== undefined) {
+          session = spawnPtySession(
+            { sessionId, file, args: spawnArgs, cwd, cols, rows },
+            events
           );
-          sessions.delete(sessionId);
-          if (!event.sender.isDestroyed()) {
-            event.sender.send('terminal:output', {
-              sessionId,
-              data: `\r\nCould not start ${file}: ${err.message}\r\n`,
-            });
-            event.sender.send('terminal:exited', { sessionId });
-          }
-        });
-        // Writing to a shell that just died raises EPIPE on its stdin.
-        child.stdin?.on('error', (err: Error) => {
-          log.warn(`[Terminal] Session ${sessionId} stdin:`, err.message);
-        });
+        }
+        if (!session) {
+          session = spawnPipeSession(
+            { sessionId, file, args: spawnArgs, cwd },
+            events
+          );
+        }
+        sessions.set(sessionId, session);
 
-        log.info(`[Terminal] Created session ${sessionId} (${kind})`);
-        return { sessionId, shellFamily };
+        log.info(
+          `[Terminal] Created session ${sessionId} (${kind}, ${session.transport})`
+        );
+        return {
+          sessionId,
+          shellFamily,
+          transport: session.transport,
+          windowsPty: session.windowsPty,
+        };
       }
     )
   );
@@ -193,11 +197,7 @@ export function registerTerminalIpcHandlers(): void {
       ) => {
         const session = sessions.get(sessionId);
         if (!session) throw new Error(`No terminal session: ${sessionId}`);
-        const stdin = session.process.stdin;
-        if (!stdin || stdin.destroyed) {
-          throw new Error('Terminal session is closed');
-        }
-        stdin.write(data);
+        session.write(data);
         return true;
       }
     )
@@ -209,11 +209,18 @@ export function registerTerminalIpcHandlers(): void {
       'terminal:resize',
       async (
         _event,
-        { sessionId }: { sessionId: string; cols: number; rows: number }
+        {
+          sessionId,
+          cols,
+          rows,
+        }: { sessionId: string; cols: number; rows: number }
       ) => {
-        // No-op: piped processes don't support PTY resize
-        if (!sessions.has(sessionId))
-          throw new Error(`No terminal session: ${sessionId}`);
+        const session = sessions.get(sessionId);
+        if (!session) throw new Error(`No terminal session: ${sessionId}`);
+        session.resize(
+          assertDimension(cols, 'cols'),
+          assertDimension(rows, 'rows')
+        );
         return true;
       }
     )
@@ -226,7 +233,7 @@ export function registerTerminalIpcHandlers(): void {
       async (_event, { sessionId }: { sessionId: string }) => {
         const session = sessions.get(sessionId);
         if (session) {
-          session.process.kill();
+          session.kill();
           sessions.delete(sessionId);
           log.info(`[Terminal] Killed session ${sessionId}`);
         }
@@ -241,41 +248,9 @@ export function registerTerminalIpcHandlers(): void {
       'terminal:interrupt',
       async (_event, { sessionId }: { sessionId: string }) => {
         const session = sessions.get(sessionId);
-        if (!session || !session.process.pid)
+        if (!session || session.pid === undefined)
           throw new Error(`No terminal session: ${sessionId}`);
-
-        const pid = session.process.pid;
-
-        if (process.platform === 'win32') {
-          // Kill the process trees of the shell's children (e.g. ping.exe
-          // inside PowerShell) but leave the shell itself alive so the
-          // terminal stays usable. Two traps: piping Win32_Process straight
-          // into Stop-Process binds by Name ("PING.EXE"), which matches no
-          // process and silently does nothing, so kill by id; and the hidden
-          // console host (conhost.exe) is a child too, and killing it takes
-          // the shell down with it.
-          spawn(
-            'powershell.exe',
-            [
-              '-NoProfile',
-              '-NonInteractive',
-              '-Command',
-              `Get-CimInstance Win32_Process -Filter "ParentProcessId=${pid}" | Where-Object { $_.Name -ne 'conhost.exe' } | ForEach-Object { taskkill /T /F /PID $_.ProcessId | Out-Null }`,
-            ],
-            { windowsHide: true, stdio: 'ignore' }
-          );
-        } else {
-          // There is no PTY, so the shell's children are not in a
-          // foreground process group that SIGINT would reach: signal them
-          // directly (pkill is in procps on every desktop distro; if it is
-          // missing the shell still gets its SIGINT below).
-          spawn('pkill', ['-INT', '-P', String(pid)], { stdio: 'ignore' }).on(
-            'error',
-            () => undefined
-          );
-          session.process.kill('SIGINT');
-        }
-
+        session.interrupt();
         return true;
       }
     )
@@ -284,7 +259,7 @@ export function registerTerminalIpcHandlers(): void {
   // Shells are plain child processes: without this they outlive the app.
   app.on('will-quit', () => {
     for (const [sessionId, session] of sessions) {
-      session.process.kill();
+      session.kill();
       sessions.delete(sessionId);
     }
   });
