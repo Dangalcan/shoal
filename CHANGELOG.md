@@ -73,6 +73,10 @@ yet, so Windows SmartScreen shows a warning on first launch.
 
 ### Fixed
 
+- A release candidate's update check falls back to pre-releases again when
+  no stable release exists. electron-updater wraps the failure of its stable
+  lookup inside its feed-parsing error, so the check ended in an error
+  instead of offering the next candidate (an installed rc.4 never saw rc.5).
 - The Plugins page keeps its list on screen while it refreshes (a plugin
   activating at start-up, Enable, Disable, Reload) instead of swapping it
   for the loading spinner each time: the cards no longer flicker, and a
