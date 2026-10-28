@@ -82,23 +82,44 @@ Playwright needs `--inspect` for the smoke tests.
    Linux runners and run the E2E suite against it (Linux also creates kind
    clusters).
 2. Download the installer of at least one platform from the draft and start it.
-3. On GitHub, edit the draft:
-   - Paste the `CHANGELOG.md` section as release notes.
-   - Release candidates: check that **Set as a pre-release** is ticked (the
-     workflow does it).
-   - Stable releases: tick **Set as the latest release**.
-4. Publish. Auto-update only sees published, non-draft releases.
+3. Publish by **release id**, not by tag. `gh release edit <tag>` looks the
+   tag up through an endpoint that never returns drafts ("release not
+   found"), and `gh release create <tag>` on a tag that already has a draft
+   makes a second, empty release next to it, and a published release
+   without `latest.yml` breaks the updater for everyone on that version.
+   Find the id, then flip the draft with the `CHANGELOG.md` section as
+   notes:
+
+   ```bash
+   gh api repos/Dangalcan/shoal/releases --jq '.[] | "\(.id)\t\(.tag_name)\tdraft=\(.draft)\tassets=\(.assets|length)"'
+   # release candidate
+   gh api -X PATCH repos/Dangalcan/shoal/releases/<id> -F draft=false -F prerelease=true -f name=0.9.0-rc.6 -F body=@notes.md
+   # stable release
+   gh api -X PATCH repos/Dangalcan/shoal/releases/<id> -F draft=false -F prerelease=false -F make_latest=true -f name=0.9.0 -F body=@notes.md
+   ```
+
+   The GitHub UI works too: open the draft, **Edit**, tick **Set as a
+   pre-release** (release candidates) or **Set as the latest release**
+   (stable), **Publish release**. Never **Draft a new release** on the same
+   tag.
+
+4. Check that `releases.atom` lists the new version first and that
+   `releases/download/<tag>/latest.yml` serves it. Auto-update only sees
+   published, non-draft releases.
 
 ## Verifying auto-update
 
 Install the previous version, publish the new one, start the old app and wait
 for the "Update ready" toast, then restart. The sidebar must show the new
 version. This only works once the repository is public: electron-updater
-cannot read the releases of a private repository without a token. The plan
-for the beta: `rc.2 → rc.3` on 2026-10-29, the day the repository goes
-public, and `rc.3 → 0.9.0` on 2026-11-02, which also checks that a
-pre-release moves to the stable channel (`v0.9.0-rc.1` was tagged but its
-draft was never published).
+cannot read the releases of a private repository without a token. The beta
+rehearsed it on 2026-10-28, the day the repository went public: an
+installed rc.4 did not offer rc.5, because the service did not recognise
+the wrapped error electron-updater raises when no stable release exists
+and never looked at pre-releases. rc.6 fixed that, and an installed rc.6
+confirmed it by logging "No stable release published yet; checking
+pre-releases" and then that no newer version exists. `rc.6 → 0.9.0` on
+2026-11-02 checks that a pre-release moves to the stable channel.
 
 ## When Actions cannot run
 
