@@ -83,7 +83,23 @@ function emptyText(
   return 'No logs.';
 }
 
-export function LogViewerModal({
+export function LogViewerModal(props: LogViewerModalProps) {
+  // The viewer is keyed on the pod: a different pod (or the same pod on
+  // another cluster) gets a fresh one, so the previous pod's lines never
+  // show while the new logs load, an answer still in flight for it cannot
+  // replace them, the container picker starts from the first container and
+  // Follow is off. Coming back to a followed pod later starts from a
+  // snapshot too.
+  const { clusterName, namespace, podName } = props;
+  return (
+    <LogViewerDialog
+      key={`${clusterName}/${namespace}/${podName}`}
+      {...props}
+    />
+  );
+}
+
+function LogViewerDialog({
   isOpen,
   onClose,
   clusterName,
@@ -99,10 +115,7 @@ export function LogViewerModal({
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [container, setContainer] = useState<string | undefined>(undefined);
   const [tailLines] = useState(200);
-  // Follow mode belongs to one pod: a different pod starts without it.
-  const podKey = `${clusterName}/${namespace}/${podName}`;
-  const [followKey, setFollowKey] = useState<string | null>(null);
-  const follow = followKey === podKey;
+  const [follow, setFollow] = useState(false);
   // Auto-scroll sticks to the bottom until the user scrolls up.
   const [pinned, setPinned] = useState(true);
   const pinnedRef = useRef(true);
@@ -110,8 +123,8 @@ export function LogViewerModal({
   const scrollRef = useRef<HTMLDivElement>(null);
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   // Snapshot requests are numbered: an answer for an earlier request (another
-  // pod or cluster, an older refresh) is dropped instead of replacing the
-  // lines. The spinner belongs to the newest user-triggered request.
+  // container, an older refresh) is dropped instead of replacing the lines.
+  // The spinner belongs to the newest user-triggered request.
   const requestSeq = useRef(0);
   const loadingSeq = useRef(0);
   // The picker shows the first container until the user picks one; kubectl
@@ -122,18 +135,6 @@ export function LogViewerModal({
   useEffect(() => {
     followRef.current = follow;
   }, [follow]);
-
-  // A different pod (or the same pod on another cluster) starts from a
-  // blank viewer: the previous pod's lines must not show as the new pod's
-  // while its logs load, and an answer still in flight for it is ignored.
-  useEffect(() => {
-    requestSeq.current++;
-    setBuffer(EMPTY_LOG_BUFFER);
-    setError(null);
-    setContainer(undefined);
-    // Coming back to the followed pod later starts from a snapshot too.
-    setFollowKey(null);
-  }, [clusterName, podName, namespace]);
 
   const pinToBottom = useCallback(() => {
     pinnedRef.current = true;
@@ -199,16 +200,20 @@ export function LogViewerModal({
   );
 
   // Snapshot mode: fetch on open and when the pod or container changes.
-  // While following, the stream supplies the lines instead.
+  // While following, the stream supplies the lines instead. fetchLogs keeps
+  // its failures in the `error` state, so the promise can be dropped.
   useEffect(() => {
     if (isOpen && !followRef.current) {
-      fetchLogs();
+      void fetchLogs();
     }
   }, [isOpen, fetchLogs]);
 
   useEffect(() => {
     if (isOpen && autoRefresh && !follow) {
-      refreshIntervalRef.current = setInterval(() => fetchLogs(true), 5000);
+      refreshIntervalRef.current = setInterval(
+        () => void fetchLogs(true),
+        5000
+      );
     } else {
       if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
     }
@@ -244,11 +249,11 @@ export function LogViewerModal({
   const toggleFollow = () => {
     if (follow) {
       // Stop the stream and keep its lines on screen.
-      setFollowKey(null);
+      setFollow(false);
       return;
     }
     setAutoRefresh(false);
-    setFollowKey(podKey);
+    setFollow(true);
   };
 
   const copyLogs = async () => {

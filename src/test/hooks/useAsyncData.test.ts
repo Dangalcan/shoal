@@ -178,6 +178,59 @@ describe('useAsyncData', () => {
     expect(mockedHandleError).not.toHaveBeenCalled();
   });
 
+  it('starts over when a dependency changes', async () => {
+    let resolveSecond: (value: unknown) => void = () => {};
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce({ success: false, error: 'down' })
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSecond = resolve;
+          })
+      );
+    const { result, rerender } = renderHook(
+      ({ id }: { id: string }) => useAsyncData({ fetchFn, dependencies: [id] }),
+      { initialProps: { id: 'a' } }
+    );
+    await waitFor(() => expect(result.current.error).toBe('down'));
+
+    rerender({ id: 'b' });
+    // The old error is gone at once; the new request shows a blank loading state.
+    expect(result.current.error).toBeNull();
+    expect(result.current.data).toBeNull();
+    expect(result.current.loading).toBe(true);
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      resolveSecond({ success: true, data: 'b-data' });
+    });
+    expect(result.current.data).toBe('b-data');
+    expect(result.current.loading).toBe(false);
+  });
+
+  it('stops loading, and keeps the data, when the fetch is switched off', async () => {
+    const fetchFn = vi.fn().mockResolvedValue({ success: true, data: 'a' });
+    const { result, rerender } = renderHook(
+      ({ skip }: { skip: boolean }) =>
+        useAsyncData({ fetchFn, skipInitialFetch: skip }),
+      { initialProps: { skip: false } }
+    );
+    await waitFor(() => expect(result.current.data).toBe('a'));
+
+    rerender({ skip: true });
+    expect(result.current.loading).toBe(false);
+    expect(result.current.data).toBe('a');
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+
+    // Switching it back on fetches again from a blank slate.
+    fetchFn.mockResolvedValue({ success: true, data: 'b' });
+    rerender({ skip: false });
+    expect(result.current.data).toBeNull();
+    expect(result.current.loading).toBe(true);
+    await waitFor(() => expect(result.current.data).toBe('b'));
+  });
+
   describe('auto-refresh', () => {
     beforeEach(() => vi.useFakeTimers());
     afterEach(() => vi.useRealTimers());
