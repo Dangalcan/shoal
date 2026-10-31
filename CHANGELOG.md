@@ -7,6 +7,17 @@ All notable changes to Shoal are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The `.deb` declares `libasound2 (>= 1.0.17)` (ALSA) as a dependency, so
+  `apt install` pulls it in on WSL, containers and other minimal systems,
+  where Shoal failed to start with `libasound.so.2` missing. The package
+  used electron-builder's default dependency list, which lacks it although
+  Electron links the library. On Ubuntu 24.04 the name is virtual and the
+  version makes apt choose `libasound2t64` rather than the OSS
+  compatibility shim that also provides it. The AppImage still needs the
+  system's library.
+
 ## [0.9.0] - 2026-11-02
 
 First public release, for Windows and Linux. Installers are not code-signed
