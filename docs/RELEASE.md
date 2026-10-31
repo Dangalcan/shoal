@@ -50,12 +50,19 @@ newest **non** pre-release.
    - Linux: `Shoal-<version>.AppImage`, `shoal_<version>_amd64.deb`,
      `latest-linux.yml`
 
-   Tag builds upload nothing as a workflow artifact: the `smoke` jobs
-   download the installer from the draft release itself, so a release never
+   Tag builds upload nothing as a workflow artifact: the `smoke` and `deb`
+   jobs download the files from the draft release itself, so a release never
    waits on artifact storage. Master and manual builds keep their installers
-   as one-day artifacts for their own smoke job (the free plan's artifact
-   quota is counted in GB-months, and two weeks of ~470 MB per run exhausted
-   it once).
+   (and the `.deb`) as one-day artifacts for those jobs (the free plan's
+   artifact quota is counted in GB-months, and two weeks of ~470 MB per run
+   exhausted it once while the repository was private).
+
+   The `deb` job installs the `.deb` on a bare `ubuntu:24.04` container
+   (`scripts/check-deb.sh`) and fails when apt leaves a shared library the
+   binary links unresolved. The runner image has every desktop library
+   preinstalled, so the smoke job cannot notice a dependency missing from
+   `build.deb.depends` in `package.json`: 0.9.0 shipped without
+   `libasound2`.
 
    For a release candidate (a tag with a hyphen, such as `v0.9.0-rc.2`) the
    workflow then flags the draft as a pre-release with `gh release edit`.
@@ -77,10 +84,11 @@ Playwright needs `--inspect` for the smoke tests.
 
 ## Publishing the draft
 
-1. Wait for both `release` jobs and both `smoke` jobs to pass. The smoke jobs
-   download the installer from the draft, install it on clean Windows and
-   Linux runners and run the E2E suite against it (Linux also creates kind
-   clusters).
+1. Wait for both `release` jobs, both `smoke` jobs and the `deb` job to
+   pass. The smoke jobs download the installer from the draft, install it on
+   clean Windows and Linux runners and run the E2E suite against it (Linux
+   also creates kind clusters); the deb job installs the `.deb` on a bare
+   container and checks its dependencies.
 2. Download the installer of at least one platform from the draft and start it.
 3. Publish by **release id**, not by tag. `gh release edit <tag>` looks the
    tag up through an endpoint that never returns drafts ("release not
