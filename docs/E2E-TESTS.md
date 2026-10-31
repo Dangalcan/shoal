@@ -22,7 +22,7 @@ e2e/
 │   └── plugins/escape-probe/     # Unsigned plugin that tries to escape the sandbox
 ├── features/
 │   ├── navigation.spec.ts        # Sidebar navigation, theme toggle, window guards
-│   ├── first-run.spec.ts         # Empty kubeconfig and unreachable context (own KUBECONFIG)
+│   ├── first-run.spec.ts         # Empty kubeconfig, unreachable context, kubectl missing
 │   ├── cluster-lifecycle.spec.ts # Create and delete a cluster end-to-end
 │   ├── cluster-details.spec.ts   # Cluster details UI: tabs, sorting, filters, logs, settings
 │   ├── manifests.spec.ts         # Manifest library: create, edit, templates, folders
@@ -240,6 +240,20 @@ in under 20 seconds (the bundled Namespace Watcher runs kubectl while it
 activates, and start-up used to wait for it) and the cluster details page
 must settle on its error panel instead of alternating with the spinner on
 every auto-refresh.
+
+A third launch has no kubectl at all. The spec does not touch the machine:
+every PATH folder that holds a kubectl is replaced by a folder of symlinks
+to everything else in it, so the main process meets the genuine "not
+installed or not on the PATH" error while its child processes keep every
+other tool. The Dashboard and the cluster list must show the **kubectl not
+found** notice with its install link and **Check again** button and no
+error toast; then the binary is linked back into the first mirror folder
+and **Check again** must clear the notice without a restart. The group runs
+on Linux and macOS only (on Windows the main process re-reads the registry
+PATH before each probe and finds the installed kubectl again), skips the
+last step on a machine without kubectl, and skips entirely when kubectl
+lives in a folder Shoal appends to the PATH by itself
+(`electron/utils/path-env.ts`), because that one cannot be hidden.
 
 ### `plugins.spec.ts`
 
