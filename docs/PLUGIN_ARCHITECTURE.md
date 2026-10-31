@@ -175,11 +175,11 @@ a working `renderer.js`; the Plugins page has no button for it yet.
 
 ### Security (`electron/services/security/`)
 
-| File                   | Description                                                                                 |
-| ---------------------- | ------------------------------------------------------------------------------------------- |
-| `license-manager.ts`   | Validates and activates license keys; manages trial periods; encrypts license data locally. |
-| `signature-service.ts` | RSA verification of the signed file list (manifest and code) of each plugin.                |
-| `encryption-utils.ts`  | AES encryption helpers used by the license manager.                                         |
+| File                   | Description                                                                                                                                                                                                 |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `license-manager.ts`   | Validates and activates license keys; manages trial periods. The key is stored through the registry.                                                                                                        |
+| `signature-service.ts` | RSA verification of the signed file list (manifest and code) of each plugin.                                                                                                                                |
+| `encryption-utils.ts`  | AES-256-GCM for the secrets in `plugin-config.json` (license keys, `secret: true` settings). The data key is wrapped by Electron `safeStorage`; a machine-bound key is the fallback and reads older values. |
 
 ### Marketplace Client (`electron/services/marketplace/`)
 
