@@ -50,12 +50,19 @@ newest **non** pre-release.
    - Linux: `Shoal-<version>.AppImage`, `shoal_<version>_amd64.deb`,
      `latest-linux.yml`
 
-   Tag builds upload nothing as a workflow artifact: the `smoke` jobs
-   download the installer from the draft release itself, so a release never
+   Tag builds upload nothing as a workflow artifact: the `smoke` and `deb`
+   jobs download the files from the draft release itself, so a release never
    waits on artifact storage. Master and manual builds keep their installers
-   as one-day artifacts for their own smoke job (the free plan's artifact
-   quota is counted in GB-months, and two weeks of ~470 MB per run exhausted
-   it once).
+   (and the `.deb`) as one-day artifacts for those jobs (the free plan's
+   artifact quota is counted in GB-months, and two weeks of ~470 MB per run
+   exhausted it once while the repository was private).
+
+   The `deb` job installs the `.deb` on a bare `ubuntu:24.04` container
+   (`scripts/check-deb.sh`) and fails when apt leaves a shared library the
+   binary links unresolved. The runner image has every desktop library
+   preinstalled, so the smoke job cannot notice a dependency missing from
+   `build.deb.depends` in `package.json`: 0.9.0 shipped without
+   `libasound2`.
 
    For a release candidate (a tag with a hyphen, such as `v0.9.0-rc.2`) the
    workflow then flags the draft as a pre-release with `gh release edit`.
@@ -77,28 +84,100 @@ Playwright needs `--inspect` for the smoke tests.
 
 ## Publishing the draft
 
-1. Wait for both `release` jobs and both `smoke` jobs to pass. The smoke jobs
-   download the installer from the draft, install it on clean Windows and
-   Linux runners and run the E2E suite against it (Linux also creates kind
-   clusters).
+1. Wait for both `release` jobs, both `smoke` jobs and the `deb` job to
+   pass. The smoke jobs download the installer from the draft, install it on
+   clean Windows and Linux runners and run the E2E suite against it (Linux
+   also creates kind clusters); the deb job installs the `.deb` on a bare
+   container and checks its dependencies.
 2. Download the installer of at least one platform from the draft and start it.
-3. On GitHub, edit the draft:
-   - Paste the `CHANGELOG.md` section as release notes.
-   - Release candidates: check that **Set as a pre-release** is ticked (the
-     workflow does it).
-   - Stable releases: tick **Set as the latest release**.
-4. Publish. Auto-update only sees published, non-draft releases.
+3. Publish by **release id**, not by tag. `gh release edit <tag>` looks the
+   tag up through an endpoint that never returns drafts ("release not
+   found"), and `gh release create <tag>` on a tag that already has a draft
+   makes a second, empty release next to it, and a published release
+   without `latest.yml` breaks the updater for everyone on that version.
+   Find the id, then flip the draft with the `CHANGELOG.md` section as
+   notes:
+
+   ```bash
+   gh api repos/Dangalcan/shoal/releases --jq '.[] | "\(.id)\t\(.tag_name)\tdraft=\(.draft)\tassets=\(.assets|length)"'
+   # release candidate
+   gh api -X PATCH repos/Dangalcan/shoal/releases/<id> -F draft=false -F prerelease=true -f name=0.9.0-rc.6 -F body=@notes.md
+   # stable release
+   gh api -X PATCH repos/Dangalcan/shoal/releases/<id> -F draft=false -F prerelease=false -F make_latest=true -f name=0.9.0 -F body=@notes.md
+   ```
+
+   The GitHub UI works too: open the draft, **Edit**, tick **Set as a
+   pre-release** (release candidates) or **Set as the latest release**
+   (stable), **Publish release**. Never **Draft a new release** on the same
+   tag.
+
+4. Check that `releases.atom` lists the new version first and that
+   `releases/download/<tag>/latest.yml` serves it. Auto-update only sees
+   published, non-draft releases.
 
 ## Verifying auto-update
 
 Install the previous version, publish the new one, start the old app and wait
 for the "Update ready" toast, then restart. The sidebar must show the new
 version. This only works once the repository is public: electron-updater
-cannot read the releases of a private repository without a token. The plan
-for the beta: `rc.2 → rc.3` on 2026-10-29, the day the repository goes
-public, and `rc.3 → 0.9.0` on 2026-11-02, which also checks that a
-pre-release moves to the stable channel (`v0.9.0-rc.1` was tagged but its
-draft was never published).
+cannot read the releases of a private repository without a token. The beta
+rehearsed it on 2026-10-28, the day the repository went public: an
+installed rc.4 did not offer rc.5, because the service did not recognise
+the wrapped error electron-updater raises when no stable release exists
+and never looked at pre-releases. rc.6 fixed that, and an installed rc.6
+confirmed it by logging "No stable release published yet; checking
+pre-releases" and then that no newer version exists. `rc.6 → 0.9.0` on
+2026-11-02 checks that a pre-release moves to the stable channel.
+
+## When Actions cannot run
+
+If GitHub cannot start the release jobs (the account's included minutes or
+storage are used up, for example), the same artifacts can be built by hand
+and uploaded to a draft. Used for `v0.9.0-rc.3` on 2026-10-24.
+
+1. A clean checkout of the tag with its own dependencies, so the lockfile
+   decides every version (the shared `node_modules` of a long-lived checkout
+   may hold an older Electron):
+
+   ```bash
+   git worktree add ../shoal-rc3 v0.9.0-rc.3 && cd ../shoal-rc3 && npm ci
+   ```
+
+2. Windows, on a Windows machine:
+
+   ```bash
+   npm run build:react && npm run build:electron && npx electron-builder --win --publish never
+   ```
+
+3. Linux, from the same worktree, inside electron-builder's image (Docker
+   Desktop running; the volumes keep the Linux `node_modules` and caches
+   apart from the Windows ones):
+
+   ```bash
+   MSYS_NO_PATHCONV=1 docker run --rm -v "$PWD:/project" -v shoal-rc3-nm:/project/node_modules \
+     -v shoal-electron-cache:/root/.cache/electron -v shoal-npm-cache:/root/.npm -w /project \
+     electronuserland/builder:22 bash -lc "npm ci && npm run build:react && npm run build:electron && npx electron-builder --linux --publish never"
+   ```
+
+4. The checks above (asar contents, `resources`, fuses), plus: the `sha512`
+   in `latest.yml` and `latest-linux.yml` matches the installers
+   (`openssl dgst -sha512 -binary <file> | openssl base64 -A`), the asar
+   `package.json` carries the tagged version, and `dpkg-deb --info` on the
+   `.deb` lists the expected dependencies. Run the E2E suite against the
+   packaged executable (`SHOAL_E2E_EXECUTABLE=release/win-unpacked/Shoal.exe
+npx playwright test`) in place of the Windows smoke job; the Linux smoke
+   has no local substitute, so install the AppImage and the `.deb` on a Linux
+   desktop by hand.
+
+5. Upload the seven files to a draft, flagged as a pre-release for a release
+   candidate, with the CHANGELOG section as notes, and publish it the usual
+   way:
+
+   ```bash
+   gh release create v0.9.0-rc.3 --draft --prerelease --title "0.9.0-rc.3" --notes-file notes.md \
+     release/Shoal-Setup-*.exe release/Shoal-Setup-*.exe.blockmap release/Shoal-*-portable.exe release/latest.yml \
+     release/Shoal-*.AppImage release/shoal_*_amd64.deb release/latest-linux.yml
+   ```
 
 ## Rollback
 

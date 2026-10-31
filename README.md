@@ -411,6 +411,7 @@ The 0.9 installers are not code-signed yet, so SmartScreen warns on first start.
 
 - Make it executable first: `chmod +x Shoal-<version>.AppImage`
 - AppImages need `libfuse2`, which Ubuntu 22.04 and later do not install by default: `sudo apt install libfuse2` (`libfuse2t64` on Ubuntu 24.04). Without it the AppImage still runs with `APPIMAGE_EXTRACT_AND_RUN=1 ./Shoal-<version>.AppImage`
+- `error while loading shared libraries: libasound.so.2` or `libgbm.so.1` (AppImage): the system lacks ALSA's or Mesa's GBM library, which desktop installs have and minimal ones such as WSL or containers may not: `sudo apt install libasound2t64 libgbm1` (`libasound2` before Ubuntu 24.04). The `.deb` declares both dependencies, so `apt install ./shoal_<version>_amd64.deb` brings them in
 - On Ubuntu 24.04 prefer the `.deb` (see [Installation](#-installation))
 
 **Issue: Where are the logs, and which version is this?**

@@ -8,8 +8,8 @@ import {
 } from 'lucide-react';
 import { Terminal } from '../components/Terminal';
 import type { LocalShellInfo } from '../types';
-import { useApi } from '../services/api-context';
 import { handleError } from '../lib/error-handler';
+import { useApi } from '../services/api-context';
 import { useTerminalSession } from '../features/terminal/useTerminalSession';
 
 export function TerminalPage() {

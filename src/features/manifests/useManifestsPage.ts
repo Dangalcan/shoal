@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAsyncData } from '../../hooks/useAsyncData';
-import { useApi } from '../../services/api-context';
 import { handleError } from '../../lib/error-handler';
+import { useApi } from '../../services/api-context';
 import type { Manifest } from '../../types.d';
 import { useManifestFolders } from './useManifestFolders';
 import { useManifestEditor } from './useManifestEditor';

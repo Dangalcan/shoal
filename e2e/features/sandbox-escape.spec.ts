@@ -18,7 +18,8 @@ import { launchApp, mainWindow } from '../fixtures/launch';
  *
  * Dev builds load the unsigned fixture (ALLOW_UNSIGNED_PLUGINS). Packaged
  * builds ignore that flag, so against SHOAL_E2E_EXECUTABLE the spec checks
- * the opposite: the unsigned plugin is not loaded at all.
+ * the opposite: the unsigned plugin is listed as an error that explains the
+ * missing signature and none of its code is loaded.
  */
 
 const PLUGIN_ID = 'escape-probe';
@@ -80,11 +81,19 @@ function pluginHostFrame() {
 test('a packaged build does not load the unsigned plugin', async () => {
   test.skip(!PACKAGED, 'dev builds load unsigned plugins on purpose');
 
-  // The bundled (signed) plugins are there; the unsigned fixture is not.
+  // The bundled (signed) plugins are there. The unsigned fixture is listed
+  // too, but as an error that explains the missing signature: the loader
+  // registers it without loading any of its code, so the user sees why it
+  // does not run instead of a plugin that silently disappears.
   await expect(
     window.locator('.plugin-card', { hasText: 'Resource Monitor' })
   ).toBeVisible({ timeout: 15_000 });
-  await expect(pluginCard()).toHaveCount(0);
+  await expect(pluginCard()).toHaveCount(1);
+  await expect(pluginCard().locator('.plugin-card__error')).toContainText(
+    'not signed'
+  );
+  await expect(pluginCard().locator('.plugin-state')).toHaveText('Error');
+  expect(pluginHostFrame()).toBeUndefined();
 });
 
 test('every escape attempt from the plugin frame is blocked', async () => {
