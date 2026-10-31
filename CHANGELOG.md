@@ -5,7 +5,9 @@ All notable changes to Shoal are documented here. The format follows
 [Semantic Versioning](https://semver.org/). Release steps are in
 [docs/RELEASE.md](docs/RELEASE.md).
 
-## [Unreleased] - 0.9.0 public beta
+## [Unreleased]
+
+## [0.9.0] - 2026-11-02
 
 First public release, for Windows and Linux. Installers are not code-signed
 yet, so Windows SmartScreen shows a warning on first launch.
@@ -285,4 +287,5 @@ yet, so Windows SmartScreen shows a warning on first launch.
   AppArmor profile and keeps it.
 - The AppImage needs `libfuse2` (`libfuse2t64` on Ubuntu 24.04).
 
-[Unreleased]: https://github.com/Dangalcan/shoal/compare/v0.9.0-rc.6...HEAD
+[Unreleased]: https://github.com/Dangalcan/shoal/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/Dangalcan/shoal/compare/v0.9.0-rc.6...v0.9.0
