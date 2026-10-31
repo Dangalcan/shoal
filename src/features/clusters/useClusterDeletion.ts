@@ -21,7 +21,7 @@ export function useClusterDeletion(name: string | undefined): ClusterDeletion {
     if (!name) return;
     const { success } = await deleteCluster(name);
     if (success) {
-      navigate('/clusters');
+      await navigate('/clusters');
     }
     setIsOpen(false);
   };

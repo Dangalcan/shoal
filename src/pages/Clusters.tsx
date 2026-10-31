@@ -21,6 +21,10 @@ import {
 
 export function Clusters() {
   const navigate = useNavigate();
+  // Under the HashRouter navigate() returns nothing; the promise in its type
+  // belongs to the data routers.
+  const openCluster = (cluster: string) =>
+    void navigate(`/cluster/${encodeURIComponent(cluster)}`);
   const {
     clusters,
     loading,
@@ -105,13 +109,9 @@ export function Clusters() {
                     <Server size={24} />
                   </div>
                   <div
-                    onClick={() =>
-                      navigate(`/cluster/${encodeURIComponent(cluster)}`)
-                    }
+                    onClick={() => openCluster(cluster)}
                     onKeyDown={(e) =>
-                      activateOnKey(e, () =>
-                        navigate(`/cluster/${encodeURIComponent(cluster)}`)
-                      )
+                      activateOnKey(e, () => openCluster(cluster))
                     }
                     role="button"
                     tabIndex={0}

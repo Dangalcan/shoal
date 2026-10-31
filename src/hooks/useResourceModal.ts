@@ -86,9 +86,13 @@ export function useResourceModal({
   const content = current?.content ?? '';
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    navigator.clipboard
+      .writeText(content)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch((err) => handleError(err, 'Could not copy to the clipboard'));
   };
 
   return {

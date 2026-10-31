@@ -28,12 +28,15 @@ export function Terminal({
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
 
+  // The resize, input and interrupt calls are fire-and-forget: they only
+  // fail once the session is gone, which onTerminalExited prints in the
+  // terminal, and the main process logs the error.
   const fit = useCallback(() => {
     if (!fitAddonRef.current || !xtermRef.current) return;
     try {
       fitAddonRef.current.fit();
       const { cols, rows } = xtermRef.current;
-      api.terminalResize(sessionId, cols, rows);
+      void api.terminalResize(sessionId, cols, rows);
     } catch {
       // ignore fit errors during mount/unmount race
     }
@@ -93,12 +96,12 @@ export function Terminal({
           }
           // Windows shells need \r\n; unix shells need just \n
           const eol = isWindowsShell ? '\r\n' : '\n';
-          api.terminalInput(sessionId, inputBuffer + eol);
+          void api.terminalInput(sessionId, inputBuffer + eol);
           inputBuffer = '';
         } else if (code === 0x03) {
           inputBuffer = '';
           terminal.write('^C\r\n');
-          api.terminalInterrupt(sessionId);
+          void api.terminalInterrupt(sessionId);
         } else if (code === 0x7f || code === 0x08) {
           if (inputBuffer.length > 0) {
             inputBuffer = inputBuffer.slice(0, -1);

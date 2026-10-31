@@ -21,7 +21,7 @@ export interface UseManifestImportResult {
   isDragging: boolean;
   onDragOver: (e: React.DragEvent) => void;
   onDragLeave: (e: React.DragEvent) => void;
-  onDrop: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => Promise<void>;
 }
 
 /**
@@ -95,13 +95,13 @@ export function useManifestImport({
     setIsDragging(false);
   };
 
-  const onDrop = (e: React.DragEvent) => {
+  const onDrop = async (e: React.DragEvent) => {
     if (!isFileDrag(e)) return;
     e.preventDefault();
     setIsDragging(false);
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      processFiles(Array.from(files));
+      await processFiles(Array.from(files));
     }
   };
 

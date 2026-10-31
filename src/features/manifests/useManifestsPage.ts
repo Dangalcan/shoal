@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAsyncData } from '../../hooks/useAsyncData';
+import { handleError } from '../../lib/error-handler';
 import { useApi } from '../../services/api-context';
 import type { Manifest } from '../../types.d';
 import { useManifestFolders } from './useManifestFolders';
@@ -43,7 +44,9 @@ export function useManifestsPage() {
         setActiveContext(result.data);
       }
     };
-    fetchContext();
+    fetchContext().catch((err) =>
+      handleError(err, 'Failed to read the current context')
+    );
   }, [api]);
 
   const editor = useManifestEditor({

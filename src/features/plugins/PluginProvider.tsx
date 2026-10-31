@@ -97,10 +97,11 @@ export function PluginProvider({ children }: PluginProviderProps) {
 
   const actions = usePluginActions(plugins, refreshPlugins);
 
-  // Load plugins on mount
+  // Load plugins on mount. loadPlugins keeps its error in state and
+  // checkForUpdates toasts its own, so neither promise needs a handler here.
   useEffect(() => {
     void loadPlugins();
-    actions.checkForUpdates();
+    void actions.checkForUpdates();
   }, []);
 
   // Plugins keep activating after the window opens, and can be reloaded or
@@ -151,8 +152,9 @@ export function usePluginExtensions(extensionPoint: string) {
   const { getPluginExtensions, plugins } = usePlugins();
   const [extensions, setExtensions] = useState<unknown[]>([]);
 
+  // getPluginExtensions toasts its failures and resolves to [] on them.
   useEffect(() => {
-    getPluginExtensions(extensionPoint).then(setExtensions);
+    void getPluginExtensions(extensionPoint).then(setExtensions);
   }, [extensionPoint, plugins]);
 
   return extensions;

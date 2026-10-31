@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { useApi } from '../../services/api-context';
 import { toast } from 'sonner';
+import { handleError } from '../../lib/error-handler';
 import { useClusterContext } from '../clusters/ClusterContext';
 import { UseSettingsResult } from './types';
 
@@ -70,7 +71,9 @@ export function useSettings(): UseSettingsResult {
         setKubeconfigPath(result.data);
       }
     };
-    fetchKubeconfig();
+    fetchKubeconfig().catch((err) =>
+      handleError(err, 'Failed to read the kubeconfig path')
+    );
   }, [api]);
 
   // Handlers
