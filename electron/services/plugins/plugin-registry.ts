@@ -14,7 +14,11 @@ import type {
   PluginContext,
   PluginRegistryEntry,
 } from '../../types/plugin-types';
-import { encrypt, decrypt } from '../security/encryption-utils';
+import {
+  encrypt,
+  decrypt,
+  usesCurrentScheme,
+} from '../security/encryption-utils';
 import { getErrorMessage } from '../../utils/error-utils';
 import log from '../../logger';
 
@@ -269,8 +273,11 @@ export class PluginRegistry {
   }
 
   /**
-   * Encrypt secret-flagged string values in place. Already-encrypted values
-   * (marked with the ENC_PREFIX sentinel) pass through untouched.
+   * Encrypt secret-flagged string values in place. Values already encrypted
+   * with the current scheme (ENC_PREFIX sentinel) pass through untouched;
+   * values encrypted with an older scheme are re-encrypted, so a config
+   * written before the keystore-wrapped key existed migrates on the next
+   * save. A value that cannot be decrypted stays as stored (reads yield '').
    */
   private encryptSecretValues(
     pluginId: string,
@@ -281,13 +288,24 @@ export class PluginRegistry {
     const out: Record<string, unknown> = { ...settings };
     for (const key of secretKeys) {
       const value = out[key];
-      if (
-        typeof value === 'string' &&
-        value !== '' &&
-        !value.startsWith(ENC_PREFIX)
-      ) {
+      if (typeof value !== 'string' || value === '') continue;
+      if (!value.startsWith(ENC_PREFIX)) {
         out[key] = ENC_PREFIX + encrypt(value);
+        continue;
       }
+      const stored = value.slice(ENC_PREFIX.length);
+      if (usesCurrentScheme(stored)) continue;
+      const plain = decrypt(stored);
+      if (plain === '') {
+        log.warn(
+          `[PluginRegistry] Setting ${key} of ${pluginId} could not be re-encrypted; left as stored`
+        );
+        continue;
+      }
+      out[key] = ENC_PREFIX + encrypt(plain);
+      log.info(
+        `[PluginRegistry] Re-encrypted setting ${key} of ${pluginId} with the current key`
+      );
     }
     return out;
   }
