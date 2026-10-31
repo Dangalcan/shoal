@@ -101,15 +101,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --prerelease
 
-      # Master and manual builds hand the installers to the smoke job as a
-      # one-day artifact holding only what that job installs (the NSIS setup
-      # on Windows, the AppImage on Linux; the portable build, the .deb and
-      # the update feeds stay on the runner). Tag builds skip this: the draft
-      # release already holds the files and the smoke job downloads them from
-      # there, so a release never depends on artifact storage (the free plan's
-      # quota is counted in GB-months and, once hit, blocks every upload until
-      # the billing cycle ends; 14 days of ~470 MB per run hit it on
-      # 2026-10-12).
+      # Master and manual builds hand the installers to the smoke and deb
+      # jobs as a one-day artifact holding only what those jobs install (the
+      # NSIS setup on Windows, the AppImage and the .deb on Linux; the
+      # portable build and the update feeds stay on the runner). Tag builds
+      # skip this: the draft release already holds the files and the jobs
+      # download them from there, so a release never depends on artifact
+      # storage (the free plan's quota is counted in GB-months and, once hit,
+      # blocks every upload until the billing cycle ends; 14 days of ~470 MB
+      # per run hit it on 2026-10-12, while the repository was private).
       - name: Upload installers
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -118,6 +118,7 @@ jobs:
           path: |
             release/Shoal-Setup-*.exe
             release/*.AppImage
+            release/*.deb
           if-no-files-found: error
           retention-days: 1
 
@@ -240,3 +241,49 @@ jobs:
           name: e2e-report-${{ matrix.os }}
           path: e2e-report
           retention-days: 7
+
+  deb:
+    # Installs the .deb on a bare ubuntu:24.04 container and fails when apt
+    # leaves a linked shared library unresolved (scripts/check-deb.sh). The
+    # runner image has every desktop library preinstalled, so the smoke job
+    # above cannot notice a dependency missing from the package's Depends
+    # list: 0.9.0 shipped without libasound2 and failed to start on WSL and
+    # other minimal installs. Same triggers as the smoke job.
+    needs: release
+    if: >-
+      startsWith(github.ref, 'refs/tags/v') ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && !github.event.repository.private)
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out git repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+          persist-credentials: false
+
+      - name: Download installers (workflow artifact)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: shoal-ubuntu-24.04
+          path: installers
+
+      - name: Download installers (draft release)
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY"
+          --dir installers --pattern '*.deb'
+
+      - name: Install the .deb on a bare Ubuntu 24.04 container
+        run: |
+          deb=$(ls installers/*.deb | head -n 1)
+          if [ -z "$deb" ]; then echo "::error::no .deb among the installers"; exit 1; fi
+          docker run --rm \
+            -v "$PWD/installers:/pkg:ro" \
+            -v "$PWD/scripts/check-deb.sh:/check-deb.sh:ro" \
+            ubuntu:24.04 bash /check-deb.sh "/pkg/$(basename "$deb")"
