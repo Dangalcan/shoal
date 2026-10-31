@@ -7,7 +7,7 @@
   "main": "index.js",
   "renderer": "renderer.js",
   "styles": ["styles.css"],
-  "permissions": ["kubernetes", "ui", "storage", "notifications"],
+  "permissions": ["kubernetes", "ui", "storage"],
   "category": "Monitoring",
   "license": {
     "type": "free",

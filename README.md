@@ -260,6 +260,7 @@ Plugins can:
 - Register custom pages, dashboard widgets and modals
 - Add resource action buttons
 - Read cluster resources, logs and metrics through kubectl
+- Change resources, apply manifests and drive Helm, each behind its own permission (Secret data needs one more)
 - Store persistent data and declared, validated settings
 - Show notifications
 
@@ -358,8 +359,8 @@ Releases are built and published by CI from `v*` tags; see [docs/RELEASE.md](doc
 
 ## 🗺 Roadmap
 
-- **0.9.x** (beta fixes): keyboard access to every table and card, and whatever the beta feedback shows first. Report what you miss on [GitHub Issues](https://github.com/Dangalcan/shoal/issues).
-- **1.0** (planned for Q1 2027): code-signed installers (no more SmartScreen warning), macOS builds, the plugin marketplace with third-party and paid plugins, plugin secrets in the OS keychain, and finer plugin permissions (read, write and Helm separated).
+- **0.9.x** (beta fixes): keyboard access to every table and card, finer plugin permissions (reads, writes, Helm and Secret data separated), and whatever the beta feedback shows first. Report what you miss on [GitHub Issues](https://github.com/Dangalcan/shoal/issues).
+- **1.0** (planned for Q1 2027): code-signed installers (no more SmartScreen warning), macOS builds, the plugin marketplace with third-party and paid plugins, and plugin secrets in the OS keychain.
 - **Marketplace** (planned for 1.0): the marketplace client (catalog, installs, trials, licenses and checkout) is in the code base but hidden in the 0.9 beta: the Marketplace tab only appears when the app runs with `MARKETPLACE_ENABLED=true`, which `npm run dev` sets. It talks to a separate backend that is not public yet, selected through `MARKETPLACE_BACKEND_URL`; without one, development builds fall back to the sample catalog in `electron/data/marketplace.json`.
 - **Not planned**: telemetry or accounts. Shoal works offline and sends nothing anywhere except the update check against GitHub Releases.
 
