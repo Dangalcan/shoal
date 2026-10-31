@@ -8,7 +8,7 @@ For Windows users who install with `winget install Dangalcan.Shoal`. `0.9.1/` ho
 | `Dangalcan.Shoal.installer.yaml`    | The NSIS installer: URL, SHA-256, silent switches, product code. |
 | `Dangalcan.Shoal.locale.en-US.yaml` | Publisher, license, description, tags, URLs.                     |
 
-Manifest schema 1.28.0; the `# yaml-language-server` header gives editors completion and validation.
+Manifest schema 1.12.0, the version wingetcreate 1.12 writes and the manifests merged into microsoft/winget-pkgs use today (wingetcreate rejects newer schema headers even though `winget validate` accepts them); the `# yaml-language-server` header gives editors completion and validation.
 
 ## What is fixed and what is filled in on release day
 
