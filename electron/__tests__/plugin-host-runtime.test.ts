@@ -66,6 +66,24 @@ exports.stopWatch = () => {
 
 exports.getReceived = () => received;
 
+exports.tryDeniedWrite = async () => {
+  try {
+    await ctx.kubernetes.deleteResource('configmaps', 'cm', 'default');
+    return 'no-throw';
+  } catch (error) {
+    return error.message;
+  }
+};
+
+exports.tryDeniedRead = async () => {
+  try {
+    await ctx.kubernetes.getResources('pods', 'default');
+    return 'no-throw';
+  } catch (error) {
+    return error.message;
+  }
+};
+
 exports.tryDeniedStorage = async () => {
   try {
     await ctx.storage.get('key');
@@ -449,8 +467,34 @@ describe('PluginHostRuntime', () => {
     ).not.toThrow();
   });
 
+  it('denies cluster changes without kubernetes:write and reads without kubernetes', async () => {
+    init(['kubernetes', 'ui']);
+    invoke(1, 'activate', true);
+    invoke(2, 'tryDeniedWrite');
+    await flush();
+    expect(resultFor(2)).toMatchObject({
+      ok: true,
+      result:
+        'Permission denied: "deleteResource" requires the "kubernetes:write" permission',
+    });
+
+    port = new FakePort();
+    runtime = new PluginHostRuntime(port, exit);
+    init(['kubernetes:write']);
+    invoke(1, 'activate', true);
+    invoke(2, 'tryDeniedRead');
+    await flush();
+    expect(resultFor(2)).toMatchObject({
+      ok: true,
+      result:
+        'Permission denied: "getResources" requires the "kubernetes" permission',
+    });
+    // Nothing reached the main process: the gate is local.
+    expect(port.ofType('context-call')).toEqual([]);
+  });
+
   it('forwards every kubernetes write and exec through context calls', async () => {
-    init();
+    init(['kubernetes', 'kubernetes:write', 'ui']);
     invoke(1, 'activate', true);
     invoke(2, 'k8sWrites');
     await answerCalls([null, null, null, 'ls output', [{ name: 'pod-a' }]]);

@@ -101,13 +101,14 @@ export interface PluginReview {
 // Permission Types
 // ============================================================================
 
-export type PluginPermission =
-  | 'kubernetes' // Access to Kubernetes API
-  | 'filesystem' // File system access
-  | 'network' // Network access
-  | 'ui' // UI extension capabilities
-  | 'storage' // Plugin-specific storage
-  | 'notifications'; // Show notifications
+/**
+ * What a plugin may declare: `kubernetes` (cluster reads), `kubernetes:write`
+ * (cluster changes), `helm`, `secrets` (Secret payloads in reads), `ui` and
+ * `storage`. The list and its meaning live in
+ * electron/shared/plugin-permissions.ts, shared with the renderer sandbox.
+ */
+import type { PluginPermission } from '../shared/plugin-permissions';
+export type { PluginPermission };
 
 // ============================================================================
 // Extension Point Types

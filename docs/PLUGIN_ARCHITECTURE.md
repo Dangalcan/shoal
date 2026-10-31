@@ -27,7 +27,7 @@ In 0.9 the marketplace is hidden (`MARKETPLACE_ENABLED`), so every plugin that r
 ### Security Model
 
 - Plugin signing via RSA over the SHA-256 of every plugin file (`electron/services/security/signature-service.ts`, `plugin-integrity.ts`)
-- Manifest-based permission declarations (`kubernetes`, `ui`, `storage`)
+- Manifest-based permission declarations: `kubernetes` (reads), `kubernetes:write`, `helm`, `secrets`, `ui`, `storage` (one list in `electron/shared/plugin-permissions.ts`, checked by the validator, the main-process context, the plugin host process and the frame bridge)
 - Renderer UI runs in a sandboxed iframe with a permission-gated bridge (see below)
 - Node entry (`index.js`) of user-installed plugins runs in an isolated
   Electron utility process (see "Main-Process Isolation" below)
@@ -112,7 +112,13 @@ The complete method allowlist lives in
 `src/features/plugins/sandbox/protocol.ts` (`METHOD_TABLE`). To grant a new
 capability, add it there deliberately. Notable rules:
 
-- `kubernetes.*` and `manifests.*` require the `kubernetes` permission.
+- Reads (`kubernetes.*` except `deleteResource`) require `kubernetes`.
+  `getResources` and `getResourceYaml` hand back Secrets without their
+  payload unless the plugin also holds `secrets`: the bridge strips `data`,
+  `stringData` and the last-applied annotation
+  (`electron/shared/secret-redaction.ts`), from the YAML text too.
+- `kubernetes.deleteResource` and `manifests.*` require `kubernetes:write`.
+- `helm.*` requires `helm`.
 - `ui.*` requires the `ui` permission.
 - `settings.get/set` need no permission but act ONLY on the plugin's own
   settings — the host injects the plugin id, so a plugin can never read or
@@ -121,15 +127,17 @@ capability, add it there deliberately. Notable rules:
 #### `window.k8sPlugin` (renderer API)
 
 ```js
-// kubernetes (needs "kubernetes" permission)
+// kubernetes reads (need "kubernetes"; Secret data needs "secrets" too)
 await k8sPlugin.kubernetes.getCurrentContext();
 await k8sPlugin.kubernetes.getPods(contextName);
 await k8sPlugin.kubernetes.getResources({ contextName, resourceType, namespace });
 await k8sPlugin.kubernetes.getLogs({ contextName, podName, namespace, tailLines });
+// cluster changes (need "kubernetes:write")
 await k8sPlugin.kubernetes.deleteResource({ ... });
-// manifests (needs "kubernetes")
 await k8sPlugin.manifests.apply(id);
 await k8sPlugin.manifests.save(manifest);
+// helm (needs "helm")
+await k8sPlugin.helm.repoList();
 // settings (own settings only)
 await k8sPlugin.settings.get();
 await k8sPlugin.settings.set({ ... });
@@ -293,20 +301,21 @@ The marketplace is hidden in the 0.9 beta (`MARKETPLACE_ENABLED`). It talks to a
 
 ### Phase 5 Feature Status
 
-| Feature                                                   | Status                                          |
-| --------------------------------------------------------- | ----------------------------------------------- |
-| Hot reloading (`reloadPlugin` IPC)                        | ✅ Implemented                                  |
-| Dependency resolution (activation order, cascade disable) | ✅ Implemented                                  |
-| Plugin scaffolding (`generatePlugin` IPC)                 | ✅ Implemented                                  |
-| Import unpacked plugin (`importLocalPlugin` IPC)          | ✅ Implemented                                  |
-| `watchResources` API                                      | ✅ (kubectl --watch, returns unsubscribe fn)    |
-| Plugin modals (sandboxed)                                 | ✅ Implemented (`ui.showModal` → overlay frame) |
-| Resource-table actions (sandboxed)                        | ✅ Implemented (manifest `resourceActions`)     |
-| Plugin storage in SQLite (one `plugin_kv` table)          | ✅ Implemented (key-value, JSON values)         |
-| Cross-plugin events (`events.broadcast` / `onBroadcast`)  | ✅ Implemented                                  |
-| Granular network/filesystem permissions                   | ❌ Future                                       |
-| Advanced sandboxing (worker_threads / isolated-vm)        | ❌ Future                                       |
-| Remote plugins (npm / URL)                                | ❌ Future                                       |
+| Feature                                                   | Status                                                               |
+| --------------------------------------------------------- | -------------------------------------------------------------------- |
+| Hot reloading (`reloadPlugin` IPC)                        | ✅ Implemented                                                       |
+| Dependency resolution (activation order, cascade disable) | ✅ Implemented                                                       |
+| Plugin scaffolding (`generatePlugin` IPC)                 | ✅ Implemented                                                       |
+| Import unpacked plugin (`importLocalPlugin` IPC)          | ✅ Implemented                                                       |
+| `watchResources` API                                      | ✅ (kubectl --watch, returns unsubscribe fn)                         |
+| Plugin modals (sandboxed)                                 | ✅ Implemented (`ui.showModal` → overlay frame)                      |
+| Resource-table actions (sandboxed)                        | ✅ Implemented (manifest `resourceActions`)                          |
+| Plugin storage in SQLite (one `plugin_kv` table)          | ✅ Implemented (key-value, JSON values)                              |
+| Cross-plugin events (`events.broadcast` / `onBroadcast`)  | ✅ Implemented                                                       |
+| Separate read, write, Helm and Secret permissions         | ✅ Implemented (`kubernetes`, `kubernetes:write`, `helm`, `secrets`) |
+| Network/filesystem permissions                            | ❌ Future                                                            |
+| Advanced sandboxing (worker_threads / isolated-vm)        | ❌ Future                                                            |
+| Remote plugins (npm / URL)                                | ❌ Future                                                            |
 
 ---
 
@@ -315,6 +324,6 @@ The marketplace is hidden in the 0.9 beta (`MARKETPLACE_ENABLED`). It talks to a
 **Summary:**
 
 1. **Renderer UI is fully sandboxed**; **bundled main-process code is not a hard boundary**. Plugin `renderer.js` (all UI: pages, widgets, modals, actions) runs in an opaque-origin iframe with only the permission-gated `window.k8sPlugin`. **User-installed** plugins run their `index.js` in an Electron `utilityProcess` with an RPC-proxied context (see "Main-Process Isolation" above). **Bundled** plugins still run in-process in a `vm` sandbox with a built-in allowlist — that limits casual access but is **not** a security boundary against a determined plugin; run only signed/trusted bundled `index.js` (`PLUGIN_ISOLATION=all` forces isolation for everything).
-2. **Simple storage**: `StorageAPI` is a key-value table; there are no structured queries, and the `kubernetes` permission is all-or-nothing (reads, writes and Helm; a split is planned for 1.0).
+2. **Simple storage**: `StorageAPI` is a key-value table; there are no structured queries.
 3. **`watchResources` is basic**: it spawns `kubectl get <type> --watch` per subscription (no shared informer, no reconnect on failure) and is available to the Node context only, not the renderer SDK.
 4. **No file watcher**: editing a plugin's files does not reload it; use **Reload Plugin** on the Plugins page (`reloadPlugin` IPC).

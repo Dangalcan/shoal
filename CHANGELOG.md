@@ -7,6 +7,24 @@ All notable changes to Shoal are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Plugin permissions are split. `kubernetes` now only grants reads (list,
+  get, describe, YAML, logs, metrics, watches and resource events);
+  `kubernetes:write` is needed to create, update or delete resources, save or
+  apply manifests and run commands in pods, `helm` for every Helm call, and
+  `secrets` to receive the data of Secrets. Without `secrets`, `getResources`,
+  `getResourceYaml`, watches and resource events hand plugins Secrets without
+  `data`, `stringData` and the last-applied annotation. Plugins that change
+  the cluster must declare the new permissions; the bundled examples only
+  read and keep `kubernetes`.
+
+### Removed
+
+- The `filesystem`, `network` and `notifications` plugin permissions, which
+  never gated anything (notifications belong to `ui`). A manifest that names
+  them is rejected with the list of valid permissions.
+
 ### Fixed
 
 - The `.deb` declares `libasound2 (>= 1.0.17)` (ALSA) and `libgbm1` (Mesa
