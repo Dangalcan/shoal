@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ArrowRightLeft } from 'lucide-react';
 import { BaseModal } from './BaseModal';
 import { useApi } from '../../services/api-context';
@@ -15,8 +15,15 @@ interface PortForwardModalProps {
   suggestedPorts?: number[];
 }
 
-export function PortForwardModal({
-  isOpen,
+export function PortForwardModal(props: PortForwardModalProps) {
+  // The form exists only while the modal is open and is keyed on the
+  // resource, so every opening (and a resource change while open) starts
+  // from the suggested port with nothing touched.
+  if (!props.isOpen) return null;
+  return <PortForwardForm key={props.resourceName} {...props} />;
+}
+
+function PortForwardForm({
   onClose,
   contextName,
   namespace,
@@ -25,22 +32,11 @@ export function PortForwardModal({
   suggestedPorts = [],
 }: PortForwardModalProps) {
   const api = useApi();
-  const [remotePort, setRemotePort] = useState('');
-  const [localPort, setLocalPort] = useState('');
+  const initialPort = suggestedPorts[0] ? String(suggestedPorts[0]) : '';
+  const [remotePort, setRemotePort] = useState(initialPort);
+  const [localPort, setLocalPort] = useState(initialPort);
   const [localTouched, setLocalTouched] = useState(false);
   const [starting, setStarting] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      const initial = suggestedPorts[0] ? String(suggestedPorts[0]) : '';
-      setRemotePort(initial);
-      setLocalPort(initial);
-      setLocalTouched(false);
-      setStarting(false);
-    }
-    // Reset only when the modal opens for a (possibly new) resource.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, resourceName]);
 
   const handleRemoteChange = (value: string) => {
     setRemotePort(value);
@@ -70,7 +66,7 @@ export function PortForwardModal({
 
   return (
     <BaseModal
-      isOpen={isOpen}
+      isOpen
       onClose={onClose}
       title={`Forward ${resourceType}/${resourceName}`}
       subtitle={`namespace: ${namespace}  |  context: ${contextName}`}

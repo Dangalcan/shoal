@@ -111,4 +111,27 @@ describe('useNamespaces', () => {
 
     expect(result.current.selectedNamespace).toBe('custom-ns');
   });
+
+  it('falls back to the default namespace when the context changes', async () => {
+    window.localStorage.setItem(
+      'k8s_desktop_default_namespace',
+      JSON.stringify('team-a')
+    );
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <ApiProvider api={mockApi}>{children}</ApiProvider>
+    );
+    const { result, rerender } = renderHook(
+      ({ ctx }: { ctx: string }) => useNamespaces(ctx),
+      { wrapper, initialProps: { ctx: 'ctx-1' } }
+    );
+    expect(result.current.selectedNamespace).toBe('team-a');
+
+    const { act } = await import('@testing-library/react');
+    act(() => result.current.setSelectedNamespace('custom-ns'));
+    expect(result.current.selectedNamespace).toBe('custom-ns');
+
+    rerender({ ctx: 'ctx-2' });
+    expect(result.current.selectedNamespace).toBe('team-a');
+    window.localStorage.removeItem('k8s_desktop_default_namespace');
+  });
 });
