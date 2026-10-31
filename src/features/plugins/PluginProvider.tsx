@@ -65,29 +65,41 @@ export function PluginProvider({ children }: PluginProviderProps) {
   // card, and a click that straddles that remount is lost.
   const hasLoaded = useRef(false);
 
-  const refreshPlugins = async () => {
-    try {
-      if (!hasLoaded.current) setLoading(true);
-      setError(null);
-      const result = await api.getPlugins();
-      if (result.success) {
-        setPlugins(result.data);
-        hasLoaded.current = true;
-      } else {
-        setError(result.error || 'Failed to load plugins');
+  // Reads the plugin list and stores the answer, or the failure, from the
+  // promise callbacks, which also turn the loading state off. The caller
+  // decides whether that state is on beforehand: the initial render starts
+  // with it on, `refreshPlugins` turns it on only until the first list has
+  // arrived. Callbacks rather than `await`, because the effect lint rule
+  // takes an async function that writes state after `await` for a
+  // synchronous write.
+  const loadPlugins = () =>
+    api.getPlugins().then(
+      (result) => {
+        if (result.success) {
+          setPlugins(result.data);
+          hasLoaded.current = true;
+        } else {
+          setError(result.error || 'Failed to load plugins');
+        }
+        setLoading(false);
+      },
+      (err: unknown) => {
+        setError(err instanceof Error ? err.message : 'Failed to load plugins');
+        setLoading(false);
       }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load plugins');
-    } finally {
-      setLoading(false);
-    }
+    );
+
+  const refreshPlugins = async () => {
+    if (!hasLoaded.current) setLoading(true);
+    setError(null);
+    await loadPlugins();
   };
 
   const actions = usePluginActions(plugins, refreshPlugins);
 
   // Load plugins on mount
   useEffect(() => {
-    refreshPlugins();
+    void loadPlugins();
     actions.checkForUpdates();
   }, []);
 

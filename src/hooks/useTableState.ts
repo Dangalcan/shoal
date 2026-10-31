@@ -47,27 +47,29 @@ export function useTableState(
     return columnWidths[id] || defWidth;
   };
 
-  // Visible Columns State
-  const [visibleColumns, setVisibleColumns] = useState<string[]>(
-    defaultVisibleColumns
-  );
-
-  // Update visible columns when default changes (e.g. tab switch)
-  useEffect(() => {
-    // In a real app we might want to merge with user preferences here
-    if (defaultVisibleColumns.length > 0) {
-      setVisibleColumns(defaultVisibleColumns);
-    }
-  }, [defaultVisibleColumns]);
+  // Visible Columns State: the user's toggles, null while the defaults
+  // apply. The defaults belong to the active tab (one constant list per
+  // resource kind), so a tab switch shows that tab's defaults again and the
+  // toggles are dropped, during render (React's "adjust state when a prop
+  // changes" pattern). A tab without defaults keeps whatever was visible.
+  const base = defaultVisibleColumns.length > 0 ? defaultVisibleColumns : null;
+  const [columns, setColumns] = useState<string[] | null>(null);
+  const [seenBase, setSeenBase] = useState(base);
+  if (base !== null && seenBase !== base) {
+    setSeenBase(base);
+    setColumns(null);
+  }
+  const visibleColumns = columns ?? defaultVisibleColumns;
 
   const handleColumnToggle = (columnId: string) => {
-    setVisibleColumns((prev) => {
-      if (prev.includes(columnId)) {
+    setColumns((prev) => {
+      const current = prev ?? defaultVisibleColumns;
+      if (current.includes(columnId)) {
         // Don't allow hiding the last column
-        if (prev.length <= 1) return prev;
-        return prev.filter((id) => id !== columnId);
+        if (current.length <= 1) return prev;
+        return current.filter((id) => id !== columnId);
       }
-      return [...prev, columnId];
+      return [...current, columnId];
     });
   };
 
