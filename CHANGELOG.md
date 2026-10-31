@@ -25,6 +25,18 @@ All notable changes to Shoal are documented here. The format follows
   never gated anything (notifications belong to `ui`). A manifest that names
   them is rejected with the list of valid permissions.
 
+### Fixed
+
+- The `.deb` declares `libasound2 (>= 1.0.17)` (ALSA) and `libgbm1` (Mesa
+  GBM) as dependencies, so `apt install` pulls them in on WSL, containers
+  and other minimal systems, where Shoal failed to start with
+  `libasound.so.2` or `libgbm.so.1` missing. The package used
+  electron-builder's default dependency list, which lacks both although
+  Electron links them. On Ubuntu 24.04 `libasound2` is a virtual name and
+  the version makes apt choose `libasound2t64` rather than the OSS
+  compatibility shim that also provides it. The AppImage still needs the
+  system's libraries.
+
 ## [0.9.0] - 2026-11-02
 
 First public release, for Windows and Linux. Installers are not code-signed
