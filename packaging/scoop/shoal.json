@@ -1,0 +1,37 @@
+{
+  "version": "0.9.0",
+  "description": "Desktop app for managing Kubernetes clusters",
+  "homepage": "https://shoal.dangalcan.com",
+  "license": {
+    "identifier": "LGPL-3.0-or-later",
+    "url": "https://github.com/Dangalcan/shoal/blob/master/COPYING.LESSER"
+  },
+  "notes": [
+    "Shoal needs kubectl on PATH for anything cluster-related, and kind or k3d with Docker running to create local clusters.",
+    "This is the portable build: it does not update itself, run 'scoop update shoal'."
+  ],
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/Dangalcan/shoal/releases/download/v0.9.0/Shoal-0.9.0-portable.exe#/Shoal.exe",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  },
+  "bin": "Shoal.exe",
+  "shortcuts": [["Shoal.exe", "Shoal"]],
+  "suggest": {
+    "kubectl": "main/kubectl",
+    "kind": "main/kind",
+    "k3d": "main/k3d",
+    "kompose": "main/kompose"
+  },
+  "checkver": {
+    "github": "https://github.com/Dangalcan/shoal"
+  },
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/Dangalcan/shoal/releases/download/v$version/Shoal-$version-portable.exe#/Shoal.exe"
+      }
+    }
+  }
+}
