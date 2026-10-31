@@ -1,6 +1,6 @@
 # winget manifests (`Dangalcan.Shoal`)
 
-For Windows users who install with `winget install Dangalcan.Shoal`. `0.9.0/` holds the manifest set of one version, in the layout [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs) keeps under `manifests/d/Dangalcan/Shoal/<version>/`. The manifests sit in their own folder because `winget validate` and `wingetcreate submit` read every file in the folder they are given, this README included.
+For Windows users who install with `winget install Dangalcan.Shoal`. `0.9.1/` holds the manifest set of one version, in the layout [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs) keeps under `manifests/d/Dangalcan/Shoal/<version>/`. The manifests sit in their own folder because `winget validate` and `wingetcreate submit` read every file in the folder they are given, this README included.
 
 | File                                | Purpose                                                          |
 | ----------------------------------- | ---------------------------------------------------------------- |
@@ -12,10 +12,10 @@ Manifest schema 1.28.0; the `# yaml-language-server` header gives editors comple
 
 ## What is fixed and what is filled in on release day
 
-- **`InstallerSha256`** is `0000…` (64 zeros) until `v0.9.0` is published. Fill it with any of:
-  - the digest GitHub shows next to the asset on the release page, also available as `gh api repos/Dangalcan/shoal/releases/tags/v0.9.0 --jq '.assets[] | "\(.name) \(.digest)"'`;
-  - `certutil -hashfile Shoal-Setup-0.9.0.exe SHA256` or `(Get-FileHash Shoal-Setup-0.9.0.exe).Hash` on a downloaded copy;
-  - `wingetcreate update Dangalcan.Shoal --version 0.9.0 --urls <installer url>`, once the package exists in winget-pkgs: it downloads the installer and writes the hash itself.
+- **`InstallerSha256`** is `0000…` (64 zeros) until `v0.9.1` is published. Fill it with any of:
+  - the digest GitHub shows next to the asset on the release page, also available as `gh api repos/Dangalcan/shoal/releases/tags/v0.9.1 --jq '.assets[] | "\(.name) \(.digest)"'`;
+  - `certutil -hashfile Shoal-Setup-0.9.1.exe SHA256` or `(Get-FileHash Shoal-Setup-0.9.1.exe).Hash` on a downloaded copy;
+  - `wingetcreate update Dangalcan.Shoal --version 0.9.1 --urls <installer url>`, once the package exists in winget-pkgs: it downloads the installer and writes the hash itself.
 
   winget-pkgs stores hashes in upper case; either case validates.
 
@@ -38,18 +38,18 @@ Manifest schema 1.28.0; the `# yaml-language-server` header gives editors comple
 ## Validate
 
 ```powershell
-winget validate --manifest packaging/winget/0.9.0
+winget validate --manifest packaging/winget/0.9.1
 ```
 
 That is schema validation only; it does not check the hash. To install from the local manifests, enable local manifests once from an elevated shell (`winget settings --enable LocalManifestFiles`), then:
 
 ```powershell
-winget install --manifest packaging/winget/0.9.0
+winget install --manifest packaging/winget/0.9.1
 ```
 
 ## Submit
 
-First version: `wingetcreate submit --token <github token> packaging/winget/0.9.0` opens the pull request against microsoft/winget-pkgs with the files in the right folder (`winget install wingetcreate`; a hand-made PR adding `manifests/d/Dangalcan/Shoal/0.9.0/` works too). The pipeline downloads the installer, checks the hash, installs it in a sandbox and compares the ARP entry; moderators may ask for changes on the PR.
+First version: `wingetcreate submit --token <github token> packaging/winget/0.9.1` opens the pull request against microsoft/winget-pkgs with the files in the right folder (`winget install wingetcreate`; a hand-made PR adding `manifests/d/Dangalcan/Shoal/0.9.1/` works too). The pipeline downloads the installer, checks the hash, installs it in a sandbox and compares the ARP entry; moderators may ask for changes on the PR.
 
 Later versions, once `Dangalcan.Shoal` exists in the repository:
 

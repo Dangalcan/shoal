@@ -25,7 +25,7 @@ For Arch Linux users (`paru -S shoal-bin`, `yay -S shoal-bin`). `shoal-bin` repa
 - What the `.deb` postinst would do happens at package time: the `/usr/bin/shoal` symlink, `chrome-sandbox` as a plain `0755` executable (the SUID bit is only for kernels without user namespaces) and the AppArmor profile in `/etc/apparmor.d/shoal` (in `backup`; only read where AppArmor is enabled).
 - The `.desktop` file (`/usr/share/applications/shoal.desktop`, `Exec=/opt/Shoal/shoal %U`, `StartupWMClass=shoal`) and the icons (`/usr/share/icons/hicolor/<size>/apps/shoal.png`) come straight from the `.deb`.
 - `provides=(shoal)` and `conflicts=(shoal)`, so a future source package can replace it.
-- `sha256sums` is `0000…` (64 zeros) until v0.9.0 is published.
+- `sha256sums` is `0000…` (64 zeros) until v0.9.1 is published.
 
 ## Fill the checksum and validate
 
@@ -35,7 +35,7 @@ On Arch, in `packaging/aur`:
 updpkgsums                       # downloads the .deb and writes sha256sums (pacman-contrib)
 makepkg --printsrcinfo > .SRCINFO
 namcap PKGBUILD                  # static checks
-makepkg -sf                      # builds shoal-bin-0.9.0-1-x86_64.pkg.tar.zst
+makepkg -sf                      # builds shoal-bin-0.9.1-1-x86_64.pkg.tar.zst
 namcap shoal-bin-*.pkg.tar.zst   # checks the built package, dependencies included
 sudo pacman -U shoal-bin-*.pkg.tar.zst && shoal --version
 ```
@@ -64,7 +64,7 @@ git clone ssh://aur@aur.archlinux.org/shoal-bin.git
 cp packaging/aur/PKGBUILD packaging/aur/.SRCINFO shoal-bin/
 cd shoal-bin
 git add PKGBUILD .SRCINFO
-git commit -m "Initial import: 0.9.0-1"
+git commit -m "Initial import: 0.9.1-1"
 git push origin master
 ```
 

@@ -8,7 +8,7 @@
 
 pkgname=shoal-bin
 _pkgname=shoal
-pkgver=0.9.0
+pkgver=0.9.1
 pkgrel=1
 pkgdesc='Desktop app for managing Kubernetes clusters'
 arch=('x86_64')
@@ -41,7 +41,7 @@ backup=("etc/apparmor.d/${_pkgname}")
 options=('!strip' '!debug')
 source=("https://github.com/Dangalcan/shoal/releases/download/v${pkgver}/${_pkgname}_${pkgver}_amd64.deb")
 # Release day: the digest GitHub shows next to the asset, or `updpkgsums`.
-sha256sums=('3c64ec0a4cc93099f842421bbda5f7bdfad29afec4ae454524f2e37424b69399')
+sha256sums=('0edaaf67c0ef412c158e9b67e7f88ffe357855fd89ba45b918f9fce83d182e2f')
 
 package() {
   bsdtar -xf "${srcdir}/data.tar.xz" -C "${pkgdir}"
