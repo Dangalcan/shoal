@@ -16,7 +16,11 @@ url='https://shoal.dangalcan.com'
 license=('LGPL-3.0-or-later')
 # Runtime dependencies declared by the .deb (electron-builder's defaults for
 # the deb target: libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils
-# libatspi2.0-0 libuuid1 libsecret-1-0), mapped to Arch packages.
+# libatspi2.0-0 libuuid1 libsecret-1-0, plus libasound2 and libgbm1, which
+# Electron links directly), mapped to Arch packages. namcap confirms alsa-lib
+# and mesa (libgbm) against the binary; libnotify, libxss, libxtst, xdg-utils,
+# util-linux-libs and libsecret are loaded at run time, so namcap cannot see
+# them and reports them as possibly unneeded.
 depends=(
   'gtk3'
   'libnotify'
@@ -27,6 +31,8 @@ depends=(
   'at-spi2-core'
   'util-linux-libs'
   'libsecret'
+  'alsa-lib'
+  'mesa'
 )
 optdepends=(
   'kubectl: required for anything cluster-related'
