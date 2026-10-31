@@ -4,7 +4,7 @@
  * Generates a settings form based on the plugin's configuration schema.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Settings, AlertTriangle } from 'lucide-react';
 import type { Plugin } from '../../../electron/types/plugin-types';
 import { usePlugins } from './PluginProvider';
@@ -16,10 +16,13 @@ interface PluginSettingsModalProps {
   onClose: () => void;
 }
 
-export function PluginSettingsModal({
-  plugin,
-  onClose,
-}: PluginSettingsModalProps) {
+export function PluginSettingsModal(props: PluginSettingsModalProps) {
+  // Keyed on the plugin: another plugin gets a fresh, loading dialog
+  // instead of a form that still shows the previous values.
+  return <PluginSettingsDialog key={props.plugin.manifest.id} {...props} />;
+}
+
+function PluginSettingsDialog({ plugin, onClose }: PluginSettingsModalProps) {
   const { getSettings, saveSettings } = usePlugins();
   const [settings, setSettings] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
@@ -27,15 +30,24 @@ export function PluginSettingsModal({
 
   const schema = plugin.manifest.configuration;
 
+  // The context hands out a new `getSettings` on every render; the ref keeps
+  // the effect below from reloading each time.
+  const getSettingsRef = useRef(getSettings);
   useEffect(() => {
+    getSettingsRef.current = getSettings;
+  });
+
+  useEffect(() => {
+    if (!schema) return;
+    let cancelled = false;
     const loadSettings = async () => {
-      setLoading(true);
       try {
-        const loaded = await getSettings(plugin.manifest.id);
+        const loaded = await getSettingsRef.current(plugin.manifest.id);
+        if (cancelled) return;
 
         // Merge with defaults
         const defaults: Record<string, unknown> = {};
-        if (schema?.properties) {
+        if (schema.properties) {
           Object.entries(schema.properties).forEach(([key, prop]) => {
             if (prop.default !== undefined) {
               defaults[key] = prop.default;
@@ -45,17 +57,18 @@ export function PluginSettingsModal({
 
         setSettings({ ...defaults, ...loaded });
       } catch (err: unknown) {
+        if (cancelled) return;
         setError(
           err instanceof Error ? err.message : 'Failed to load settings'
         );
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
-
-    if (schema) {
-      loadSettings();
-    }
+    void loadSettings();
+    return () => {
+      cancelled = true;
+    };
   }, [plugin.manifest.id, schema]);
 
   const handleSave = async (values: Record<string, unknown>) => {
