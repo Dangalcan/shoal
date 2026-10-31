@@ -286,6 +286,11 @@ yet, so Windows SmartScreen shows a warning on first launch.
   (AppArmor blocks it for unprivileged AppImages); the `.deb` installs an
   AppArmor profile and keeps it.
 - The AppImage needs `libfuse2` (`libfuse2t64` on Ubuntu 24.04).
+- Both Linux builds use the system's ALSA library (`libasound2`). Desktop
+  installs have it; minimal systems such as WSL or containers may not, and
+  Shoal then fails to start with `libasound.so.2` missing:
+  `sudo apt install libasound2t64` (`libasound2` before Ubuntu 24.04). The
+  `.deb` will declare the dependency in 0.9.1.
 
 [Unreleased]: https://github.com/Dangalcan/shoal/compare/v0.9.0...HEAD
 [0.9.0]: https://github.com/Dangalcan/shoal/compare/v0.9.0-rc.6...v0.9.0
