@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.28.0.schema.json
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
 
 PackageIdentifier: Dangalcan.Shoal
 PackageVersion: 0.9.1
@@ -33,4 +33,4 @@ Documentations:
 - DocumentLabel: User Guide
   DocumentUrl: https://github.com/Dangalcan/shoal/blob/master/docs/USER_GUIDE.md
 ManifestType: defaultLocale
-ManifestVersion: 1.28.0
+ManifestVersion: 1.12.0
