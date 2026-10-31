@@ -13,7 +13,7 @@
   "architecture": {
     "64bit": {
       "url": "https://github.com/Dangalcan/shoal/releases/download/v0.9.0/Shoal-0.9.0-portable.exe#/Shoal.exe",
-      "hash": "0000000000000000000000000000000000000000000000000000000000000000"
+      "hash": "02ab8e0097143424d950caa05848dc366b33590613bdaebbafb2e37b14d32eb1"
     }
   },
   "bin": "Shoal.exe",

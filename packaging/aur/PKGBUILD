@@ -41,7 +41,7 @@ backup=("etc/apparmor.d/${_pkgname}")
 options=('!strip' '!debug')
 source=("https://github.com/Dangalcan/shoal/releases/download/v${pkgver}/${_pkgname}_${pkgver}_amd64.deb")
 # Release day: the digest GitHub shows next to the asset, or `updpkgsums`.
-sha256sums=('0000000000000000000000000000000000000000000000000000000000000000')
+sha256sums=('3c64ec0a4cc93099f842421bbda5f7bdfad29afec4ae454524f2e37424b69399')
 
 package() {
   bsdtar -xf "${srcdir}/data.tar.xz" -C "${pkgdir}"

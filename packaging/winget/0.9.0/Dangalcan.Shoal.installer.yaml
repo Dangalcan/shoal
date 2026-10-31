@@ -19,6 +19,6 @@ ReleaseDate: 2026-11-02
 Installers:
 - Architecture: x64
   InstallerUrl: https://github.com/Dangalcan/shoal/releases/download/v0.9.0/Shoal-Setup-0.9.0.exe
-  InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000
+  InstallerSha256: 907E4077948258F323931E31E623579D1E69FAB65D44863C592BC940EFA5DE5E
 ManifestType: installer
 ManifestVersion: 1.28.0

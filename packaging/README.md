@@ -10,7 +10,7 @@ Everything needed to put a Shoal release in the package managers, kept here so i
 
 Not covered: the `.deb` and the AppImage are installed from the release page directly (README, Installation); Flatpak, Snap and Homebrew wait for 1.0 and the macOS build.
 
-All three are written for **0.9.0**, the first stable release (2 November 2026). Only the hashes are missing: the installers do not exist until the release workflow builds them from the `v0.9.0` tag. Release candidates are not packaged (winget and the AUR would offer them as upgrades; Scoop's `checkver` only looks at the latest non-pre-release anyway).
+All three are written for **0.9.0**, the first stable release (31 October 2026). Only the hashes are missing: the installers do not exist until the release workflow builds them from the `v0.9.0` tag. Release candidates are not packaged (winget and the AUR would offer them as upgrades; Scoop's `checkver` only looks at the latest non-pre-release anyway).
 
 ## Release day
 
