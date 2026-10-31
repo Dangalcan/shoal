@@ -241,6 +241,24 @@ activates, and start-up used to wait for it) and the cluster details page
 must settle on its error panel instead of alternating with the spinner on
 every auto-refresh.
 
+### `plugins.spec.ts`
+
+Bundled plugins on a fresh user data directory, no cluster needed: the
+installed list shows the example plugins, Resource Monitor can be disabled
+and enabled again from its card (the state badge and its **Pod Monitor**
+sidebar entry follow), and its page mounts the sandboxed frame with the
+plugin running inside.
+
+Start-up activates the bundled plugins in the background after the window
+opens, so the round-trip test first waits for the badge to read Enabled
+instead of racing that activation with a click. It locates the Enable and
+Disable buttons by their exact label: a single toggle locator that matched
+both labels was re-resolved by Playwright when a retry followed a state
+change, and the test pressed Disable when it meant Enable. The plugin list
+itself no longer swaps to a spinner on every refresh (a click that landed
+while the cards were being remounted used to be lost), which is what made
+the test flaky against packaged builds.
+
 ### `terminal.spec.ts`
 
 Local shell only, no cluster. Starts a session, checks the shell picker,
@@ -283,7 +301,8 @@ nothing from outside loads) and the host stays where it was.
 
 Against a packaged build (`SHOAL_E2E_EXECUTABLE`) unsigned plugins never
 load, so the spec checks that instead: the bundled plugins are listed and
-the fixture is not.
+the fixture's card is in the error state with the message that the plugin
+is not signed.
 
 ---
 

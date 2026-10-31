@@ -49,7 +49,9 @@ is trusted. `plugin-loader.shouldIsolatePlugin()` decides per plugin:
   by the real, permission-enforcing context in main. Crashes, hangs, or vm
   escapes are confined to the disposable child process.
 - **Bundled plugins** (shipped in-tree) keep the original in-process `vm`
-  execution. Packaged builds ship them as electron-builder `extraResources`
+  execution: one module instance per activation, created when the plugin
+  is enabled and reused by the deactivation hooks and plugin actions until
+  it is disabled, reloaded or uninstalled. Packaged builds ship them as electron-builder `extraResources`
   under `resources/plugins/` (outside `app.asar`), they must carry a valid
   `plugin.json.sig` covering all their files, their ids are reserved (the
   bundled directory is searched first and import refuses them), and the ids in

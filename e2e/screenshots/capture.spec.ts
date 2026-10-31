@@ -67,6 +67,13 @@ test.beforeAll(async () => {
     { width: WIDTH, height: HEIGHT }
   );
 
+  // Wait until the app knows the active context: a manifest saved before
+  // that is recorded against "default" instead of the demo cluster (seen
+  // on the rc.6 run: "Context: default" on the card).
+  await expect(window.getByText(CONTEXT).first()).toBeVisible({
+    timeout: 30_000,
+  });
+
   // A saved manifest for the Manifests screen.
   await window.getByRole('link', { name: 'Manifests' }).click();
   await window.getByRole('button', { name: 'New Manifest' }).click();

@@ -186,7 +186,9 @@ module.exports = {
 Every hook must return within 30 seconds; one that does not fails the
 activation and the plugin is shown as errored. Start long-running work
 (watchers, polling, a slow first `kubectl` call) without awaiting it, and
-stop it in `deactivate`.
+stop it in `deactivate`. `deactivate` receives no arguments and runs in the
+same module instance as `activate`, so keep what it needs (timer handles,
+the context or its logger) in module-level variables.
 
 ## Testing Your Plugin
 

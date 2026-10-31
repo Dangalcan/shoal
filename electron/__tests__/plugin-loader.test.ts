@@ -349,6 +349,38 @@ describe('PluginLoader', () => {
       await loader.unloadPluginCode('none', '/p');
     });
 
+    it('acquireModuleHandle keeps one in-process instance until it is released', async () => {
+      const p = { manifest: { id: 'p1', main: 'idx.js' } } as any;
+      loader.registerPlugin(p);
+      vi.mocked(fs.access).mockResolvedValue(undefined);
+      // Module-level state stands in for the timers a plugin starts in activate().
+      vi.mocked(fs.readFile).mockResolvedValue(
+        'let n = 0; module.exports = { tick: function() { return ++n; } };' as any
+      );
+
+      const first = await loader.acquireModuleHandle('p1', '/p');
+      const second = await loader.acquireModuleHandle('p1', '/p');
+      expect(second).toBe(first);
+      expect(await first.invoke('tick')).toBe(1);
+      expect(await second.invoke('tick')).toBe(2);
+
+      // Release (disable, activation rollback): the next handle is a fresh module.
+      loader.releaseModuleHandle('p1');
+      const third = await loader.acquireModuleHandle('p1', '/p');
+      expect(third).not.toBe(first);
+      expect(await third.invoke('tick')).toBe(1);
+
+      // Unload (reload) drops it as well.
+      await loader.unloadPluginCode('p1', '/p');
+      const fourth = await loader.acquireModuleHandle('p1', '/p');
+      expect(fourth).not.toBe(third);
+
+      // So does unregistering the plugin.
+      loader.unregisterPlugin('p1');
+      loader.registerPlugin(p);
+      expect(await loader.acquireModuleHandle('p1', '/p')).not.toBe(fourth);
+    });
+
     it('unregisterPlugin should remove from map', () => {
       const p = { manifest: { id: 'p1' } } as any;
       loader.registerPlugin(p);

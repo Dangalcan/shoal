@@ -176,11 +176,36 @@ describe('UpdateService', () => {
   });
 
   describe('channels', () => {
-    /** What electron-updater raises when `/releases/latest` finds nothing. */
+    /**
+     * What electron-updater raises when `/releases/latest` finds nothing:
+     * the GitHub provider's ERR_UPDATER_LATEST_VERSION_NOT_FOUND, wrapped by
+     * its feed parser in ERR_UPDATER_INVALID_RELEASE_FEED with the original
+     * message inside (6.8.9 and 6.8.11, GitHub answers 406).
+     */
     function noStableRelease() {
+      const err = new Error(
+        'Cannot parse releases feed: Error: Unable to find latest version on GitHub (https://github.com/Dangalcan/shoal/releases/latest), please ensure a production release exists: HttpError: 406 Not Acceptable,\nXML:\n<feed/>'
+      );
+      (err as Error & { code: string }).code =
+        'ERR_UPDATER_INVALID_RELEASE_FEED';
+      return err;
+    }
+
+    /** The inner error on its own, in case a provider ever raises it bare. */
+    function bareNoStableRelease() {
       const err = new Error('Unable to find latest version on GitHub');
       (err as Error & { code: string }).code =
         'ERR_UPDATER_LATEST_VERSION_NOT_FOUND';
+      return err;
+    }
+
+    /** A feed error that has nothing to do with a missing stable release. */
+    function brokenFeed() {
+      const err = new Error(
+        'Cannot parse releases feed: Error: Unexpected token < in JSON,\nXML:\n<feed/>'
+      );
+      (err as Error & { code: string }).code =
+        'ERR_UPDATER_INVALID_RELEASE_FEED';
       return err;
     }
 
@@ -221,10 +246,14 @@ describe('UpdateService', () => {
 
       expect(await svc.checkForUpdates()).toBe('error');
       expect(updater.checkForUpdates).toHaveBeenCalledTimes(1);
-      expect(statuses).toContainEqual({
-        state: 'error',
-        message: 'Unable to find latest version on GitHub',
-      });
+      expect(statuses).toContainEqual(
+        expect.objectContaining({
+          state: 'error',
+          message: expect.stringContaining(
+            'Unable to find latest version on GitHub'
+          ),
+        })
+      );
     });
 
     it('a pre-release build takes the stable release when there is one', async () => {
@@ -290,7 +319,45 @@ describe('UpdateService', () => {
       expect(statuses).toContainEqual({ state: 'error', message: 'offline' });
       expect(statuses).not.toContainEqual(
         expect.objectContaining({
-          message: 'Unable to find latest version on GitHub',
+          message: expect.stringContaining(
+            'Unable to find latest version on GitHub'
+          ),
+        })
+      );
+    });
+
+    it('a pre-release build also falls back when the provider raises the bare code', async () => {
+      const updater = makeUpdater(['rc', 2]);
+      updater.checkForUpdates = vi
+        .fn()
+        .mockImplementationOnce(rejectingCheck(updater, bareNoStableRelease()))
+        .mockImplementationOnce(async () => ({}));
+      const svc = new UpdateService(updater);
+      const statuses: unknown[] = [];
+      svc.init((s) => statuses.push(s));
+
+      expect(await svc.checkForUpdates()).toBe('started');
+      expect(updater.checkForUpdates).toHaveBeenCalledTimes(2);
+      expect(statuses).not.toContainEqual(
+        expect.objectContaining({ state: 'error' })
+      );
+    });
+
+    it('a pre-release build reports a feed error that is not about a missing stable release', async () => {
+      const updater = makeUpdater(['rc', 2]);
+      updater.checkForUpdates = vi
+        .fn()
+        .mockImplementation(rejectingCheck(updater, brokenFeed()));
+      const svc = new UpdateService(updater);
+      const statuses: unknown[] = [];
+      svc.init((s) => statuses.push(s));
+
+      expect(await svc.checkForUpdates()).toBe('error');
+      expect(updater.checkForUpdates).toHaveBeenCalledTimes(1);
+      expect(statuses).toContainEqual(
+        expect.objectContaining({
+          state: 'error',
+          message: expect.stringContaining('Unexpected token'),
         })
       );
     });

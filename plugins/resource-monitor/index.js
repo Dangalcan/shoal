@@ -10,6 +10,9 @@
  */
 
 let interval;
+// The context handed to activate(): deactivate() receives none, so the
+// logger is kept here (see the plugin scaffold in template-service.ts).
+let activeContext = null;
 
 /** "250m" → 250 millicores; "1" → 1000; undefined → 0. */
 function cpuLimitToMillicores(v) {
@@ -54,6 +57,7 @@ module.exports = {
       interval = null;
     }
 
+    activeContext = context;
     context.logger.info('Resource Monitor activating...');
 
     const settings = (await context.storage.get('settings')) || {};
@@ -203,11 +207,14 @@ module.exports = {
     // No "is now active" toast: bundled plugins start with the app.
   },
 
-  deactivate: async (context) => {
-    context.logger.info('Resource Monitor deactivating...');
+  // deactivate() receives no arguments (docs/PLUGINS_GUIDE.md): stop the
+  // timer activate() started in this same module instance.
+  deactivate: async () => {
     if (interval) {
       clearInterval(interval);
       interval = null;
     }
+    if (activeContext) activeContext.logger.info('Resource Monitor deactivated');
+    activeContext = null;
   },
 };
