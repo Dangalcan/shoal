@@ -37,6 +37,17 @@ All notable changes to Shoal are documented here. The format follows
   compatibility shim that also provides it. The AppImage still needs the
   system's libraries.
 
+### Security
+
+- Plugin license keys and `secret: true` settings in `plugin-config.json`
+  are encrypted with a random key that the OS keystore wraps through
+  Electron `safeStorage` (DPAPI on Windows, Keychain on macOS, libsecret or
+  KWallet on Linux), stored owner-only in `.encryption-key` next to the
+  config. Values written by earlier versions, whose key derived from the
+  machine id and a salt stored next to the data, still load and are
+  re-encrypted with the new key on the next save. Without a keystore (Linux
+  without a keyring) the machine-bound key stays in use and the log says so.
+
 ## [0.9.0] - 2026-11-02
 
 First public release, for Windows and Linux. Installers are not code-signed

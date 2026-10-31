@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { useApi } from '../../services/api-context';
 import { handleAsyncOperation } from '../../lib/async-operation-handler';
+import { handleError } from '../../lib/error-handler';
 import { useAsyncData } from '../../hooks/useAsyncData';
 import { Result } from '../../types/result';
 import { ClusterContextValue } from './types';
@@ -45,7 +46,9 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
         setCurrentContext(result.data);
       }
     };
-    fetchCurrentContext();
+    fetchCurrentContext().catch((err) =>
+      handleError(err, 'Failed to read the current context')
+    );
   }, [api, clusters]);
 
   const deleteCluster = useCallback(
@@ -89,9 +92,9 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
           errorTitle: 'Failed to switch context',
           // The Default Namespace setting is the user's choice and survives a
           // context switch; useNamespaces re-applies it for the new context.
-          onSuccess: () => {
+          onSuccess: async () => {
             setCurrentContext(contextName);
-            fetchClusters();
+            await fetchClusters();
           },
         }
       );

@@ -14,12 +14,17 @@ vi.mock('fs/promises', () => {
   return { ...m, default: m };
 });
 
-// Mock encryption so tests are deterministic and independent of machine-id
+// Mock encryption so tests are deterministic and independent of machine-id.
+// `enc:` is the current scheme, `old:` a readable older one and `bad:` a
+// value no key can read.
 vi.mock('../services/security/encryption-utils', () => ({
   encrypt: vi.fn((text: string) => `enc:${text}`),
-  decrypt: vi.fn((text: string) =>
-    text.startsWith('enc:') ? text.slice(4) : text
-  ),
+  decrypt: vi.fn((text: string) => {
+    if (text.startsWith('enc:') || text.startsWith('old:'))
+      return text.slice(4);
+    return text.startsWith('bad:') ? '' : text;
+  }),
+  usesCurrentScheme: vi.fn((text: string) => text.startsWith('enc:')),
 }));
 
 import fs from 'fs/promises';
@@ -183,6 +188,8 @@ describe('PluginRegistry', () => {
       });
 
       expect(registry.getPluginSettings('secret-plugin').apiToken).toBe('tok');
+      const { encrypt } = await import('../services/security/encryption-utils');
+      expect(encrypt).toHaveBeenCalledTimes(1);
     });
 
     it('migrates plaintext secrets persisted by older builds on registration', async () => {
@@ -210,6 +217,49 @@ describe('PluginRegistry', () => {
 
       await registry.updatePluginSettings('secret-plugin', { apiToken: '' });
       expect(registry.getPluginSettings('secret-plugin').apiToken).toBe('');
+    });
+
+    it('re-encrypts a secret stored with an older scheme on registration', async () => {
+      const saved = {
+        'secret-plugin': {
+          enabled: true,
+          settings: { apiToken: 'enc::old:tok', owner: 'daniel' },
+        },
+      };
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(saved));
+      await registry.initialize();
+
+      await registry.registerPlugin(makeSecretPlugin('secret-plugin'));
+
+      const writtenJson = vi
+        .mocked(fs.writeFile)
+        .mock.calls.at(-1)![1] as string;
+      const written = JSON.parse(writtenJson);
+      expect(written['secret-plugin'].settings.apiToken).toBe('enc::enc:tok');
+      expect(written['secret-plugin'].settings.owner).toBe('daniel');
+      expect(registry.getPluginSettings('secret-plugin').apiToken).toBe('tok');
+    });
+
+    it('leaves a secret it cannot decrypt as stored', async () => {
+      const saved = {
+        'secret-plugin': {
+          enabled: true,
+          settings: { apiToken: 'enc::bad:tok' },
+        },
+      };
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(saved));
+      await registry.initialize();
+
+      await registry.registerPlugin(makeSecretPlugin('secret-plugin'));
+
+      const writtenJson = vi
+        .mocked(fs.writeFile)
+        .mock.calls.at(-1)![1] as string;
+      const written = JSON.parse(writtenJson);
+      expect(written['secret-plugin'].settings.apiToken).toBe('enc::bad:tok');
+      expect(registry.getPluginSettings('secret-plugin').apiToken).toBe('');
+      const { encrypt } = await import('../services/security/encryption-utils');
+      expect(encrypt).not.toHaveBeenCalled();
     });
   });
 

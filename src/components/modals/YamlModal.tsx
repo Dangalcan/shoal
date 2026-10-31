@@ -14,8 +14,14 @@ interface YamlModalProps {
   namespace: string;
 }
 
-export function YamlModal({
-  isOpen,
+export function YamlModal(props: YamlModalProps) {
+  // The dialog exists only while the modal is open, so every opening
+  // fetches afresh (the resource may have changed since the last look).
+  if (!props.isOpen) return null;
+  return <YamlDialog {...props} />;
+}
+
+function YamlDialog({
   onClose,
   clusterName,
   resourceName,
@@ -31,7 +37,6 @@ export function YamlModal({
     contentRef,
     copyToClipboard,
   } = useResourceModal({
-    isOpen,
     clusterName,
     resourceName,
     fetchFn: () =>
@@ -112,7 +117,7 @@ export function YamlModal({
 
   return (
     <BaseModal
-      isOpen={isOpen}
+      isOpen
       onClose={onClose}
       title="Resource YAML"
       subtitle={`${namespace} / ${resourceName}`}

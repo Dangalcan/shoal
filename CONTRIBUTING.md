@@ -222,10 +222,13 @@ npm run lint:fix
 
 CI runs `npm run lint:eslint` and `npm run lint:prettier`, so a pull request
 with an ESLint error or unformatted files fails (ESLint warnings are
-allowed). Unhandled promises are an error in `electron/`
-(`@typescript-eslint/no-floating-promises`): await them, return them, or
-mark a deliberate fire-and-forget with `void`; in `src/` the same rules are
-warnings for now. The pre-commit hook formats staged files, lints the staged
+allowed). The promise rules are type-aware and errors everywhere
+(`@typescript-eslint/no-floating-promises`, `no-misused-promises`,
+`await-thenable`): await a promise, return it, report its failure in a
+`.catch` (a toast through `handleError`, or the error state the caller
+already keeps), or mark a deliberate fire-and-forget with `void` when the
+callee reports its own failures, with a short comment when that is not
+obvious. The pre-commit hook formats staged files, lints the staged
 `.js`, `.jsx`, `.ts` and `.tsx` files and type-checks both processes; the
 full test suite and the type check of the test files (`npm run
 typecheck:test`, `tsconfig.test.json`) run in CI. `any` is an error in `src/` and

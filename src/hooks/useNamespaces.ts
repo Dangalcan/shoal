@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useAsyncData } from './useAsyncData';
 import { useApi } from '../services/api-context';
 import { mapResult } from '../types/result';
@@ -12,6 +12,13 @@ interface UseNamespacesResult {
   error: string | null;
 }
 
+/** A namespace the user picked, with the context and default it was picked under. */
+interface NamespaceChoice {
+  contextName: string | undefined;
+  defaultNamespace: string;
+  namespace: string;
+}
+
 export function useNamespaces(
   contextName: string | undefined
 ): UseNamespacesResult {
@@ -20,12 +27,21 @@ export function useNamespaces(
     'k8s_desktop_default_namespace',
     ''
   );
-  const [selectedNamespace, setSelectedNamespace] = useState<string>('all');
-
-  // Update selected namespace when context or default setting changes
-  useEffect(() => {
-    setSelectedNamespace(defaultNamespace || 'all');
-  }, [contextName, defaultNamespace]);
+  // The selection is derived: it holds while the context and the default
+  // setting stay the same, and falls back to the default (or "all") as soon
+  // as either changes.
+  const [choice, setChoice] = useState<NamespaceChoice | null>(null);
+  const selectedNamespace =
+    choice &&
+    choice.contextName === contextName &&
+    choice.defaultNamespace === defaultNamespace
+      ? choice.namespace
+      : defaultNamespace || 'all';
+  const setSelectedNamespace = useCallback(
+    (namespace: string) =>
+      setChoice({ contextName, defaultNamespace, namespace }),
+    [contextName, defaultNamespace]
+  );
 
   const fetchFn = useCallback(async () => {
     if (!contextName) return [];

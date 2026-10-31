@@ -113,7 +113,7 @@ The `plugin.json` file defines the identity and capabilities of your plugin.
 - **dependencies**: A map of plugin IDs and semver version constraints. Required plugins will be auto-enabled or requested.
 - **data**: An array of file paths (relative to plugin root) to be automatically loaded into `context.storage` on activation. The storage key is `data/` plus the path without its extension, with a leading `data/` folder collapsed: `data/default-presets.json` is read with `context.storage.get('data/default-presets')`.
 - **configuration**: Defines a schema for settings. The UI is automatically generated with validation. Supported types: `string`, `number`, `boolean`, `select`.
-- **`secret: true` settings are encrypted at rest.** String properties flagged `secret` (like the `apiKey` above) are stored AES-256-GCM encrypted with a machine-bound key, both in memory snapshots and in `plugin-config.json`. The plugin still reads/writes them transparently via `settings.get`/`set`; the settings UI masks them.
+- **`secret: true` settings are encrypted at rest.** String properties flagged `secret` (like the `apiKey` above) are stored AES-256-GCM encrypted, both in memory snapshots and in `plugin-config.json`, with a key kept in the OS keystore through Electron `safeStorage` (a machine-bound key where there is none). The plugin still reads/writes them transparently via `settings.get`/`set`; the settings UI masks them.
 
 ---
 

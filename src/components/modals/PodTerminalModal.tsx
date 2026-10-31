@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import {
   Terminal as TerminalIcon,
   Loader2,
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { BaseModal } from './BaseModal';
 import { Terminal } from '../Terminal';
+import { useTerminalSession } from '../../features/terminal/useTerminalSession';
 
 interface PodTerminalModalProps {
   isOpen: boolean;
@@ -25,69 +26,50 @@ const SHELL_OPTIONS = [
   'bash',
 ];
 
-export function PodTerminalModal({
-  isOpen,
+export function PodTerminalModal(props: PodTerminalModalProps) {
+  // The shell choice outlives one opening: reopening offers the last one.
+  const [shell, setShell] = useState('/bin/sh');
+  const [attempt, setAttempt] = useState(0);
+
+  // The dialog, and with it the exec session, exists only while the modal
+  // is open: closing kills the session, reopening starts a fresh one.
+  if (!props.isOpen) return null;
+  return (
+    <PodTerminalDialog
+      {...props}
+      shell={shell}
+      onShellChange={setShell}
+      attempt={attempt}
+      onReconnect={() => setAttempt((k) => k + 1)}
+    />
+  );
+}
+
+interface PodTerminalDialogProps extends PodTerminalModalProps {
+  shell: string;
+  onShellChange: (shell: string) => void;
+  attempt: number;
+  onReconnect: () => void;
+}
+
+function PodTerminalDialog({
   onClose,
   podName,
   namespace,
   contextName,
-}: PodTerminalModalProps) {
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [shell, setShell] = useState('/bin/sh');
-  const [retryKey, setRetryKey] = useState(0);
-  const sessionIdRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) {
-      if (sessionIdRef.current) {
-        window.electron.terminalKill(sessionIdRef.current);
-        sessionIdRef.current = null;
-      }
-      setSessionId(null);
-      setError(null);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    setSessionId(null);
-
-    window.electron
-      .terminalCreate({
-        kind: 'pod-exec',
-        podName,
-        namespace,
-        contextName,
-        shell,
-      })
-      .then((result) => {
-        if (cancelled) return;
-        if (result.success) {
-          sessionIdRef.current = result.data.sessionId;
-          setSessionId(result.data.sessionId);
-        } else {
-          setError(result.error);
-        }
-        setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-      if (sessionIdRef.current) {
-        window.electron.terminalKill(sessionIdRef.current);
-        sessionIdRef.current = null;
-      }
-    };
-  }, [isOpen, podName, namespace, contextName, shell, retryKey]);
-
-  const handleRetry = () => setRetryKey((k) => k + 1);
+  shell,
+  onShellChange,
+  attempt,
+  onReconnect,
+}: PodTerminalDialogProps) {
+  const { sessionId, loading, error } = useTerminalSession(
+    { kind: 'pod-exec', podName, namespace, contextName, shell },
+    attempt
+  );
 
   return (
     <BaseModal
-      isOpen={isOpen}
+      isOpen
       onClose={onClose}
       title={`Shell: ${podName}`}
       subtitle={`namespace: ${namespace}  |  context: ${contextName}`}
@@ -101,7 +83,7 @@ export function PodTerminalModal({
           <select
             aria-label="Shell"
             value={shell}
-            onChange={(e) => setShell(e.target.value)}
+            onChange={(e) => onShellChange(e.target.value)}
             className="pod-terminal-modal__shell-select"
           >
             {SHELL_OPTIONS.map((s) => (
@@ -112,7 +94,7 @@ export function PodTerminalModal({
           </select>
           {(error || sessionId) && (
             <button
-              onClick={handleRetry}
+              onClick={onReconnect}
               title="Reconnect"
               className="pod-terminal-modal__reconnect-btn"
             >
