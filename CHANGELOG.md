@@ -7,6 +7,47 @@ All notable changes to Shoal are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Plugin permissions are split. `kubernetes` now only grants reads (list,
+  get, describe, YAML, logs, metrics, watches and resource events);
+  `kubernetes:write` is needed to create, update or delete resources, save or
+  apply manifests and run commands in pods, `helm` for every Helm call, and
+  `secrets` to receive the data of Secrets. Without `secrets`, `getResources`,
+  `getResourceYaml`, watches and resource events hand plugins Secrets without
+  `data`, `stringData` and the last-applied annotation. Plugins that change
+  the cluster must declare the new permissions; the bundled examples only
+  read and keep `kubernetes`.
+
+### Removed
+
+- The `filesystem`, `network` and `notifications` plugin permissions, which
+  never gated anything (notifications belong to `ui`). A manifest that names
+  them is rejected with the list of valid permissions.
+
+### Fixed
+
+- The `.deb` declares `libasound2 (>= 1.0.17)` (ALSA) and `libgbm1` (Mesa
+  GBM) as dependencies, so `apt install` pulls them in on WSL, containers
+  and other minimal systems, where Shoal failed to start with
+  `libasound.so.2` or `libgbm.so.1` missing. The package used
+  electron-builder's default dependency list, which lacks both although
+  Electron links them. On Ubuntu 24.04 `libasound2` is a virtual name and
+  the version makes apt choose `libasound2t64` rather than the OSS
+  compatibility shim that also provides it. The AppImage still needs the
+  system's libraries.
+
+### Security
+
+- Plugin license keys and `secret: true` settings in `plugin-config.json`
+  are encrypted with a random key that the OS keystore wraps through
+  Electron `safeStorage` (DPAPI on Windows, Keychain on macOS, libsecret or
+  KWallet on Linux), stored owner-only in `.encryption-key` next to the
+  config. Values written by earlier versions, whose key derived from the
+  machine id and a salt stored next to the data, still load and are
+  re-encrypted with the new key on the next save. Without a keystore (Linux
+  without a keyring) the machine-bound key stays in use and the log says so.
+
 ## [0.9.0] - 2026-11-02
 
 First public release, for Windows and Linux. Installers are not code-signed

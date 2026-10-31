@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Server,
@@ -14,6 +14,7 @@ import { PodViewerModal } from '../components/modals/PodViewerModal';
 import { useClusterContext } from '../features/clusters/ClusterContext';
 import { Button, Badge, Card, Animate } from '../components/ui';
 import { useApi } from '../services/api-context';
+import { useAsyncData } from '../hooks/useAsyncData';
 import { isSuccess } from '../types/result';
 import type { Result } from '../types/result';
 import { cn } from '../lib/utils';
@@ -70,6 +71,36 @@ function StatCard({ label, value, icon: Icon, color, status }: StatCardProps) {
   );
 }
 
+interface EngineStatuses {
+  docker: ToolStatus;
+  podman: ToolStatus;
+}
+
+/**
+ * Probes both container engines at once. A probe that fails outright counts
+ * as "not installed", so one broken detection never hides the other card.
+ */
+async function probeEngines(
+  api: ReturnType<typeof useApi>
+): Promise<EngineStatuses> {
+  const probe = (tool: string): Promise<Result<ToolStatus>> =>
+    api
+      .getToolStatus(tool)
+      .catch((err) => ({ success: false as const, error: String(err) }));
+  const [dockerRes, podmanRes] = await Promise.all([
+    probe('docker'),
+    probe('podman'),
+  ]);
+  return {
+    docker: isSuccess(dockerRes)
+      ? dockerRes.data
+      : { tool: 'docker', installed: false },
+    podman: isSuccess(podmanRes)
+      ? podmanRes.data
+      : { tool: 'podman', installed: false },
+  };
+}
+
 /** Stat card text for a container engine (docker/podman) probe. */
 function engineLabel(status: ToolStatus | null): string {
   if (status === null) return 'Checking...';
@@ -91,6 +122,10 @@ function engineState(
 
 export function Dashboard() {
   const navigate = useNavigate();
+  // Under the HashRouter navigate() returns nothing; the promise in its type
+  // belongs to the data routers.
+  const openCluster = (cluster: string) =>
+    void navigate(`/cluster/${encodeURIComponent(cluster)}`);
   const api = useApi();
   const {
     clusters,
@@ -98,44 +133,29 @@ export function Dashboard() {
     fetchClusters,
     loading: clustersLoading,
   } = useClusterContext();
-  const [dockerStatus, setDockerStatus] = useState<ToolStatus | null>(null);
-  const [podmanStatus, setPodmanStatus] = useState<ToolStatus | null>(null);
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
 
-  const refreshData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const probe = (tool: string): Promise<Result<ToolStatus>> =>
-        api
-          .getToolStatus(tool)
-          .catch((err) => ({ success: false as const, error: String(err) }));
-      const [dockerRes, podmanRes] = await Promise.all([
-        probe('docker'),
-        probe('podman'),
-      ]);
-      setDockerStatus(
-        isSuccess(dockerRes)
-          ? dockerRes.data
-          : { tool: 'docker', installed: false }
-      );
-      setPodmanStatus(
-        isSuccess(podmanRes)
-          ? podmanRes.data
-          : { tool: 'podman', installed: false }
-      );
-      await fetchClusters();
-    } finally {
-      setLoading(false);
-    }
-  }, [api, fetchClusters]);
+  const {
+    data: engines,
+    loading: enginesLoading,
+    refetch: refreshEngines,
+  } = useAsyncData<EngineStatuses>({
+    fetchFn: () => probeEngines(api),
+  });
+  const dockerStatus = engines?.docker ?? null;
+  const podmanStatus = engines?.podman ?? null;
 
+  // The cluster list is refreshed every time the dashboard opens.
   useEffect(() => {
-    refreshData();
-  }, [refreshData]);
+    void fetchClusters();
+  }, [fetchClusters]);
 
-  const dashboardLoading = loading || clustersLoading;
+  const refreshData = () => {
+    void Promise.all([refreshEngines(), fetchClusters()]);
+  };
+
+  const dashboardLoading = enginesLoading || clustersLoading;
   const activeContext = currentContext || 'None';
 
   return (
@@ -242,13 +262,9 @@ export function Dashboard() {
                     )}
                   >
                     <div
-                      onClick={() =>
-                        navigate(`/cluster/${encodeURIComponent(cluster)}`)
-                      }
+                      onClick={() => openCluster(cluster)}
                       onKeyDown={(e) =>
-                        activateOnKey(e, () =>
-                          navigate(`/cluster/${encodeURIComponent(cluster)}`)
-                        )
+                        activateOnKey(e, () => openCluster(cluster))
                       }
                       role="button"
                       tabIndex={0}

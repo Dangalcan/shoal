@@ -25,7 +25,11 @@ import { getPluginExtensions, savePluginExtensions } from './plugin-extensions';
 import { getErrorMessage } from '../../utils/error-utils';
 import { kubernetesService } from '../kubernetes/kubernetes-service';
 import log from '../../logger';
-import { withoutSecretData } from '../kubernetes/secret-redaction';
+import { withoutSecretData } from '../../shared/secret-redaction';
+import {
+  KUBERNETES_METHOD_PERMISSION,
+  assertPluginPermission,
+} from './plugin-permissions';
 
 async function wrapK8sCall<T>(fn: () => Promise<T>, label: string): Promise<T> {
   try {
@@ -43,119 +47,143 @@ export function createPluginContext(
   pluginPath: string,
   permissions: string[]
 ): PluginContext {
-  // Create Kubernetes API (if permission granted)
-  const kubernetes: KubernetesAPI = permissions.includes('kubernetes')
-    ? {
-        getResources: (type: string, namespace: string) =>
-          wrapK8sCall(
-            () => kubernetesService.getResources(type, namespace),
-            'get resources'
-          ),
+  // Kubernetes API. Each method checks its own permission (reads need
+  // `kubernetes`, changes need `kubernetes:write`), and without `secrets`
+  // every Secret a plugin receives travels without its data.
+  const gate = (method: keyof KubernetesAPI): void =>
+    assertPluginPermission(
+      permissions,
+      KUBERNETES_METHOD_PERMISSION[method],
+      method
+    );
+  const redact = permissions.includes('secrets')
+    ? (resource: unknown): unknown => resource
+    : withoutSecretData;
 
-        createResource: (manifest: unknown) =>
-          wrapK8sCall(
-            () => kubernetesService.createResource(manifest),
-            'create resource'
-          ),
+  const kubernetes: KubernetesAPI = {
+    getResources: (type: string, namespace: string) => {
+      gate('getResources');
+      return wrapK8sCall(
+        async () =>
+          (await kubernetesService.getResources(type, namespace)).map(redact),
+        'get resources'
+      );
+    },
 
-        updateResource: (type: string, name: string, manifest: unknown) =>
-          wrapK8sCall(
-            () => kubernetesService.updateResource(type, name, manifest),
-            'update resource'
-          ),
+    createResource: (manifest: unknown) => {
+      gate('createResource');
+      return wrapK8sCall(
+        () => kubernetesService.createResource(manifest),
+        'create resource'
+      );
+    },
 
-        deleteResource: (type: string, name: string, namespace: string) =>
-          wrapK8sCall(
-            () => kubernetesService.deleteResource(type, name, namespace),
-            'delete resource'
-          ),
+    updateResource: (type: string, name: string, manifest: unknown) => {
+      gate('updateResource');
+      return wrapK8sCall(
+        () => kubernetesService.updateResource(type, name, manifest),
+        'update resource'
+      );
+    },
 
-        executeCommand: (pod: string, namespace: string, command: string) =>
-          wrapK8sCall(
-            () => kubernetesService.executeCommand(pod, namespace, command),
-            'execute command'
-          ),
+    deleteResource: (type: string, name: string, namespace: string) => {
+      gate('deleteResource');
+      return wrapK8sCall(
+        () => kubernetesService.deleteResource(type, name, namespace),
+        'delete resource'
+      );
+    },
 
-        getPodMetrics: (namespace: string) =>
-          wrapK8sCall(
-            () => kubernetesService.getPodMetrics(namespace),
-            'get pod metrics'
-          ),
+    executeCommand: (pod: string, namespace: string, command: string) => {
+      gate('executeCommand');
+      return wrapK8sCall(
+        () => kubernetesService.executeCommand(pod, namespace, command),
+        'execute command'
+      );
+    },
 
-        watchResources: (type: string, callback: (event: unknown) => void) => {
-          // Validate resource type: no spaces or shell syntax, and no leading
-          // "-" so a plugin cannot slip a kubectl flag in as the type.
-          if (!/^[a-zA-Z0-9][a-zA-Z0-9.\-/]*$/.test(type)) {
-            throw new Error(`Invalid resource type: "${type}"`);
-          }
+    getPodMetrics: (namespace: string) => {
+      gate('getPodMetrics');
+      return wrapK8sCall(
+        () => kubernetesService.getPodMetrics(namespace),
+        'get pod metrics'
+      );
+    },
 
-          log.info(`[PluginContext] ${pluginId} started watching ${type}`);
-
-          const watchProcess = spawn('kubectl', [
-            'get',
-            type,
-            '--watch',
-            '-o',
-            'json',
-          ]);
-          watchProcess.on('error', (error: Error) =>
-            log.error(
-              `[PluginContext] ${pluginId} watch of ${type} failed to start:`,
-              error.message
-            )
-          );
-
-          let buffer = '';
-
-          watchProcess.stdout.on('data', (data: Buffer) => {
-            buffer += data.toString();
-
-            // Kubectl outputs one full JSON object at a time for each event.
-            // We can try to parse the buffer. If it fails, we wait for more data.
-            // A simple way is to find the balance of braces.
-            let braceCount = 0;
-            let startIndex = -1;
-
-            for (let i = 0; i < buffer.length; i++) {
-              if (buffer[i] === '{') {
-                if (braceCount === 0) startIndex = i;
-                braceCount++;
-              } else if (buffer[i] === '}') {
-                braceCount--;
-                if (braceCount === 0 && startIndex !== -1) {
-                  const jsonStr = buffer.substring(startIndex, i + 1);
-                  try {
-                    const event = JSON.parse(jsonStr);
-                    callback(event);
-                  } catch (e) {
-                    log.error(
-                      `[PluginContext] Failed to parse watch event for ${pluginId}:`,
-                      e
-                    );
-                  }
-                  // Move buffer forward
-                  buffer = buffer.substring(i + 1);
-                  i = -1; // Reset loop
-                }
-              }
-            }
-          });
-
-          watchProcess.stderr.on('data', (data: Buffer) => {
-            log.error(
-              `[PluginContext] Watch error for ${pluginId} (${type}):`,
-              data.toString()
-            );
-          });
-
-          // Return cleanup function
-          return () => {
-            log.info(`[PluginContext] ${pluginId} stopped watching ${type}`);
-            watchProcess.kill();
-          };
-        },
+    watchResources: (type: string, callback: (event: unknown) => void) => {
+      gate('watchResources');
+      // Validate resource type: no spaces or shell syntax, and no leading
+      // "-" so a plugin cannot slip a kubectl flag in as the type.
+      if (!/^[a-zA-Z0-9][a-zA-Z0-9.\-/]*$/.test(type)) {
+        throw new Error(`Invalid resource type: "${type}"`);
       }
-    : (createDeniedAPI('kubernetes') as KubernetesAPI);
+
+      log.info(`[PluginContext] ${pluginId} started watching ${type}`);
+
+      const watchProcess = spawn('kubectl', [
+        'get',
+        type,
+        '--watch',
+        '-o',
+        'json',
+      ]);
+      watchProcess.on('error', (error: Error) =>
+        log.error(
+          `[PluginContext] ${pluginId} watch of ${type} failed to start:`,
+          error.message
+        )
+      );
+
+      let buffer = '';
+
+      watchProcess.stdout.on('data', (data: Buffer) => {
+        buffer += data.toString();
+
+        // Kubectl outputs one full JSON object at a time for each event.
+        // We can try to parse the buffer. If it fails, we wait for more data.
+        // A simple way is to find the balance of braces.
+        let braceCount = 0;
+        let startIndex = -1;
+
+        for (let i = 0; i < buffer.length; i++) {
+          if (buffer[i] === '{') {
+            if (braceCount === 0) startIndex = i;
+            braceCount++;
+          } else if (buffer[i] === '}') {
+            braceCount--;
+            if (braceCount === 0 && startIndex !== -1) {
+              const jsonStr = buffer.substring(startIndex, i + 1);
+              try {
+                const event = JSON.parse(jsonStr);
+                callback(redact(event));
+              } catch (e) {
+                log.error(
+                  `[PluginContext] Failed to parse watch event for ${pluginId}:`,
+                  e
+                );
+              }
+              // Move buffer forward
+              buffer = buffer.substring(i + 1);
+              i = -1; // Reset loop
+            }
+          }
+        }
+      });
+
+      watchProcess.stderr.on('data', (data: Buffer) => {
+        log.error(
+          `[PluginContext] Watch error for ${pluginId} (${type}):`,
+          data.toString()
+        );
+      });
+
+      // Return cleanup function
+      return () => {
+        log.info(`[PluginContext] ${pluginId} stopped watching ${type}`);
+        watchProcess.kill();
+      };
+    },
+  };
 
   // Deliver a notification to the main window (shared by showNotification
   // and notifyOnce).
@@ -374,13 +402,8 @@ export function createPluginContext(
 
   // Create Events API (always available)
   const emitter = new EventEmitter();
-  const requireClusterAccess = (what: string): void => {
-    if (!permissions.includes('kubernetes')) {
-      throw new Error(
-        `Permission denied: ${what} require the "kubernetes" permission`
-      );
-    }
-  };
+  const requireClusterAccess = (): void =>
+    assertPluginPermission(permissions, 'kubernetes', 'resource events');
 
   const events: EventsAPI = {
     // Subscribe to events
@@ -436,23 +459,24 @@ export function createPluginContext(
       );
     },
     // Resource events carry whole manifests, so they need the permission
-    // that reading resources needs, and Secrets travel without their data.
+    // that reading resources needs, and Secrets travel without their data
+    // unless the plugin holds `secrets`.
     onResourceCreated: (handler: (resource: unknown) => void) => {
-      requireClusterAccess('resource events');
+      requireClusterAccess();
       pluginEventBus.on('resource:created', (resource: unknown) =>
-        handler(withoutSecretData(resource))
+        handler(redact(resource))
       );
       log.info(`[PluginContext] ${pluginId} subscribed to resource:created`);
     },
     onResourceUpdated: (handler: (resource: unknown) => void) => {
-      requireClusterAccess('resource events');
+      requireClusterAccess();
       pluginEventBus.on('resource:updated', (resource: unknown) =>
-        handler(withoutSecretData(resource))
+        handler(redact(resource))
       );
       log.info(`[PluginContext] ${pluginId} subscribed to resource:updated`);
     },
     onResourceDeleted: (handler: (resource: unknown) => void) => {
-      requireClusterAccess('resource events');
+      requireClusterAccess();
       pluginEventBus.on('resource:deleted', handler);
       log.info(`[PluginContext] ${pluginId} subscribed to resource:deleted`);
     },

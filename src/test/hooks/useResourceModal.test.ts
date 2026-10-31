@@ -6,17 +6,16 @@ vi.mock('../../lib/error-handler', () => ({ handleError: vi.fn() }));
 
 type Fetch = () => Promise<{ success: boolean; data?: string; error?: string }>;
 
-function renderModal(fetchFn: Fetch, isOpen = true, resourceName = 'pod-a') {
+function renderModal(fetchFn: Fetch, resourceName = 'pod-a') {
   return renderHook(
-    (props: { fetchFn: Fetch; isOpen: boolean; resourceName: string }) =>
+    (props: { fetchFn: Fetch; resourceName: string }) =>
       useResourceModal({
-        isOpen: props.isOpen,
         clusterName: 'kind-dev',
         resourceName: props.resourceName,
         fetchFn: props.fetchFn,
         errorTitle: 'Failed',
       }),
-    { initialProps: { fetchFn, isOpen, resourceName } }
+    { initialProps: { fetchFn, resourceName } }
   );
 }
 
@@ -40,7 +39,7 @@ describe('useResourceModal', () => {
       () =>
         new Promise<{ success: boolean; data?: string }>((r) => (finish = r))
     );
-    rerender({ fetchFn: second, isOpen: true, resourceName: 'pod-b' });
+    rerender({ fetchFn: second, resourceName: 'pod-b' });
 
     // The old text must not survive into the new resource's loading state.
     await waitFor(() => expect(result.current.loading).toBe(true));
@@ -58,9 +57,42 @@ describe('useResourceModal', () => {
     const failing = vi
       .fn()
       .mockResolvedValue({ success: false, error: 'not found' });
-    rerender({ fetchFn: failing, isOpen: true, resourceName: 'pod-c' });
+    rerender({ fetchFn: failing, resourceName: 'pod-c' });
 
     await waitFor(() => expect(result.current.error).toBe('not found'));
+    expect(result.current.content).toBe('');
+  });
+
+  it('ignores an answer for a resource that is no longer shown', async () => {
+    let finishFirst: (v: {
+      success: boolean;
+      data?: string;
+    }) => void = () => {};
+    const slow = vi.fn(
+      () =>
+        new Promise<{ success: boolean; data?: string }>(
+          (r) => (finishFirst = r)
+        )
+    );
+    const { result, rerender } = renderModal(slow);
+    await waitFor(() => expect(result.current.loading).toBe(true));
+
+    const fast = vi.fn().mockResolvedValue({ success: true, data: 'b: 2' });
+    rerender({ fetchFn: fast, resourceName: 'pod-b' });
+    await waitFor(() => expect(result.current.content).toBe('b: 2'));
+
+    finishFirst({ success: true, data: 'a: 1' });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(result.current.content).toBe('b: 2');
+  });
+
+  it('shows nothing and does not fetch without a resource name', async () => {
+    const fetchFn = vi.fn().mockResolvedValue({ success: true, data: 'x' });
+    const { result } = renderModal(fetchFn, '');
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(fetchFn).not.toHaveBeenCalled();
+    expect(result.current.loading).toBe(false);
     expect(result.current.content).toBe('');
   });
 });

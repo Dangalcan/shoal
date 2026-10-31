@@ -20,7 +20,8 @@ export function PortForwards() {
   const { forwards, loading, error, refetch, stopForward } = usePortForwards();
 
   const handleOpen = (forward: PortForwardInfo) => {
-    api.openExternal(`http://localhost:${forward.localPort}`);
+    // Fire-and-forget: the main process logs a failure to open the browser.
+    void api.openExternal(`http://localhost:${forward.localPort}`);
   };
 
   return (

@@ -15,6 +15,7 @@ import { useEffect, useState } from 'react';
 import { cn } from '../lib/utils';
 import { useTheme } from '../hooks';
 import { useApi } from '../services/api-context';
+import { handleError } from '../lib/error-handler';
 import {
   usePlugins,
   usePluginExtensions,
@@ -47,7 +48,9 @@ export function Sidebar() {
         setVersion(result.data);
       }
     };
-    fetchVersion();
+    fetchVersion().catch((err) =>
+      handleError(err, 'Failed to read the app version')
+    );
   }, []);
 
   const links = [
