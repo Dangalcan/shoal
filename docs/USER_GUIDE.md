@@ -28,6 +28,7 @@ Shoal 0.9 is a public beta for **Windows** and **Linux** (macOS arrives with 1.0
    - **Windows**: Run `Shoal-Setup-<version>.exe`. The installer is not code-signed yet, so SmartScreen may show "Windows protected your PC": choose **More info → Run anyway**. Prefer no install? Use `Shoal-<version>-portable.exe` (it does not update itself).
    - **Linux**: Make the `.AppImage` executable (`chmod +x Shoal-<version>.AppImage`) and run it, or install the `.deb` package (`sudo apt install ./shoal_<version>_amd64.deb`). The AppImage updates itself; the `.deb` does not.
      - The AppImage needs `libfuse2`, which Ubuntu 22.04 and later do not install by default: `sudo apt install libfuse2` (`libfuse2t64` on Ubuntu 24.04).
+     - Both builds use the system's ALSA library (`libasound2`). Desktop installs have it; on WSL or other minimal systems Shoal may fail to start with `libasound.so.2` missing: `sudo apt install libasound2t64` (`libasound2` before Ubuntu 24.04).
      - On Ubuntu 24.04 AppArmor blocks Chromium's sandbox for AppImages, so the AppImage starts without it. The `.deb` installs an AppArmor profile and keeps the sandbox; prefer it there.
 
 ### Requirements
