@@ -88,6 +88,125 @@ describe('plugin sandbox bridge + sdk', () => {
     expect(invoke).not.toHaveBeenCalled();
   });
 
+  it('denies cluster changes without kubernetes:write', async () => {
+    const { sdk, invoke } = setup(['kubernetes']);
+    await expect(
+      sdk.kubernetes.deleteResource({ resourceType: 'pods', name: 'p' })
+    ).rejects.toThrow(
+      'Permission denied: "kubernetes.deleteResource" requires the "kubernetes:write" permission'
+    );
+    await expect(sdk.manifests.apply(1)).rejects.toThrow(
+      /Permission denied.*kubernetes:write/
+    );
+    await expect(sdk.manifests.save({ kind: 'Pod' })).rejects.toThrow(
+      /Permission denied.*kubernetes:write/
+    );
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it('routes cluster changes with kubernetes:write', async () => {
+    const { sdk, invoke } = setup(['kubernetes:write']);
+    await expect(sdk.manifests.apply(7)).resolves.toBe('RESULT');
+    expect(invoke).toHaveBeenCalledWith('manifests.apply', [7]);
+  });
+
+  it('gates every helm call behind the helm permission', async () => {
+    const { sdk, invoke } = setup(['kubernetes', 'kubernetes:write']);
+    await expect(sdk.helm.repoList()).rejects.toThrow(
+      /Permission denied.*"helm"/
+    );
+    await expect(
+      sdk.helm.install({
+        contextName: 'c',
+        namespace: 'n',
+        releaseName: 'r',
+        chart: 'repo/chart',
+      })
+    ).rejects.toThrow(/Permission denied.*"helm"/);
+    expect(invoke).not.toHaveBeenCalled();
+
+    const trusted = setup(['helm']);
+    await expect(trusted.sdk.helm.repoList()).resolves.toBe('RESULT');
+    expect(trusted.invoke).toHaveBeenCalledWith('helm.repoList', []);
+  });
+
+  const secret = {
+    kind: 'Secret',
+    metadata: {
+      name: 's',
+      annotations: {
+        'kubectl.kubernetes.io/last-applied-configuration':
+          '{"kind":"Secret","data":{"token":"eA=="}}',
+        team: 'a',
+      },
+    },
+    data: { token: 'eA==' },
+  };
+  const secretYaml = [
+    'apiVersion: v1',
+    'data:',
+    '  token: eA==',
+    'kind: Secret',
+    'metadata:',
+    '  annotations:',
+    '    kubectl.kubernetes.io/last-applied-configuration: |',
+    '      {"kind":"Secret","data":{"token":"eA=="}}',
+    '    team: a',
+    '  name: s',
+    'type: Opaque',
+    '',
+  ].join('\n');
+
+  it('strips Secret data from getResources without the secrets permission', async () => {
+    const { sdk, invoke } = setup(['kubernetes']);
+    invoke.mockResolvedValueOnce([secret, { kind: 'Pod', spec: {} }] as never);
+    await expect(
+      sdk.kubernetes.getResources({
+        contextName: 'ctx',
+        resourceType: 'secrets',
+        namespace: 'default',
+      })
+    ).resolves.toEqual([
+      { kind: 'Secret', metadata: { name: 's', annotations: { team: 'a' } } },
+      { kind: 'Pod', spec: {} },
+    ]);
+  });
+
+  it('strips Secret data from getResourceYaml without the secrets permission', async () => {
+    const { sdk, invoke } = setup(['kubernetes']);
+    invoke.mockResolvedValueOnce(secretYaml as never);
+    await expect(
+      sdk.kubernetes.getResourceYaml({ resourceType: 'secrets', name: 's' })
+    ).resolves.toBe(
+      [
+        'apiVersion: v1',
+        'kind: Secret',
+        'metadata:',
+        '  annotations:',
+        '    team: a',
+        '  name: s',
+        'type: Opaque',
+        '',
+      ].join('\n')
+    );
+  });
+
+  it('hands Secret data through with the secrets permission', async () => {
+    const { sdk, invoke } = setup(['kubernetes', 'secrets']);
+    invoke.mockResolvedValueOnce([secret] as never);
+    await expect(
+      sdk.kubernetes.getResources({
+        contextName: 'ctx',
+        resourceType: 'secrets',
+        namespace: 'default',
+      })
+    ).resolves.toEqual([secret]);
+    invoke.mockResolvedValueOnce(secretYaml as never);
+    await expect(
+      sdk.kubernetes.getResourceYaml({ resourceType: 'secrets', name: 's' })
+    ).resolves.toBe(secretYaml);
+  });
+
   it('denies a ui call when the permission is missing', async () => {
     const { sdk, invoke } = setup(['kubernetes']);
     await expect(sdk.ui.openExternal('https://example.com')).rejects.toThrow(

@@ -2,23 +2,27 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { useApi } from '../../services/api-context';
 import { toast } from 'sonner';
+import { handleError } from '../../lib/error-handler';
 import { useClusterContext } from '../clusters/ClusterContext';
 import { UseSettingsResult } from './types';
+
+/** How long the "saved" indicator stays on after a local setting changes. */
+const SAVED_FLASH_MS = 2000;
 
 export function useSettings(): UseSettingsResult {
   const api = useApi();
   const { fetchClusters } = useClusterContext();
 
   // Local Storage State
-  const [defaultNamespace, setDefaultNamespace] = useLocalStorage<string>(
+  const [defaultNamespace, storeDefaultNamespace] = useLocalStorage<string>(
     'k8s_desktop_default_namespace',
     ''
   );
-  const [autoRefresh, setAutoRefresh] = useLocalStorage<boolean>(
+  const [autoRefresh, storeAutoRefresh] = useLocalStorage<boolean>(
     'k8s_desktop_auto_refresh',
     true
   );
-  const [refreshInterval, setRefreshInterval] = useLocalStorage<number>(
+  const [refreshInterval, storeRefreshInterval] = useLocalStorage<number>(
     'k8s_desktop_refresh_interval',
     10
   );
@@ -27,19 +31,37 @@ export function useSettings(): UseSettingsResult {
   const [kubeconfigPath, setKubeconfigPath] = useState('');
   const [saving, setSaving] = useState(false);
   const [localSettingsSaved, setLocalSettingsSaved] = useState(false);
-  const isFirstRender = useRef(true);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Flash the "saved" indicator whenever a localStorage setting changes (skip initial render)
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
+  // Flash the "saved" indicator whenever a localStorage setting changes;
+  // another change inside the window restarts the timer.
+  const flashSaved = useCallback(() => {
     if (savedTimer.current) clearTimeout(savedTimer.current);
     setLocalSettingsSaved(true);
-    savedTimer.current = setTimeout(() => setLocalSettingsSaved(false), 2000);
-  }, [defaultNamespace, autoRefresh, refreshInterval]);
+    savedTimer.current = setTimeout(
+      () => setLocalSettingsSaved(false),
+      SAVED_FLASH_MS
+    );
+  }, []);
+  useEffect(
+    () => () => {
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+    },
+    []
+  );
+
+  const setDefaultNamespace = (ns: string) => {
+    storeDefaultNamespace(ns);
+    flashSaved();
+  };
+  const setAutoRefresh = (enabled: boolean) => {
+    storeAutoRefresh(enabled);
+    flashSaved();
+  };
+  const setRefreshInterval = (seconds: number) => {
+    storeRefreshInterval(seconds);
+    flashSaved();
+  };
 
   // Initial Fetch
   useEffect(() => {
@@ -49,7 +71,9 @@ export function useSettings(): UseSettingsResult {
         setKubeconfigPath(result.data);
       }
     };
-    fetchKubeconfig();
+    fetchKubeconfig().catch((err) =>
+      handleError(err, 'Failed to read the kubeconfig path')
+    );
   }, [api]);
 
   // Handlers

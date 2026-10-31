@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '../utils';
+import { createMockElectronAPI } from '../utils/mocks';
 import { Terminal } from '../../components/Terminal';
 
 // ── xterm mocks ──────────────────────────────────────────────────────────────
@@ -44,27 +45,32 @@ beforeEach(() => {
   };
 });
 
-// Captured electron listener callbacks
+// Captured bridge listener callbacks
 let capturedOutput: (sid: string, data: string) => void;
 let capturedExit: (sid: string) => void;
 const cleanupOutput = vi.fn();
 const cleanupExit = vi.fn();
+
+let api: ReturnType<typeof createMockElectronAPI>;
 
 const renderTerminal = (
   kind: 'local' | 'pod-exec',
   sessionId = 's1',
   shellFamily?: 'windows' | 'unix'
 ) => {
-  window.electron.onTerminalOutput = vi.fn((cb: any) => {
-    capturedOutput = cb;
-    return cleanupOutput;
-  }) as any;
-  window.electron.onTerminalExited = vi.fn((cb: any) => {
-    capturedExit = cb;
-    return cleanupExit;
-  }) as any;
+  api = createMockElectronAPI({
+    onTerminalOutput: vi.fn((cb: any) => {
+      capturedOutput = cb;
+      return cleanupOutput;
+    }) as any,
+    onTerminalExited: vi.fn((cb: any) => {
+      capturedExit = cb;
+      return cleanupExit;
+    }) as any,
+  });
   return render(
-    <Terminal sessionId={sessionId} kind={kind} shellFamily={shellFamily} />
+    <Terminal sessionId={sessionId} kind={kind} shellFamily={shellFamily} />,
+    { api }
   );
 };
 
@@ -85,14 +91,11 @@ describe('Terminal', () => {
 
     cb('\x03'); // Ctrl-C
     expect(termWrite).toHaveBeenCalledWith('^C\r\n');
-    expect(window.electron.terminalInterrupt).toHaveBeenCalledWith('s1');
+    expect(api.terminalInterrupt).toHaveBeenCalledWith('s1');
 
     cb('clear\r'); // Enter with clear command (local)
     expect(termClear).toHaveBeenCalled();
-    expect(window.electron.terminalInput).toHaveBeenCalledWith(
-      's1',
-      'clear\r\n'
-    );
+    expect(api.terminalInput).toHaveBeenCalledWith('s1', 'clear\r\n');
 
     termClear.mockClear();
     cb('cls\r'); // 'cls' alias also clears
@@ -101,7 +104,7 @@ describe('Terminal', () => {
     termClear.mockClear();
     cb('ls\r'); // local Enter, non-clear command → no clear()
     expect(termClear).not.toHaveBeenCalled();
-    expect(window.electron.terminalInput).toHaveBeenCalledWith('s1', 'ls\r\n');
+    expect(api.terminalInput).toHaveBeenCalledWith('s1', 'ls\r\n');
 
     termWrite.mockClear();
     cb('é'); // code > 0x7e → ignored (no branch matches)
@@ -118,7 +121,7 @@ describe('Terminal', () => {
     );
 
     cb('ls\r'); // local unix shell → \n eol, but clear intercept still local
-    expect(window.electron.terminalInput).toHaveBeenCalledWith('s1', 'ls\n');
+    expect(api.terminalInput).toHaveBeenCalledWith('s1', 'ls\n');
 
     cb('clear\r'); // 'clear' intercept applies to local regardless of family
     expect(termClear).toHaveBeenCalled();
@@ -131,7 +134,7 @@ describe('Terminal', () => {
     renderTerminal('pod-exec');
     const cb = onDataCbs[0]!;
     cb('ls\r');
-    expect(window.electron.terminalInput).toHaveBeenCalledWith('s1', 'ls\n');
+    expect(api.terminalInput).toHaveBeenCalledWith('s1', 'ls\n');
     expect(termClear).not.toHaveBeenCalled();
   });
 
@@ -172,7 +175,7 @@ describe('Terminal', () => {
     renderTerminal('local');
 
     roCb(); // fit success → terminalResize
-    expect(window.electron.terminalResize).toHaveBeenCalledWith('s1', 80, 24);
+    expect(api.terminalResize).toHaveBeenCalledWith('s1', 80, 24);
 
     fitFn.mockImplementationOnce(() => {
       throw new Error('fit race');

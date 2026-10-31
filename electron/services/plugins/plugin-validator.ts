@@ -7,15 +7,10 @@
 
 import semver from 'semver';
 import type { PluginManifest, Plugin } from '../../types/plugin-types';
-
-const VALID_PERMISSIONS = [
-  'kubernetes',
-  'filesystem',
-  'network',
-  'ui',
-  'storage',
-  'notifications',
-];
+import {
+  PLUGIN_PERMISSIONS,
+  isPluginPermission,
+} from '../../shared/plugin-permissions';
 
 const VALID_LICENSE_TYPES = ['free', 'paid', 'trial', 'subscription'];
 
@@ -60,9 +55,15 @@ export function validateManifest(manifest: PluginManifest): string | null {
   }
 
   for (const permission of manifest.permissions) {
-    if (!VALID_PERMISSIONS.includes(permission)) {
-      return `Invalid permission: ${permission}`;
+    if (!isPluginPermission(permission)) {
+      return `Invalid permission: ${permission} (valid: ${PLUGIN_PERMISSIONS.join(', ')})`;
     }
+  }
+  if (
+    manifest.permissions.includes('secrets') &&
+    !manifest.permissions.includes('kubernetes')
+  ) {
+    return 'The "secrets" permission requires "kubernetes"';
   }
 
   if (!VALID_LICENSE_TYPES.includes(manifest.license.type)) {

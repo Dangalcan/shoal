@@ -1,6 +1,6 @@
 {
   "name": "shoal",
-  "version": "0.9.0-rc.6",
+  "version": "0.9.0",
   "description": "Desktop app for managing Kubernetes clusters.",
   "desktopName": "shoal.desktop",
   "main": "dist-electron/main.js",
@@ -218,6 +218,21 @@
           "Keywords": "kubernetes;k8s;kubectl;kind;k3d;cluster;devops;"
         }
       }
+    },
+    "deb": {
+      "depends": [
+        "libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0",
+        "libuuid1",
+        "libsecret-1-0",
+        "libasound2 (>= 1.0.17)",
+        "libgbm1"
+      ]
     },
     "nsis": {
       "artifactName": "${productName}-Setup-${version}.${ext}"

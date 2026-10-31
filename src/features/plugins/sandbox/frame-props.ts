@@ -6,20 +6,20 @@
 
 import type { Plugin } from '../../../../electron/types/plugin-types';
 import type { PluginPermission } from './protocol';
+import { isPluginPermission } from '../../../../electron/shared/plugin-permissions';
 import {
   toFrameSafeUrl,
   toPluginFileUrl,
 } from '../../../../electron/shared/plugin-file-url';
 
-const SANDBOX_PERMISSIONS: PluginPermission[] = ['kubernetes', 'ui', 'storage'];
-
-/** Keep only the manifest permissions the sandbox bridge understands. */
+/**
+ * Keep only the permissions the sandbox bridge knows. A manifest written for
+ * another version of Shoal may name others; they grant nothing here.
+ */
 export function toSandboxPermissions(
   list: string[] | undefined
 ): PluginPermission[] {
-  return (list ?? []).filter((p): p is PluginPermission =>
-    (SANDBOX_PERMISSIONS as string[]).includes(p)
-  );
+  return (list ?? []).filter(isPluginPermission);
 }
 
 export interface PluginFrameUrls {

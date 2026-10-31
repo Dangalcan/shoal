@@ -17,6 +17,10 @@ import { useInstallPlugin } from './useInstallPlugin';
 import { usePurchasePlugin } from './usePurchasePlugin';
 import { getOwnershipState, formatExpiry } from './ownership';
 import { BaseModal } from '../../components/modals/BaseModal';
+import {
+  isPluginPermission,
+  type PluginPermission,
+} from '../../../electron/shared/plugin-permissions';
 
 interface PluginDetailModalProps {
   entry: MarketplaceEntry;
@@ -35,32 +39,35 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const PERMISSION_LABELS: Record<
-  string,
+  PluginPermission,
   { label: string; description: string }
 > = {
   kubernetes: {
-    label: 'Kubernetes API',
-    description: 'Read and write Kubernetes resources',
+    label: 'Read the cluster',
+    description:
+      'List and read resources, logs, metrics and events (Secrets without their data)',
+  },
+  'kubernetes:write': {
+    label: 'Change the cluster',
+    description:
+      'Create, update and delete resources, apply manifests, run commands in pods',
+  },
+  helm: {
+    label: 'Helm',
+    description:
+      'Install, upgrade, roll back and uninstall releases, manage repositories',
+  },
+  secrets: {
+    label: 'Secret data',
+    description: 'Read the contents of Secrets',
   },
   ui: {
     label: 'UI Extensions',
-    description: 'Add sidebar items and custom pages',
+    description: 'Add sidebar items, pages, modals and notifications',
   },
   storage: {
     label: 'Local Storage',
     description: 'Store persistent data on this machine',
-  },
-  notifications: {
-    label: 'Notifications',
-    description: 'Show desktop notifications',
-  },
-  filesystem: {
-    label: 'File System',
-    description: 'Read and write local files',
-  },
-  network: {
-    label: 'Network Access',
-    description: 'Make outbound network requests',
   },
 };
 
@@ -312,10 +319,9 @@ export function PluginDetailModal({ entry, onClose }: PluginDetailModalProps) {
             <div className="plugin-detail-modal__permissions">
               <h4>Permissions</h4>
               {entry.manifest.permissions.map((perm) => {
-                const info = PERMISSION_LABELS[perm] ?? {
-                  label: perm,
-                  description: '',
-                };
+                const info = isPluginPermission(perm)
+                  ? PERMISSION_LABELS[perm]
+                  : { label: perm, description: '' };
                 return (
                   <div
                     key={perm}

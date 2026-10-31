@@ -32,12 +32,32 @@ describe('toSandboxPermissions', () => {
 
   it('keeps only the sandbox-known permissions', () => {
     expect(
-      toSandboxPermissions(['kubernetes', 'ui', 'storage', 'network', 'fs'])
-    ).toEqual(['kubernetes', 'ui', 'storage']);
+      toSandboxPermissions([
+        'kubernetes',
+        'kubernetes:write',
+        'helm',
+        'secrets',
+        'ui',
+        'storage',
+        'network',
+        'notifications',
+        'filesystem',
+        'fs',
+      ])
+    ).toEqual([
+      'kubernetes',
+      'kubernetes:write',
+      'helm',
+      'secrets',
+      'ui',
+      'storage',
+    ]);
   });
 
   it('drops all entries when none are recognised', () => {
-    expect(toSandboxPermissions(['network', 'fs'])).toEqual([]);
+    expect(toSandboxPermissions(['network', 'fs', 'notifications'])).toEqual(
+      []
+    );
   });
 });
 
@@ -79,7 +99,13 @@ describe('buildPluginFrameUrls', () => {
       makePlugin({
         manifest: {
           ...makePlugin().manifest,
-          permissions: ['kubernetes', 'network', 'storage'],
+          // A manifest from another Shoal version may name a permission
+          // this build does not know.
+          permissions: [
+            'kubernetes',
+            'network',
+            'storage',
+          ] as unknown as Plugin['manifest']['permissions'],
         },
       })
     );

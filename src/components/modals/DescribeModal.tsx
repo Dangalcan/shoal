@@ -12,8 +12,14 @@ interface DescribeModalProps {
   namespace: string;
 }
 
-export function DescribeModal({
-  isOpen,
+export function DescribeModal(props: DescribeModalProps) {
+  // The dialog exists only while the modal is open, so every opening
+  // fetches afresh (the resource may have changed since the last look).
+  if (!props.isOpen) return null;
+  return <DescribeDialog {...props} />;
+}
+
+function DescribeDialog({
   onClose,
   clusterName,
   resourceName,
@@ -29,7 +35,6 @@ export function DescribeModal({
     contentRef,
     copyToClipboard,
   } = useResourceModal({
-    isOpen,
     clusterName,
     resourceName,
     fetchFn: () =>
@@ -71,7 +76,7 @@ export function DescribeModal({
 
   return (
     <BaseModal
-      isOpen={isOpen}
+      isOpen
       onClose={onClose}
       title={`Describe ${resourceType.charAt(0).toUpperCase() + resourceType.slice(1)}`}
       subtitle={`${namespace} / ${resourceName}`}
