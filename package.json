@@ -230,7 +230,8 @@
         "libatspi2.0-0",
         "libuuid1",
         "libsecret-1-0",
-        "libasound2 (>= 1.0.17)"
+        "libasound2 (>= 1.0.17)",
+        "libgbm1"
       ]
     },
     "nsis": {
