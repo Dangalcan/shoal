@@ -7,6 +7,12 @@ All notable changes to Shoal are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-10-31
+
+Same-day follow-up to 0.9.0: the Linux package pulls in the libraries it
+needs, plugin permissions are split, and plugin secrets rest on the OS
+keystore.
+
 ### Changed
 
 - Plugin permissions are split. `kubernetes` now only grants reads (list,
@@ -333,5 +339,6 @@ yet, so Windows SmartScreen shows a warning on first launch.
   `sudo apt install libasound2t64` (`libasound2` before Ubuntu 24.04). The
   `.deb` will declare the dependency in 0.9.1.
 
-[Unreleased]: https://github.com/Dangalcan/shoal/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/Dangalcan/shoal/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/Dangalcan/shoal/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/Dangalcan/shoal/compare/v0.9.0-rc.6...v0.9.0
