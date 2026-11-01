@@ -43,6 +43,11 @@ All notable changes to Shoal are documented here. The format follows
   longer looks like lost manifests once the toast is gone. The folder list
   reports its failure the same way, and a failed save or delete now names
   the reason in its toast, as uploads and Apply already did (#28).
+- A manifest created or uploaded on the Manifests page is stored under the
+  context the sidebar shows. The page used to ask kubectl for the current
+  context on its own when it opened, so a manifest saved before that answer
+  arrived was stored under `default` (and Apply then failed), and one saved
+  after a context switch kept the context the page had opened with.
 
 ## [0.9.1] - 2026-10-31
 

@@ -127,7 +127,9 @@ Click the **edit** icon next to any saved manifest to open it in the editor. Mak
 
 ### Applying a Manifest
 
-Click the **play** icon (▶) next to a manifest to run `kubectl apply` against the **currently active** cluster context. The result (success or error output) is displayed inline.
+Every manifest belongs to a cluster context, shown on its card as **Context:**. Creating, uploading or editing a manifest stores it under the context the sidebar shows at that moment.
+
+Click the **play** icon (▶) next to a manifest to run `kubectl apply` against **the manifest's context**. A toast reports the result, with kubectl's error message when the apply fails.
 
 ### Deleting a Manifest
 
