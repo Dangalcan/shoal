@@ -232,13 +232,49 @@ describe('MarketplaceList', () => {
     expect(
       screen.queryByRole('heading', { name: 'Featured' })
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole('heading', { level: 2 })).not.toBeInTheDocument();
+    // The grid is headed by the category and its count.
+    expect(sectionCards('Monitoring (2)')).toEqual([
+      'Prometheus Monitor',
+      'Net Inspector',
+    ]);
     expect(
       within(sidebar).getByText('Monitoring').closest('button')
     ).toHaveClass('active');
 
     await user.click(within(sidebar).getByText('All'));
     expect(sectionCards('Featured')).toHaveLength(3);
+  });
+
+  it('heads search results with their count', async () => {
+    const user = userEvent.setup();
+    renderList();
+    await screen.findByRole('heading', { name: 'Featured' });
+
+    await user.type(
+      screen.getByPlaceholderText('Search plugins, tags...'),
+      'INSPECTOR'
+    );
+
+    expect(sectionCards('Search results (1)')).toEqual(['Net Inspector']);
+  });
+
+  it('lists a catalogue no larger than the featured row without featuring it', async () => {
+    // With three plugins or fewer every plugin used to be featured, and an
+    // empty "All Plugins (0)" section said there was nothing in it.
+    api.getMarketplacePlugins.mockResolvedValue({
+      success: true,
+      data: [prometheus, vault, helm],
+    });
+    renderList();
+
+    await waitFor(() => expect(visibleCards()).toHaveLength(3));
+    expect(
+      screen.queryByRole('heading', { name: 'Featured' })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 2 })).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('No plugins in this category yet.')
+    ).not.toBeInTheDocument();
   });
 
   it('sorts search results, featured plugins included', async () => {

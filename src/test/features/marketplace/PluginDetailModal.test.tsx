@@ -310,6 +310,34 @@ describe('PluginDetailModal', () => {
       ).not.toBeInTheDocument();
     });
 
+    it.each([
+      ['a free plugin', {}, freeEntry],
+      ['a licensed plugin', { licenseInfo: { isActive: true } }, paidEntry],
+    ])(
+      'offers the update of %s with a newer version, as its card does',
+      async (_case, overrides, entry) => {
+        const user = userEvent.setup();
+        await renderOwned(
+          installedPlugin({ hasUpdate: true, ...overrides } as Partial<Plugin>),
+          entry
+        );
+
+        const update = await screen.findByRole('button', { name: 'Update' });
+        expect(
+          screen.queryByRole('button', { name: 'Installed' })
+        ).not.toBeInTheDocument();
+        await user.click(update);
+
+        expect(api.installPlugin).toHaveBeenCalledWith('helm-manager');
+        await waitFor(() =>
+          expect(mockToast.success).toHaveBeenCalledWith(
+            'Helm Manager installed successfully!',
+            expect.objectContaining({ id: expect.anything() })
+          )
+        );
+      }
+    );
+
     it('buys, activates and installs a paid plugin', async () => {
       const user = userEvent.setup();
       // The plugin list reports the license once it has been activated.

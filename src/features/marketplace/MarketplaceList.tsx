@@ -37,6 +37,15 @@ function sortPlugins(
   }
 }
 
+/** Plugins in the Featured row. */
+const FEATURED_COUNT = 3;
+
+/** Heading of the plugin grid: the category, else the search, else all. */
+function sectionTitle(category: string, search: string): string {
+  if (category !== 'All') return category;
+  return search ? 'Search results' : 'All Plugins';
+}
+
 export function MarketplaceList() {
   const api = useApi();
   const {
@@ -82,10 +91,12 @@ export function MarketplaceList() {
     return sortPlugins(result, sort);
   }, [plugins, selectedCategory, search, sort]);
 
+  // Only a catalogue larger than the row gets one: otherwise every plugin
+  // would be featured and "All Plugins" left empty below it.
   const featuredPlugins = useMemo(
     () =>
-      selectedCategory === 'All' && !search
-        ? sortPlugins([...plugins], 'popular').slice(0, 3)
+      selectedCategory === 'All' && !search && plugins.length > FEATURED_COUNT
+        ? sortPlugins([...plugins], 'popular').slice(0, FEATURED_COUNT)
         : [],
     [plugins, selectedCategory, search]
   );
@@ -146,11 +157,11 @@ export function MarketplaceList() {
               )}
 
               <section className="marketplace-section">
-                {featuredPlugins.length > 0 && (
+                {(featuredPlugins.length > 0 ||
+                  selectedCategory !== 'All' ||
+                  search !== '') && (
                   <h2 className="marketplace-section__title">
-                    {selectedCategory === 'All'
-                      ? 'All Plugins'
-                      : selectedCategory}
+                    {sectionTitle(selectedCategory, search)}
                     <span className="marketplace-section__count">
                       {' '}
                       ({regularPlugins.length})
