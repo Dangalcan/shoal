@@ -49,6 +49,49 @@ describe('error reporting', () => {
     );
   });
 
+  it('swallows a failure to write the log', async () => {
+    vi.mocked(window.electron.logRendererError).mockRejectedValueOnce(
+      new Error('ipc closed')
+    );
+
+    expect(() => reportRendererError(new Error('boom'), 'x')).not.toThrow();
+
+    // The write did fail; Vitest would flag the run if that rejection
+    // escaped reportRendererError unhandled.
+    const write = vi.mocked(window.electron.logRendererError).mock.results[0];
+    await expect(write?.value).rejects.toThrow('ipc closed');
+  });
+
+  it('logs uncaught window errors with their Error once installed', () => {
+    installGlobalErrorHandlers();
+
+    window.dispatchEvent(
+      new ErrorEvent('error', {
+        error: new RangeError('out of range'),
+        message: 'Uncaught RangeError: out of range',
+      })
+    );
+
+    expect(window.electron.logRendererError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: 'window-error',
+        message: 'RangeError: out of range',
+      })
+    );
+  });
+
+  it('falls back to the event message for window errors without an Error', () => {
+    installGlobalErrorHandlers();
+
+    window.dispatchEvent(new ErrorEvent('error', { message: 'Script error.' }));
+
+    expect(window.electron.logRendererError).toHaveBeenCalledWith({
+      source: 'window-error',
+      message: 'Script error.',
+      stack: undefined,
+    });
+  });
+
   it('opens the bug report form with the environment fields filled in', () => {
     const url = new URL(
       buildIssueUrl(

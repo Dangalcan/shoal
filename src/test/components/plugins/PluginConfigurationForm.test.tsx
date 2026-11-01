@@ -222,6 +222,77 @@ describe('PluginConfigurationForm', () => {
     consoleError.mockRestore();
   });
 
+  it('shows a generic save error when the parent rejects with a non-Error', async () => {
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    const onSave = vi.fn().mockRejectedValue('EROFS');
+    render(
+      <PluginConfigurationForm
+        schema={{
+          properties: {
+            name: { type: 'string', label: 'Name', placeholder: 'name' },
+          },
+        }}
+        initialValues={{ name: 'x' }}
+        onSave={onSave}
+        onCancel={vi.fn()}
+      />
+    );
+
+    save();
+
+    expect(
+      await screen.findByText('Failed to save settings')
+    ).toBeInTheDocument();
+    expect(onSave).toHaveBeenCalledWith({ name: 'x' });
+    consoleError.mockRestore();
+  });
+
+  it('saves the option picked in a select that has no value or default', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PluginConfigurationForm
+        schema={{
+          properties: {
+            mode: {
+              type: 'select',
+              label: 'Mode',
+              enum: ['fast', 'safe'],
+            },
+          },
+        }}
+        initialValues={{}}
+        onSave={onSave}
+        onCancel={vi.fn()}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText('Mode'), {
+      target: { value: 'safe' },
+    });
+    save();
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith({ mode: 'safe' }));
+  });
+
+  it('starts a list field empty when its stored value is not a list', () => {
+    render(
+      <PluginConfigurationForm
+        schema={{
+          properties: { hosts: { type: 'array', label: 'Hosts' } },
+        }}
+        initialValues={{ hosts: 'a,b' }}
+        onSave={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '+ Add Item' }));
+    expect(screen.getByRole('textbox', { name: 'Hosts 1' })).toHaveValue('');
+  });
+
   it('cancels and flags unsupported field types', () => {
     const onCancel = vi.fn();
     const odd = {

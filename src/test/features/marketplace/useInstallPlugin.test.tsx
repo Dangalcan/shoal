@@ -54,6 +54,24 @@ describe('useInstallPlugin', () => {
     expect(result.current.installing).toBe(false);
   });
 
+  it('reports a generic message when the failure is not an Error', async () => {
+    installPlugin.mockRejectedValue('registry offline');
+    const { result } = renderHook(() =>
+      useInstallPlugin('plugin-id', 'Plugin')
+    );
+
+    await act(async () => {
+      await result.current.handleInstall();
+    });
+
+    expect(mockToast.error).toHaveBeenCalledWith(
+      'Installation failed',
+      expect.objectContaining({ id: expect.anything() })
+    );
+    expect(mockToast.success).not.toHaveBeenCalled();
+    expect(result.current.installing).toBe(false);
+  });
+
   it('does not reinstall a plugin that is already present', async () => {
     state.plugins = [
       { manifest: { id: 'plugin-id' }, state: 'enabled' } as Plugin,

@@ -16,6 +16,7 @@ function fakeSdk(): {
     getPods: make('getPods'),
     getNamespaces: make('getNamespaces'),
     getLogs: make('getLogs'),
+    getPodMetrics: make('getPodMetrics'),
     describeResource: make('describeResource'),
     getResourceYaml: make('getResourceYaml'),
     deleteResource: make('deleteResource'),
@@ -26,6 +27,12 @@ function fakeSdk(): {
     get: make('get'),
     set: make('set'),
     openExternal: make('openExternal'),
+    install: make('install'),
+    upgrade: make('upgrade'),
+    rollback: make('rollback'),
+    uninstall: make('uninstall'),
+    repoAdd: make('repoAdd'),
+    repoList: make('repoList'),
   };
   const sdk = {
     kubernetes: {
@@ -33,6 +40,7 @@ function fakeSdk(): {
       getPods: calls.getPods,
       getNamespaces: calls.getNamespaces,
       getLogs: calls.getLogs,
+      getPodMetrics: calls.getPodMetrics,
       describeResource: calls.describeResource,
       getResourceYaml: calls.getResourceYaml,
       deleteResource: calls.deleteResource,
@@ -40,6 +48,14 @@ function fakeSdk(): {
       getClusters: calls.getClusters,
     },
     manifests: { apply: calls.apply, save: calls.save },
+    helm: {
+      install: calls.install,
+      upgrade: calls.upgrade,
+      rollback: calls.rollback,
+      uninstall: calls.uninstall,
+      repoAdd: calls.repoAdd,
+      repoList: calls.repoList,
+    },
     settings: { get: calls.get, set: calls.set },
     ui: { openExternal: calls.openExternal },
   } as unknown as K8sPluginSdk;
@@ -106,6 +122,49 @@ describe('makeElectronShim', () => {
     await shim.getCurrentContext();
     await shim.getClusters();
     expect(calls.getClusters).toHaveBeenCalled();
+  });
+
+  it('routes getPodMetrics with its args object', async () => {
+    const args = { contextName: 'ctx', namespace: 'ns' };
+    await expect(shim.getPodMetrics(args)).resolves.toEqual({
+      success: true,
+      data: 'getPodMetrics-ok',
+    });
+    expect(calls.getPodMetrics).toHaveBeenCalledWith(args);
+  });
+
+  it.each([
+    ['helmInstall', 'install'],
+    ['helmUpgrade', 'upgrade'],
+    ['helmRollback', 'rollback'],
+    ['helmUninstall', 'uninstall'],
+    ['helmRepoAdd', 'repoAdd'],
+  ])(
+    'routes %s to sdk.helm.%s and wraps the result',
+    async (shimName, sdkName) => {
+      const args = { releaseName: 'r', namespace: 'ns' };
+      await expect(shim[shimName](args)).resolves.toEqual({
+        success: true,
+        data: `${sdkName}-ok`,
+      });
+      expect(calls[sdkName]).toHaveBeenCalledWith(args);
+    }
+  );
+
+  it('routes helmRepoList with no args', async () => {
+    await expect(shim.helmRepoList()).resolves.toEqual({
+      success: true,
+      data: 'repoList-ok',
+    });
+    expect(calls.repoList).toHaveBeenCalledWith();
+  });
+
+  it('wraps a rejected helm call into a failure envelope', async () => {
+    calls.install.mockRejectedValueOnce(new Error('chart not found'));
+    await expect(shim.helmInstall({ chart: 'x' })).resolves.toEqual({
+      success: false,
+      error: 'chart not found',
+    });
   });
 
   it('routes manifest methods', async () => {

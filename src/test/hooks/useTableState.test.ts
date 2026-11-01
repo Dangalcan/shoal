@@ -82,6 +82,24 @@ describe('useTableState', () => {
       key: 'name',
       direction: 'desc',
     });
+
+    act(() => result.current.handleSort('name'));
+    expect(result.current.sortConfig).toEqual({
+      key: 'name',
+      direction: 'asc',
+    });
+  });
+
+  it('starts ascending again when the sort column changes', () => {
+    const { result } = renderHook(() => useTableState(podColumns));
+
+    act(() => result.current.handleSort('name'));
+    act(() => result.current.handleSort('name'));
+    act(() => result.current.handleSort('status'));
+    expect(result.current.sortConfig).toEqual({
+      key: 'status',
+      direction: 'asc',
+    });
   });
 
   const storedWidths = () =>

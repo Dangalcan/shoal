@@ -102,6 +102,24 @@ describe('YamlModal', () => {
     });
   });
 
+  it('reports a save that fails with a non-error value', async () => {
+    mockElectronAPI.saveManifest.mockRejectedValue('database locked');
+    render(<YamlModal {...defaultProps} />);
+
+    await waitFor(() =>
+      expect(screen.getByText(/apiVersion: v1/)).toBeInTheDocument()
+    );
+
+    fireEvent.click(screen.getByText('Save to DB').closest('button')!);
+
+    await waitFor(() => {
+      expect(mockToast.error).toHaveBeenCalledWith(
+        'Error saving manifest: database locked'
+      );
+    });
+    expect(screen.getByText('Save to DB')).toBeInTheDocument();
+  });
+
   it('should re-fetch when resourceName changes', async () => {
     const { rerender } = render(<YamlModal {...defaultProps} />);
 

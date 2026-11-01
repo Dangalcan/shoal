@@ -81,6 +81,16 @@ describe('error-handler', () => {
       });
     });
 
+    it('leaves the description empty for an object without message or error', () => {
+      handleError({ code: 500 }, 'Odd Error');
+
+      expect(toast.error).toHaveBeenCalledWith('Odd Error', {
+        description: undefined,
+        duration: 5000,
+        id: undefined,
+      });
+    });
+
     it('should handle null/undefined error gracefully', () => {
       handleError(null, 'Null Error');
       expect(toast.error).toHaveBeenCalledWith(

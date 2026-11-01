@@ -1,5 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import type { ReactElement } from 'react';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import type { ResourceType } from '../../../../lib/resources/resource-definitions';
 import {
   ReadyCell,
   DesiredCell,
@@ -23,6 +25,10 @@ describe('WorkloadCells', () => {
   } as any;
 
   const style = {};
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
   describe('ReadyCell', () => {
     it('should render ready/replicas for standard workloads', () => {
@@ -224,5 +230,73 @@ describe('WorkloadCells', () => {
       render(<DurationCell resource={emptyResource as any} style={style} />);
       expect(screen.getByText('-')).toBeInTheDocument();
     });
+
+    it('measures a finished job from start to completion', () => {
+      const resource = {
+        ...emptyResource,
+        status: {
+          startTime: '2026-01-01T00:00:00Z',
+          completionTime: '2026-01-01T00:01:05Z',
+        },
+      };
+      renderInRow(<DurationCell resource={resource} style={style} />);
+      expect(screen.getByRole('cell')).toHaveTextContent('65s');
+    });
+
+    it('measures a running job up to now', () => {
+      vi.spyOn(Date, 'now').mockReturnValue(
+        new Date('2026-01-01T00:00:42Z').getTime()
+      );
+      const resource = {
+        ...emptyResource,
+        status: { startTime: '2026-01-01T00:00:00Z' },
+      };
+      renderInRow(<DurationCell resource={resource} style={style} />);
+      expect(screen.getByRole('cell')).toHaveTextContent('42s');
+    });
+  });
+
+  describe('missing counters', () => {
+    const cells = [
+      ['ReadyCell', ReadyCell],
+      ['DesiredCell', DesiredCell],
+      ['CurrentCell', CurrentCell],
+      ['UpdatedCell', UpdatedCell],
+      ['AvailableCell', AvailableCell],
+    ] as const;
+    const types: ResourceType[] = ['replicasets', 'daemonsets'];
+
+    it.each(
+      cells.flatMap(([name, Cell]) =>
+        types.map((type) => ({ name, Cell, type }))
+      )
+    )('$name shows 0 for a $type without counters', ({ Cell, type }) => {
+      renderInRow(
+        <Cell resource={emptyResource} resourceType={type} style={style} />
+      );
+      expect(screen.getByRole('cell')).toHaveTextContent(/^0$/);
+    });
+
+    it('ReadyCell shows the replica count when no replica is ready', () => {
+      const resource = { ...emptyResource, status: { replicas: 2 } };
+      renderInRow(
+        <ReadyCell
+          resource={resource}
+          resourceType="statefulsets"
+          style={style}
+        />
+      );
+      expect(screen.getByRole('cell')).toHaveTextContent('0 / 2');
+    });
   });
 });
+
+function renderInRow(cell: ReactElement) {
+  return render(
+    <table>
+      <tbody>
+        <tr>{cell}</tr>
+      </tbody>
+    </table>
+  );
+}

@@ -119,6 +119,71 @@ describe('NetworkCells', () => {
       );
       expect(screen.getByText('443')).toBeInTheDocument();
     });
+
+    it('should list 80 and 443 for an Ingress with a default backend and TLS', () => {
+      const resource = {
+        ...emptyResource,
+        spec: { defaultBackend: { service: { name: 'web' } }, tls: [] },
+      };
+      render(
+        <PortsCell
+          resource={resource as any}
+          resourceType="ingress"
+          style={style}
+        />
+      );
+      expect(screen.getByText('80, 443')).toBeInTheDocument();
+    });
+
+    it('should prefer the flat ports field of an Ingress', () => {
+      const resource = {
+        ...emptyResource,
+        ports: '8080',
+        spec: { rules: [{ host: 'test' }] },
+      };
+      render(
+        <PortsCell
+          resource={resource as any}
+          resourceType="ingress"
+          style={style}
+        />
+      );
+      expect(screen.getByText('8080')).toBeInTheDocument();
+    });
+
+    it('should default to 80 for an Ingress without spec', () => {
+      render(
+        <PortsCell
+          resource={emptyResource as any}
+          resourceType="ingress"
+          style={style}
+        />
+      );
+      expect(screen.getByText('80')).toBeInTheDocument();
+    });
+
+    it('should render <none> for a Service without spec', () => {
+      render(
+        <PortsCell
+          resource={emptyResource as any}
+          resourceType="services"
+          style={style}
+        />
+      );
+      expect(screen.getByText('<none>')).toBeInTheDocument();
+    });
+
+    it('should render <none> for a Service with an empty port list', () => {
+      const resource = { ...emptyResource, spec: { ports: [] } };
+      render(
+        <PortsCell
+          resource={resource as any}
+          resourceType="services"
+          style={style}
+        />
+      );
+      expect(screen.getByText('<none>')).toBeInTheDocument();
+    });
   });
 
   describe('IngressClassCell', () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import type { Plugin } from '../../../electron/types/plugin-types';
 
@@ -31,7 +31,20 @@ vi.mock('../../features/plugins/sandbox/PluginModalHost', () => ({
   PluginModalHost: () => <div data-testid="modal-host" />,
 }));
 
+// Pass-through by default; one test makes it report "nothing to mount".
+vi.mock('../../features/plugins/sandbox/frame-props', async (importActual) => {
+  const actual =
+    await importActual<
+      typeof import('../../features/plugins/sandbox/frame-props')
+    >();
+  return {
+    ...actual,
+    buildPluginFrameUrls: vi.fn(actual.buildPluginFrameUrls),
+  };
+});
+
 import { PluginPage } from '../../pages/PluginPage';
+import { buildPluginFrameUrls } from '../../features/plugins/sandbox/frame-props';
 
 function makePlugin(overrides: Partial<Plugin> = {}): Plugin {
   return {
@@ -58,6 +71,11 @@ describe('PluginPage states', () => {
     state.loading = false;
     state.pluginId = 'p1';
     state.navigate.mockClear();
+  });
+
+  afterEach(() => {
+    // Back to the pass-through implementation given to vi.fn().
+    vi.mocked(buildPluginFrameUrls).mockReset();
   });
 
   it('shows a spinner while plugins are loading', () => {
@@ -99,5 +117,12 @@ describe('PluginPage states', () => {
     expect(document.querySelector('.plugin-page-title')?.textContent).toBe(
       'Set Title'
     );
+  });
+
+  it('renders nothing when the plugin yields no frame URLs', () => {
+    vi.mocked(buildPluginFrameUrls).mockReturnValue(null);
+    const { container } = render(<PluginPage />);
+    expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByTestId('plugin-frame')).toBeNull();
   });
 });

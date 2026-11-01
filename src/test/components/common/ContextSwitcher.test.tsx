@@ -115,6 +115,27 @@ describe('ContextSwitcher', () => {
     });
   });
 
+  it('stays open when pressing inside the dropdown', async () => {
+    const mockApi = createMockElectronAPI({
+      getClusters: vi.fn().mockResolvedValue({
+        success: true,
+        data: ['cluster-1', 'cluster-2'],
+      }),
+      getCurrentContext: vi.fn().mockResolvedValue({
+        success: true,
+        data: 'cluster-1',
+      }),
+    });
+
+    render(<ContextSwitcher />, { api: mockApi });
+    const trigger = (await screen.findByText('cluster-1')).closest('button');
+    fireEvent.click(trigger!);
+
+    fireEvent.mouseDown(screen.getByText('cluster-2'));
+
+    expect(screen.getByText(/available contexts/i)).toBeInTheDocument();
+  });
+
   it('should NOT call switchContext when clicking the current context', async () => {
     const switchContextMock = vi.fn();
     const mockApi = createMockElectronAPI({

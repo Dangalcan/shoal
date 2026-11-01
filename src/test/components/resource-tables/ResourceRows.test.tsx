@@ -141,6 +141,18 @@ describe('ResourceRow', () => {
     expect(screen.getByTestId('flags').textContent).toBe('restart,scale');
   });
 
+  it('renders an empty row for a tab without column definitions', () => {
+    render(
+      <table>
+        <tbody>
+          <ResourceRow {...defaultProps} activeTab={'not-a-tab' as any} />
+        </tbody>
+      </table>
+    );
+
+    expect(screen.getByRole('row')).toBeEmptyDOMElement();
+  });
+
   it('omits optional action callbacks that were not provided', () => {
     render(
       <table>

@@ -177,4 +177,69 @@ describe('Settings Page', () => {
     const rangeGroup = container.querySelector('.settings-page--hidden');
     expect(rangeGroup).toBeInTheDocument();
   });
+
+  it('confirms a saved local setting in the footer', () => {
+    vi.mocked(useSettings).mockReturnValue({
+      ...mockSettingsValues,
+      localSettingsSaved: true,
+    });
+
+    render(<Settings />, { api: mockApi });
+
+    expect(screen.getByText('Settings saved.')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Settings are saved automatically.')
+    ).not.toBeInTheDocument();
+  });
+
+  it('says settings save automatically while nothing was just saved', () => {
+    render(<Settings />, { api: mockApi });
+
+    expect(
+      screen.getByText('Settings are saved automatically.')
+    ).toBeInTheDocument();
+  });
+
+  it('selects All Namespaces when no default namespace is stored', () => {
+    vi.mocked(useSettings).mockReturnValue({
+      ...mockSettingsValues,
+      defaultNamespace: '',
+    });
+
+    render(<Settings />, { api: mockApi });
+
+    expect(screen.getByLabelText('Default Namespace')).toHaveValue('all');
+  });
+
+  it('suggests a Windows kubeconfig path on Windows', () => {
+    const userAgent = vi
+      .spyOn(navigator, 'userAgent', 'get')
+      .mockReturnValue('Mozilla/5.0 (Windows NT 10.0; Win64; x64)');
+    try {
+      render(<Settings />, { api: mockApi });
+
+      expect(screen.getByLabelText('Kubeconfig Path')).toHaveAttribute(
+        'placeholder',
+        'e.g. C:\\Users\\you\\.kube\\config-custom'
+      );
+    } finally {
+      userAgent.mockRestore();
+    }
+  });
+
+  it('suggests a home-relative kubeconfig path elsewhere', () => {
+    const userAgent = vi
+      .spyOn(navigator, 'userAgent', 'get')
+      .mockReturnValue('Mozilla/5.0 (X11; Linux x86_64)');
+    try {
+      render(<Settings />, { api: mockApi });
+
+      expect(screen.getByLabelText('Kubeconfig Path')).toHaveAttribute(
+        'placeholder',
+        'e.g. ~/.kube/config-custom'
+      );
+    } finally {
+      userAgent.mockRestore();
+    }
+  });
 });

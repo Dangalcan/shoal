@@ -56,6 +56,7 @@ async function bootFrame(data: Record<string, unknown>): Promise<TestHarness> {
 }
 
 type Registry = {
+  registerPage: (p: { component?: ComponentType }) => void;
   registerModal: (m: { id?: string; component?: ComponentType }) => void;
   registerWidget: (w: { id?: string; component?: ComponentType }) => void;
 };
@@ -178,6 +179,83 @@ describe('frame-runtime mount path', () => {
           (m) => m.kind === 'rpc-request' && m.method === 'ui.showNotification'
         )
       ).toBe(true);
+    });
+  });
+
+  it('mounts the page when the init message names no view', async () => {
+    const { received } = await bootFrame({});
+
+    act(() => {
+      registry().registerWidget({ id: 'w1', component: () => <div>w</div> });
+    });
+    expect(document.getElementById('root')!.textContent).toBe('');
+
+    act(() => {
+      registry().registerPage({ component: () => <h1>plugin page</h1> });
+    });
+
+    expect(document.getElementById('root')!.textContent).toBe('plugin page');
+    await waitFor(() => {
+      expect(received.some((m) => m.type === 'ready')).toBe(true);
+    });
+  });
+
+  it('does not report or observe its height for a fill page', async () => {
+    const observe = vi.fn();
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(public cb: () => void) {}
+        observe = observe;
+        unobserve = vi.fn();
+        disconnect = vi.fn();
+      }
+    );
+
+    const { received } = await bootFrame({
+      view: { kind: 'page' },
+      sizing: 'fill',
+    });
+
+    act(() => {
+      registry().registerPage({ component: () => <div>tall page</div> });
+    });
+
+    // Messages on a port arrive in order: the height report would be posted
+    // right after 'ready', so once 'ready' is in, a resize would be too.
+    await waitFor(() => {
+      expect(received.some((m) => m.type === 'ready')).toBe(true);
+    });
+    expect(received.some((m) => m.type === 'resize')).toBe(false);
+    expect(observe).not.toHaveBeenCalled();
+  });
+
+  it('wires no plugin globals and loads no entry when the frame has no #root', async () => {
+    document.body.innerHTML = '';
+    const globals = window as unknown as Record<string, unknown>;
+    delete globals.k8sPlugin;
+    delete globals.pluginUIRegistry;
+
+    const { channel } = await bootFrame({
+      view: { kind: 'page' },
+      entryUrl: 'plugin-file:///p1/renderer.js',
+      styleUrls: ['plugin-file:///p1/s.css'],
+    });
+
+    expect(globals.k8sPlugin).toBeUndefined();
+    expect(globals.pluginUIRegistry).toBeUndefined();
+    expect(document.querySelector('script')).toBeNull();
+    expect(document.head.querySelector('link')).toBeNull();
+
+    // The theme listener is attached before the #root check, so the frame
+    // still follows the host theme.
+    channel.port1.postMessage({
+      kind: 'event',
+      name: 'host:theme',
+      payload: 'dark',
+    });
+    await waitFor(() => {
+      expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
     });
   });
 

@@ -157,4 +157,46 @@ describe('useManifestFolders', () => {
     expect(result.current.foldersError).toBeNull();
     expect(result.current.folders).toHaveLength(4);
   });
+
+  it('keeps a folder opened before the list loads, without a path yet', async () => {
+    let answer: (value: {
+      success: true;
+      data: ManifestFolder[];
+    }) => void = () => {};
+    vi.mocked(mockApi.getManifestFolders).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        })
+    );
+    const { result } = renderHook(() => useManifestFolders());
+
+    act(() => result.current.openFolder(3));
+
+    expect(result.current.currentFolderId).toBe(3);
+    expect(result.current.currentFolder).toBeNull();
+    expect(result.current.breadcrumbs).toEqual([]);
+
+    await act(async () => {
+      answer({ success: true, data: folders });
+    });
+    expect(result.current.currentFolder?.name).toBe('nginx');
+    expect(result.current.breadcrumbs.map((f) => f.name)).toEqual([
+      'infra',
+      'nginx',
+    ]);
+  });
+
+  it('stops the path at a parent that is not in the list', async () => {
+    vi.mocked(mockApi.getManifestFolders).mockResolvedValue({
+      success: true,
+      data: [makeFolder({ id: 8, name: 'orphan', parent_id: 99 })],
+    });
+    const { result } = renderHook(() => useManifestFolders());
+    await waitFor(() => expect(result.current.folders).toHaveLength(1));
+
+    act(() => result.current.openFolder(8));
+
+    expect(result.current.breadcrumbs.map((f) => f.name)).toEqual(['orphan']);
+  });
 });
