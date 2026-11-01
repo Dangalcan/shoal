@@ -44,16 +44,41 @@ describe('useTerminalSession', () => {
     expect(result.current).toEqual({
       sessionId: null,
       shellFamily: null,
+      transport: 'pipe',
+      windowsPty: undefined,
       loading: true,
       error: null,
     });
 
     await waitFor(() => expect(result.current.sessionId).toBe('s1'));
     expect(result.current.shellFamily).toBe('unix');
+    // No transport in the answer (older main process): pipe behaviour.
+    expect(result.current.transport).toBe('pipe');
+    expect(result.current.windowsPty).toBeUndefined();
     expect(result.current.loading).toBe(false);
     expect(api.terminalCreate).toHaveBeenCalledWith({
       kind: 'local',
       shell: 'bash',
+    });
+  });
+
+  it('reports the pseudo-terminal behind the session', async () => {
+    api.terminalCreate.mockResolvedValue({
+      success: true,
+      data: {
+        sessionId: 's1',
+        shellFamily: 'windows',
+        transport: 'pty',
+        windowsPty: { backend: 'conpty', buildNumber: 22631 },
+      },
+    });
+    const { result } = renderSession({ kind: 'local' });
+
+    await waitFor(() => expect(result.current.sessionId).toBe('s1'));
+    expect(result.current.transport).toBe('pty');
+    expect(result.current.windowsPty).toEqual({
+      backend: 'conpty',
+      buildNumber: 22631,
     });
   });
 

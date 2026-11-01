@@ -82,6 +82,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # node-pty ships a Windows x64 prebuild but none for Linux, and
+      # `npm ci` keeps install scripts off, so the Linux binary is compiled
+      # here (node-gyp against the Node headers; the module uses Node-API,
+      # so the result also loads in Electron). The runner has make, g++ and
+      # python. Without this step the AppImage would still work, with local
+      # shells on pipes instead of a pseudo-terminal.
+      - name: Build node-pty (Linux)
+        if: runner.os == 'Linux'
+        run: npm run rebuild:node-pty
+
       - name: Build renderer and main process
         run: npm run build:react && npm run build:electron
 

@@ -160,7 +160,7 @@ The **Terminal** page provides direct shell access — either a local shell on y
 1. Click **"Terminal"** in the left sidebar.
 2. A local shell session opens automatically using your default shell.
 3. Use the **shell picker** to switch to any other shell detected on your machine — PowerShell, PowerShell 7, Command Prompt, Git Bash, or WSL on Windows; `bash`, `zsh`, or `sh` on Linux.
-4. Type commands as normal. Press **Ctrl+C** to interrupt a running process.
+4. Type commands as normal: the shell edits the line, keeps its history and shows its colours. Press **Ctrl+C** to interrupt a running process.
 5. Type `exit` to end the session; **New Terminal** starts a fresh one.
 
 ### Opening a Pod Exec Session
@@ -168,12 +168,15 @@ The **Terminal** page provides direct shell access — either a local shell on y
 1. Navigate to a cluster's **Cluster Details** view.
 2. Hover a **Pod** row and click **"Open Shell"**.
 3. A new session starts inside the pod's default container using `/bin/sh` (you can choose a different shell for containers that ship one, e.g. `/bin/bash`).
-4. The session is bound to the pod's lifecycle — if the pod restarts, the session ends.
+4. The container shell gets a TTY (`kubectl exec -it`): it echoes and edits the line, follows the window size, and full-screen programs such as `vi` or `top` work when the image ships them.
+5. The session is bound to the pod's lifecycle — if the pod restarts, the session ends.
 
 ### Notes
 
-- Sessions run without a pseudo-terminal (PTY): resizing the window does not resize the shell, and full-screen programs such as `vim` or `top` may not display correctly.
-- **Ctrl+C** stops the command running in the shell (for example `ping` or `kubectl logs -f`) and leaves the shell open.
+- Local shells run in a pseudo-terminal (ConPTY on Windows, a pty on Linux): the shell prints its own prompt and edits the line, **Ctrl+C** stops the running command (for example `ping` or `kubectl logs -f`) and leaves the shell open, the shell follows the window size, and full-screen programs such as `vim`, `less`, `top` or `k9s` work.
+- Pod exec sessions run `kubectl exec -it` inside the same pseudo-terminal, so the container shell has a TTY and behaves the same way; what the container's `TERM` and image allow is up to them.
+- If the pseudo-terminal cannot start (the log says why; usually the node-pty binary is missing for the platform), the session runs over plain pipes as earlier versions did: the terminal echoes what you type, the shell is not resized and full-screen programs do not work. Pod sessions then use `kubectl exec -i` without a TTY.
+- On Windows, resizing the window while the scrollback holds output written at another width can leave lines misplaced (ConPTY repaints its own copy of the screen). `clear` or `cls` restores the display.
 - One local session at a time: **New Terminal**, or picking another shell, replaces the current session.
 - Open sessions are closed when Shoal quits.
 

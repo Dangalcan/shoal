@@ -9,14 +9,20 @@ vi.mock('../../components/Terminal', () => ({
   Terminal: ({
     sessionId,
     shellFamily,
+    transport,
+    windowsPty,
   }: {
     sessionId: string;
     shellFamily?: string;
+    transport?: string;
+    windowsPty?: { backend: string; buildNumber?: number };
   }) => (
     <div
       data-testid="terminal"
       data-session={sessionId}
       data-family={shellFamily}
+      data-transport={transport}
+      data-windows-pty={windowsPty ? JSON.stringify(windowsPty) : undefined}
     />
   ),
 }));
@@ -63,6 +69,36 @@ describe('TerminalPage', () => {
       'data-family',
       'windows'
     );
+    // No transport in the answer (older main process): pipe behaviour.
+    expect(screen.getByTestId('terminal')).toHaveAttribute(
+      'data-transport',
+      'pipe'
+    );
+  });
+
+  it('tells the terminal when the session has a pseudo-terminal', async () => {
+    api.terminalCreate.mockResolvedValue({
+      success: true,
+      data: {
+        sessionId: 's1',
+        shellFamily: 'windows',
+        transport: 'pty',
+        windowsPty: { backend: 'conpty', buildNumber: 22631 },
+      },
+    });
+
+    render(<TerminalPage />, { api });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('terminal')).toHaveAttribute(
+        'data-transport',
+        'pty'
+      );
+    });
+    expect(screen.getByTestId('terminal')).toHaveAttribute(
+      'data-windows-pty',
+      '{"backend":"conpty","buildNumber":22631}'
+    );
   });
 
   it('lists detected shells in the picker', async () => {
@@ -82,7 +118,7 @@ describe('TerminalPage', () => {
 
     api.terminalCreate.mockResolvedValue({
       success: true,
-      data: { sessionId: 's2', shellFamily: 'unix' },
+      data: { sessionId: 's2', shellFamily: 'unix', transport: 'pipe' },
     });
 
     const select = await screen.findByLabelText('Shell type');
@@ -139,7 +175,7 @@ describe('TerminalPage', () => {
       .mockResolvedValueOnce({ success: false, error: 'spawn failed' })
       .mockResolvedValueOnce({
         success: true,
-        data: { sessionId: 's3', shellFamily: 'windows' },
+        data: { sessionId: 's3', shellFamily: 'windows', transport: 'pipe' },
       });
 
     render(<TerminalPage />, { api });

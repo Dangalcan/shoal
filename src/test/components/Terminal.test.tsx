@@ -10,11 +10,15 @@ const termClear = vi.fn();
 const termDispose = vi.fn();
 const fitFn = vi.fn();
 const onDataCbs: Array<(d: string) => void> = [];
+let lastXtermOptions: Record<string, unknown> = {};
 
 vi.mock('@xterm/xterm', () => ({
   Terminal: class {
     cols = 80;
     rows = 24;
+    constructor(options: Record<string, unknown>) {
+      lastXtermOptions = options;
+    }
     loadAddon() {}
     open() {}
     write = termWrite;
@@ -56,7 +60,9 @@ let api: ReturnType<typeof createMockElectronAPI>;
 const renderTerminal = (
   kind: 'local' | 'pod-exec',
   sessionId = 's1',
-  shellFamily?: 'windows' | 'unix'
+  shellFamily?: 'windows' | 'unix',
+  transport?: 'pty' | 'pipe',
+  windowsPty?: { backend: 'conpty'; buildNumber?: number }
 ) => {
   api = createMockElectronAPI({
     onTerminalOutput: vi.fn((cb: any) => {
@@ -69,7 +75,13 @@ const renderTerminal = (
     }) as any,
   });
   return render(
-    <Terminal sessionId={sessionId} kind={kind} shellFamily={shellFamily} />,
+    <Terminal
+      sessionId={sessionId}
+      kind={kind}
+      shellFamily={shellFamily}
+      transport={transport}
+      windowsPty={windowsPty}
+    />,
     { api }
   );
 };
@@ -189,5 +201,84 @@ describe('Terminal', () => {
     expect(cleanupOutput).toHaveBeenCalled();
     expect(cleanupExit).toHaveBeenCalled();
     expect(termDispose).toHaveBeenCalled();
+  });
+
+  describe('pseudo-terminal sessions', () => {
+    // The bridge mocks are fresh per render; only the xterm spies are shared.
+    beforeEach(() => {
+      termWrite.mockClear();
+      termClear.mockClear();
+    });
+
+    it('sends every keystroke to the pty as it is and echoes nothing', () => {
+      renderTerminal('local', 's1', 'windows', 'pty');
+      const cb = onDataCbs[0]!;
+
+      cb('a');
+      cb('\x7f');
+      cb('\r');
+      cb('é');
+      expect(api.terminalInput.mock.calls).toEqual([
+        ['s1', 'a'],
+        ['s1', '\x7f'],
+        ['s1', '\r'],
+        ['s1', 'é'],
+      ]);
+      // No local echo, no line editing: the shell does both.
+      expect(termWrite).not.toHaveBeenCalled();
+    });
+
+    it('lets the pty handle Ctrl+C and clear instead of emulating them', () => {
+      renderTerminal('local', 's1', 'windows', 'pty');
+      const cb = onDataCbs[0]!;
+
+      cb('\x03');
+      cb('clear\r');
+
+      expect(api.terminalInput).toHaveBeenCalledWith('s1', '\x03');
+      expect(api.terminalInput).toHaveBeenCalledWith('s1', 'clear\r');
+      expect(api.terminalInterrupt).not.toHaveBeenCalled();
+      expect(termWrite).not.toHaveBeenCalledWith('^C\r\n');
+      expect(termClear).not.toHaveBeenCalled();
+    });
+
+    it('writes pty output untouched and shows no ready banner', () => {
+      renderTerminal('local', 's1', 'unix', 'pty');
+      // The shell prints its own prompt; the pipe-mode banner would be noise.
+      expect(termWrite).not.toHaveBeenCalled();
+
+      // Full-screen programs rely on a bare \n meaning "down one line".
+      capturedOutput('s1', 'a\nb\r\n\x1b[2J');
+      expect(termWrite).toHaveBeenCalledWith('a\nb\r\n\x1b[2J');
+    });
+
+    it('still resizes through the fit addon', () => {
+      renderTerminal('local', 's1', 'windows', 'pty');
+
+      roCb();
+
+      expect(api.terminalResize).toHaveBeenCalledWith('s1', 80, 24);
+    });
+
+    it('hands the ConPTY backend to xterm so it leaves reflow to it', () => {
+      renderTerminal('local', 's1', 'windows', 'pty', {
+        backend: 'conpty',
+        buildNumber: 22631,
+      });
+
+      expect(lastXtermOptions.windowsPty).toEqual({
+        backend: 'conpty',
+        buildNumber: 22631,
+      });
+    });
+
+    it('never sets windowsPty for a pipe session', () => {
+      renderTerminal('local', 's1', 'windows', 'pipe', {
+        backend: 'conpty',
+        buildNumber: 22631,
+      });
+
+      expect(lastXtermOptions.windowsPty).toBeUndefined();
+    });
   });
 });

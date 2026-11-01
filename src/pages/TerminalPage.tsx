@@ -33,11 +33,14 @@ export function TerminalPage() {
   }, [api]);
 
   // A new shell choice or "New Terminal" replaces the session; the previous
-  // one is killed by the hook.
-  const { sessionId, shellFamily, loading, error } = useTerminalSession(
-    { kind: 'local', shell: shell ?? undefined },
-    sessionKey
-  );
+  // one is killed by the hook. `transport` says whether the shell runs in a
+  // pseudo-terminal (it echoes and edits the line itself) or on pipes (the
+  // terminal echoes locally).
+  const { sessionId, shellFamily, transport, windowsPty, loading, error } =
+    useTerminalSession(
+      { kind: 'local', shell: shell ?? undefined },
+      sessionKey
+    );
 
   const handleNewTerminal = () => {
     setSessionKey((k) => k + 1);
@@ -117,6 +120,8 @@ export function TerminalPage() {
               sessionId={sessionId}
               kind="local"
               shellFamily={shellFamily ?? activeShell?.family}
+              transport={transport}
+              windowsPty={windowsPty}
             />
           </div>
         )}

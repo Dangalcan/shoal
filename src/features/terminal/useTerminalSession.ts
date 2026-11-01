@@ -14,6 +14,14 @@ export interface TerminalSessionState {
   sessionId: string | null;
   /** Line-ending family reported by the main process for the session. */
   shellFamily: TerminalCreateData['shellFamily'] | null;
+  /**
+   * What carries the session's bytes: a pseudo-terminal or plain pipes.
+   * `pipe` until the main process answered, and when its answer carries no
+   * transport (an older main process).
+   */
+  transport: TerminalCreateData['transport'];
+  /** The ConPTY behind a Windows `pty` session, for xterm's `windowsPty`. */
+  windowsPty: TerminalCreateData['windowsPty'];
   /** True from the request until the main process answered. */
   loading: boolean;
   /** Why the session could not start. */
@@ -82,6 +90,8 @@ export function useTerminalSession(
   return {
     sessionId: result?.success ? result.data.sessionId : null,
     shellFamily: result?.success ? (result.data.shellFamily ?? null) : null,
+    transport: result?.success ? (result.data.transport ?? 'pipe') : 'pipe',
+    windowsPty: result?.success ? result.data.windowsPty : undefined,
     loading: result === null,
     error: result && !result.success ? result.error : null,
   };

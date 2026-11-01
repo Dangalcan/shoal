@@ -66,10 +66,13 @@ test('echo round-trips through the real shell', async () => {
 });
 
 test('Ctrl+C stops a running command and the shell keeps working', async () => {
-  // A child process that would hold the shell for a minute. Sessions have no
-  // PTY, so the interrupt has to reach the child itself (Stop-Process on
-  // Windows, pkill -INT on Linux); if it only reached the shell, the echo
-  // below would wait for the whole minute and the assertion would time out.
+  // A child process that would hold the shell for a minute. With a
+  // pseudo-terminal the shell delivers the interrupt to it as any terminal
+  // would; without one (pod-exec, or a build whose node-pty binary is
+  // missing) the interrupt has to reach the child itself (taskkill on
+  // Windows, pkill -INT on Linux). Either way, if it only reached the shell
+  // the echo below would wait for the whole minute and the assertion would
+  // time out.
   const longCommand =
     process.platform === 'win32' ? 'ping -n 60 127.0.0.1' : 'sleep 60';
   const marker = `e2e-after-interrupt-${Date.now().toString(36)}`;
@@ -77,10 +80,13 @@ test('Ctrl+C stops a running command and the shell keeps working', async () => {
   await run(longCommand);
   await window.waitForTimeout(3_000);
   // Lower-case "c": an upper-case letter makes Playwright add Shift, and
-  // Ctrl+Shift+C is xterm's copy chord, not an interrupt.
+  // Ctrl+Shift+C is xterm's copy chord, not an interrupt. What shows up
+  // afterwards depends on the shell (bash prints ^C, PowerShell nothing), so
+  // the proof is the next command answering well before the minute is up.
   await window.keyboard.press('Control+c');
-  // The terminal echoes ^C itself, so this proves the keystroke reached xterm.
-  await expectMarker('^C', 1);
+  // In a pseudo-terminal PowerShell drops keys typed while it is still
+  // handling the interrupt; a person does not type within that second.
+  await window.waitForTimeout(1_000);
 
   await run(`echo ${marker}`);
   await expectMarker(marker, 2);

@@ -158,8 +158,11 @@ Before submitting, make sure:
    otherwise try to compile better-sqlite3 (npm/cli#9837) although it ships
    prebuilt binaries, which fails without a C++ toolchain. The same setting
    skips `prepare`, so `npm run prepare` installs the husky pre-commit hook.
-   If a dependency you add needs its install script, run
-   `npm rebuild <package>` and mention it in your PR.
+   On Linux run `npm run rebuild:node-pty` once as well (needs `make`, `g++`
+   and `python3`): node-pty ships no Linux binary, and without it local
+   terminals run over pipes instead of a pseudo-terminal. If a dependency
+   you add needs its install script, run
+   `npm rebuild <package> --ignore-scripts=false` and mention it in your PR.
 
 3. **Start development server:**
 

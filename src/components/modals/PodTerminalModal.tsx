@@ -62,10 +62,13 @@ function PodTerminalDialog({
   attempt,
   onReconnect,
 }: PodTerminalDialogProps) {
-  const { sessionId, loading, error } = useTerminalSession(
-    { kind: 'pod-exec', podName, namespace, contextName, shell },
-    attempt
-  );
+  // `transport` is `pty` when kubectl runs inside a pseudo-terminal (the
+  // container shell then has a TTY) and `pipe` without node-pty.
+  const { sessionId, transport, windowsPty, loading, error } =
+    useTerminalSession(
+      { kind: 'pod-exec', podName, namespace, contextName, shell },
+      attempt
+    );
 
   return (
     <BaseModal
@@ -124,7 +127,12 @@ function PodTerminalDialog({
             </div>
           )}
           {sessionId && !loading && (
-            <Terminal sessionId={sessionId} kind="pod-exec" />
+            <Terminal
+              sessionId={sessionId}
+              kind="pod-exec"
+              transport={transport}
+              windowsPty={windowsPty}
+            />
           )}
         </div>
       </div>

@@ -16,7 +16,8 @@
     "build:react": "npm run build:plugin-runtime && tsc && vite build",
     "build": "npm run build:react && npm run build:electron && electron-builder",
     "build:win": "npm run build:react && npm run build:electron && electron-builder --win",
-    "build:linux": "npm run build:react && npm run build:electron && electron-builder --linux",
+    "build:linux": "npm run rebuild:node-pty && npm run build:react && npm run build:electron && electron-builder --linux",
+    "rebuild:node-pty": "npm rebuild node-pty --ignore-scripts=false",
     "test": "vitest --run",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --run --coverage",
@@ -78,6 +79,7 @@
     "electron-updater": "^6.8.11",
     "js-yaml": "^5.5.0",
     "node-machine-id": "^1.1.12",
+    "node-pty": "^1.1.0",
     "semver": "^7.8.5"
   },
   "devDependencies": {
@@ -138,7 +140,17 @@
       "package.json",
       "!node_modules/better-sqlite3/deps/**",
       "!node_modules/better-sqlite3/src/**",
-      "!node_modules/better-sqlite3/prebuilds/{darwin-*,linuxmusl-*,linux-arm64,win32-arm64}.node"
+      "!node_modules/better-sqlite3/prebuilds/{darwin-*,linuxmusl-*,linux-arm64,win32-arm64}.node",
+      "!node_modules/node-pty/{src,deps,third_party,scripts}/**",
+      "!node_modules/node-pty/node_modules/**",
+      "!node_modules/node-pty/binding.gyp",
+      "!node_modules/node-pty/lib/*.test.js",
+      "!node_modules/node-pty/lib/*.test.js.map",
+      "!node_modules/node-pty/prebuilds/!(${os}32-${arch})/**",
+      "!node_modules/node-pty/prebuilds/**/*.pdb"
+    ],
+    "asarUnpack": [
+      "node_modules/node-pty/**"
     ],
     "npmRebuild": false,
     "electronFuses": {

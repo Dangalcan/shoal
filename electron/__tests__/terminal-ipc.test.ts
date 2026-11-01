@@ -8,6 +8,8 @@ import {
   resolveLocalShell,
   getTerminalCwd,
 } from '../services/terminal/local-shells';
+import { loadNodePty } from '../services/terminal/node-pty-loader';
+import type { NodePty } from '../services/terminal/node-pty-loader';
 
 vi.mock('../logger', () => ({
   default: {
@@ -32,6 +34,12 @@ vi.mock('child_process', () => {
   const execFile = vi.fn();
   return { spawn, execFile, default: { spawn, execFile } };
 });
+
+// node-pty is absent unless a test says otherwise, so local sessions take
+// the pipe path (the fallback, and what every session was before node-pty).
+vi.mock('../services/terminal/node-pty-loader', () => ({
+  loadNodePty: vi.fn(() => null),
+}));
 
 vi.mock('../services/terminal/local-shells', () => ({
   getLocalShells: vi.fn(() => [
@@ -60,6 +68,11 @@ vi.mock('../services/terminal/local-shells', () => ({
         };
   }),
   getTerminalCwd: vi.fn(() => '/tmp/shoal-terminal'),
+  // node-pty needs kubectl's full path (it does not add .exe to a bare
+  // name on Windows); child_process.spawn resolves PATH itself.
+  findExecutable: vi.fn((name: string) =>
+    name === 'kubectl' ? 'C:/tools/kubectl.exe' : null
+  ),
 }));
 
 type IpcHandler = (
@@ -76,6 +89,26 @@ function makeFakeChild() {
     kill: vi.fn(),
     pid: 1234,
   };
+}
+
+function makeFakePty() {
+  return {
+    pid: 4321,
+    onData: vi.fn(),
+    onExit: vi.fn(),
+    write: vi.fn(),
+    resize: vi.fn(),
+    kill: vi.fn(),
+  };
+}
+
+/** Makes node-pty "available" with a spawn that returns `pty`. */
+function installFakeNodePty(pty: ReturnType<typeof makeFakePty>) {
+  const ptySpawn = vi.fn(() => pty);
+  vi.mocked(loadNodePty).mockReturnValue({
+    spawn: ptySpawn,
+  } as unknown as NodePty);
+  return ptySpawn;
 }
 
 const mockEvent = {
@@ -98,6 +131,7 @@ describe('terminal-ipc', () => {
     vi.clearAllMocks();
     // clearAllMocks keeps mockReturnValue overrides from earlier tests.
     vi.mocked(mockEvent.sender.isDestroyed).mockReturnValue(false);
+    vi.mocked(loadNodePty).mockReturnValue(null);
     vi.mocked(spawn).mockReturnValue(
       makeFakeChild() as unknown as ReturnType<typeof spawn>
     );
@@ -146,10 +180,258 @@ describe('terminal-ipc', () => {
       expect(result.error).toMatch(/Unknown or unavailable shell/);
       expect(spawn).not.toHaveBeenCalled();
     });
+
+    it('reports the pipe transport when node-pty is not available', async () => {
+      const result = await getHandler('terminal:create')(mockEvent, {
+        kind: 'local',
+      });
+
+      expect(result.data).toMatchObject({ transport: 'pipe' });
+    });
+  });
+
+  describe('terminal:create (local, pseudo-terminal)', () => {
+    it('runs the shell in a pseudo-terminal when node-pty loads', async () => {
+      const ptySpawn = installFakeNodePty(makeFakePty());
+
+      const result = await getHandler('terminal:create')(mockEvent, {
+        kind: 'local',
+        shell: 'cmd',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toMatchObject({
+        shellFamily: 'windows',
+        transport: 'pty',
+      });
+      // xterm's windowsPty option: present on Windows, absent elsewhere.
+      expect((result.data as { windowsPty?: unknown }).windowsPty).toEqual(
+        process.platform === 'win32'
+          ? { backend: 'conpty', buildNumber: expect.any(Number) }
+          : undefined
+      );
+      expect(resolveLocalShell).toHaveBeenCalledWith('cmd');
+      expect(ptySpawn).toHaveBeenCalledWith(
+        'cmd.exe',
+        [],
+        expect.objectContaining({
+          cwd: '/tmp/shoal-terminal',
+          cols: 80,
+          rows: 24,
+          name: 'xterm-256color',
+        })
+      );
+      expect(spawn).not.toHaveBeenCalled();
+    });
+
+    it('passes the size the renderer sends to the pty', async () => {
+      const ptySpawn = installFakeNodePty(makeFakePty());
+
+      await getHandler('terminal:create')(mockEvent, {
+        kind: 'local',
+        cols: 132,
+        rows: 43,
+      });
+
+      expect(ptySpawn).toHaveBeenCalledWith(
+        'powershell.exe',
+        ['-NoLogo'],
+        expect.objectContaining({ cols: 132, rows: 43 })
+      );
+    });
+
+    it('rejects an invalid size without spawning anything', async () => {
+      const ptySpawn = installFakeNodePty(makeFakePty());
+
+      const result = await getHandler('terminal:create')(mockEvent, {
+        kind: 'local',
+        cols: 0,
+        rows: 24,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/Invalid terminal cols: 0/);
+      expect(ptySpawn).not.toHaveBeenCalled();
+      expect(spawn).not.toHaveBeenCalled();
+    });
+
+    it('runs kubectl exec with a TTY in a pseudo-terminal when node-pty loads', async () => {
+      const ptySpawn = installFakeNodePty(makeFakePty());
+
+      const result = await getHandler('terminal:create')(mockEvent, {
+        kind: 'pod-exec',
+        podName: 'web',
+        namespace: 'default',
+        contextName: 'kind-dev',
+        cols: 120,
+        rows: 40,
+      });
+
+      expect(result.data).toMatchObject({
+        transport: 'pty',
+        shellFamily: 'unix',
+      });
+      expect(spawn).not.toHaveBeenCalled();
+      expect(ptySpawn).toHaveBeenCalledWith(
+        'C:/tools/kubectl.exe',
+        [
+          'exec',
+          '-it',
+          'web',
+          '-n',
+          'default',
+          '--context',
+          'kind-dev',
+          '--',
+          '/bin/sh',
+          '-i',
+        ],
+        expect.objectContaining({
+          cols: 120,
+          rows: 40,
+          cwd: '/tmp/shoal-terminal',
+        })
+      );
+    });
+
+    it('falls back to kubectl exec -i on pipes when the pod pty spawn fails', async () => {
+      vi.mocked(loadNodePty).mockReturnValue({
+        spawn: vi.fn(() => {
+          throw new Error('CreatePseudoConsole failed');
+        }),
+      } as unknown as NodePty);
+
+      const result = await getHandler('terminal:create')(mockEvent, {
+        kind: 'pod-exec',
+        podName: 'web',
+        namespace: 'default',
+        contextName: 'kind-dev',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toMatchObject({ transport: 'pipe' });
+      const [file, args] = vi.mocked(spawn).mock.calls[0]!;
+      expect(file).toBe('kubectl');
+      // kubectl refuses -t without a terminal on its stdin.
+      expect(args).toEqual(expect.arrayContaining(['exec', '-i', 'web']));
+      expect(args).not.toContain('-it');
+      expect(args).not.toContain('-t');
+    });
+
+    it('falls back to pipes when the pty spawn fails', async () => {
+      vi.mocked(loadNodePty).mockReturnValue({
+        spawn: vi.fn(() => {
+          throw new Error('CreatePseudoConsole failed');
+        }),
+      } as unknown as NodePty);
+
+      const result = await getHandler('terminal:create')(mockEvent, {
+        kind: 'local',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toMatchObject({ transport: 'pipe' });
+      expect(spawn).toHaveBeenCalledWith(
+        'powershell.exe',
+        ['-NoLogo'],
+        expect.objectContaining({ cwd: '/tmp/shoal-terminal' })
+      );
+    });
+
+    it('forwards pty output and exit to the renderer', async () => {
+      const pty = makeFakePty();
+      installFakeNodePty(pty);
+
+      const result = await getHandler('terminal:create')(mockEvent, {
+        kind: 'local',
+      });
+      const { sessionId } = result.data as { sessionId: string };
+      const onData = pty.onData.mock.calls[0][0] as (data: string) => void;
+      const onExit = pty.onExit.mock.calls[0][0] as () => void;
+
+      onData('PS C:\\> ');
+      onExit();
+
+      expect(mockEvent.sender.send).toHaveBeenNthCalledWith(
+        1,
+        'terminal:output',
+        { sessionId, data: 'PS C:\\> ' }
+      );
+      expect(mockEvent.sender.send).toHaveBeenLastCalledWith(
+        'terminal:exited',
+        { sessionId }
+      );
+      await expect(
+        getHandler('terminal:input')(mockEvent, { sessionId, data: 'x' })
+      ).resolves.toMatchObject({ success: false });
+    });
+
+    it('writes input, resizes the pty and sends Ctrl+C as a byte', async () => {
+      const pty = makeFakePty();
+      installFakeNodePty(pty);
+
+      const result = await getHandler('terminal:create')(mockEvent, {
+        kind: 'local',
+      });
+      const { sessionId } = result.data as { sessionId: string };
+
+      await expect(
+        getHandler('terminal:input')(mockEvent, { sessionId, data: 'ls\r' })
+      ).resolves.toMatchObject({ success: true });
+      expect(pty.write).toHaveBeenCalledWith('ls\r');
+
+      await expect(
+        getHandler('terminal:resize')(mockEvent, {
+          sessionId,
+          cols: 120,
+          rows: 40,
+        })
+      ).resolves.toMatchObject({ success: true });
+      expect(pty.resize).toHaveBeenCalledWith(120, 40);
+
+      await expect(
+        getHandler('terminal:resize')(mockEvent, {
+          sessionId,
+          cols: 120,
+          rows: 1.5,
+        })
+      ).resolves.toMatchObject({
+        success: false,
+        error: 'Invalid terminal rows: 1.5',
+      });
+
+      // The pty delivers the interrupt itself: no process-tree killing.
+      await expect(
+        getHandler('terminal:interrupt')(mockEvent, { sessionId })
+      ).resolves.toMatchObject({ success: true });
+      expect(pty.write).toHaveBeenLastCalledWith('\x03');
+      expect(spawn).not.toHaveBeenCalled();
+
+      await expect(
+        getHandler('terminal:kill')(mockEvent, { sessionId })
+      ).resolves.toMatchObject({ success: true });
+      expect(pty.kill).toHaveBeenCalledTimes(1);
+      await expect(
+        getHandler('terminal:input')(mockEvent, { sessionId, data: 'x' })
+      ).resolves.toMatchObject({ success: false });
+    });
+
+    it('kills pty sessions when the app quits', async () => {
+      const pty = makeFakePty();
+      installFakeNodePty(pty);
+      await getHandler('terminal:create')(mockEvent, { kind: 'local' });
+      const quit = (
+        vi.mocked(app.on).mock.calls as unknown as [string, () => void][]
+      ).find(([event]) => event === 'will-quit')?.[1];
+
+      quit?.();
+
+      expect(pty.kill).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('terminal:create (pod-exec)', () => {
-    it('spawns kubectl directly (no cmd.exe) without a temp cwd', async () => {
+    it('spawns kubectl directly (no cmd.exe) on pipes without a cwd', async () => {
       const result = await getHandler('terminal:create')(mockEvent, {
         kind: 'pod-exec',
         podName: 'my-pod',
@@ -158,7 +440,6 @@ describe('terminal-ipc', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(getTerminalCwd).not.toHaveBeenCalled();
       expect(spawn).toHaveBeenCalledWith(
         'kubectl',
         [
