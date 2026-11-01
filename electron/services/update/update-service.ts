@@ -56,9 +56,31 @@ const NO_STABLE_RELEASE_CODES = new Set([
   'ERR_UPDATER_NO_PUBLISHED_VERSIONS',
 ]);
 
+/**
+ * The provider runs that lookup inside the try/catch that parses the
+ * releases feed (GitHubProvider.getLatestVersion, 6.8.9 and 6.8.11), so the
+ * codes above never reach us directly: they arrive wrapped in
+ * ERR_UPDATER_INVALID_RELEASE_FEED with the original message inside
+ * ("Cannot parse releases feed: Error: Unable to find latest version on
+ * GitHub (.../releases/latest), please ensure a production release exists:
+ * HttpError: 406 ..."). An installed 0.9.0-rc.4 showed this on 28 October
+ * 2026: the stable probe failed, nothing fell back to pre-releases, and the
+ * check ended in an error instead of offering rc.5.
+ */
+const WRAPPING_CODE = 'ERR_UPDATER_INVALID_RELEASE_FEED';
+const NO_STABLE_RELEASE_MESSAGE =
+  /Unable to find latest version on GitHub|please ensure a production release exists|No published versions on GitHub/;
+
 function isNoStableRelease(err: unknown): boolean {
-  const code = (err as { code?: unknown } | null)?.code;
-  return typeof code === 'string' && NO_STABLE_RELEASE_CODES.has(code);
+  const e = err as { code?: unknown; message?: unknown } | null;
+  const code = e?.code;
+  if (typeof code !== 'string') return false;
+  if (NO_STABLE_RELEASE_CODES.has(code)) return true;
+  return (
+    code === WRAPPING_CODE &&
+    typeof e?.message === 'string' &&
+    NO_STABLE_RELEASE_MESSAGE.test(e.message)
+  );
 }
 
 export class UpdateService {

@@ -55,7 +55,8 @@ describe('useLocalStorage', () => {
 
     expect(result.current[0]).toEqual(initialValue);
     expect(spy).toHaveBeenCalledWith(
-      expect.stringContaining('Error reading localStorage'),
+      'Error reading localStorage key',
+      key,
       expect.anything()
     );
     spy.mockRestore();
@@ -76,7 +77,8 @@ describe('useLocalStorage', () => {
     });
 
     expect(spy).toHaveBeenCalledWith(
-      expect.stringContaining('Error setting localStorage'),
+      'Error setting localStorage key',
+      key,
       expect.anything()
     );
 

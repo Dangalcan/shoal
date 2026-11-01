@@ -633,7 +633,7 @@ Wraps the `helm` CLI through the Helm operations service
 (`electron/services/helm/helm-service.ts`). The binary must be on PATH. All
 inputs are validated (context, namespace, release/chart/repo names) before any
 command runs. These methods back the plugin sandbox's `helm.*` SDK group and
-require the `kubernetes` plugin permission when called from a plugin.
+require the `helm` plugin permission when called from a plugin.
 
 ### `helmInstall(args)`
 

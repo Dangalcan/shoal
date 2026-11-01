@@ -3,6 +3,18 @@ import { useLocalStorage } from './useLocalStorage';
 
 import type { SortConfig } from '../lib/sorting/types';
 
+/** A column is never narrower than this, by mouse or keyboard... */
+export const MIN_COLUMN_WIDTH = 50;
+/** ...nor wider. Both bound the resize handles' `aria-value*` too. */
+export const MAX_COLUMN_WIDTH = 1000;
+
+export function clampColumnWidth(width: number): number {
+  return Math.min(
+    MAX_COLUMN_WIDTH,
+    Math.max(MIN_COLUMN_WIDTH, Math.round(width))
+  );
+}
+
 interface TableStateResult {
   sortConfig: SortConfig | null;
   handleSort: (key: string) => void;
@@ -39,35 +51,39 @@ export function useTableState(
     Record<string, number>
   >('columnWidths', {});
 
+  // Every resize, dragged or keyed, lands here, so the bounds apply once.
   const handleResize = (columnId: string, width: number) => {
-    setColumnWidths((prev) => ({ ...prev, [columnId]: width }));
+    const clamped = clampColumnWidth(width);
+    setColumnWidths((prev) => ({ ...prev, [columnId]: clamped }));
   };
 
   const getColumnWidth = (id: string, defWidth: number) => {
     return columnWidths[id] || defWidth;
   };
 
-  // Visible Columns State
-  const [visibleColumns, setVisibleColumns] = useState<string[]>(
-    defaultVisibleColumns
-  );
-
-  // Update visible columns when default changes (e.g. tab switch)
-  useEffect(() => {
-    // In a real app we might want to merge with user preferences here
-    if (defaultVisibleColumns.length > 0) {
-      setVisibleColumns(defaultVisibleColumns);
-    }
-  }, [defaultVisibleColumns]);
+  // Visible Columns State: the user's toggles, null while the defaults
+  // apply. The defaults belong to the active tab (one constant list per
+  // resource kind), so a tab switch shows that tab's defaults again and the
+  // toggles are dropped, during render (React's "adjust state when a prop
+  // changes" pattern). A tab without defaults keeps whatever was visible.
+  const base = defaultVisibleColumns.length > 0 ? defaultVisibleColumns : null;
+  const [columns, setColumns] = useState<string[] | null>(null);
+  const [seenBase, setSeenBase] = useState(base);
+  if (base !== null && seenBase !== base) {
+    setSeenBase(base);
+    setColumns(null);
+  }
+  const visibleColumns = columns ?? defaultVisibleColumns;
 
   const handleColumnToggle = (columnId: string) => {
-    setVisibleColumns((prev) => {
-      if (prev.includes(columnId)) {
+    setColumns((prev) => {
+      const current = prev ?? defaultVisibleColumns;
+      if (current.includes(columnId)) {
         // Don't allow hiding the last column
-        if (prev.length <= 1) return prev;
-        return prev.filter((id) => id !== columnId);
+        if (current.length <= 1) return prev;
+        return current.filter((id) => id !== columnId);
       }
-      return [...prev, columnId];
+      return [...current, columnId];
     });
   };
 
@@ -92,8 +108,7 @@ export function useTableState(
 
     const handleMouseMove = (e: MouseEvent) => {
       const delta = e.clientX - resizing.startX;
-      const newWidth = Math.max(50, resizing.startWidth + delta);
-      handleResize(resizing.id, newWidth);
+      handleResize(resizing.id, resizing.startWidth + delta);
     };
 
     const handleMouseUp = () => setResizing(null);

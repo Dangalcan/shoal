@@ -138,7 +138,7 @@ export function createResourceModalTests(
     fireEvent.click(copyBtn);
 
     expect(writeTextMock).toHaveBeenCalledWith(successData);
-    expect(screen.getByText('Copied!')).toBeInTheDocument();
+    expect(await screen.findByText('Copied!')).toBeInTheDocument();
 
     await waitFor(
       () => {

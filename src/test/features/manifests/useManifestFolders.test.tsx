@@ -131,4 +131,30 @@ describe('useManifestFolders', () => {
     expect(mockApi.moveManifest).toHaveBeenCalledWith(10, 1);
     expect(onManifestsChanged).toHaveBeenCalled();
   });
+
+  it('exposes a failed load and clears it when a refetch succeeds', async () => {
+    vi.mocked(mockApi.getManifestFolders).mockResolvedValue({
+      success: false,
+      error: 'database is locked',
+    });
+    const { result } = renderHook(() => useManifestFolders());
+
+    await waitFor(() =>
+      expect(result.current.foldersError).toBe('database is locked')
+    );
+    expect(result.current.foldersLoading).toBe(false);
+    expect(result.current.folders).toEqual([]);
+    expect(result.current.childFolders).toEqual([]);
+
+    vi.mocked(mockApi.getManifestFolders).mockResolvedValue({
+      success: true,
+      data: folders,
+    });
+    await act(async () => {
+      await result.current.refetchFolders();
+    });
+
+    expect(result.current.foldersError).toBeNull();
+    expect(result.current.folders).toHaveLength(4);
+  });
 });

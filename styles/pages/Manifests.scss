@@ -364,6 +364,58 @@
   color: var(--color-primary);
 }
 
+/* The library could not be read: shown in place of the empty state */
+.manifests-load-error {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 4rem 2rem;
+  border-radius: 1.5rem;
+  border: 1px solid var(--border-color);
+  background: var(--color-error-bg);
+  color: var(--color-error);
+
+  &__icon {
+    margin-bottom: var(--spacing-md);
+  }
+
+  &__title {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    margin: 0 0 var(--spacing-sm);
+    color: var(--text-primary);
+  }
+
+  &__message {
+    margin: 0 0 var(--spacing-lg);
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+    font-size: var(--font-size-sm);
+    overflow-wrap: anywhere;
+  }
+
+  &__retry {
+    padding: 0.625rem var(--spacing-xl);
+    border: none;
+    border-radius: 0.625rem;
+    background: var(--color-primary);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    @include smooth-transition(all, 150ms);
+
+    &:hover:not(:disabled) {
+      background: var(--color-primary-hover);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+  }
+}
+
 /* Folder navigation breadcrumbs */
 .folder-breadcrumbs {
   display: flex;

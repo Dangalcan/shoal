@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Terminal as TerminalIcon,
   Loader2,
@@ -7,75 +7,40 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { Terminal } from '../components/Terminal';
-import type {
-  LocalShellInfo,
-  TerminalTransport,
-  TerminalWindowsPty,
-} from '../types';
+import type { LocalShellInfo } from '../types';
+import { handleError } from '../lib/error-handler';
 import { useApi } from '../services/api-context';
+import { useTerminalSession } from '../features/terminal/useTerminalSession';
 
 export function TerminalPage() {
   const api = useApi();
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [sessionKey, setSessionKey] = useState(0);
   const [shells, setShells] = useState<LocalShellInfo[]>([]);
   const [defaultShell, setDefaultShell] = useState<string>('');
   // null = backend default; set only by explicit user selection
   const [shell, setShell] = useState<string | null>(null);
-  // Known as soon as the session exists, so the terminal is created once
-  // with the right line endings instead of being recreated (and losing its
-  // first output) when the shell list arrives.
-  const [shellFamily, setShellFamily] = useState<'windows' | 'unix' | null>(
-    null
-  );
-  // Whether the shell runs in a pseudo-terminal (it echoes and edits the
-  // line itself) or on pipes (the terminal echoes locally).
-  const [transport, setTransport] = useState<TerminalTransport>('pipe');
-  const [windowsPty, setWindowsPty] = useState<TerminalWindowsPty | undefined>(
-    undefined
-  );
-  const sessionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    api.terminalShells().then((result) => {
-      if (result.success && result.data) {
-        setShells(result.data.shells);
-        setDefaultShell(result.data.defaultShell);
-      }
-    });
-  }, []);
+    api
+      .terminalShells()
+      .then((result) => {
+        if (result.success && result.data) {
+          setShells(result.data.shells);
+          setDefaultShell(result.data.defaultShell);
+        }
+      })
+      .catch((err) => handleError(err, 'Failed to list the shells'));
+  }, [api]);
 
-  const startSession = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    setSessionId(null);
-    const result = await api.terminalCreate({
-      kind: 'local',
-      shell: shell ?? undefined,
-    });
-    if (result.success) {
-      sessionIdRef.current = result.data.sessionId;
-      setShellFamily(result.data.shellFamily ?? null);
-      setTransport(result.data.transport ?? 'pipe');
-      setWindowsPty(result.data.windowsPty);
-      setSessionId(result.data.sessionId);
-    } else {
-      setError(result.error);
-    }
-    setLoading(false);
-  }, [shell]);
-
-  useEffect(() => {
-    startSession();
-    return () => {
-      if (sessionIdRef.current) {
-        api.terminalKill(sessionIdRef.current);
-        sessionIdRef.current = null;
-      }
-    };
-  }, [sessionKey, startSession]);
+  // A new shell choice or "New Terminal" replaces the session; the previous
+  // one is killed by the hook. `transport` says whether the shell runs in a
+  // pseudo-terminal (it echoes and edits the line itself) or on pipes (the
+  // terminal echoes locally).
+  const { sessionId, shellFamily, transport, windowsPty, loading, error } =
+    useTerminalSession(
+      { kind: 'local', shell: shell ?? undefined },
+      sessionKey
+    );
 
   const handleNewTerminal = () => {
     setSessionKey((k) => k + 1);

@@ -100,11 +100,20 @@ The `plugin.json` file defines the identity and capabilities of your plugin.
 
 ### Manifest Fields Detail
 
-- **permissions**: The manifest accepts `kubernetes`, `ui`, `storage`, `notifications`, `network` and `filesystem`, but only the first three gate anything today: `kubernetes` (cluster reads and writes, Helm and manifests), `ui` (notifications, modals, external links) and `storage` (persisted data). `network` and `filesystem` are reserved for 1.0 and grant nothing yet.
+- **permissions**: What the plugin may do; anything else is refused with `Permission denied: "<method>" requires the "<permission>" permission`. Declare only what you use.
+  - `kubernetes`: read the cluster. List and get resources, describe, YAML, logs, pod metrics, watches and resource events. Secrets arrive without `data`, `stringData` and the last-applied annotation unless `secrets` is declared too.
+  - `kubernetes:write`: change the cluster. Create, update and delete resources, save and apply manifests, run commands in pods. It does not include reads: declare `kubernetes` as well.
+  - `helm`: every Helm call (install, upgrade, rollback, uninstall, repository add and list).
+  - `secrets`: the payload of Secrets in what `kubernetes` returns. Requires `kubernetes`.
+  - `ui`: sidebar items, pages, modals, notifications, external links.
+  - `storage`: the plugin's own persisted key-value storage.
+
+  A manifest that names `network`, `filesystem` or `notifications` is rejected: they never gated anything (notifications are part of `ui`). Plugin frames have no network access; a gated network call is planned for 1.0.
+
 - **dependencies**: A map of plugin IDs and semver version constraints. Required plugins will be auto-enabled or requested.
 - **data**: An array of file paths (relative to plugin root) to be automatically loaded into `context.storage` on activation. The storage key is `data/` plus the path without its extension, with a leading `data/` folder collapsed: `data/default-presets.json` is read with `context.storage.get('data/default-presets')`.
 - **configuration**: Defines a schema for settings. The UI is automatically generated with validation. Supported types: `string`, `number`, `boolean`, `select`.
-- **`secret: true` settings are encrypted at rest.** String properties flagged `secret` (like the `apiKey` above) are stored AES-256-GCM encrypted with a machine-bound key, both in memory snapshots and in `plugin-config.json`. The plugin still reads/writes them transparently via `settings.get`/`set`; the settings UI masks them.
+- **`secret: true` settings are encrypted at rest.** String properties flagged `secret` (like the `apiKey` above) are stored AES-256-GCM encrypted, both in memory snapshots and in `plugin-config.json`, with a key kept in the OS keystore through Electron `safeStorage` (a machine-bound key where there is none). The plugin still reads/writes them transparently via `settings.get`/`set`; the settings UI masks them.
 
 ---
 
@@ -186,7 +195,9 @@ module.exports = {
 Every hook must return within 30 seconds; one that does not fails the
 activation and the plugin is shown as errored. Start long-running work
 (watchers, polling, a slow first `kubectl` call) without awaiting it, and
-stop it in `deactivate`.
+stop it in `deactivate`. `deactivate` receives no arguments and runs in the
+same module instance as `activate`, so keep what it needs (timer handles,
+the context or its logger) in module-level variables.
 
 ## Testing Your Plugin
 
@@ -336,15 +347,17 @@ Passed to `activate(context)`.
 
 #### context.kubernetes
 
-| Method                                 | Description                                                         | Returns                 |
-| -------------------------------------- | ------------------------------------------------------------------- | ----------------------- |
-| `getResources(type, namespace)`        | Fetch resources (`'all'` for every namespace)                       | `Promise<Resource[]>`   |
-| `createResource(manifest)`             | Create resource                                                     | `Promise<void>`         |
-| `updateResource(type, name, manifest)` | Update resource                                                     | `Promise<void>`         |
-| `deleteResource(type, name, ns)`       | Delete resource                                                     | `Promise<void>`         |
-| `executeCommand(pod, namespace, cmd)`  | Run a command in a pod                                              | `Promise<string>`       |
-| `getPodMetrics(namespace)`             | CPU/memory per pod via metrics server (`[]` when unavailable)       | `Promise<PodMetrics[]>` |
-| `watchResources(type, cb)`             | Watch resources (`kubectl get --watch`); returns the unsubscribe fn | `() => void`            |
+Each method needs the permission in the last column and throws `Permission denied` without it. Without `secrets`, the Secrets that `getResources` and `watchResources` return come without their data.
+
+| Method                                 | Description                                                         | Returns                 | Permission         |
+| -------------------------------------- | ------------------------------------------------------------------- | ----------------------- | ------------------ |
+| `getResources(type, namespace)`        | Fetch resources (`'all'` for every namespace)                       | `Promise<Resource[]>`   | `kubernetes`       |
+| `createResource(manifest)`             | Create resource                                                     | `Promise<void>`         | `kubernetes:write` |
+| `updateResource(type, name, manifest)` | Update resource                                                     | `Promise<void>`         | `kubernetes:write` |
+| `deleteResource(type, name, ns)`       | Delete resource                                                     | `Promise<void>`         | `kubernetes:write` |
+| `executeCommand(pod, namespace, cmd)`  | Run a command in a pod                                              | `Promise<string>`       | `kubernetes:write` |
+| `getPodMetrics(namespace)`             | CPU/memory per pod via metrics server (`[]` when unavailable)       | `Promise<PodMetrics[]>` | `kubernetes`       |
+| `watchResources(type, cb)`             | Watch resources (`kubectl get --watch`); returns the unsubscribe fn | `() => void`            | `kubernetes`       |
 
 #### context.ui
 
@@ -382,6 +395,8 @@ The `EventsAPI` provides a global event bus for the application.
 | `onResourceUpdated(handler)`     | Called when K8s resource is updated                     |
 | `onResourceDeleted(handler)`     | Called when K8s resource is deleted                     |
 
+The three resource events need the `kubernetes` permission; a Secret reaches the handler without its data unless the plugin also holds `secrets`.
+
 #### context.storage
 
 Per-plugin key-value storage persisted in SQLite (`plugins_storage.db` in the user data directory). Values are JSON-serialised.
@@ -404,9 +419,9 @@ The sandboxed-iframe surface, gated per method by `METHOD_TABLE`
 (`src/features/plugins/sandbox/protocol.ts`) against the plugin's declared
 permissions:
 
-- `kubernetes.{getResources, getPods, getNamespaces, getLogs, getPodMetrics, describeResource, getResourceYaml, deleteResource, getCurrentContext, getClusters}` — `kubernetes` permission
-- `helm.{install, upgrade, rollback, uninstall, repoAdd, repoList}` — `kubernetes` permission
-- `manifests.{apply, save}` — `kubernetes` permission
+- `kubernetes.{getResources, getPods, getNamespaces, getLogs, getPodMetrics, describeResource, getResourceYaml, getCurrentContext, getClusters}` — `kubernetes` permission; `getResources` and `getResourceYaml` return Secrets without their data unless `secrets` is declared
+- `kubernetes.deleteResource`, `manifests.{apply, save}` — `kubernetes:write` permission
+- `helm.{install, upgrade, rollback, uninstall, repoAdd, repoList}` — `helm` permission
 - `settings.{get, set}` — own settings only; the host injects the plugin id
 - `ui.{openExternal, showNotification, setHeight, setTitle, showModal, closeModal}` — `ui` permission
 - `events.on(name, cb)`, `ready()`

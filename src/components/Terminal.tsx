@@ -2,7 +2,12 @@ import { useEffect, useRef, useCallback } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
-import type { TerminalTransport, TerminalWindowsPty } from '../types';
+import type {
+  ElectronAPI,
+  TerminalTransport,
+  TerminalWindowsPty,
+} from '../types';
+import { useApi } from '../services/api-context';
 
 interface TerminalProps {
   sessionId: string;
@@ -37,9 +42,13 @@ interface TerminalProps {
  * - pod shell (pod-exec): no real PTY, so the shell won't echo char-by-char.
  *   The shell may echo the full line back on Enter, causing a slight
  *   double-display of the command — unavoidable without a real PTY.
+ * The input and interrupt calls are fire-and-forget: they only fail once
+ * the session is gone, which onTerminalExited prints in the terminal, and
+ * the main process logs the error.
  */
 function attachPipeInput(
   terminal: XTerm,
+  api: ElectronAPI,
   sessionId: string,
   isLocal: boolean,
   isWindowsShell: boolean
@@ -56,12 +65,12 @@ function attachPipeInput(
         }
         // Windows shells need \r\n; unix shells need just \n
         const eol = isWindowsShell ? '\r\n' : '\n';
-        window.electron.terminalInput(sessionId, inputBuffer + eol);
+        void api.terminalInput(sessionId, inputBuffer + eol);
         inputBuffer = '';
       } else if (code === 0x03) {
         inputBuffer = '';
         terminal.write('^C\r\n');
-        window.electron.terminalInterrupt(sessionId);
+        void api.terminalInterrupt(sessionId);
       } else if (code === 0x7f || code === 0x08) {
         if (inputBuffer.length > 0) {
           inputBuffer = inputBuffer.slice(0, -1);
@@ -83,20 +92,24 @@ export function Terminal({
   windowsPty,
   className = '',
 }: TerminalProps) {
+  const api = useApi();
   const containerRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
 
+  // The resize, input and interrupt calls are fire-and-forget: they only
+  // fail once the session is gone, which onTerminalExited prints in the
+  // terminal, and the main process logs the error.
   const fit = useCallback(() => {
     if (!fitAddonRef.current || !xtermRef.current) return;
     try {
       fitAddonRef.current.fit();
       const { cols, rows } = xtermRef.current;
-      window.electron.terminalResize(sessionId, cols, rows);
+      void api.terminalResize(sessionId, cols, rows);
     } catch {
       // ignore fit errors during mount/unmount race
     }
-  }, [sessionId]);
+  }, [api, sessionId]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -133,7 +146,7 @@ export function Terminal({
       // The pseudo-terminal echoes and edits the line itself; Ctrl+C,
       // backspace and `clear` are just bytes the shell understands.
       terminal.onData((data: string) => {
-        window.electron.terminalInput(sessionId, data);
+        void api.terminalInput(sessionId, data);
       });
     } else {
       // Local unix shells (WSL, Git Bash without stderr prompt) print
@@ -144,24 +157,22 @@ export function Terminal({
           '\x1b[90m[Shell ready — no PTY prompt; type a command and press Enter]\x1b[0m\r\n'
         );
       }
-      attachPipeInput(terminal, sessionId, isLocal, isWindowsShell);
+      attachPipeInput(terminal, api, sessionId, isLocal, isWindowsShell);
     }
 
-    const cleanupOutput = window.electron.onTerminalOutput(
-      (sid: string, data: string) => {
-        if (sid !== sessionId) return;
-        // A pseudo-terminal already emits \r\n, and full-screen programs
-        // rely on a bare \n meaning "down one line, same column", so its
-        // output goes through untouched. Pipes carry whatever the command
-        // wrote: unix shells output bare \n, and so do native commands
-        // under a Windows shell (kubectl writes \n even though PowerShell
-        // itself prints \r\n), so there every bare line feed becomes \r\n
-        // for xterm to return to column 0; a \r\n already there stays.
-        terminal.write(isPty ? data : data.replace(/\r?\n/g, '\r\n'));
-      }
-    );
+    const cleanupOutput = api.onTerminalOutput((sid: string, data: string) => {
+      if (sid !== sessionId) return;
+      // A pseudo-terminal already emits \r\n, and full-screen programs
+      // rely on a bare \n meaning "down one line, same column", so its
+      // output goes through untouched. Pipes carry whatever the command
+      // wrote: unix shells output bare \n, and so do native commands
+      // under a Windows shell (kubectl writes \n even though PowerShell
+      // itself prints \r\n), so there every bare line feed becomes \r\n
+      // for xterm to return to column 0; a \r\n already there stays.
+      terminal.write(isPty ? data : data.replace(/\r?\n/g, '\r\n'));
+    });
 
-    const cleanupExit = window.electron.onTerminalExited((sid: string) => {
+    const cleanupExit = api.onTerminalExited((sid: string) => {
       if (sid === sessionId) {
         terminal.write('\r\n\x1b[31m[Process exited]\x1b[0m\r\n');
       }
@@ -176,7 +187,7 @@ export function Terminal({
       observer.disconnect();
       terminal.dispose();
     };
-  }, [sessionId, kind, shellFamily, transport, windowsPty, fit]);
+  }, [api, sessionId, kind, shellFamily, transport, windowsPty, fit]);
 
   return (
     <div

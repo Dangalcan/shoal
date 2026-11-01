@@ -13,10 +13,16 @@
 import {
   METHOD_TABLE,
   isHostboundMessage,
+  type MethodSpec,
   type PluginPermission,
   type HostboundMessage,
   type PluginboundMessage,
 } from './protocol';
+import { permissionDeniedMessage } from '../../../../electron/shared/plugin-permissions';
+import {
+  withoutSecretDataInList,
+  withoutSecretDataInYaml,
+} from '../../../../electron/shared/secret-redaction';
 
 /** Minimal structural view of a MessagePort (real or faked in tests). */
 export interface PortLike {
@@ -143,9 +149,7 @@ export class PluginHostBridge {
       spec.permission !== null &&
       !this.config.permissions.has(spec.permission)
     ) {
-      throw new Error(
-        `Permission denied: "${method}" requires the "${spec.permission}" permission`
-      );
+      throw new Error(permissionDeniedMessage(method, spec.permission));
     }
 
     // Special-case: notifications are handled entirely host-side.
@@ -162,7 +166,20 @@ export class PluginHostBridge {
       ? [this.config.pluginId, ...args]
       : args;
 
-    return this.config.invoke(method, finalArgs);
+    return this.redactSecrets(
+      spec,
+      await this.config.invoke(method, finalArgs)
+    );
+  }
+
+  /** Strip Secret payloads from a result unless the plugin holds `secrets`. */
+  private redactSecrets(spec: MethodSpec, result: unknown): unknown {
+    if (!spec.secretData || this.config.permissions.has('secrets')) {
+      return result;
+    }
+    return spec.secretData === 'yaml'
+      ? withoutSecretDataInYaml(result)
+      : withoutSecretDataInList(result);
   }
 
   private respond(msg: PluginboundMessage): void {

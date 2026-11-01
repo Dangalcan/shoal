@@ -18,7 +18,7 @@ afterEach(() => {
 
 // Global clipboard mock. `navigator` exists in jsdom and in Node >= 21; the
 // guard keeps node-environment test files working on any supported Node.
-export const writeTextMock = vi.fn();
+export const writeTextMock = vi.fn(async () => {});
 if (typeof navigator !== 'undefined') {
   Object.assign(navigator, {
     clipboard: { writeText: writeTextMock },

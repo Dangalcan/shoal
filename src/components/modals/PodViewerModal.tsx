@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
 import { Box, Loader2, AlertCircle } from 'lucide-react';
 import { BaseModal } from './BaseModal';
 import { useApi } from '../../services/api-context';
+import { useAsyncData } from '../../hooks/useAsyncData';
 import { StatusBadge } from '../ui';
 import type { Pod } from '../../types/k8s-types';
+import type { Result } from '../../types/result';
 
 interface PodViewerModalProps {
   isOpen: boolean;
@@ -17,31 +18,14 @@ export function PodViewerModal({
   clusterName,
 }: PodViewerModalProps) {
   const api = useApi();
-  const [pods, setPods] = useState<Pod[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isOpen && clusterName) {
-      setLoading(true);
-      setError(null);
-      api
-        .getPods(clusterName)
-        .then((result) => {
-          if (result.success) {
-            // get-pods lists the pods kind only, so the rows are Pods.
-            setPods((result.data || []) as Pod[]);
-          } else {
-            const errorMessage = result.error;
-            setError(errorMessage);
-          }
-        })
-        .catch((err) => {
-          setError(err.message || 'An error occurred fetching pods');
-        })
-        .finally(() => setLoading(false));
-    }
-  }, [isOpen, clusterName]);
+  // Fetched on every opening and whenever the cluster changes while open.
+  const { data, loading, error } = useAsyncData<Pod[]>({
+    // get-pods lists the pods kind only, so the rows are Pods.
+    fetchFn: () => api.getPods(clusterName) as Promise<Result<Pod[]>>,
+    skipInitialFetch: !isOpen || !clusterName,
+    dependencies: [isOpen, clusterName],
+  });
+  const pods = data ?? [];
 
   const footerContent = (
     <button onClick={onClose} className="close-footer-button">

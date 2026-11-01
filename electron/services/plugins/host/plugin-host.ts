@@ -14,6 +14,10 @@
 import { EventEmitter } from 'events';
 import { readFileSync } from 'fs';
 import { executeInSandbox } from '../plugin-sandbox';
+import {
+  KUBERNETES_METHOD_PERMISSION,
+  assertPluginPermission,
+} from '../plugin-permissions';
 import type {
   CallbackRef,
   HostMessagePort,
@@ -255,44 +259,66 @@ export class PluginHostRuntime {
   }
 
   private buildKubernetesAPI(permissions: string[]): KubernetesAPI {
-    if (!permissions.includes('kubernetes')) {
-      return createDeniedAPI('kubernetes') as KubernetesAPI;
-    }
+    // Main enforces the same gate on every forwarded call (and redacts
+    // Secrets); checking here too gives the plugin a synchronous error
+    // without a round trip.
+    const gate = (method: keyof KubernetesAPI): void =>
+      assertPluginPermission(
+        permissions,
+        KUBERNETES_METHOD_PERMISSION[method],
+        method
+      );
     return {
-      getResources: (type, namespace) =>
-        this.request('kubernetes.getResources', [type, namespace]) as Promise<
-          unknown[]
-        >,
-      createResource: (manifest) =>
-        this.request('kubernetes.createResource', [manifest]) as Promise<void>,
-      updateResource: (type, name, manifest) =>
-        this.request('kubernetes.updateResource', [
+      getResources: (type, namespace) => {
+        gate('getResources');
+        return this.request('kubernetes.getResources', [
+          type,
+          namespace,
+        ]) as Promise<unknown[]>;
+      },
+      createResource: (manifest) => {
+        gate('createResource');
+        return this.request('kubernetes.createResource', [
+          manifest,
+        ]) as Promise<void>;
+      },
+      updateResource: (type, name, manifest) => {
+        gate('updateResource');
+        return this.request('kubernetes.updateResource', [
           type,
           name,
           manifest,
-        ]) as Promise<void>,
-      deleteResource: (type, name, namespace) =>
-        this.request('kubernetes.deleteResource', [
+        ]) as Promise<void>;
+      },
+      deleteResource: (type, name, namespace) => {
+        gate('deleteResource');
+        return this.request('kubernetes.deleteResource', [
           type,
           name,
           namespace,
-        ]) as Promise<void>,
-      executeCommand: (pod, namespace, command) =>
-        this.request('kubernetes.executeCommand', [
+        ]) as Promise<void>;
+      },
+      executeCommand: (pod, namespace, command) => {
+        gate('executeCommand');
+        return this.request('kubernetes.executeCommand', [
           pod,
           namespace,
           command,
-        ]) as Promise<string>,
-      getPodMetrics: (namespace) =>
-        this.request('kubernetes.getPodMetrics', [namespace]) as Promise<
+        ]) as Promise<string>;
+      },
+      getPodMetrics: (namespace) => {
+        gate('getPodMetrics');
+        return this.request('kubernetes.getPodMetrics', [namespace]) as Promise<
           Array<{
             namespace: string;
             name: string;
             cpuMillicores: number;
             memoryMi: number;
           }>
-        >,
+        >;
+      },
       watchResources: (type, callback) => {
+        gate('watchResources');
         const cbId = this.subscribe(
           'kubernetes.watchResources',
           [type],

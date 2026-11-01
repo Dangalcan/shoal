@@ -76,6 +76,108 @@ describe('Manifests page actions', () => {
     });
   });
 
+  describe('loading the library', () => {
+    const failure = { success: false, error: 'database is locked' };
+
+    it('shows the database error with a Retry button instead of the empty state', async () => {
+      api.getManifests = vi.fn().mockResolvedValue(failure);
+      api.getManifestFolders = vi
+        .fn()
+        .mockResolvedValue({ success: true, data: [] });
+      render(<Manifests />, { api });
+
+      const alert = await screen.findByRole('alert');
+      expect(alert).toHaveTextContent(
+        'The manifest library could not be loaded.'
+      );
+      expect(alert).toHaveTextContent('database is locked');
+      expect(
+        within(alert).getByRole('button', { name: 'Retry' })
+      ).toBeEnabled();
+      expect(
+        screen.queryByText('No saved manifests found.')
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('Loading manifests...')
+      ).not.toBeInTheDocument();
+      // The toast still names the failure once.
+      expect(mockToast.error).toHaveBeenCalledWith(
+        'Failed to fetch manifests',
+        expect.objectContaining({ description: 'database is locked' })
+      );
+    });
+
+    it('reloads the library from the Retry button', async () => {
+      api.getManifests = vi
+        .fn()
+        .mockResolvedValueOnce(failure)
+        .mockResolvedValue({ success: true, data: [makeManifest()] });
+      api.getManifestFolders = vi
+        .fn()
+        .mockResolvedValue({ success: true, data: [] });
+      render(<Manifests />, { api });
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Retry' }));
+
+      expect(await screen.findByText('web')).toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(api.getManifests).toHaveBeenCalledTimes(2);
+      // One Retry reloads both lists: they come from the same database.
+      expect(api.getManifestFolders).toHaveBeenCalledTimes(2);
+    });
+
+    it('shows the error when the folder list cannot be loaded', async () => {
+      api.getManifests = vi.fn().mockResolvedValue({ success: true, data: [] });
+      api.getManifestFolders = vi
+        .fn()
+        .mockResolvedValue({ success: false, error: 'disk I/O error' });
+      render(<Manifests />, { api });
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'disk I/O error'
+      );
+      expect(
+        screen.queryByText('No saved manifests found.')
+      ).not.toBeInTheDocument();
+    });
+
+    it('keeps an empty library as the empty state', async () => {
+      renderWith([]);
+
+      expect(
+        await screen.findByText('No saved manifests found.')
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('keeps the cards on screen when a refresh fails', async () => {
+      api.getManifests = vi
+        .fn()
+        .mockResolvedValueOnce({
+          success: true,
+          data: [makeManifest({ id: 3 })],
+        })
+        .mockResolvedValue(failure);
+      api.getManifestFolders = vi
+        .fn()
+        .mockResolvedValue({ success: true, data: [] });
+      render(<Manifests />, { api });
+
+      // A successful delete refreshes the list, and that refresh fails.
+      fireEvent.click(await screen.findByTitle('Delete'));
+      fireEvent.click(screen.getByRole('button', { name: 'Delete Manifest' }));
+
+      await waitFor(() =>
+        expect(mockToast.error).toHaveBeenCalledWith(
+          'Failed to fetch manifests',
+          expect.objectContaining({ description: 'database is locked' })
+        )
+      );
+      expect(screen.getByText('web')).toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+  });
+
   describe('create and edit', () => {
     it('saves a new manifest in the current folder with the active context', async () => {
       renderWith([]);
@@ -125,7 +227,12 @@ describe('Manifests page actions', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Save Manifest' }));
 
       await waitFor(() =>
-        expect(mockToast.error).toHaveBeenCalledWith('Failed to save manifest')
+        expect(mockToast.error).toHaveBeenCalledWith(
+          'Failed to save manifest',
+          {
+            description: 'db locked',
+          }
+        )
       );
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
@@ -321,8 +428,10 @@ describe('Manifests page actions', () => {
       );
     });
 
-    it('reports a failed delete', async () => {
-      api.deleteManifest = vi.fn().mockResolvedValue({ success: false });
+    it('reports a failed delete with the database reason', async () => {
+      api.deleteManifest = vi
+        .fn()
+        .mockResolvedValue({ success: false, error: 'database is locked' });
       renderWith([makeManifest({ id: 3 })]);
 
       fireEvent.click(await screen.findByTitle('Delete'));
@@ -330,9 +439,12 @@ describe('Manifests page actions', () => {
 
       await waitFor(() =>
         expect(mockToast.error).toHaveBeenCalledWith(
-          'Failed to delete manifest'
+          'Failed to delete manifest',
+          { description: 'database is locked' }
         )
       );
+      // The card stays: nothing was deleted.
+      expect(screen.getByText('web')).toBeInTheDocument();
     });
 
     it('does not delete when the confirmation is cancelled', async () => {

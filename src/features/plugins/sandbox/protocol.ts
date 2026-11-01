@@ -10,8 +10,10 @@
  * both sides and unit-tested in isolation.
  */
 
-/** Permissions a plugin can declare in its manifest. */
-export type PluginPermission = 'kubernetes' | 'ui' | 'storage';
+import type { PluginPermission } from '../../../../electron/shared/plugin-permissions';
+
+/** Permissions a plugin can declare in its manifest (see plugin-permissions.ts). */
+export type { PluginPermission };
 
 /**
  * The curated, permission-gated method surface exposed to plugin UIs.
@@ -32,6 +34,12 @@ export interface MethodSpec {
   injectsPluginId?: boolean;
   /** When true, the bridge handles this locally (no host API call). */
   hostLocal?: boolean;
+  /**
+   * The result can carry Secret payloads. Without the `secrets` permission
+   * the bridge strips them: `resources` for a list or object result, `yaml`
+   * for `kubectl get -o yaml` text.
+   */
+  secretData?: 'resources' | 'yaml';
 }
 
 /**
@@ -40,29 +48,36 @@ export interface MethodSpec {
  * to expose a new capability, add it here deliberately.
  */
 export const METHOD_TABLE: Record<string, MethodSpec> = {
-  // Kubernetes (read + limited mutate) — require the `kubernetes` permission.
-  'kubernetes.getResources': { permission: 'kubernetes' },
+  // Kubernetes reads — require the `kubernetes` permission. Results that can
+  // hold Secrets are stripped of their payload unless `secrets` is declared.
+  'kubernetes.getResources': {
+    permission: 'kubernetes',
+    secretData: 'resources',
+  },
   'kubernetes.getPods': { permission: 'kubernetes' },
   'kubernetes.getNamespaces': { permission: 'kubernetes' },
   'kubernetes.getLogs': { permission: 'kubernetes' },
   'kubernetes.getPodMetrics': { permission: 'kubernetes' },
   'kubernetes.describeResource': { permission: 'kubernetes' },
-  'kubernetes.getResourceYaml': { permission: 'kubernetes' },
-  'kubernetes.deleteResource': { permission: 'kubernetes' },
+  'kubernetes.getResourceYaml': {
+    permission: 'kubernetes',
+    secretData: 'yaml',
+  },
   'kubernetes.getCurrentContext': { permission: 'kubernetes' },
   'kubernetes.getClusters': { permission: 'kubernetes' },
 
-  // Manifests — treated as cluster mutation, require `kubernetes`.
-  'manifests.apply': { permission: 'kubernetes' },
-  'manifests.save': { permission: 'kubernetes' },
+  // Cluster changes — require `kubernetes:write`.
+  'kubernetes.deleteResource': { permission: 'kubernetes:write' },
+  'manifests.apply': { permission: 'kubernetes:write' },
+  'manifests.save': { permission: 'kubernetes:write' },
 
-  // Helm — cluster mutation via the validated helm service, require `kubernetes`.
-  'helm.install': { permission: 'kubernetes' },
-  'helm.upgrade': { permission: 'kubernetes' },
-  'helm.rollback': { permission: 'kubernetes' },
-  'helm.uninstall': { permission: 'kubernetes' },
-  'helm.repoAdd': { permission: 'kubernetes' },
-  'helm.repoList': { permission: 'kubernetes' },
+  // Helm, through the validated helm service — require `helm`.
+  'helm.install': { permission: 'helm' },
+  'helm.upgrade': { permission: 'helm' },
+  'helm.rollback': { permission: 'helm' },
+  'helm.uninstall': { permission: 'helm' },
+  'helm.repoAdd': { permission: 'helm' },
+  'helm.repoList': { permission: 'helm' },
 
   // Settings — the plugin's OWN settings only; pluginId is injected by the
   // host so a plugin cannot read or write another plugin's settings.

@@ -9,6 +9,26 @@ All notable changes to Shoal are documented here. The format follows
 
 ### Added
 
+- The column resize handles of the resource tables work from the keyboard.
+  Each handle is a focusable separator, reached with Tab right after its
+  header, that announces the column and its width: Left and Right change
+  the width by 10 px, by 50 px with Shift, and Home restores the default.
+  The width is kept like a dragged one, and no column goes below 50 px or
+  above 1000 px, by mouse or keyboard.
+
+### Changed
+
+- The Linux AppImage is published as `Shoal-x86_64.AppImage`, without the
+  version in its name (`build.appImage.artifactName`). electron-updater
+  keeps the running file's name only when it contains no version number, so
+  from now on an update replaces the file in place and the desktop entries,
+  launchers and scripts that point at it keep working; until now every
+  update deleted the old file and left `Shoal-<new version>.AppImage`
+  beside it, which broke them. One-time effect: a `Shoal-0.9.1.AppImage`
+  (or older) that updates to this version becomes `Shoal-x86_64.AppImage`
+  in the same folder, so its shortcuts need one last fix, unless the file
+  was renamed to a name without a version number first, which the updater
+  keeps. The `.deb` is not affected (#31).
 - Local terminal sessions run in a pseudo-terminal (ConPTY on Windows, a
   pty on Linux) through node-pty: the shell prints its own prompt, edits
   the line and shows its colours, Ctrl+C reaches the running command as in
@@ -16,16 +36,74 @@ All notable changes to Shoal are documented here. The format follows
   such as `vim`, `less`, `top` or `k9s` work. When the pseudo-terminal
   cannot start (no node-pty binary for the platform) the session falls
   back to pipes with the previous behaviour, and the log says why. Pod
-  exec sessions still run on pipes.
-
-### Changed
-
+  exec sessions still run on pipes (#30).
 - The Linux build compiles node-pty (`npm run rebuild:node-pty`, part of
   `build:linux` and of the Linux release job; needs `make`, `g++` and
   `python3`). The Windows build uses the prebuilt binary that ships in the
   package.
 
-## [Unreleased] - 0.9.0 public beta
+### Fixed
+
+- Disabling a plugin while it is still activating (start-up waiting on
+  kubectl, a Disable click during a slow first cluster call) now leaves it
+  disabled: the activation stops the instance it started as soon as it
+  settles, instead of finishing into an enabled plugin with a running timer
+  while the Plugins page showed it disabled (#78).
+- The Manifests page shows why the library could not be loaded, with the
+  database message and a Retry button, instead of the empty-library
+  invitation to upload: a locked, corrupt or unreadable `manifests.db` no
+  longer looks like lost manifests once the toast is gone. The folder list
+  reports its failure the same way, and a failed save or delete now names
+  the reason in its toast, as uploads and Apply already did (#28).
+
+## [0.9.1] - 2026-10-31
+
+Same-day follow-up to 0.9.0: the Linux package pulls in the libraries it
+needs, plugin permissions are split, and plugin secrets rest on the OS
+keystore.
+
+### Changed
+
+- Plugin permissions are split. `kubernetes` now only grants reads (list,
+  get, describe, YAML, logs, metrics, watches and resource events);
+  `kubernetes:write` is needed to create, update or delete resources, save or
+  apply manifests and run commands in pods, `helm` for every Helm call, and
+  `secrets` to receive the data of Secrets. Without `secrets`, `getResources`,
+  `getResourceYaml`, watches and resource events hand plugins Secrets without
+  `data`, `stringData` and the last-applied annotation. Plugins that change
+  the cluster must declare the new permissions; the bundled examples only
+  read and keep `kubernetes`.
+
+### Removed
+
+- The `filesystem`, `network` and `notifications` plugin permissions, which
+  never gated anything (notifications belong to `ui`). A manifest that names
+  them is rejected with the list of valid permissions.
+
+### Fixed
+
+- The `.deb` declares `libasound2 (>= 1.0.17)` (ALSA) and `libgbm1` (Mesa
+  GBM) as dependencies, so `apt install` pulls them in on WSL, containers
+  and other minimal systems, where Shoal failed to start with
+  `libasound.so.2` or `libgbm.so.1` missing. The package used
+  electron-builder's default dependency list, which lacks both although
+  Electron links them. On Ubuntu 24.04 `libasound2` is a virtual name and
+  the version makes apt choose `libasound2t64` rather than the OSS
+  compatibility shim that also provides it. The AppImage still needs the
+  system's libraries.
+
+### Security
+
+- Plugin license keys and `secret: true` settings in `plugin-config.json`
+  are encrypted with a random key that the OS keystore wraps through
+  Electron `safeStorage` (DPAPI on Windows, Keychain on macOS, libsecret or
+  KWallet on Linux), stored owner-only in `.encryption-key` next to the
+  config. Values written by earlier versions, whose key derived from the
+  machine id and a salt stored next to the data, still load and are
+  re-encrypted with the new key on the next save. Without a keystore (Linux
+  without a keyring) the machine-bound key stays in use and the log says so.
+
+## [0.9.0] - 2026-10-31
 
 First public release, for Windows and Linux. Installers are not code-signed
 yet, so Windows SmartScreen shows a warning on first launch.
@@ -75,7 +153,7 @@ yet, so Windows SmartScreen shows a warning on first launch.
 
 - Renamed from Kubernetes Desktop to Shoal (Linux Foundation trademark
   guidelines), with a new app icon.
-- Electron 44.9 and Node 22 toolchain.
+- Electron 44.9.3 and Node 22 toolchain.
 - The app version shown in the sidebar now always comes from `package.json`.
 - Cluster cards show the real provider (kind or k3d, from the context name)
   and no longer label every context as running.
@@ -93,11 +171,28 @@ yet, so Windows SmartScreen shows a warning on first launch.
 
 ### Fixed
 
+- A release candidate's update check falls back to pre-releases again when
+  no stable release exists. electron-updater wraps the failure of its stable
+  lookup inside its feed-parsing error, so the check ended in an error
+  instead of offering the next candidate (an installed rc.4 never saw rc.5).
+- The Plugins page keeps its list on screen while it refreshes (a plugin
+  activating at start-up, Enable, Disable, Reload) instead of swapping it
+  for the loading spinner each time: the cards no longer flicker, and a
+  click on a card button that arrived during the swap is no longer lost.
 - A bundled plugin whose `activate()` never returns (a `kubectl` call
   against an unreachable cluster, say) is marked as errored after 30
   seconds, with the reason, instead of staying "loading", and Enable and
   Reload report it instead of hanging. The hook itself keeps running in the
   background.
+- Disabling a bundled plugin stops it. Resource Monitor and Namespace
+  Watcher kept polling kubectl every 10 seconds after Disable, because
+  their deactivation hooks ran in a fresh copy of the plugin module, whose
+  timers were empty. The module `activate()` ran in now serves the
+  deactivation hooks and plugin actions until the plugin is disabled,
+  reloaded or uninstalled, and a plugin that is active or still activating
+  is not activated a second time when start-up and an Enable click
+  overlap. Resource Monitor 1.1.1 no longer expects an argument in
+  `deactivate()`, which made every Disable log a failed hook.
 - A pre-release build moves to the stable release as soon as it is
   published: the update check asks for the stable channel first and only
   falls back to pre-releases while no stable release exists.
@@ -215,6 +310,9 @@ yet, so Windows SmartScreen shows a warning on first launch.
 
 ### Security
 
+- Electron 44.9.3 blocks the compromised eMudhra intermediate certificates
+  in Chromium and in Node's `tls`, `https` and `fetch`
+  (GHSA-jr5w-w6x2-84p9).
 - The Compose conversion takes a token for the file chosen in the native
   dialog instead of a path from the renderer. `plugin-config.json`, which
   holds license keys and encrypted plugin secrets, is written owner-only.
@@ -284,5 +382,12 @@ yet, so Windows SmartScreen shows a warning on first launch.
   (AppArmor blocks it for unprivileged AppImages); the `.deb` installs an
   AppArmor profile and keeps it.
 - The AppImage needs `libfuse2` (`libfuse2t64` on Ubuntu 24.04).
+- Both Linux builds use the system's ALSA library (`libasound2`). Desktop
+  installs have it; minimal systems such as WSL or containers may not, and
+  Shoal then fails to start with `libasound.so.2` missing:
+  `sudo apt install libasound2t64` (`libasound2` before Ubuntu 24.04). The
+  `.deb` will declare the dependency in 0.9.1.
 
-[Unreleased]: https://github.com/Dangalcan/shoal/compare/v0.9.0-rc.3...HEAD
+[Unreleased]: https://github.com/Dangalcan/shoal/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/Dangalcan/shoal/compare/v0.9.0...v0.9.1
+[0.9.0]: https://github.com/Dangalcan/shoal/compare/v0.9.0-rc.6...v0.9.0

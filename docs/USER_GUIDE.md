@@ -26,8 +26,9 @@ Shoal 0.9 is a public beta for **Windows** and **Linux** (macOS arrives with 1.0
 1. Download the latest release from the [Releases page](https://github.com/Dangalcan/shoal/releases).
 2. Install the application:
    - **Windows**: Run `Shoal-Setup-<version>.exe`. The installer is not code-signed yet, so SmartScreen may show "Windows protected your PC": choose **More info → Run anyway**. Prefer no install? Use `Shoal-<version>-portable.exe` (it does not update itself).
-   - **Linux**: Make the `.AppImage` executable (`chmod +x Shoal-<version>.AppImage`) and run it, or install the `.deb` package (`sudo apt install ./shoal_<version>_amd64.deb`). The AppImage updates itself; the `.deb` does not.
+   - **Linux**: Make the `.AppImage` executable (`chmod +x Shoal-x86_64.AppImage`) and run it, or install the `.deb` package (`sudo apt install ./shoal_<version>_amd64.deb`). The AppImage updates itself; the `.deb` does not.
      - The AppImage needs `libfuse2`, which Ubuntu 22.04 and later do not install by default: `sudo apt install libfuse2` (`libfuse2t64` on Ubuntu 24.04).
+     - The AppImage also needs the system's ALSA and Mesa GBM libraries (`libasound2`, `libgbm1`), which desktop installs have and WSL, containers or other minimal systems may not; if it fails to start with `libasound.so.2` or `libgbm.so.1` missing: `sudo apt install libasound2t64 libgbm1` (`libasound2` before Ubuntu 24.04). The `.deb` declares both dependencies, so `apt install` brings them in.
      - On Ubuntu 24.04 AppArmor blocks Chromium's sandbox for AppImages, so the AppImage starts without it. The `.deb` installs an AppArmor profile and keeps the sandbox; prefer it there.
 
 ### Requirements
@@ -75,6 +76,7 @@ Navigate to **"Clusters"** in the sidebar to see a list of your connected cluste
 
 - **Namespace Filter**: Use the dropdown at the top to filter resources by namespace (e.g., `default`, `kube-system`). The namespace selected on start comes from **Default Namespace** in Settings.
 - **Resource Tabs**: Switch between the resource kinds: workloads (Pods, Deployments, ReplicaSets, DaemonSets, StatefulSets, Jobs, CronJobs), networking (Services, Ingresses, EndpointSlices, NetworkPolicies), configuration (ConfigMaps, Secrets, ServiceAccounts), storage (PVs, PVCs, StorageClasses), RBAC, cluster objects (Nodes, Events, CRDs) and more. The gear button lets you hide tabs and columns you do not use.
+- **Columns**: Click a header to sort by that column (again to reverse the order) and drag the handle on its right edge to change its width; Shoal remembers the widths. From the keyboard, Tab moves through the headers (Enter or Space sorts) and the resize handle that follows each one: Left and Right change the width by 10 px, by 50 px with Shift, and Home restores the default width.
 - **Refresh**: Tables refresh on their own at the interval set in Settings (**Auto-Refresh Data**), or on demand with the refresh button.
 
 ### Resource Actions
@@ -233,7 +235,7 @@ Shoal updates itself automatically from GitHub Releases:
 - When a new version is found, a toast tells you it is downloading in the background.
 - Once downloaded, a persistent **"Restart"** prompt appears — click it to install the update and relaunch. You can also keep working and the update installs on the next app restart.
 - To check right away, use **Settings → About & Support → Check for updates**. The portable Windows version and the `.deb` package cannot update themselves: download the new release instead.
-- On Linux the update arrives as a new file named after the new version (`Shoal-<version>.AppImage`) and the old AppImage is deleted, unless you had renamed yours to a name without a version number, in which case it is replaced in place. Desktop entries, launchers or scripts that point at the old file name need updating afterwards.
+- On Linux the update replaces the AppImage in place (`Shoal-x86_64.AppImage` keeps its name), so desktop entries, launchers and scripts that point at it keep working. A file still named after its version (`Shoal-0.9.1.AppImage` or older) is replaced once by `Shoal-x86_64.AppImage` in the same folder, and whatever pointed at the old name needs updating that one time; to avoid even that, rename the file to a name without a version number (for example `Shoal.AppImage`) before updating, which the updater keeps.
 
 ---
 

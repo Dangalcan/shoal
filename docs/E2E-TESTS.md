@@ -22,7 +22,7 @@ e2e/
 │   └── plugins/escape-probe/     # Unsigned plugin that tries to escape the sandbox
 ├── features/
 │   ├── navigation.spec.ts        # Sidebar navigation, theme toggle, window guards
-│   ├── first-run.spec.ts         # Empty kubeconfig and unreachable context (own KUBECONFIG)
+│   ├── first-run.spec.ts         # Empty kubeconfig, unreachable context, kubectl missing
 │   ├── cluster-lifecycle.spec.ts # Create and delete a cluster end-to-end
 │   ├── cluster-details.spec.ts   # Cluster details UI: tabs, sorting, filters, logs, settings
 │   ├── manifests.spec.ts         # Manifest library: create, edit, templates, folders
@@ -241,6 +241,38 @@ activates, and start-up used to wait for it) and the cluster details page
 must settle on its error panel instead of alternating with the spinner on
 every auto-refresh.
 
+A third launch has no kubectl at all. The spec does not touch the machine:
+every PATH folder that holds a kubectl is replaced by a folder of symlinks
+to everything else in it, so the main process meets the genuine "not
+installed or not on the PATH" error while its child processes keep every
+other tool. The Dashboard and the cluster list must show the **kubectl not
+found** notice with its install link and **Check again** button and no
+error toast; then the binary is linked back into the first mirror folder
+and **Check again** must clear the notice without a restart. The group runs
+on Linux and macOS only (on Windows the main process re-reads the registry
+PATH before each probe and finds the installed kubectl again), skips the
+last step on a machine without kubectl, and skips entirely when kubectl
+lives in a folder Shoal appends to the PATH by itself
+(`electron/utils/path-env.ts`), because that one cannot be hidden.
+
+### `plugins.spec.ts`
+
+Bundled plugins on a fresh user data directory, no cluster needed: the
+installed list shows the example plugins, Resource Monitor can be disabled
+and enabled again from its card (the state badge and its **Pod Monitor**
+sidebar entry follow), and its page mounts the sandboxed frame with the
+plugin running inside.
+
+Start-up activates the bundled plugins in the background after the window
+opens, so the round-trip test first waits for the badge to read Enabled
+instead of racing that activation with a click. It locates the Enable and
+Disable buttons by their exact label: a single toggle locator that matched
+both labels was re-resolved by Playwright when a retry followed a state
+change, and the test pressed Disable when it meant Enable. The plugin list
+itself no longer swaps to a spinner on every refresh (a click that landed
+while the cards were being remounted used to be lost), which is what made
+the test flaky against packaged builds.
+
 ### `terminal.spec.ts`
 
 Local shell only, no cluster. Starts a session, checks the shell picker,
@@ -286,7 +318,8 @@ nothing from outside loads) and the host stays where it was.
 
 Against a packaged build (`SHOAL_E2E_EXECUTABLE`) unsigned plugins never
 load, so the spec checks that instead: the bundled plugins are listed and
-the fixture is not.
+the fixture's card is in the error state with the message that the plugin
+is not signed.
 
 ---
 

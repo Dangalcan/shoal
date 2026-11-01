@@ -91,10 +91,10 @@ export default function Plugins() {
 
   const handleUpdatePlugin = (plugin: Plugin) => updateModal.open(plugin);
 
-  const confirmUpdate = () => {
+  const confirmUpdate = async () => {
     const plugin = updateModal.item;
     if (!plugin) return;
-    withAction(
+    await withAction(
       plugin.manifest.id,
       async () => {
         await installPlugin(plugin.manifest.id);
@@ -124,10 +124,10 @@ export default function Plugins() {
 
   const handleUninstallPlugin = (plugin: Plugin) => uninstallModal.open(plugin);
 
-  const confirmUninstall = () => {
+  const confirmUninstall = async () => {
     const plugin = uninstallModal.item;
     if (!plugin) return;
-    withAction(
+    await withAction(
       plugin.manifest.id,
       async () => {
         if (plugin.state === 'enabled') {
@@ -306,10 +306,10 @@ export default function Plugins() {
       <ConfirmModal
         isOpen={deactivateLicenseModal.isOpen}
         onClose={deactivateLicenseModal.close}
-        onConfirm={() => {
+        onConfirm={async () => {
           const plugin = deactivateLicenseModal.item;
           if (!plugin) return;
-          withAction(
+          await withAction(
             plugin.manifest.id,
             async () => {
               await deactivateLicense(plugin.manifest.id);

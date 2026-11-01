@@ -9,6 +9,7 @@ import {
   useContext,
   ReactNode,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 import type {
@@ -58,30 +59,49 @@ export function PluginProvider({ children }: PluginProviderProps) {
   const [plugins, setPlugins] = useState<Plugin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Set once the first list has arrived. Later refreshes (plugin state
+  // events, enable/disable, reload) update the list in place: showing the
+  // loading state again would swap the list for a spinner and remount every
+  // card, and a click that straddles that remount is lost.
+  const hasLoaded = useRef(false);
+
+  // Reads the plugin list and stores the answer, or the failure, from the
+  // promise callbacks, which also turn the loading state off. The caller
+  // decides whether that state is on beforehand: the initial render starts
+  // with it on, `refreshPlugins` turns it on only until the first list has
+  // arrived. Callbacks rather than `await`, because the effect lint rule
+  // takes an async function that writes state after `await` for a
+  // synchronous write.
+  const loadPlugins = () =>
+    api.getPlugins().then(
+      (result) => {
+        if (result.success) {
+          setPlugins(result.data);
+          hasLoaded.current = true;
+        } else {
+          setError(result.error || 'Failed to load plugins');
+        }
+        setLoading(false);
+      },
+      (err: unknown) => {
+        setError(err instanceof Error ? err.message : 'Failed to load plugins');
+        setLoading(false);
+      }
+    );
 
   const refreshPlugins = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await api.getPlugins();
-      if (result.success) {
-        setPlugins(result.data);
-      } else {
-        setError(result.error || 'Failed to load plugins');
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load plugins');
-    } finally {
-      setLoading(false);
-    }
+    if (!hasLoaded.current) setLoading(true);
+    setError(null);
+    await loadPlugins();
   };
 
   const actions = usePluginActions(plugins, refreshPlugins);
 
-  // Load plugins on mount
+  // Load plugins on mount. loadPlugins keeps its error in state and
+  // checkForUpdates toasts its own, so neither promise needs a handler here.
   useEffect(() => {
-    refreshPlugins();
-    actions.checkForUpdates();
+    void loadPlugins();
+    void actions.checkForUpdates();
   }, []);
 
   // Plugins keep activating after the window opens, and can be reloaded or
@@ -132,8 +152,9 @@ export function usePluginExtensions(extensionPoint: string) {
   const { getPluginExtensions, plugins } = usePlugins();
   const [extensions, setExtensions] = useState<unknown[]>([]);
 
+  // getPluginExtensions toasts its failures and resolves to [] on them.
   useEffect(() => {
-    getPluginExtensions(extensionPoint).then(setExtensions);
+    void getPluginExtensions(extensionPoint).then(setExtensions);
   }, [extensionPoint, plugins]);
 
   return extensions;

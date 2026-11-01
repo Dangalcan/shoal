@@ -1,13 +1,13 @@
 {
   "id": "resource-monitor",
   "name": "Resource Monitor",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Monitors Pod resources within namespaces. Depends on Namespace Watcher.",
   "author": "Shoal Team",
   "main": "index.js",
   "renderer": "renderer.js",
   "styles": ["styles.css"],
-  "permissions": ["kubernetes", "ui", "storage", "notifications"],
+  "permissions": ["kubernetes", "ui", "storage"],
   "category": "Monitoring",
   "license": {
     "type": "free",
