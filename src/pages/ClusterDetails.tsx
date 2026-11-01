@@ -73,6 +73,7 @@ export function ClusterDetails() {
             onSort={table.handleSort}
             getColumnWidth={table.getColumnWidth}
             onResize={table.onResizeStart}
+            onResizeTo={table.handleResize}
             resizingId={table.resizingId}
             onDescribe={modals.openDescribe}
             onYaml={modals.openYaml}

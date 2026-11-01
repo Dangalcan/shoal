@@ -7,6 +7,15 @@ All notable changes to Shoal are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The column resize handles of the resource tables work from the keyboard.
+  Each handle is a focusable separator, reached with Tab right after its
+  header, that announces the column and its width: Left and Right change
+  the width by 10 px, by 50 px with Shift, and Home restores the default.
+  The width is kept like a dragged one, and no column goes below 50 px or
+  above 1000 px, by mouse or keyboard.
+
 ## [0.9.1] - 2026-10-31
 
 Same-day follow-up to 0.9.0: the Linux package pulls in the libraries it

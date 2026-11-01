@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useTableState } from '../../hooks/useTableState';
 
 /**
@@ -81,5 +82,59 @@ describe('useTableState', () => {
       key: 'name',
       direction: 'desc',
     });
+  });
+
+  const storedWidths = () =>
+    JSON.parse(window.localStorage.getItem('columnWidths') ?? '{}') as Record<
+      string,
+      number
+    >;
+
+  it('stores a width within 50–1000 px and persists it', () => {
+    const { result } = renderHook(() => useTableState(podColumns));
+    expect(result.current.getColumnWidth('name', 200)).toBe(200);
+
+    act(() => result.current.handleResize('name', 320));
+    expect(result.current.getColumnWidth('name', 200)).toBe(320);
+    expect(storedWidths()).toEqual({ name: 320 });
+
+    act(() => result.current.handleResize('name', 10));
+    expect(result.current.getColumnWidth('name', 200)).toBe(50);
+    act(() => result.current.handleResize('name', 5000));
+    expect(result.current.getColumnWidth('name', 200)).toBe(1000);
+    expect(storedWidths()).toEqual({ name: 1000 });
+  });
+
+  it('reads the persisted widths back on the next mount', () => {
+    const first = renderHook(() => useTableState(podColumns));
+    act(() => first.result.current.handleResize('status', 120));
+    first.unmount();
+
+    const second = renderHook(() => useTableState(podColumns));
+    expect(second.result.current.getColumnWidth('status', 80)).toBe(120);
+    expect(second.result.current.getColumnWidth('name', 200)).toBe(200);
+  });
+
+  it('bounds a mouse drag the same way', () => {
+    const { result } = renderHook(() => useTableState(podColumns));
+    const event = {
+      preventDefault: vi.fn(),
+      clientX: 300,
+    } as unknown as ReactMouseEvent;
+
+    act(() => result.current.onResizeStart(event, 'name', 200));
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(result.current.resizingId).toBe('name');
+
+    act(() => {
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 0 }));
+    });
+    expect(result.current.getColumnWidth('name', 200)).toBe(50);
+
+    act(() => {
+      window.dispatchEvent(new MouseEvent('mouseup'));
+    });
+    expect(result.current.resizingId).toBeNull();
+    expect(storedWidths()).toEqual({ name: 50 });
   });
 });
