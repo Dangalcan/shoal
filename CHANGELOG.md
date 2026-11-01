@@ -86,7 +86,7 @@ keystore.
   re-encrypted with the new key on the next save. Without a keystore (Linux
   without a keyring) the machine-bound key stays in use and the log says so.
 
-## [0.9.0] - 2026-11-02
+## [0.9.0] - 2026-10-31
 
 First public release, for Windows and Linux. Installers are not code-signed
 yet, so Windows SmartScreen shows a warning on first launch.
