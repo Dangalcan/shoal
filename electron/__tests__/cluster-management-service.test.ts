@@ -157,6 +157,19 @@ describe('ClusterManagementService', () => {
       expect(result.success).toBe(true);
     });
 
+    it.each([
+      ['kind', 'kind delete cluster --name kind'],
+      ['k3d', 'k3d cluster delete k3d'],
+    ])(
+      'should delete a cluster whose context is just "%s"',
+      async (context, command) => {
+        const result = await service.deleteCluster(`  ${context}  `);
+
+        expect(calledCommands()[0]).toBe(command);
+        expect(result.success).toBe(true);
+      }
+    );
+
     it('should handle non-kind/k3d contexts', async () => {
       const result = await service.deleteCluster('some-other-context');
 

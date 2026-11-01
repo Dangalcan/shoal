@@ -19,6 +19,8 @@ import fs from 'fs/promises';
 import { app } from 'electron';
 import child_process from 'child_process';
 import { safeExec } from '../utils/safe-exec';
+import { kubernetesService } from '../services/kubernetes/kubernetes-service';
+import { pluginEventBus } from '../services/plugins/plugin-events';
 
 // kubernetes-service runs commands through safeExec; mock it so the k8s API
 // tests below don't shell out. watchResources still uses child_process.spawn.
@@ -481,6 +483,51 @@ describe('Plugin Context', () => {
         context.kubernetes.executeCommand('p', 'ns', 'cmd')
       ).rejects.toThrow('Failed to execute command');
     });
+
+    it('getPodMetrics returns the service metrics and wraps its failures', async () => {
+      const metrics = [
+        { namespace: 'default', name: 'pod-a', cpuMillicores: 5, memoryMi: 64 },
+      ];
+      const spy = vi
+        .spyOn(kubernetesService, 'getPodMetrics')
+        .mockResolvedValueOnce(metrics)
+        .mockRejectedValueOnce(new Error('metrics API down'));
+      try {
+        await expect(
+          context.kubernetes.getPodMetrics('default')
+        ).resolves.toEqual(metrics);
+        expect(spy).toHaveBeenCalledWith('default');
+        await expect(
+          context.kubernetes.getPodMetrics('default')
+        ).rejects.toThrow('Failed to get pod metrics: metrics API down');
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it('watchResources logs a kubectl that cannot be started', () => {
+      let onError: ((error: Error) => void) | undefined;
+      vi.mocked(child_process.spawn).mockReturnValue({
+        stdout: { on: vi.fn() },
+        stderr: { on: vi.fn() },
+        on: vi.fn((event: string, cb: (error: Error) => void) => {
+          if (event === 'error') onError = cb;
+        }),
+        kill: vi.fn(),
+      } as any);
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+
+      context.kubernetes.watchResources('pods', () => {});
+      onError?.(new Error('spawn kubectl ENOENT'));
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        `[PluginContext] ${pluginId} watch of pods failed to start:`,
+        'spawn kubectl ENOENT'
+      );
+      consoleErrorSpy.mockRestore();
+    });
   });
 
   describe('UI API', () => {
@@ -594,6 +641,31 @@ describe('Plugin Context', () => {
           pluginId,
         })
       );
+    });
+
+    it('openModal should throw when a non-string component is passed', () => {
+      const sendMock = vi.fn();
+      mockWin = { webContents: { send: sendMock } };
+
+      expect(() =>
+        context.ui.openModal((() => null) as unknown as string)
+      ).toThrow(/openModal: "component" must be a string/);
+      expect(sendMock).not.toHaveBeenCalled();
+    });
+
+    it('openModal without a main window sends nothing and still logs', () => {
+      mockWin = null;
+      const consoleLogSpy = vi
+        .spyOn(console, 'log')
+        .mockImplementation(() => {});
+
+      expect(() => context.ui.openModal('MyComp')).not.toThrow();
+
+      expect(pluginEventBus.getMainWindow).toHaveBeenCalled();
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        `[PluginContext] Open modal from ${pluginId}`
+      );
+      consoleLogSpy.mockRestore();
     });
   });
 

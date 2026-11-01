@@ -16,7 +16,8 @@ vi.mock('electron', () => ({
   net: { fetch: vi.fn() },
 }));
 
-import { app } from 'electron';
+import { app, net } from 'electron';
+import { pathToFileURL } from 'url';
 import {
   handlePluginFileRequest,
   resolvePluginFile,
@@ -124,6 +125,14 @@ describe('resolvePluginFile', () => {
     expect(await resolvePluginFile(sneaky, [pluginsRoot])).toBeNull();
   });
 
+  it('refuses a URL that is not a plugin-file: URL', async () => {
+    expect(
+      await resolvePluginFile(pathToFileURL(insideFile).toString(), [
+        pluginsRoot,
+      ])
+    ).toBeNull();
+  });
+
   it('refuses missing files and missing roots', async () => {
     expect(
       await resolvePluginFile(
@@ -153,6 +162,39 @@ describe('handlePluginFileRequest', () => {
       expect(response.headers.get('Content-Security-Policy')).toBe(
         PLUGIN_FILE_CSP
       );
+    } finally {
+      fs.rmSync(userData, { recursive: true, force: true });
+    }
+  });
+
+  it('serves a file of a user plugin through net.fetch with the frame policy', async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'shoal-proto-'));
+    vi.mocked(app.getPath).mockReturnValue(userData);
+    vi.mocked(app.getAppPath).mockReturnValue(userData);
+    vi.mocked(net.fetch).mockResolvedValue(
+      new Response('console.log(1)', {
+        status: 200,
+        headers: { 'content-type': 'text/javascript' },
+      })
+    );
+    try {
+      const file = path.join(userData, 'plugins', 'demo', 'renderer.js');
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, 'console.log(1)');
+
+      const response = await handlePluginFileRequest(
+        new Request(toPluginFileUrl(file))
+      );
+
+      expect(net.fetch).toHaveBeenCalledWith(
+        pathToFileURL(fs.realpathSync(file)).toString()
+      );
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toBe('text/javascript');
+      expect(response.headers.get('Content-Security-Policy')).toBe(
+        PLUGIN_FILE_CSP
+      );
+      expect(await response.text()).toBe('console.log(1)');
     } finally {
       fs.rmSync(userData, { recursive: true, force: true });
     }

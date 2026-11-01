@@ -97,6 +97,28 @@ describe('local-shells (mocked environment branches)', () => {
     it('defaults to the first detected shell', () => {
       expect(getDefaultShellId()).toBe('powershell');
     });
+
+    it('falls back to C:\\Windows and skips the per-user Git Bash without those variables', () => {
+      vi.stubEnv('LOCALAPPDATA', undefined);
+      vi.stubEnv('WINDIR', undefined);
+      const wsl = path.join('C:\\Windows', 'System32', 'wsl.exe');
+      mockExistsSync.mockImplementation((p) => p === wsl);
+
+      const shells = getLocalShells();
+
+      expect(shells.map((s) => s.id)).toEqual(['powershell', 'cmd', 'wsl']);
+      expect(resolveLocalShell('wsl').file).toBe(wsl);
+      const probed = mockExistsSync.mock.calls.map(([p]) => String(p));
+      const perUserGitBash = path.join('Programs', 'Git', 'bin', 'bash.exe');
+      expect(probed.some((p) => p.endsWith(perUserGitBash))).toBe(false);
+    });
+
+    it('finds Git Bash in Program Files', () => {
+      const gitBash = 'C:\\Program Files\\Git\\bin\\bash.exe';
+      mockExistsSync.mockImplementation((p) => p === gitBash);
+
+      expect(resolveLocalShell('gitbash').file).toBe(gitBash);
+    });
   });
 
   describe('unix detection', () => {

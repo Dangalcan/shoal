@@ -639,6 +639,69 @@ describe('MarketplaceService', () => {
       const res = await service.createCheckout('paid-plugin');
       expect(res.success).toBe(false);
     });
+
+    it('falls back to the HTTP status when the error body is not JSON', async () => {
+      vi.mocked(global.fetch as any).mockResolvedValue({
+        ok: false,
+        status: 502,
+        json: async () => {
+          throw new SyntaxError('Unexpected token <');
+        },
+      });
+
+      const res = await service.createCheckout('paid-plugin');
+
+      expect(res).toEqual({ success: false, error: 'HTTP 502' });
+    });
+
+    it('falls back to the HTTP status when the error body has no message', async () => {
+      vi.mocked(global.fetch as any).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({}),
+      });
+
+      const res = await service.createCheckout('paid-plugin');
+
+      expect(res).toEqual({ success: false, error: 'HTTP 400' });
+    });
+  });
+
+  describe('checkForUpdates – production', () => {
+    it('reports the backend error instead of reading the local data', async () => {
+      vi.mocked(isProduction).mockReturnValue(true);
+      vi.mocked(global.fetch as any).mockRejectedValue(
+        new Error('getaddrinfo ENOTFOUND')
+      );
+
+      const res = await service.checkForUpdates([
+        { id: 'plugin-a', version: '1.0.0' },
+      ]);
+
+      expect(res).toEqual({
+        success: false,
+        error: 'getaddrinfo ENOTFOUND',
+      });
+      expect(fs.readFile).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('installPlugin – empty details', () => {
+    it('fails with a generic message when the backend returns no plugin', async () => {
+      vi.mocked(global.fetch as any).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => null,
+      });
+
+      const res = await service.installPlugin('test-plugin');
+
+      expect(res).toEqual({
+        success: false,
+        error: 'Could not find plugin in marketplace',
+      });
+      expect(fs.mkdir).not.toHaveBeenCalled();
+    });
   });
 
   describe('getCheckoutStatus', () => {
@@ -663,6 +726,19 @@ describe('MarketplaceService', () => {
       });
       const res = await service.getCheckoutStatus('missing');
       expect(res.success).toBe(false);
+    });
+
+    it('returns a failure Result when the request throws', async () => {
+      vi.mocked(global.fetch as any).mockRejectedValue(
+        new Error('The operation was aborted due to timeout')
+      );
+
+      const res = await service.getCheckoutStatus('cs_1');
+
+      expect(res).toEqual({
+        success: false,
+        error: 'The operation was aborted due to timeout',
+      });
     });
   });
 });

@@ -97,4 +97,54 @@ describe('ResourceReadCache', () => {
     await cache.getOrFetch('k', fetch);
     expect(fetch).toHaveBeenCalledTimes(2);
   });
+
+  it('a read that settles after clear() does not touch the newer entry', async () => {
+    const cache = new ResourceReadCache(5000);
+    let resolveOld!: (v: unknown[]) => void;
+    let resolveNew!: (v: unknown[]) => void;
+    const fetch = vi
+      .fn<() => Promise<unknown[]>>()
+      .mockImplementationOnce(() => new Promise((r) => (resolveOld = r)))
+      .mockImplementationOnce(() => new Promise((r) => (resolveNew = r)))
+      .mockResolvedValue(['third']);
+
+    const stale = cache.getOrFetch('k', fetch);
+    cache.clear(); // a mutation happened while the read was in flight
+    const fresh = cache.getOrFetch('k', fetch);
+
+    resolveOld(['stale']);
+    await expect(stale).resolves.toEqual(['stale']);
+    // The newer read is still in flight and still shared.
+    expect(cache.getOrFetch('k', fetch)).toBe(fresh);
+
+    resolveNew(['fresh']);
+    await expect(fresh).resolves.toEqual(['fresh']);
+    expect(await cache.getOrFetch('k', fetch)).toEqual(['fresh']);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('a read that fails after clear() does not drop the newer entry', async () => {
+    const cache = new ResourceReadCache(5000);
+    let rejectOld!: (e: Error) => void;
+    let resolveNew!: (v: unknown[]) => void;
+    const fetch = vi
+      .fn<() => Promise<unknown[]>>()
+      .mockImplementationOnce(
+        () => new Promise((_r, reject) => (rejectOld = reject))
+      )
+      .mockImplementationOnce(() => new Promise((r) => (resolveNew = r)));
+
+    const stale = cache.getOrFetch('k', fetch);
+    cache.clear();
+    const fresh = cache.getOrFetch('k', fetch);
+
+    rejectOld(new Error('old read failed'));
+    await expect(stale).rejects.toThrow('old read failed');
+    expect(cache.size()).toBe(1);
+    expect(cache.getOrFetch('k', fetch)).toBe(fresh);
+
+    resolveNew(['fresh']);
+    await expect(fresh).resolves.toEqual(['fresh']);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
 });

@@ -100,6 +100,21 @@ describe('portforward-ipc', () => {
     });
   });
 
+  it('portforward:start drops close events once the renderer is gone', async () => {
+    vi.mocked(portForwardService.startForward).mockResolvedValue(forwardInfo);
+    const closedSend = vi.fn();
+    const destroyedEvent = {
+      sender: { isDestroyed: () => true, send: closedSend },
+    } as unknown as IpcMainInvokeEvent;
+
+    await getHandler('portforward:start')(destroyedEvent, {});
+    const onClosed = vi.mocked(portForwardService.startForward).mock
+      .calls[0]![1]!;
+    onClosed(forwardInfo, 'lost connection');
+
+    expect(closedSend).not.toHaveBeenCalled();
+  });
+
   it('portforward:start returns the service error', async () => {
     vi.mocked(portForwardService.startForward).mockRejectedValue(
       new Error('Local port 8080 is already forwarded')

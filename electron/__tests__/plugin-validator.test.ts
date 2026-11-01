@@ -49,6 +49,39 @@ describe('validateManifest permissions', () => {
   });
 });
 
+describe('validateManifest required fields', () => {
+  it.each([
+    'id',
+    'name',
+    'version',
+    'description',
+    'author',
+    'main',
+    'permissions',
+    'license',
+  ] as const)('reports a missing %s', (field) => {
+    const incomplete: Partial<PluginManifest> = manifest(['ui']);
+    delete incomplete[field];
+    expect(validateManifest(incomplete as PluginManifest)).toBe(
+      `Missing required field: ${field}`
+    );
+  });
+
+  it('accepts a paid plugin with complete pricing and valid dependencies', () => {
+    expect(
+      validateManifest({
+        ...manifest(['ui']),
+        license: {
+          type: 'paid',
+          spdx: 'proprietary',
+          pricing: { model: 'one-time', price: 5, currency: 'EUR' },
+        },
+        dependencies: { 'base-plugin': '^1.2.0', other_dep: '>=2.0.0' },
+      })
+    ).toBeNull();
+  });
+});
+
 describe('plugin permission helpers', () => {
   it('recognises the shared list and nothing else', () => {
     expect(PLUGIN_PERMISSIONS).toEqual([

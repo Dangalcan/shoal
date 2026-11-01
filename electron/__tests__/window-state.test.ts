@@ -141,6 +141,41 @@ describe('trackWindowState', () => {
     expect(save).toHaveBeenCalledTimes(1);
   });
 
+  it('saves the initial state when the window closes untouched', () => {
+    win.maximized = true;
+    track();
+
+    win.emit('close');
+
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(save).toHaveBeenCalledWith({
+      bounds: { x: 10, y: 20, width: 1200, height: 800 },
+      maximized: true,
+    });
+  });
+
+  it('ignores bounds changes while the window is minimized', () => {
+    track();
+    win.minimized = true;
+    win.bounds = { x: -32000, y: -32000, width: 160, height: 28 };
+    win.emit('move');
+
+    vi.advanceTimersByTime(1000);
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('drops a pending save when disposed mid-debounce', () => {
+    const dispose = track();
+    win.bounds = { x: 50, y: 60, width: 900, height: 600 };
+    win.emit('resize');
+
+    dispose();
+    vi.advanceTimersByTime(1000);
+
+    expect(save).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it('stops listening once disposed', () => {
     const dispose = track();
     dispose();

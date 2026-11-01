@@ -215,5 +215,32 @@ describe('HelmService', () => {
       );
       await expect(service.repoList()).resolves.toEqual([]);
     });
+
+    it.each(['null', '{"name":"bitnami"}'])(
+      'returns [] when helm prints %s instead of a list',
+      async (stdout) => {
+        mockSafeExec.mockResolvedValueOnce({ stdout, stderr: '' });
+        await expect(service.repoList()).resolves.toEqual([]);
+      }
+    );
+
+    it('returns [] for a non-Error rejection about missing repositories', async () => {
+      mockSafeExec.mockRejectedValueOnce('Error: no repositories to show');
+      await expect(service.repoList()).resolves.toEqual([]);
+    });
+
+    it('rethrows any other failure', async () => {
+      const failure = new Error('helm: Kubernetes cluster unreachable');
+      mockSafeExec.mockRejectedValueOnce(failure);
+      await expect(service.repoList()).rejects.toBe(failure);
+
+      mockSafeExec.mockRejectedValueOnce('exit status 1');
+      await expect(service.repoList()).rejects.toBe('exit status 1');
+    });
+
+    it('rethrows unparseable output', async () => {
+      mockSafeExec.mockResolvedValueOnce({ stdout: 'not json', stderr: '' });
+      await expect(service.repoList()).rejects.toThrow(SyntaxError);
+    });
   });
 });

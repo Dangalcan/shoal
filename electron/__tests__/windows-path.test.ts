@@ -78,6 +78,24 @@ describe('expandWindowsEnv', () => {
     ).toBe('C:\\Users\\ana\\go\\bin;C:\\PF\\X');
     expect(expandWindowsEnv('%NOPE%\\bin', env)).toBe('%NOPE%\\bin');
   });
+
+  it('treats a variable whose value is undefined as unknown', () => {
+    const env: NodeJS.ProcessEnv = { GOPATH: undefined, HOME: 'C:\\h' };
+    expect(expandWindowsEnv('%GOPATH%\\bin;%HOME%', env)).toBe(
+      '%GOPATH%\\bin;C:\\h'
+    );
+  });
+
+  it('reads process.env by default', () => {
+    vi.stubEnv('SHOAL_TEST_DIR', 'C:\\shoal-test');
+    try {
+      expect(expandWindowsEnv('%shoal_test_dir%\\bin')).toBe(
+        'C:\\shoal-test\\bin'
+      );
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
 });
 
 describe('mergeWindowsPath', () => {
@@ -200,6 +218,52 @@ describe('refreshWindowsPath', () => {
 
     expect(process.env.PATH).toBe('C:\\Windows\\System32');
     expect(mocks.log.warn).toHaveBeenCalled();
+  });
+
+  it('finds reg.exe under C:\\Windows when SystemRoot is unset', async () => {
+    const originalRoot = process.env.SystemRoot;
+    delete process.env.SystemRoot;
+    try {
+      answerReg(['', '']);
+
+      await refreshWindowsPath(() => 10_000);
+
+      expect(mocks.execFile.mock.calls[0][0]).toBe(
+        'C:\\Windows\\System32\\reg.exe'
+      );
+    } finally {
+      if (originalRoot !== undefined) process.env.SystemRoot = originalRoot;
+    }
+  });
+
+  it('builds the PATH from the registry when the process has none', async () => {
+    delete process.env.PATH;
+    answerReg([
+      '    Path    REG_SZ    C:\\kube\r\n',
+      '    Path    REG_SZ    C:\\helm\r\n',
+    ]);
+
+    await refreshWindowsPath(() => 10_000);
+
+    expect(process.env.PATH).toBe('C:\\kube;C:\\helm');
+  });
+
+  it('keeps PATH and logs when merging the registry value fails', async () => {
+    answerReg(['    Path    REG_SZ    C:\\kube\r\n', '']);
+    mocks.existsSync.mockImplementation(() => {
+      throw new Error('EPERM');
+    });
+
+    await expect(refreshWindowsPath(() => 10_000)).resolves.toBeUndefined();
+
+    expect(process.env.PATH).toBe('C:\\Windows\\System32');
+    expect(mocks.log.warn).toHaveBeenCalledWith(
+      '[WindowsPath] PATH refresh failed:',
+      'Error: EPERM'
+    );
+    // The failed read still counts for the throttle.
+    await refreshWindowsPath(() => 12_000);
+    expect(mocks.execFile).toHaveBeenCalledTimes(2);
   });
 
   it('does nothing off Windows', async () => {

@@ -244,6 +244,23 @@ describe('manifests-ipc folder handlers', () => {
       expect(result.success).toBe(false);
       expect(result.error).toMatch(/own descendant/i);
     });
+
+    it.each([null, undefined])(
+      'moves a folder to the root with a %s parent',
+      async (parentId) => {
+        // clearAllMocks keeps the throwing implementation of the test above.
+        vi.mocked(manifestDb.moveFolder).mockImplementation(() => undefined);
+
+        const result = await getHandler('move-manifest-folder')(
+          mockEvent,
+          4,
+          parentId
+        );
+
+        expect(result).toEqual({ success: true, data: true });
+        expect(manifestDb.moveFolder).toHaveBeenCalledWith(4, null);
+      }
+    );
   });
 
   describe('manifest validation', () => {
@@ -272,6 +289,13 @@ describe('manifests-ipc folder handlers', () => {
         { name: 'svc', content: 'a: 1', cluster_context: 42 },
         /cluster context/i,
       ],
+      [
+        'a cluster context that is too long',
+        { name: 'svc', content: 'a: 1', cluster_context: 'c'.repeat(201) },
+        /cluster context/i,
+      ],
+      ['a null manifest', null, /invalid manifest/i],
+      ['a manifest that is not an object', 'name: svc', /invalid manifest/i],
     ])('save-manifest rejects %s', async (_label, manifest, message) => {
       const result = await getHandler('save-manifest')(mockEvent, manifest);
 

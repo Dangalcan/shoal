@@ -145,4 +145,43 @@ describe('installApplicationMenu', () => {
     expect(Menu.buildFromTemplate).toHaveBeenCalledTimes(1);
     expect(Menu.setApplicationMenu).toHaveBeenCalledTimes(1);
   });
+
+  it('leaves the About icon to Electron when none is given', () => {
+    vi.mocked(app.setAboutPanelOptions).mockClear();
+
+    installApplicationMenu();
+
+    const options = vi.mocked(app.setAboutPanelOptions).mock.calls[0][0];
+    expect(options).toMatchObject({ applicationName: 'Shoal' });
+    expect(options).not.toHaveProperty('iconPath');
+  });
+});
+
+describe('openLogsFolder', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('logs when the file manager call itself fails', async () => {
+    vi.mocked(shell.openPath).mockRejectedValueOnce(new Error('no shell'));
+
+    openLogsFolder();
+    await vi.waitFor(() =>
+      expect(log.warn).toHaveBeenCalledWith(
+        '[Menu] Could not open the logs folder:',
+        'no shell'
+      )
+    );
+  });
+
+  it('stays quiet when the folder opens', async () => {
+    vi.mocked(shell.openPath).mockResolvedValueOnce('');
+
+    openLogsFolder();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(shell.openPath).toHaveBeenCalledWith('/logs/dir');
+    expect(log.warn).not.toHaveBeenCalled();
+  });
 });

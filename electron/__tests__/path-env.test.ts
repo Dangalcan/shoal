@@ -1,5 +1,12 @@
-import { describe, it, expect } from 'vitest';
-import { augmentPath, extraToolDirs } from '../utils/path-env';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import {
+  applyDesktopToolPath,
+  augmentPath,
+  extraToolDirs,
+} from '../utils/path-env';
 
 describe('extraToolDirs', () => {
   it('lists the usual Linux tool directories under the home folder', () => {
@@ -35,5 +42,61 @@ describe('augmentPath', () => {
 
   it('builds a PATH from scratch when the current one is empty', () => {
     expect(augmentPath('', ['/snap/bin'], exists, ':')).toBe('/snap/bin');
+  });
+});
+
+describe('applyDesktopToolPath', () => {
+  const originalPath = process.env.PATH;
+  const originalPlatform = process.platform;
+  let home: string;
+
+  const setPlatform = (value: NodeJS.Platform) =>
+    Object.defineProperty(process, 'platform', { value, configurable: true });
+
+  beforeEach(() => {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), 'shoal-path-env-'));
+    fs.mkdirSync(path.posix.join(home, '.local/bin'), { recursive: true });
+    vi.spyOn(os, 'homedir').mockReturnValue(home);
+    setPlatform('linux');
+  });
+
+  afterEach(() => {
+    setPlatform(originalPlatform);
+    vi.restoreAllMocks();
+    if (originalPath === undefined) delete process.env.PATH;
+    else process.env.PATH = originalPath;
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
+  it('appends the tool folders that exist after the current PATH', () => {
+    const current = ['first-dir', 'second-dir'].join(path.delimiter);
+    process.env.PATH = current;
+
+    applyDesktopToolPath();
+
+    const entries = process.env.PATH!.split(path.delimiter);
+    expect(entries.slice(0, 2)).toEqual(['first-dir', 'second-dir']);
+    expect(entries).toContain(path.posix.join(home, '.local/bin'));
+    // Folders that do not exist under the home are not added.
+    expect(entries).not.toContain(path.posix.join(home, 'go/bin'));
+  });
+
+  it('builds the PATH from scratch when none is set', () => {
+    delete process.env.PATH;
+
+    applyDesktopToolPath();
+
+    expect(process.env.PATH!.split(path.delimiter)).toContain(
+      path.posix.join(home, '.local/bin')
+    );
+  });
+
+  it('adds nothing on Windows', () => {
+    setPlatform('win32');
+    process.env.PATH = 'only-dir';
+
+    applyDesktopToolPath();
+
+    expect(process.env.PATH).toBe('only-dir');
   });
 });

@@ -103,6 +103,21 @@ describe('cluster IPC handlers', () => {
         kubeconfigPath: undefined,
       });
     });
+
+    it('treats a value that is not a string as clearing the setting', async () => {
+      process.env.KUBECONFIG = '/previous';
+
+      const result = await getHandler('set-kubeconfig-path')(mockEvent, {
+        path: '/etc/passwd',
+      });
+
+      expect(result).toEqual({ success: true, data: true });
+      expect(assertKubeconfigPath).not.toHaveBeenCalled();
+      expect(process.env.KUBECONFIG).toBeUndefined();
+      expect(appSettings.update).toHaveBeenCalledWith({
+        kubeconfigPath: undefined,
+      });
+    });
   });
 
   describe('get-kubeconfig-path', () => {
