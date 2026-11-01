@@ -202,9 +202,6 @@
     ],
     "win": {
       "icon": "public/icon.png",
-      "files": [
-        "!node_modules/node-pty/build/**"
-      ],
       "target": [
         {
           "target": "nsis",
@@ -222,9 +219,6 @@
     },
     "linux": {
       "icon": "public/icon.png",
-      "files": [
-        "!node_modules/node-pty/prebuilds/**"
-      ],
       "target": [
         "AppImage",
         "deb"
