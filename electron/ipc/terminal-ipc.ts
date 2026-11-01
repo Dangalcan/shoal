@@ -77,7 +77,10 @@ export function registerTerminalIpcHandlers(): void {
         const { kind } = args;
 
         let file: string;
+        // Arguments on pipes, and in a pseudo-terminal (they differ for
+        // kubectl, which takes `-t` only when its stdin is a terminal).
         let spawnArgs: string[];
+        let ptyArgs: string[];
         let cwd: string | undefined;
         // Line-ending family the renderer needs from the start: a local
         // PowerShell/cmd wants \r\n, Git Bash/WSL/pod shells want \n.
@@ -89,6 +92,7 @@ export function registerTerminalIpcHandlers(): void {
           const localShell = resolveLocalShell(args.shell);
           file = localShell.file;
           spawnArgs = [...localShell.args];
+          ptyArgs = spawnArgs;
           cwd = getTerminalCwd();
           shellFamily = localShell.family;
         } else {
@@ -109,9 +113,7 @@ export function registerTerminalIpcHandlers(): void {
           // same as safe-exec). No cmd.exe: /c re-parses metacharacters,
           // which would turn renderer input into host command injection.
           file = 'kubectl';
-          spawnArgs = [
-            'exec',
-            '-i',
+          const execArgs = [
             podName,
             '-n',
             namespace,
@@ -121,6 +123,11 @@ export function registerTerminalIpcHandlers(): void {
             shell,
             '-i',
           ];
+          spawnArgs = ['exec', '-i', ...execArgs];
+          // `-t` gives the container shell a TTY and makes kubectl forward
+          // the terminal size; kubectl refuses it unless its own stdin is a
+          // terminal, so only the pseudo-terminal attempt carries it.
+          ptyArgs = ['exec', '-it', ...execArgs];
         }
 
         const cols =
@@ -149,15 +156,21 @@ export function registerTerminalIpcHandlers(): void {
           },
         };
 
-        // Local shells get a pseudo-terminal when node-pty is available;
-        // pod shells always run on pipes (kubectl exec carries the bytes).
-        let session: TerminalSession | null = null;
-        if (kind === 'local' && cwd !== undefined) {
-          session = spawnPtySession(
-            { sessionId, file, args: spawnArgs, cwd, cols, rows },
-            events
-          );
-        }
+        // Local shells, and kubectl for pod shells, get a pseudo-terminal
+        // when node-pty is available; otherwise plain pipes. kubectl starts
+        // in the same directory as a local shell (it does not care, but the
+        // app directory is never a working directory).
+        let session: TerminalSession | null = spawnPtySession(
+          {
+            sessionId,
+            file,
+            args: ptyArgs,
+            cwd: cwd ?? getTerminalCwd(),
+            cols,
+            rows,
+          },
+          events
+        );
         if (!session) {
           session = spawnPipeSession(
             { sessionId, file, args: spawnArgs, cwd },

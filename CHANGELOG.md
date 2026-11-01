@@ -35,8 +35,11 @@ All notable changes to Shoal are documented here. The format follows
   any terminal, the shell follows the window size, and full-screen programs
   such as `vim`, `less`, `top` or `k9s` work. When the pseudo-terminal
   cannot start (no node-pty binary for the platform) the session falls
-  back to pipes with the previous behaviour, and the log says why. Pod
-  exec sessions still run on pipes (#30).
+  back to pipes with the previous behaviour, and the log says why (#30).
+- Pod exec sessions get a TTY too: kubectl runs inside the same
+  pseudo-terminal with `exec -it`, so the container shell echoes and edits
+  the line itself, follows the window size and can run full-screen
+  programs. Without node-pty they keep `kubectl exec -i` on pipes (#30).
 - The Linux build compiles node-pty (`npm run rebuild:node-pty`, part of
   `build:linux` and of the Linux release job; needs `make`, `g++` and
   `python3`). The Windows build uses the prebuilt binary that ships in the

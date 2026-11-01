@@ -19,9 +19,9 @@ export interface PipeSessionOptions {
  * A shell on plain pipes (child_process.spawn), without a pseudo-terminal:
  * the shell cannot be resized, does not echo and never sees Ctrl+C on its
  * input, so the renderer echoes keystrokes itself and `interrupt` signals
- * the shell's children directly. Pod-exec sessions always run this way
- * (kubectl exec carries the bytes), and local shells do when node-pty is
- * not available.
+ * the shell's children directly. Local and pod-exec sessions run this way
+ * when node-pty is not available (kubectl exec -i then carries the bytes
+ * without a TTY in the container).
  */
 export function spawnPipeSession(
   options: PipeSessionOptions,

@@ -84,7 +84,7 @@ Shoal drives your clusters through tools you install separately: **kubectl** (re
 ### Terminal
 
 - 💻 Local shell sessions with a shell picker (PowerShell, PowerShell 7, Command Prompt, Git Bash, WSL on Windows; bash, zsh, sh on Linux)
-- 🐚 Pod exec (`kubectl exec`) sessions inside any running container
+- 🐚 Pod exec (`kubectl exec -it`) sessions inside any running container, with a TTY
 - ⏹️ Local shells run in a real pseudo-terminal: prompt, line editing, Ctrl+C, resize and full-screen programs such as `vim`, `less` or `k9s`
 
 ### Port Forwarding
@@ -203,7 +203,7 @@ shoal/
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Routing**: [React Router v7](https://reactrouter.com/)
 - **Database**: [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) (manifests & plugin key-value storage)
-- **Terminal**: [xterm.js](https://xtermjs.org/) over [node-pty](https://github.com/microsoft/node-pty) pseudo-terminals (plain pipes for pod exec)
+- **Terminal**: [xterm.js](https://xtermjs.org/) over [node-pty](https://github.com/microsoft/node-pty) pseudo-terminals, for local shells and `kubectl exec` alike (plain pipes only without node-pty)
 - **Auto-Update**: [electron-updater](https://github.com/electron-userland/electron-builder/tree/master/packages/electron-updater) (GitHub Releases)
 - **Notifications**: [Sonner](https://sonner.emilkowal.ski/) (toasts)
 - **Testing**: [Vitest 5](https://vitest.dev/) (unit) + [Playwright](https://playwright.dev/) (E2E)

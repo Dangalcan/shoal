@@ -6,7 +6,14 @@ import { PodTerminalModal } from '../../../components/modals/PodTerminalModal';
 // Stub the xterm-backed Terminal child so this test does not pull in @xterm/*.
 vi.mock('../../../components/Terminal', () => ({
   Terminal: (props: any) => (
-    <div data-testid="terminal" data-session={props.sessionId} />
+    <div
+      data-testid="terminal"
+      data-session={props.sessionId}
+      data-transport={props.transport}
+      data-windows-pty={
+        props.windowsPty ? JSON.stringify(props.windowsPty) : undefined
+      }
+    />
   ),
 }));
 
@@ -51,6 +58,36 @@ describe('PodTerminalModal', () => {
     expect(
       screen.getByRole('button', { name: /reconnect/i })
     ).toBeInTheDocument();
+    // No transport in the answer (older main process): pipe behaviour.
+    expect(screen.getByTestId('terminal')).toHaveAttribute(
+      'data-transport',
+      'pipe'
+    );
+  });
+
+  it('tells the terminal when kubectl runs in a pseudo-terminal', async () => {
+    api.terminalCreate.mockResolvedValue({
+      success: true,
+      data: {
+        sessionId: 'sess-1',
+        shellFamily: 'unix',
+        transport: 'pty',
+        windowsPty: { backend: 'conpty', buildNumber: 22631 },
+      },
+    });
+
+    render(<PodTerminalModal isOpen {...baseProps} />, { api });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('terminal')).toHaveAttribute(
+        'data-transport',
+        'pty'
+      )
+    );
+    expect(screen.getByTestId('terminal')).toHaveAttribute(
+      'data-windows-pty',
+      '{"backend":"conpty","buildNumber":22631}'
+    );
   });
 
   it('shows an error when connection fails', async () => {

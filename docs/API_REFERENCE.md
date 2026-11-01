@@ -477,9 +477,11 @@ directory, never in the app installation directory.
     pseudo-terminal (node-pty), so the shell echoes, edits the line, handles
     Ctrl+C and follows resizes itself; the terminal sends every keystroke
     as it is. `pipe`: plain pipes, so the terminal buffers and echoes the
-    line and emulates Ctrl+C. Local sessions are `pty` when node-pty loads
-    and `pipe` otherwise (the main-process log says why); pod-exec sessions
-    are always `pipe`.
+    line and emulates Ctrl+C. Local and pod-exec sessions are `pty` when
+    node-pty loads and `pipe` otherwise (the main-process log says why).
+    A pod-exec `pty` session runs `kubectl exec -it` inside the
+    pseudo-terminal, so the container shell has a TTY and kubectl forwards
+    resizes to it; the `pipe` fallback runs `kubectl exec -i` as before.
   - `windowsPty` is set for `pty` sessions on Windows, in the shape of
     xterm's `windowsPty` option: ConPTY reflows its own screen buffer on
     resize, and xterm has to know so it does not reflow as well.

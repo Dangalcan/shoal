@@ -249,8 +249,51 @@ describe('terminal-ipc', () => {
       expect(spawn).not.toHaveBeenCalled();
     });
 
-    it('keeps pod-exec on pipes even when node-pty loads', async () => {
+    it('runs kubectl exec with a TTY in a pseudo-terminal when node-pty loads', async () => {
       const ptySpawn = installFakeNodePty(makeFakePty());
+
+      const result = await getHandler('terminal:create')(mockEvent, {
+        kind: 'pod-exec',
+        podName: 'web',
+        namespace: 'default',
+        contextName: 'kind-dev',
+        cols: 120,
+        rows: 40,
+      });
+
+      expect(result.data).toMatchObject({
+        transport: 'pty',
+        shellFamily: 'unix',
+      });
+      expect(spawn).not.toHaveBeenCalled();
+      expect(ptySpawn).toHaveBeenCalledWith(
+        'kubectl',
+        [
+          'exec',
+          '-it',
+          'web',
+          '-n',
+          'default',
+          '--context',
+          'kind-dev',
+          '--',
+          '/bin/sh',
+          '-i',
+        ],
+        expect.objectContaining({
+          cols: 120,
+          rows: 40,
+          cwd: '/tmp/shoal-terminal',
+        })
+      );
+    });
+
+    it('falls back to kubectl exec -i on pipes when the pod pty spawn fails', async () => {
+      vi.mocked(loadNodePty).mockReturnValue({
+        spawn: vi.fn(() => {
+          throw new Error('CreatePseudoConsole failed');
+        }),
+      } as unknown as NodePty);
 
       const result = await getHandler('terminal:create')(mockEvent, {
         kind: 'pod-exec',
@@ -259,13 +302,14 @@ describe('terminal-ipc', () => {
         contextName: 'kind-dev',
       });
 
+      expect(result.success).toBe(true);
       expect(result.data).toMatchObject({ transport: 'pipe' });
-      expect(ptySpawn).not.toHaveBeenCalled();
-      expect(spawn).toHaveBeenCalledWith(
-        'kubectl',
-        expect.arrayContaining(['exec', '-i', 'web']),
-        expect.anything()
-      );
+      const [file, args] = vi.mocked(spawn).mock.calls[0]!;
+      expect(file).toBe('kubectl');
+      // kubectl refuses -t without a terminal on its stdin.
+      expect(args).toEqual(expect.arrayContaining(['exec', '-i', 'web']));
+      expect(args).not.toContain('-it');
+      expect(args).not.toContain('-t');
     });
 
     it('falls back to pipes when the pty spawn fails', async () => {
@@ -381,7 +425,7 @@ describe('terminal-ipc', () => {
   });
 
   describe('terminal:create (pod-exec)', () => {
-    it('spawns kubectl directly (no cmd.exe) without a temp cwd', async () => {
+    it('spawns kubectl directly (no cmd.exe) on pipes without a cwd', async () => {
       const result = await getHandler('terminal:create')(mockEvent, {
         kind: 'pod-exec',
         podName: 'my-pod',
@@ -390,7 +434,6 @@ describe('terminal-ipc', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(getTerminalCwd).not.toHaveBeenCalled();
       expect(spawn).toHaveBeenCalledWith(
         'kubectl',
         [
