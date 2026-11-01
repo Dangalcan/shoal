@@ -248,17 +248,18 @@ runs on a throwaway `KUBECONFIG`, so the cluster's context never reaches the
 kubeconfig of the machine; `afterAll` deletes the cluster from the UI and
 runs `kind delete cluster` as a safety net when a failure left it behind.
 
-| Test                | What is verified                                                                                        |
-| ------------------- | ------------------------------------------------------------------------------------------------------- |
-| Current context     | The new `kind-workloads-e2e` context becomes the current one                                            |
-| Port Forwards empty | The page starts with its empty state                                                                    |
-| Rejected manifest   | Applying a manifest kubectl refuses shows the error toast                                               |
-| Apply               | A stored Deployment manifest (labelled with the context) is applied; its pod reaches Running            |
-| Describe and YAML   | Both modals show the live Deployment; **Save to DB** stores the YAML in the library                     |
-| Scale               | The scale modal refuses the current count, scales to 2, and a second pod runs                           |
-| Port-forward        | `service/kube-dns` → 9153 on a free local port answers `/metrics` over HTTP; **Stop** closes the tunnel |
-| Delete              | The row's delete action and its confirmation remove the Deployment and its pods                         |
-| Saved YAML          | The manifest saved from the YAML modal is in the library under the cluster's context                    |
+| Test                | What is verified                                                                                               |
+| ------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Current context     | The new `kind-workloads-e2e` context becomes the current one                                                   |
+| Port Forwards empty | The page starts with its empty state                                                                           |
+| Rejected manifest   | Applying a manifest kubectl refuses shows the error toast                                                      |
+| Apply               | A stored Deployment manifest (labelled with the context) is applied; its pod reaches Running                   |
+| Describe and YAML   | Both modals show the live Deployment; **Save to DB** stores the YAML in the library                            |
+| Scale               | The scale modal refuses the current count, scales to 2, and a second pod runs                                  |
+| Port-forward        | `service/kube-dns` → 9153 on a free local port answers `/metrics` over HTTP; **Stop** closes the tunnel        |
+| Pod Security        | With `default` labelled by kubectl, the PodSecurityAdmission tab shows its levels; rows describe, never delete |
+| Delete              | The row's delete action and its confirmation remove the Deployment and its pods                                |
+| Saved YAML          | The manifest saved from the YAML modal is in the library under the cluster's context                           |
 
 ### `settings.spec.ts`
 

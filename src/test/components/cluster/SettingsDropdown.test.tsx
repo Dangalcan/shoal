@@ -92,6 +92,21 @@ describe('SettingsDropdown', () => {
     expect(screen.queryByText('Pods')).not.toBeInTheDocument();
   });
 
+  it('shows a match inside a collapsed category while filtering', () => {
+    renderWithContext({ isSettingsOpen: true });
+    // Advanced starts collapsed: its tabs are not listed.
+    expect(screen.queryByText('PodSecurityAdmission')).not.toBeInTheDocument();
+
+    const searchInput = screen.getByLabelText('Filter resources');
+    fireEvent.change(searchInput, { target: { value: 'PodSecurity' } });
+    // The search used to leave the hit inside the folded category.
+    expect(screen.getByText('PodSecurityAdmission')).toBeInTheDocument();
+
+    // Clearing the filter folds the category back as the user left it.
+    fireEvent.change(searchInput, { target: { value: '' } });
+    expect(screen.queryByText('PodSecurityAdmission')).not.toBeInTheDocument();
+  });
+
   it('toggles resource categories', () => {
     renderWithContext({ isSettingsOpen: true });
 

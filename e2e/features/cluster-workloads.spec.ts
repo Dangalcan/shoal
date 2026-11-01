@@ -74,9 +74,11 @@ function toast(text: string) {
 }
 
 async function openTab(name: string): Promise<void> {
-  await window.locator('.tab-button', { hasText: name }).click();
+  // Anchored: "Pods" is also the start of "PodSecurityAdmission".
+  const label = new RegExp(`^\\s*${name}\\s*$`);
+  await window.locator('.tab-button', { hasText: label }).click();
   await expect(
-    window.locator('.tab-button-active', { hasText: name })
+    window.locator('.tab-button-active', { hasText: label })
   ).toBeVisible();
 }
 
@@ -318,6 +320,55 @@ test('a port-forward to CoreDNS serves its metrics until it is stopped', async (
       { timeout: 15_000 }
     )
     .toBe('closed');
+});
+
+test('the PodSecurityAdmission tab shows the levels set on each namespace', async () => {
+  // Pod Security Admission is configured through namespace labels; the tab
+  // reads namespaces (there is no podsecurityadmission resource to list).
+  const label = spawnSync(
+    'kubectl',
+    [
+      'label',
+      'namespace',
+      'default',
+      '--context',
+      CONTEXT,
+      '--overwrite',
+      'pod-security.kubernetes.io/enforce=baseline',
+      'pod-security.kubernetes.io/warn=restricted',
+      'pod-security.kubernetes.io/warn-version=v1.30',
+    ],
+    { env: { ...process.env, KUBECONFIG: kubeconfig.file }, encoding: 'utf-8' }
+  );
+  expect(label.status, label.stderr).toBe(0);
+
+  await openClusterDetails();
+  await window.locator('button[title="Display Settings"]').click();
+  // Its category (Advanced) starts collapsed; filtering shows the item.
+  await window.locator('.settings-search-input').fill('PodSecurity');
+  await window
+    .locator('.settings-dropdown .settings-item-button')
+    .filter({ hasText: /^PodSecurityAdmission$/ })
+    .click();
+  await window.locator('button[title="Close Settings"]').click();
+  await openTab('PodSecurityAdmission');
+
+  const namespace = window.locator('.table-row').filter({
+    has: window.locator('.pod-name-text', { hasText: /^default$/ }),
+  });
+  await expect(namespace).toContainText('baseline', { timeout: 30_000 });
+  await expect(namespace).toContainText('restricted (v1.30)');
+
+  // Each row is a namespace: it can be described, never deleted from here.
+  await namespace.hover();
+  await expect(namespace.locator('.action-button-delete')).toHaveCount(0);
+  await namespace.locator('.action-button-describe').click();
+  const describe = window.getByTestId('describe-modal');
+  await expect(describe).toContainText(
+    'pod-security.kubernetes.io/enforce=baseline'
+  );
+  await describe.locator('.close-footer-button').click();
+  await expect(describe).not.toBeVisible();
 });
 
 test('deleting the Deployment removes it from the cluster', async () => {

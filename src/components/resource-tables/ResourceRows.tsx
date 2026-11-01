@@ -45,7 +45,10 @@ export const ResourceRow: React.FC<ResourceRowProps> = ({
     onExec: onExec ? () => onExec(item) : undefined,
     onForward: onForward ? () => onForward(item) : undefined,
     onScale: onScale ? () => onScale(item) : undefined,
-    onDelete: () => onDelete(item),
+    // A Pod Security row is a namespace (the tab reads namespace labels):
+    // deleting from there would remove the namespace, so it offers no delete.
+    onDelete:
+      activeTab === 'podsecurityadmission' ? undefined : () => onDelete(item),
     showRestart:
       activeTab === 'deployments' ||
       activeTab === 'statefulsets' ||

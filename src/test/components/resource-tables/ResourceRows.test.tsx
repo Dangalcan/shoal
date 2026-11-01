@@ -8,7 +8,7 @@ vi.mock('../../../components/resource-tables/ResourceCells', () => ({
   NameCell: ({ name, actions }: any) => (
     <td>
       {name}
-      <button onClick={actions.onDelete}>Delete</button>
+      {actions.onDelete && <button onClick={actions.onDelete}>Delete</button>}
       <button onClick={actions.onDescribe}>Describe</button>
       <button onClick={actions.onYaml}>Yaml</button>
       {actions.onLogs && <button onClick={actions.onLogs}>Logs</button>}
@@ -139,6 +139,25 @@ describe('ResourceRow', () => {
     expect(defaultProps.onRestart).toHaveBeenCalledWith(mockPod);
     expect(onScale).toHaveBeenCalledWith(mockPod);
     expect(screen.getByTestId('flags').textContent).toBe('restart,scale');
+  });
+
+  it('offers no delete on a Pod Security row, whose object is a namespace', () => {
+    const onDelete = vi.fn();
+    render(
+      <table>
+        <tbody>
+          <ResourceRow
+            {...defaultProps}
+            activeTab="podsecurityadmission"
+            onDelete={onDelete}
+          />
+        </tbody>
+      </table>
+    );
+
+    expect(screen.queryByText('Delete')).not.toBeInTheDocument();
+    expect(screen.getByText('Describe')).toBeInTheDocument();
+    expect(screen.getByText('Yaml')).toBeInTheDocument();
   });
 
   it('renders an empty row for a tab without column definitions', () => {

@@ -74,7 +74,7 @@ describe('useClusterDetails', () => {
     });
   });
 
-  it('shows no default columns for a stored tab that is no longer a resource kind', async () => {
+  it('opens on pods when the stored tab is no longer a resource kind', async () => {
     window.localStorage.setItem(
       'k8s_desktop_visible_resources',
       JSON.stringify(['retired-kind'])
@@ -86,8 +86,14 @@ describe('useClusterDetails', () => {
     const { result } = renderDetails();
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(result.current.activeTab).toBe('retired-kind');
-    expect(result.current.table.visibleColumns).toEqual([]);
-    expect(result.current.displaySettings.visibleColumns).toEqual([]);
+    // A table without columns used to be the result.
+    expect(result.current.activeTab).toBe('pods');
+    expect(result.current.table.visibleColumns).toEqual([
+      'namespace',
+      'name',
+      'status',
+      'restarts',
+      'age',
+    ]);
   });
 });

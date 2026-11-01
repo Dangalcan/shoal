@@ -76,6 +76,14 @@ describe('KubernetesService', () => {
       );
     });
 
+    it('lists namespaces for the Pod Security Admission tab', async () => {
+      // It has no API resource of its own: namespace labels configure it.
+      execResolves(JSON.stringify({ items: [] }));
+
+      await service.getResources('podsecurityadmission', 'all');
+      expect(lastArgs()).toEqual(['get', 'namespaces', '-A', '-o', 'json']);
+    });
+
     it('should handle namespace all', async () => {
       execResolves(JSON.stringify({ items: [] }));
 
@@ -267,6 +275,14 @@ describe('KubernetesService', () => {
       await service.deleteResource('pods', 'p1', 'default');
       expect(lastArgs()).toEqual(['delete', 'pods', 'p1', '-n', 'default']);
       expect(pluginEventBus.emitResourceDeleted).toHaveBeenCalled();
+    });
+
+    it('never deletes through a read alias', async () => {
+      // A Pod Security row is a namespace; deleting it must not remove one.
+      execResolves('deleted');
+
+      await service.deleteResource('podsecurityadmission', 'dev', '');
+      expect(lastArgs()).toEqual(['delete', 'podsecurityadmission', 'dev']);
     });
 
     it('should omit namespace flag when namespace is empty string', async () => {

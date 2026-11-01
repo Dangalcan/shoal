@@ -12,6 +12,7 @@ import { ipcMain } from 'electron';
 import { safeExec } from '../utils/safe-exec';
 import {
   kubernetesService,
+  kubectlReadType,
   READ_TIMEOUT_MS,
 } from '../services/kubernetes/kubernetes-service';
 import { resourceReadCache } from '../services/kubernetes/resource-read-cache';
@@ -150,7 +151,7 @@ export function registerResourcesIpcHandlers(): void {
           'kubectl',
           [
             'describe',
-            resourceType,
+            kubectlReadType(resourceType),
             resourceName,
             '--context',
             contextName,
@@ -178,7 +179,7 @@ export function registerResourcesIpcHandlers(): void {
           'kubectl',
           [
             'get',
-            resourceType,
+            kubectlReadType(resourceType),
             resourceName,
             '--context',
             contextName,

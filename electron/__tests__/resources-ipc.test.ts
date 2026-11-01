@@ -10,15 +10,22 @@ vi.mock('../utils/safe-exec', () => ({
   safeExec: vi.fn(),
   ALLOWED_TOOLS: new Set(['kubectl']),
 }));
-vi.mock('../services/kubernetes/kubernetes-service', () => ({
-  READ_TIMEOUT_MS: 30_000,
-  kubernetesService: {
-    getResources: vi.fn(),
-    getPodMetrics: vi.fn(),
-    scaleResource: vi.fn(),
-    deleteResource: vi.fn(),
-  },
-}));
+vi.mock('../services/kubernetes/kubernetes-service', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('../services/kubernetes/kubernetes-service')
+    >();
+  return {
+    READ_TIMEOUT_MS: 30_000,
+    kubectlReadType: actual.kubectlReadType,
+    kubernetesService: {
+      getResources: vi.fn(),
+      getPodMetrics: vi.fn(),
+      scaleResource: vi.fn(),
+      deleteResource: vi.fn(),
+    },
+  };
+});
 vi.mock('../services/kubernetes/resource-read-cache', () => ({
   resourceReadCache: { clear: vi.fn() },
 }));
@@ -168,6 +175,33 @@ describe('resource IPC handlers', () => {
     expect(safeExec).toHaveBeenLastCalledWith(
       'kubectl',
       ['get', 'pods', 'web-1', '--context', 'kind-dev', '-o', 'yaml'],
+      READ_TIMEOUT
+    );
+  });
+
+  it('describes and exports the namespace behind a Pod Security row', async () => {
+    // Pod Security Admission has no API resource: its tab lists namespaces.
+    vi.mocked(safeExec).mockResolvedValue({ stdout: 'Name: dev', stderr: '' });
+
+    await getHandler('describe-resource')(mockEvent, {
+      contextName: 'kind-dev',
+      resourceType: 'podsecurityadmission',
+      resourceName: 'dev',
+    });
+    expect(safeExec).toHaveBeenLastCalledWith(
+      'kubectl',
+      ['describe', 'namespaces', 'dev', '--context', 'kind-dev'],
+      READ_TIMEOUT
+    );
+
+    await getHandler('get-resource-yaml')(mockEvent, {
+      contextName: 'kind-dev',
+      resourceType: 'podsecurityadmission',
+      resourceName: 'dev',
+    });
+    expect(safeExec).toHaveBeenLastCalledWith(
+      'kubectl',
+      ['get', 'namespaces', 'dev', '--context', 'kind-dev', '-o', 'yaml'],
       READ_TIMEOUT
     );
   });

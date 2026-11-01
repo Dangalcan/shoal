@@ -11,6 +11,10 @@ const DEFAULT_VISIBLE_RESOURCES: ResourceType[] = RESOURCE_CONFIGS.filter(
   (c) => !c.defaultHidden
 ).map((c) => c.id);
 
+const KNOWN_RESOURCES: ReadonlySet<string> = new Set(
+  RESOURCE_CONFIGS.map((c) => c.id)
+);
+
 /**
  * The tab shown for a stored choice: the choice itself while it is visible,
  * otherwise the first visible tab (pods when nothing is visible).
@@ -34,9 +38,15 @@ export function useClusterTabs(name: string | undefined) {
     `cluster-tab-${name}`,
     'pods'
   );
-  const [visibleResources, setVisibleResources] = useLocalStorage<
+  const [storedResources, setVisibleResources] = useLocalStorage<
     ResourceType[]
   >('k8s_desktop_visible_resources', DEFAULT_VISIBLE_RESOURCES);
+  // A profile may still list a kind that is no longer a tab (Bindings was
+  // removed): it must not become the active tab of a table with no columns.
+  const visibleResources = useMemo(
+    () => storedResources.filter((id) => KNOWN_RESOURCES.has(id)),
+    [storedResources]
+  );
   const activeTab = visibleTab(storedTab, visibleResources);
 
   const tabs = useMemo(
