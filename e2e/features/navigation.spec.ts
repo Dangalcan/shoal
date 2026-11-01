@@ -17,6 +17,11 @@ test('sidebar navigates to every page', async ({ window }) => {
     window.locator('h1', { hasText: 'Manifest Manager' })
   ).toBeVisible();
 
+  await window.getByRole('link', { name: 'Migrate' }).click();
+  await expect(window.locator('.migration-page__title-text')).toHaveText(
+    'Migrate from Docker Compose'
+  );
+
   await window.getByRole('link', { name: 'Terminal' }).click();
   await expect(window.locator('.terminal-page__title-text')).toBeVisible();
 
