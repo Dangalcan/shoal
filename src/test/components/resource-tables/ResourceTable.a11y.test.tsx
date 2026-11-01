@@ -36,10 +36,23 @@ const nameHandle = () =>
   screen.getByRole('separator', { name: 'Resize Name column' });
 
 describe('ResourceTable keyboard access', () => {
+  it('names each header by its label alone, resize handle included', () => {
+    renderTable();
+    // Exact matches: the handle's "Resize Name column" label must not leak
+    // into the header's accessible name (the e2e specs query it exactly).
+    expect(
+      screen.getByRole('columnheader', { name: 'Name' })
+    ).toHaveTextContent('Name');
+    expect(screen.getByRole('columnheader', { name: 'Age' })).toHaveTextContent(
+      'Age'
+    );
+    expect(screen.queryByRole('columnheader', { name: /resize/i })).toBeNull();
+  });
+
   it('exposes the sort state and sorts from the keyboard', () => {
     const { onSort } = renderTable();
-    const name = screen.getByRole('columnheader', { name: /name/i });
-    const age = screen.getByRole('columnheader', { name: /age/i });
+    const name = screen.getByRole('columnheader', { name: 'Name' });
+    const age = screen.getByRole('columnheader', { name: 'Age' });
 
     expect(name).toHaveAttribute('aria-sort', 'descending');
     expect(age).toHaveAttribute('aria-sort', 'none');
