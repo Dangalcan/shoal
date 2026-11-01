@@ -69,6 +69,30 @@ describe('PluginSettingsModal (stubbed context)', () => {
     ctx.saveSettings.mockReset();
   });
 
+  it.each([
+    ['without properties', { title: 'Empty' }],
+    ['with no properties', { title: 'Empty', properties: {} }],
+  ])(
+    'treats a configuration %s as no settings at all',
+    (_case, configuration) => {
+      // Used to throw "Cannot convert undefined or null to object".
+      const bare = makePlugin({
+        manifest: {
+          id: 'bare',
+          name: 'Bare',
+          configuration: configuration as never,
+        },
+      });
+
+      render(<PluginSettingsModal plugin={bare} onClose={onClose} />);
+
+      expect(
+        screen.getByText('This plugin has no configurable settings.')
+      ).toBeInTheDocument();
+      expect(ctx.getSettings).not.toHaveBeenCalled();
+    }
+  );
+
   it('shows why loading failed and still offers the form', async () => {
     ctx.getSettings.mockRejectedValue(new Error('settings file is corrupt'));
 

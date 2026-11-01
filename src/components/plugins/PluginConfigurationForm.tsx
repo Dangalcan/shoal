@@ -18,13 +18,42 @@ interface Props {
   onCancel: () => void;
 }
 
+/**
+ * The values the form starts from. A select with no stored value and no
+ * default shows its first option, so that option is the value too: saving
+ * without touching the field stores what the user saw.
+ */
+function startingValues(
+  properties: Record<string, PluginConfigProperty>,
+  initialValues: Record<string, unknown>
+): Record<string, unknown> {
+  const values = { ...initialValues };
+  for (const [key, property] of Object.entries(properties)) {
+    const first = property.enum?.[0];
+    if (
+      property.type === 'select' &&
+      values[key] === undefined &&
+      property.default === undefined &&
+      first !== undefined
+    ) {
+      values[key] = first;
+    }
+  }
+  return values;
+}
+
 export function PluginConfigurationForm({
   schema,
   initialValues,
   onSave,
   onCancel,
 }: Props) {
-  const [values, setValues] = useState<Record<string, unknown>>(initialValues);
+  // plugin.json is not validated against the schema type: a configuration
+  // without "properties" is a form without fields, not a crash.
+  const properties = schema.properties ?? {};
+  const [values, setValues] = useState<Record<string, unknown>>(() =>
+    startingValues(properties, initialValues)
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   // One id per field, so each label points at its control.
@@ -98,7 +127,7 @@ export function PluginConfigurationForm({
 
     // Validate all fields
     const newErrors: Record<string, string> = {};
-    for (const [key, property] of Object.entries(schema.properties)) {
+    for (const [key, property] of Object.entries(properties)) {
       const error = validateField(key, values[key], property);
       if (error) newErrors[key] = error;
     }
@@ -248,7 +277,7 @@ export function PluginConfigurationForm({
 
       {errors._form && <div className="config-form-error">{errors._form}</div>}
 
-      {Object.entries(schema.properties).map(([key, property]) => (
+      {Object.entries(properties).map(([key, property]) => (
         <div key={key} className="config-field">
           {property.type !== 'boolean' && (
             <label

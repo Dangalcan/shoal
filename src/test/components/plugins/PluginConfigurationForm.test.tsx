@@ -276,6 +276,56 @@ describe('PluginConfigurationForm', () => {
     await waitFor(() => expect(onSave).toHaveBeenCalledWith({ mode: 'safe' }));
   });
 
+  it('saves the first option of an untouched select that has no value or default', async () => {
+    // The browser shows the first option; saving must store what was shown.
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PluginConfigurationForm
+        schema={{
+          properties: {
+            mode: { type: 'select', label: 'Mode', enum: ['fast', 'safe'] },
+            level: {
+              type: 'select',
+              label: 'Level',
+              enum: ['info', 'debug'],
+              default: 'debug',
+            },
+            empty: { type: 'select', label: 'Empty', enum: [] },
+          },
+        }}
+        initialValues={{}}
+        onSave={onSave}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(screen.getByLabelText('Mode')).toHaveValue('fast');
+    save();
+
+    // A default stays the default (the settings dialog stores it), and a
+    // select without options has nothing to store.
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith({ mode: 'fast' }));
+  });
+
+  it('renders a configuration without properties as a form without fields', async () => {
+    // plugin.json is not checked against the schema type, so "properties"
+    // can be missing; this used to throw while rendering.
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PluginConfigurationForm
+        schema={{ title: 'Nothing here' } as PluginConfigurationSchema}
+        initialValues={{}}
+        onSave={onSave}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('heading', { name: 'Nothing here' })).toBeTruthy();
+    expect(screen.queryAllByRole('textbox')).toHaveLength(0);
+    save();
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith({}));
+  });
+
   it('starts a list field empty when its stored value is not a list', () => {
     render(
       <PluginConfigurationForm
