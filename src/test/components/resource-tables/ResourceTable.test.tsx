@@ -14,6 +14,7 @@ describe('ResourceTable', () => {
     onSort: vi.fn(),
     getColumnWidth: (_id: string, def: number) => def,
     onResize: vi.fn(),
+    onResizeTo: vi.fn(),
     resizingId: null,
   };
 
