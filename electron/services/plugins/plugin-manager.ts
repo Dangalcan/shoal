@@ -109,6 +109,9 @@ export async function settledWithin(
 
 export class PluginManager {
   private initialized = false;
+  // Activations still running, by plugin id (a settled copy: it never
+  // rejects). disablePlugin() looks here to know that activate() is in flight.
+  private activations = new Map<string, Promise<void>>();
 
   /**
    * Initialize the plugin system
@@ -305,11 +308,33 @@ export class PluginManager {
     // Stop watcher if exists
     this.stopWatcher(pluginId);
 
-    // Deactivate the plugin
-    await this.deactivatePlugin(pluginId);
+    if (this.activations.has(pluginId)) {
+      // activate() is still running (start-up waiting on kubectl, say) and
+      // holds the instance whose timers must be cleared: tearing it down now
+      // would deactivate a stale handle and let the activation finish into
+      // "enabled". Flip the registry first, which the activation checks when
+      // it settles, and let it stop its own instance (#78).
+      await pluginRegistry.disablePlugin(pluginId);
+      if (this.activations.has(pluginId)) {
+        pluginLoader.updatePluginState(pluginId, 'disabled');
+        log.info(
+          `[PluginManager] Plugin ${pluginId} disabled; it is still activating and stops as soon as that settles`
+        );
+        return cascaded;
+      }
+      // The activation settled while the registry was being written: either
+      // it stopped itself (state disabled) or it completed and the usual
+      // deactivation applies.
+      if (this.getPlugin(pluginId)?.state !== 'disabled') {
+        await this.deactivatePlugin(pluginId);
+      }
+    } else {
+      // Deactivate the plugin
+      await this.deactivatePlugin(pluginId);
 
-    // Disable in registry
-    await pluginRegistry.disablePlugin(pluginId);
+      // Disable in registry
+      await pluginRegistry.disablePlugin(pluginId);
+    }
 
     log.info(`[PluginManager] Plugin ${pluginId} disabled successfully`);
     return cascaded;
@@ -356,7 +381,30 @@ export class PluginManager {
   /**
    * Activate a plugin (load and run)
    */
-  private async activatePlugin(pluginId: string): Promise<void> {
+  private activatePlugin(pluginId: string): Promise<void> {
+    // The second caller (an Enable click during start-up) returns at once:
+    // the running activation finishes on its own and the UI follows its
+    // state events, as before the map existed.
+    if (this.activations.has(pluginId)) {
+      log.info(
+        `[PluginManager] ${pluginId} is already activating; skipping a second activation`
+      );
+      return Promise.resolve();
+    }
+    const run = this.runActivation(pluginId);
+    this.activations.set(
+      pluginId,
+      run.then(
+        () => undefined,
+        () => undefined
+      )
+    );
+    return run.finally(() => {
+      this.activations.delete(pluginId);
+    });
+  }
+
+  private async runActivation(pluginId: string): Promise<void> {
     try {
       const entry = pluginRegistry.getPlugin(pluginId);
       if (!entry) throw new Error(`Plugin ${pluginId} not found`);
@@ -391,6 +439,18 @@ export class PluginManager {
         plugin.manifest.permissions || []
       );
       await this.loadAndExecutePlugin(pluginId, pluginPath, plugin, context);
+
+      // Disable arrived while activate() was running (start-up waiting on
+      // kubectl, the user clicking Disable): the registry already says
+      // disabled, so the instance that just activated is stopped here, with
+      // the context it received, instead of being marked enabled (#78).
+      if (pluginRegistry.getPlugin(pluginId)?.config?.enabled === false) {
+        log.info(
+          `[PluginManager] ${pluginId} was disabled while activating; stopping it`
+        );
+        await this.deactivatePlugin(pluginId, context);
+        return;
+      }
 
       pluginRegistry.setPluginContext(pluginId, context);
       pluginLoader.updatePluginState(pluginId, 'enabled');
@@ -507,7 +567,14 @@ export class PluginManager {
   /**
    * Deactivate a plugin (unload)
    */
-  private async deactivatePlugin(pluginId: string): Promise<void> {
+  private async deactivatePlugin(
+    pluginId: string,
+    // The context activate() received. The registry only holds it once an
+    // activation has completed, so a plugin stopped mid-activation passes it.
+    context: PluginContext | undefined = pluginRegistry.getPluginContext(
+      pluginId
+    ) as PluginContext | undefined
+  ): Promise<void> {
     try {
       const entry = pluginRegistry.getPlugin(pluginId);
       if (!entry) {
@@ -519,10 +586,6 @@ export class PluginManager {
       if (!pluginPath) {
         return;
       }
-
-      // Get plugin context
-      const context = pluginRegistry.getPluginContext(pluginId) as
-        PluginContext | undefined;
 
       // Run deactivation hooks through the module handle (the running
       // utility process of an isolated plugin, the vm instance activate()
