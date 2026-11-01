@@ -9,6 +9,24 @@ import { useManifestImport } from './useManifestImport';
 import { useManifestActions } from './useManifestActions';
 import { useManifestFolderDialogs } from './useManifestFolderDialogs';
 
+/** The active kubectl context, read once; '' until it answers. */
+function useActiveContext(): string {
+  const api = useApi();
+  const [activeContext, setActiveContext] = useState<string>('');
+  useEffect(() => {
+    const fetchContext = async () => {
+      const result = await api.getCurrentContext();
+      if (result.success && result.data) {
+        setActiveContext(result.data);
+      }
+    };
+    fetchContext().catch((err) =>
+      handleError(err, 'Failed to read the current context')
+    );
+  }, [api]);
+  return activeContext;
+}
+
 /**
  * The manifest library page: the manifests of the current folder, the
  * folder tree and its dialogs, the editor, file import, apply and delete.
@@ -18,6 +36,7 @@ export function useManifestsPage() {
   const {
     data: manifestsData,
     loading,
+    error: manifestsError,
     refetch: fetchManifests,
   } = useAsyncData<Manifest[]>({
     fetchFn: async () => {
@@ -32,22 +51,18 @@ export function useManifestsPage() {
   const manifests = useMemo(() => manifestsData ?? [], [manifestsData]);
 
   const folders = useManifestFolders({ onManifestsChanged: fetchManifests });
-  const { currentFolderId } = folders;
+  const { currentFolderId, foldersError, refetchFolders } = folders;
   const folderDialogs = useManifestFolderDialogs(folders);
 
+  // Both lists come from the same database, so one failure is shown and one
+  // Retry reloads both; the toast already carries each title.
+  const loadError = manifestsError ?? foldersError;
+  const retryLoad = async () => {
+    await Promise.all([fetchManifests(), refetchFolders()]);
+  };
+
   // New manifests are stored under the active context.
-  const [activeContext, setActiveContext] = useState<string>('');
-  useEffect(() => {
-    const fetchContext = async () => {
-      const result = await api.getCurrentContext();
-      if (result.success && result.data) {
-        setActiveContext(result.data);
-      }
-    };
-    fetchContext().catch((err) =>
-      handleError(err, 'Failed to read the current context')
-    );
-  }, [api]);
+  const activeContext = useActiveContext();
 
   const editor = useManifestEditor({
     save: (editingId, form) =>
@@ -99,6 +114,9 @@ export function useManifestsPage() {
   return {
     manifests,
     loading,
+    /** Why the manifests or the folders could not be loaded; null when both loaded. */
+    loadError,
+    retryLoad,
     visibleManifests,
     folderItemCounts,
     isEmpty: visibleManifests.length === 0 && folders.childFolders.length === 0,

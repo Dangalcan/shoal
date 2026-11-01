@@ -45,7 +45,7 @@ export function useManifestActions(
       toast.success('Manifest deleted successfully');
       await onDeleted();
     } else {
-      toast.error('Failed to delete manifest');
+      toast.error('Failed to delete manifest', { description: result.error });
     }
   };
 

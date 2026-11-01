@@ -16,6 +16,15 @@ All notable changes to Shoal are documented here. The format follows
   The width is kept like a dragged one, and no column goes below 50 px or
   above 1000 px, by mouse or keyboard.
 
+### Fixed
+
+- The Manifests page shows why the library could not be loaded, with the
+  database message and a Retry button, instead of the empty-library
+  invitation to upload: a locked, corrupt or unreadable `manifests.db` no
+  longer looks like lost manifests once the toast is gone. The folder list
+  reports its failure the same way, and a failed save or delete now names
+  the reason in its toast, as uploads and Apply already did (#28).
+
 ## [0.9.1] - 2026-10-31
 
 Same-day follow-up to 0.9.0: the Linux package pulls in the libraries it

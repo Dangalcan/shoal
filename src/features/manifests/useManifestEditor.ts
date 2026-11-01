@@ -78,7 +78,7 @@ export function useManifestEditor({
       setIsOpen(false);
       await onSaved();
     } else {
-      toast.error('Failed to save manifest');
+      toast.error('Failed to save manifest', { description: result.error });
     }
   };
 
