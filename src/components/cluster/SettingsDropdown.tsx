@@ -95,66 +95,72 @@ export function SettingsDropdown() {
             <div className="settings-section">
               {(Object.keys(resourcesByCategory) as ResourceCategory[])
                 .sort()
-                .map((category) => (
-                  <div key={category} className="settings-category-group">
-                    <button
-                      className="settings-category-header"
-                      onClick={() => toggleCategory(category)}
-                    >
-                      <div className="settings-category-title-container">
-                        {expandedCategories[category] ? (
-                          <ChevronDown size={14} />
-                        ) : (
-                          <ChevronRight size={14} />
-                        )}
-                        <span className="settings-category-title">
-                          {category}
+                .map((category) => {
+                  // While filtering, every category with a match is open:
+                  // a hit inside a collapsed one would stay out of sight.
+                  const expanded =
+                    searchQuery !== '' || !!expandedCategories[category];
+                  return (
+                    <div key={category} className="settings-category-group">
+                      <button
+                        className="settings-category-header"
+                        onClick={() => toggleCategory(category)}
+                      >
+                        <div className="settings-category-title-container">
+                          {expanded ? (
+                            <ChevronDown size={14} />
+                          ) : (
+                            <ChevronRight size={14} />
+                          )}
+                          <span className="settings-category-title">
+                            {category}
+                          </span>
+                        </div>
+                        <span className="settings-category-count">
+                          {
+                            resourcesByCategory[category].filter((r) =>
+                              visibleResources.includes(r.id)
+                            ).length
+                          }{' '}
+                          / {resourcesByCategory[category].length}
                         </span>
-                      </div>
-                      <span className="settings-category-count">
-                        {
-                          resourcesByCategory[category].filter((r) =>
-                            visibleResources.includes(r.id)
-                          ).length
-                        }{' '}
-                        / {resourcesByCategory[category].length}
-                      </span>
-                    </button>
+                      </button>
 
-                    {expandedCategories[category] && (
-                      <div className="settings-category-items">
-                        {resourcesByCategory[category].map((tab) => (
-                          <button
-                            key={tab.id}
-                            onClick={() => toggleResource(tab.id)}
-                            className="settings-item-button"
-                          >
-                            <div className="settings-item-content">
-                              <tab.icon
-                                size={14}
-                                className="settings-item-icon"
-                              />
-                              <span
-                                className={
-                                  visibleResources.includes(tab.id)
-                                    ? 'settings-item-label-active'
-                                    : 'settings-item-label-inactive'
-                                }
-                              >
-                                {tab.label}
-                              </span>
-                            </div>
-                            <div
-                              className={`settings-toggle ${visibleResources.includes(tab.id) ? 'settings-toggle-on' : 'settings-toggle-off'}`}
+                      {expanded && (
+                        <div className="settings-category-items">
+                          {resourcesByCategory[category].map((tab) => (
+                            <button
+                              key={tab.id}
+                              onClick={() => toggleResource(tab.id)}
+                              className="settings-item-button"
                             >
-                              <div className="settings-toggle-thumb" />
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                              <div className="settings-item-content">
+                                <tab.icon
+                                  size={14}
+                                  className="settings-item-icon"
+                                />
+                                <span
+                                  className={
+                                    visibleResources.includes(tab.id)
+                                      ? 'settings-item-label-active'
+                                      : 'settings-item-label-inactive'
+                                  }
+                                >
+                                  {tab.label}
+                                </span>
+                              </div>
+                              <div
+                                className={`settings-toggle ${visibleResources.includes(tab.id) ? 'settings-toggle-on' : 'settings-toggle-off'}`}
+                              >
+                                <div className="settings-toggle-thumb" />
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
 
             <div className="settings-section-title settings-divider">

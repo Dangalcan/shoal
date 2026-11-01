@@ -682,19 +682,6 @@ export const RESOURCE_CONFIGS: ResourceConfig[] = [
     defaultHidden: true,
   },
   {
-    id: 'bindings',
-    label: 'Bindings',
-    category: 'Advanced',
-    icon: Lock,
-    columns: [
-      { id: 'namespace', label: 'Namespace', minWidth: 120 },
-      { id: 'name', label: 'Name', minWidth: 200 },
-      { id: 'age', label: 'Age', minWidth: 150 },
-    ],
-    defaultVisibleColumns: ['namespace', 'name', 'age'],
-    defaultHidden: true,
-  },
-  {
     id: 'controllerrevisions',
     label: 'ControllerRevisions',
     category: 'Advanced',

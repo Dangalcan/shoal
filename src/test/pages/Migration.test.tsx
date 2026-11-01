@@ -2,9 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Migration } from '../../pages/Migration';
 import { render, screen, fireEvent, waitFor } from '../utils';
 import { createMockElectronAPI } from '../utils/mocks';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import type { ComposeConversion } from '../../types.d';
 
 let mockApi: ReturnType<typeof createMockElectronAPI>;
+
+function CurrentPath() {
+  return <p data-testid="current-path">{useLocation().pathname}</p>;
+}
 
 const conversion: ComposeConversion = {
   manifests: [
@@ -107,5 +112,38 @@ describe('Migration Page', () => {
         contextName: 'kind-test',
       })
     );
+  });
+
+  it('shows the conversion in progress on the select button', async () => {
+    mockApi.migrationConvertCompose = vi.fn(() => new Promise<never>(() => {}));
+    render(<Migration />, { api: mockApi });
+
+    fireEvent.click(await screen.findByText('Select compose file'));
+
+    const converting = await screen.findByRole('button', {
+      name: 'Converting...',
+    });
+    expect(converting).toBeDisabled();
+    expect(mockApi.migrationConvertCompose).toHaveBeenCalledWith(
+      'mock-compose-token'
+    );
+  });
+
+  it('opens the Manifests page from the done step', async () => {
+    render(
+      <Routes>
+        <Route path="/migration" element={<Migration />} />
+        <Route path="*" element={<CurrentPath />} />
+      </Routes>,
+      { api: mockApi, initialEntries: ['/migration'] }
+    );
+    fireEvent.click(await screen.findByText('Select compose file'));
+    fireEvent.click(await screen.findByText('Import 1 manifests'));
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Open Manifests' })
+    );
+
+    expect(screen.getByTestId('current-path')).toHaveTextContent('/manifests');
   });
 });

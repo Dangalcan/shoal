@@ -116,6 +116,33 @@ describe('useResourceActions', () => {
     });
   });
 
+  it('words the scale messages for one and for several replicas', async () => {
+    const { result } = renderHook(() =>
+      useResourceActions('test-ctx', onActionComplete)
+    );
+
+    await act(async () => {
+      await result.current.handleScale('web', 'ns', 'deployments', 1);
+      await result.current.handleScale('web', 'ns', 'deployments', 3);
+    });
+
+    const [one, several] = vi
+      .mocked(handleAsyncOperation)
+      .mock.calls.map((call) => call[1]);
+    expect(one).toEqual(
+      expect.objectContaining({
+        loadingMessage: 'Scaling deployments/web to 1 replica...',
+        successMessage: 'Scaled to 1 replica',
+        errorTitle: 'Failed to scale resource',
+        onSuccess: onActionComplete,
+      })
+    );
+    expect(several?.loadingMessage).toBe(
+      'Scaling deployments/web to 3 replicas...'
+    );
+    expect(several?.successMessage).toBe('Scaled to 3 replicas');
+  });
+
   it('should NOT call api when handleScale is called without context', async () => {
     const { result } = renderHook(() =>
       useResourceActions(undefined, onActionComplete)

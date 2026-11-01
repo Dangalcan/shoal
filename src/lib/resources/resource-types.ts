@@ -35,7 +35,6 @@ export type ResourceType =
   | 'replicationcontroller'
   | 'endpoints'
   | 'events'
-  | 'bindings'
   | 'controllerrevisions'
   | 'certificatesigningrequest'
   | 'flowschema'

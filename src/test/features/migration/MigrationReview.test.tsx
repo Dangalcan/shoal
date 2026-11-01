@@ -86,4 +86,21 @@ describe('MigrationReview', () => {
       screen.getByRole('button', { name: /Import 2 manifests/ })
     ).toBeDisabled();
   });
+
+  it('leaves out the warning boxes when kompose reported nothing', () => {
+    renderReview({
+      conversion: { ...conversion, warnings: [], locallyBuiltImages: [] },
+    });
+
+    expect(screen.queryByText('kompose warnings')).not.toBeInTheDocument();
+    expect(screen.queryByText('Locally built images')).not.toBeInTheDocument();
+    expect(screen.getByText('web-deployment.yaml')).toBeInTheDocument();
+  });
+
+  it('shows a placeholder context while it is still loading', () => {
+    renderReview({ currentContext: null });
+
+    expect(screen.getByText('...')).toBeInTheDocument();
+    expect(screen.queryByText('kind-dev')).not.toBeInTheDocument();
+  });
 });

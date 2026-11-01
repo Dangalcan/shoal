@@ -56,6 +56,26 @@ describe('PodCells', () => {
     metadata: { name: 'p', creationTimestamp: '2026-01-01T00:00:00Z' },
   } as any;
 
+  it('RestartsCell counts a container without restartCount as 0', () => {
+    const pod = {
+      ...empty,
+      status: {
+        phase: 'Running',
+        containerStatuses: [{ name: 'app', restartCount: 3 }, { name: 'side' }],
+      },
+    };
+    render(
+      <table>
+        <tbody>
+          <tr>
+            <RestartsCell resource={pod} style={style} />
+          </tr>
+        </tbody>
+      </table>
+    );
+    expect(screen.getByText('3')).toBeInTheDocument();
+  });
+
   it('RestartsCell shows 0 when status is missing', () => {
     render(
       <table>

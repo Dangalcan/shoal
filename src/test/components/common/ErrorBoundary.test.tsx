@@ -124,6 +124,96 @@ describe('ErrorBoundary', () => {
     expect(url.searchParams.get('what')).toContain('Error: Test Error');
   });
 
+  it('still opens the issue form when the app information is unavailable', async () => {
+    const openExternal = vi.mocked(window.electron.openExternal);
+    openExternal.mockClear();
+    vi.mocked(window.electron.getAppInfo).mockResolvedValueOnce({
+      success: false,
+      error: 'no info',
+    });
+
+    render(
+      <ErrorBoundary>
+        <ThrowError shouldThrow={true} />
+      </ErrorBoundary>
+    );
+    fireEvent.click(screen.getByText('Report a problem'));
+
+    await vi.waitFor(() => expect(openExternal).toHaveBeenCalled());
+    const url = new URL(String(openExternal.mock.calls[0]?.[0]));
+    expect(url.searchParams.get('version')).toBe('unknown');
+    expect(url.searchParams.get('what')).toContain('Error: Test Error');
+  });
+
+  it('still opens the issue form when asking for app information fails', async () => {
+    const openExternal = vi.mocked(window.electron.openExternal);
+    openExternal.mockClear();
+    vi.mocked(window.electron.getAppInfo).mockRejectedValueOnce(
+      new Error('ipc closed')
+    );
+
+    render(
+      <ErrorBoundary>
+        <ThrowError shouldThrow={true} />
+      </ErrorBoundary>
+    );
+    fireEvent.click(screen.getByText('Report a problem'));
+
+    await vi.waitFor(() => expect(openExternal).toHaveBeenCalled());
+    const url = new URL(String(openExternal.mock.calls[0]?.[0]));
+    expect(url.searchParams.get('version')).toBe('unknown');
+    expect(url.searchParams.get('os')).toBe('unknown');
+  });
+
+  it('keeps the fallback on screen when the browser cannot be opened', async () => {
+    const openExternal = vi.mocked(window.electron.openExternal);
+    openExternal.mockClear();
+    openExternal.mockRejectedValueOnce(new Error('no browser'));
+
+    render(
+      <ErrorBoundary>
+        <ThrowError shouldThrow={true} />
+      </ErrorBoundary>
+    );
+    fireEvent.click(screen.getByText('Report a problem'));
+
+    await vi.waitFor(() => expect(openExternal).toHaveBeenCalledTimes(1));
+    await expect(openExternal.mock.results[0]?.value).rejects.toThrow(
+      'no browser'
+    );
+    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
+  });
+
+  it('logs the error without a component stack when React gives none', () => {
+    const logRendererError = vi.mocked(window.electron.logRendererError);
+    logRendererError.mockClear();
+    const error = new Error('lifecycle');
+    error.stack = 'Error: lifecycle\n    at render';
+
+    new ErrorBoundary({}).componentDidCatch(error, { componentStack: null });
+
+    expect(logRendererError).toHaveBeenCalledWith({
+      source: 'error-boundary',
+      message: 'Error: lifecycle',
+      stack: 'Error: lifecycle\n    at render',
+    });
+  });
+
+  it('hides the error details outside development', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+
+    render(
+      <ErrorBoundary>
+        <ThrowError shouldThrow={true} />
+      </ErrorBoundary>
+    );
+
+    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
+    expect(screen.queryByText(/Error: Test Error/)).toBeNull();
+
+    vi.unstubAllEnvs();
+  });
+
   it('should show error details in development mode', () => {
     // Process.env is usually stringified.
     // We need to mock process.env.NODE_ENV

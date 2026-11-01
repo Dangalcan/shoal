@@ -119,6 +119,27 @@ describe('UpdateService', () => {
     }
   });
 
+  it('fills in a missing version and progress, and clamps the percentage', () => {
+    const updater = makeUpdater();
+    const svc = new UpdateService(updater);
+    const statuses: unknown[] = [];
+    svc.init((s) => statuses.push(s));
+
+    updater.fire('update-available', undefined);
+    updater.fire('update-downloaded', {});
+    updater.fire('download-progress', null);
+    updater.fire('download-progress', { percent: 140 });
+    updater.fire('download-progress', { percent: -3 });
+
+    expect(statuses).toEqual([
+      { state: 'available', version: 'unknown' },
+      { state: 'downloaded', version: 'unknown' },
+      { state: 'downloading', percent: 0 },
+      { state: 'downloading', percent: 100 },
+      { state: 'downloading', percent: 0 },
+    ]);
+  });
+
   it('remembers the last status for late subscribers', () => {
     const updater = makeUpdater();
     const svc = new UpdateService(updater);

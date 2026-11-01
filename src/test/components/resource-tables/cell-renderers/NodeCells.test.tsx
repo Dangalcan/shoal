@@ -94,6 +94,34 @@ describe('NodeCells', () => {
     }
   });
 
+  it('renders "-" for a node that has not reported its info or addresses yet', () => {
+    const node = {
+      metadata: { name: 'joining', creationTimestamp: '2026-01-01T00:00:00Z' },
+      status: { nodeInfo: {}, addresses: [] },
+    } as any;
+    const cells = [
+      VersionCell,
+      NodeInternalIPCell,
+      NodeExternalIPCell,
+      OSImageCell,
+      KernelVersionCell,
+      ContainerRuntimeCell,
+    ];
+    for (const Cell of cells) {
+      const { unmount } = render(
+        <table>
+          <tbody>
+            <tr>
+              <Cell resource={node} style={style} />
+            </tr>
+          </tbody>
+        </table>
+      );
+      expect(screen.getByRole('cell')).toHaveTextContent(/^-$/);
+      unmount();
+    }
+  });
+
   it('RolesCell shows <none> when a node has no role labels', () => {
     // metadata has no labels field → exercises the `labels || {}` fallback
     const node = {

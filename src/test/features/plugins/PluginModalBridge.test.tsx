@@ -77,4 +77,15 @@ describe('PluginModalBridge', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
+
+  it('renders no modal when the preload exposes no plugin-modal channel', async () => {
+    // An older preload without the channel: the bridge must not subscribe.
+    const api = createMockElectronAPI({ onPluginModal: undefined as never });
+
+    const { container } = render(<PluginModalBridge />, { api });
+    await waitFor(() => expect(api.getPlugins).toHaveBeenCalled());
+
+    expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
 });

@@ -119,4 +119,35 @@ describe('DependencyResolver', () => {
     expect(orderIds.indexOf('p3')).toBeLessThan(orderIds.indexOf('p2'));
     expect(orderIds.indexOf('p2')).toBeLessThan(orderIds.indexOf('p1'));
   });
+
+  it('orders plugins without a dependency list and skips dependencies not in the list', () => {
+    const app = createMockPlugin('app', '1.0.0', {
+      base: '1.0.0',
+      absent: '1.0.0',
+    });
+    const base = createMockPlugin('base', '1.0.0');
+    delete (base.manifest as { dependencies?: unknown }).dependencies;
+
+    const order = dependencyResolver.getActivationOrder([app, base]);
+
+    expect(order.map((p) => p.manifest.id)).toEqual(['base', 'app']);
+  });
+
+  it('is valid when a dependency declares no dependency list of its own', () => {
+    const app = createMockPlugin('app', '1.0.0', { base: '^1.0.0' });
+    const base = createMockPlugin('base', '1.2.0');
+    delete (base.manifest as { dependencies?: unknown }).dependencies;
+
+    const result = dependencyResolver.validateDependencies(
+      app,
+      new Map([['base', base]])
+    );
+
+    expect(result).toEqual({
+      valid: true,
+      missing: [],
+      incompatible: [],
+      circular: [],
+    });
+  });
 });

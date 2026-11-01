@@ -19,13 +19,17 @@ e2e/
 ├── fixtures/
 │   ├── launch.ts                 # launchApp() + mainWindow(): dev build or packaged app
 │   ├── app.fixture.ts            # Shared Electron launch fixture (app + window)
+│   ├── kubeconfig.ts             # Throwaway kubeconfig files (empty, unreachable context)
 │   └── plugins/escape-probe/     # Unsigned plugin that tries to escape the sandbox
 ├── features/
 │   ├── navigation.spec.ts        # Sidebar navigation, theme toggle, window guards
 │   ├── first-run.spec.ts         # Empty kubeconfig, unreachable context, kubectl missing
+│   ├── settings.spec.ts          # About & Support, kubeconfig path, preferences across a restart
 │   ├── cluster-lifecycle.spec.ts # Create and delete a cluster end-to-end
 │   ├── cluster-details.spec.ts   # Cluster details UI: tabs, sorting, filters, logs, settings
-│   ├── manifests.spec.ts         # Manifest library: create, edit, templates, folders
+│   ├── cluster-workloads.spec.ts # Apply, describe, YAML, scale, port-forward, delete on kind
+│   ├── manifests.spec.ts         # Manifest library: create, edit, templates, folders, move, upload
+│   ├── migration.spec.ts         # Docker Compose → manifests with kompose (or its missing notice)
 │   ├── plugins.spec.ts           # Bundled plugins: list, enable/disable, plugin page
 │   ├── terminal.spec.ts          # Local shell sessions, Ctrl+C on a running command
 │   ├── sandbox-theme.spec.ts     # Host theme toggles while a plugin frame is mounted
@@ -60,6 +64,20 @@ Contains shared test setup. Always launch the app through `launch.ts`:
 - **`window`** — the app's main window as a Playwright `Page`
 
 Tests that use the fixture get a fresh app per test. Tests that need shared state across multiple assertions (like `cluster-details`) manage the `app` and `window` directly with `beforeAll`/`afterAll`.
+
+`kubeconfig.ts` writes throwaway kubeconfig files into a temporary folder:
+`writeKubeconfig(name, content)`, `EMPTY_KUBECONFIG` and
+`unreachableKubeconfig(context, { server?, currentContext? })`. Pass the file
+as `KUBECONFIG` in `launchApp({ env })` so a spec never reads or changes the
+kubeconfig of the machine running it; a kind cluster created by the app then
+writes its context into that file too.
+
+Native dialogs and the system shell belong to the main process, where
+Playwright can replace them for one launch: `app.evaluate(({ dialog }) => {
+dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] });
+})` answers the next file picker, and replacing `shell.openExternal` or
+`shell.openPath` records what would have opened in a browser or file manager
+(`settings.spec.ts`, `migration.spec.ts`).
 
 ### `features/`
 
@@ -107,8 +125,9 @@ SHOAL_E2E_EXECUTABLE="$PWD/release/win-unpacked/Shoal.exe" npx playwright test
 On Linux CI the AppImage runs under `xvfb-run -a` with
 `APPIMAGE_EXTRACT_AND_RUN=1` (no libfuse2 on the runners) and runs every
 spec. The Windows smoke job lists the specs it runs (`build.yml`) and leaves
-out `cluster-lifecycle` and `cluster-details`: the runner cannot run Linux
-containers for kind. It installs `kubectl` (setup-kubectl) for the first-run
+out `cluster-lifecycle`, `cluster-details` and `cluster-workloads`: the
+runner cannot run Linux containers for kind. A new spec that needs no
+cluster must be added to that list. It installs `kubectl` (setup-kubectl) for the first-run
 spec.
 
 ### Screenshots
@@ -221,6 +240,53 @@ Creates a cluster once (`beforeAll`), runs 11 UI tests against its details page,
 | Settings filter    | Typing in search narrows the resource list                   |
 | Settings toggle    | Jobs toggle switch changes CSS class (on → off → on)         |
 | Settings columns   | Column section title matches the active tab name             |
+
+### `cluster-workloads.spec.ts`
+
+A workload's life on a real kind cluster, driven only through the UI. The app
+runs on a throwaway `KUBECONFIG`, so the cluster's context never reaches the
+kubeconfig of the machine; `afterAll` deletes the cluster from the UI and
+runs `kind delete cluster` as a safety net when a failure left it behind.
+
+| Test                | What is verified                                                                                               |
+| ------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Current context     | The new `kind-workloads-e2e` context becomes the current one                                                   |
+| Port Forwards empty | The page starts with its empty state                                                                           |
+| Rejected manifest   | Applying a manifest kubectl refuses shows the error toast                                                      |
+| Apply               | A stored Deployment manifest (labelled with the context) is applied; its pod reaches Running                   |
+| Describe and YAML   | Both modals show the live Deployment; **Save to DB** stores the YAML in the library                            |
+| Scale               | The scale modal refuses the current count, scales to 2, and a second pod runs                                  |
+| Port-forward        | `service/kube-dns` → 9153 on a free local port answers `/metrics` over HTTP; **Stop** closes the tunnel        |
+| Pod Security        | With `default` labelled by kubectl, the PodSecurityAdmission tab shows its levels; rows describe, never delete |
+| Delete              | The row's delete action and its confirmation remove the Deployment and its pods                                |
+| Saved YAML          | The manifest saved from the YAML modal is in the library under the cluster's context                           |
+
+### `settings.spec.ts`
+
+Two launches on the same user data directory, no cluster needed. About &
+Support shows the running version and platform; **Open logs folder** and
+**Report a problem** hand the folder that holds `main.log` and a prefilled
+issue URL (template, version, OS) to the system shell, which the spec
+replaces to record them; a development build answers **Check for updates**
+with its info toast (skipped against a packaged build, which would really
+ask GitHub). A kubeconfig path that does not exist is refused; another one
+replaces the cluster list at once. Preferences (refresh interval through the
+slider's keyboard, auto-refresh, default namespace, theme) show **Settings
+saved.** and, together with the kubeconfig path, survive a restart even
+though the second launch gets the original `KUBECONFIG` again.
+
+### `migration.spec.ts`
+
+The Docker Compose migration with the real kompose, no cluster needed (the
+import only labels the manifests with the current context, which points at
+a closed local port). On a machine without kompose (the CI runners) it checks
+the **kompose not found** notice and **Check again**; with kompose it skips
+that and replaces the native file picker instead: a cancelled pick changes
+nothing, **Start over** drops a conversion under review, and a compose file
+with a published service and a locally built one is converted, reviewed
+(kinds, the locally built image warning, the target context), trimmed (the
+built service is excluded) and imported, after which the library holds a
+folder named after the project with the remaining manifests.
 
 ### `navigation.spec.ts`
 

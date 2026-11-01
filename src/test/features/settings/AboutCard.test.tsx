@@ -97,6 +97,15 @@ describe('AboutCard', () => {
     expect(toast.success).not.toHaveBeenCalled();
   });
 
+  it('opens the logs folder without a toast when it works', async () => {
+    render(<AboutCard />, { api });
+
+    fireEvent.click(screen.getByText('Open logs folder'));
+
+    await waitFor(() => expect(api.openLogsFolder).toHaveBeenCalledTimes(1));
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
   it('opens the logs folder and reports failures', async () => {
     api.openLogsFolder = vi
       .fn()
@@ -125,5 +134,91 @@ describe('AboutCard', () => {
     );
     expect(url.searchParams.get('template')).toBe('bug_report.yml');
     expect(url.searchParams.get('version')).toBe('v1.0.0-test');
+  });
+
+  it('reports an update check that fails after it started', async () => {
+    api.checkForAppUpdates = vi
+      .fn()
+      .mockResolvedValue({ success: true, data: 'started' });
+    render(<AboutCard />, { api });
+
+    fireEvent.click(screen.getByText('Check for updates'));
+    await waitFor(() => expect(api.checkForAppUpdates).toHaveBeenCalled());
+    emitStatus({ state: 'downloading', percent: 10 });
+    emitStatus({ state: 'error', message: 'feed unreachable' });
+
+    expect(toast.error).toHaveBeenCalledWith('Could not check for updates', {
+      description: 'feed unreachable',
+    });
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it('leaves a found update to the update notifier', async () => {
+    api.checkForAppUpdates = vi
+      .fn()
+      .mockResolvedValue({ success: true, data: 'started' });
+    render(<AboutCard />, { api });
+
+    fireEvent.click(screen.getByText('Check for updates'));
+    await waitFor(() => expect(api.checkForAppUpdates).toHaveBeenCalled());
+    emitStatus({ state: 'available', version: '2.0.0' });
+    // The check is over: later statuses are not answered.
+    emitStatus({ state: 'not-available' });
+
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(toast.info).not.toHaveBeenCalled();
+  });
+
+  it('explains that a package install updates through its package manager', async () => {
+    api.checkForAppUpdates = vi
+      .fn()
+      .mockResolvedValue({ success: true, data: 'package' });
+    render(<AboutCard />, { api });
+
+    fireEvent.click(screen.getByText('Check for updates'));
+
+    await waitFor(() =>
+      expect(toast.info).toHaveBeenCalledWith(
+        'This build cannot update itself',
+        {
+          description:
+            'Installed from a package: update it with your package manager or download the new release.',
+        }
+      )
+    );
+  });
+
+  it('stays silent when a check answers with an error the updater reports', async () => {
+    api.checkForAppUpdates = vi
+      .fn()
+      .mockResolvedValue({ success: true, data: 'error' });
+    render(<AboutCard />, { api });
+
+    fireEvent.click(screen.getByText('Check for updates'));
+
+    await waitFor(() => expect(api.checkForAppUpdates).toHaveBeenCalled());
+    expect(toast.info).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it('works without an update status channel', async () => {
+    const withoutStatus = createMockElectronAPI();
+    // An older preload exposes no update status events.
+    Reflect.deleteProperty(withoutStatus, 'onUpdateStatus');
+    withoutStatus.checkForAppUpdates = vi
+      .fn()
+      .mockResolvedValue({ success: true, data: 'dev' });
+    render(<AboutCard />, { api: withoutStatus });
+
+    expect(await screen.findByText(/Shoal v1\.0\.0-test/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Check for updates'));
+
+    await waitFor(() =>
+      expect(toast.info).toHaveBeenCalledWith(
+        'Update checks only run in installed builds'
+      )
+    );
   });
 });

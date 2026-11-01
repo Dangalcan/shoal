@@ -99,6 +99,26 @@ describe('createPluginSdk edge cases', () => {
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
+  it('delivers an event to every handler subscribed to its name', () => {
+    const port = fakePort();
+    const sdk = createPluginSdk(port);
+    const first = vi.fn();
+    const second = vi.fn();
+
+    sdk.events.on('host:theme', first);
+    const offSecond = sdk.events.on('host:theme', second);
+    port.inbound({ kind: 'event', name: 'host:theme', payload: 'dark' });
+
+    expect(first).toHaveBeenCalledWith('dark');
+    expect(second).toHaveBeenCalledWith('dark');
+
+    // Unsubscribing one handler leaves the other subscribed.
+    offSecond();
+    port.inbound({ kind: 'event', name: 'host:theme', payload: 'light' });
+    expect(first).toHaveBeenLastCalledWith('light');
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
   it('sends fire-and-forget ui signals', () => {
     const port = fakePort();
     const sdk = createPluginSdk(port);

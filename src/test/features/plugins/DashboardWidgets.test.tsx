@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import type { Plugin } from '../../../../electron/types/plugin-types';
 
@@ -40,7 +40,23 @@ vi.mock('../../../features/plugins/sandbox/PluginFrame', () => ({
   ),
 }));
 
+// Pass-through by default; one test makes it report "nothing to mount".
+vi.mock(
+  '../../../features/plugins/sandbox/frame-props',
+  async (importActual) => {
+    const actual =
+      await importActual<
+        typeof import('../../../features/plugins/sandbox/frame-props')
+      >();
+    return {
+      ...actual,
+      buildPluginFrameUrls: vi.fn(actual.buildPluginFrameUrls),
+    };
+  }
+);
+
 import { DashboardWidgets } from '../../../features/plugins/DashboardWidgets';
+import * as frameProps from '../../../features/plugins/sandbox/frame-props';
 
 function makePlugin(overrides: Partial<Plugin> = {}): Plugin {
   return {
@@ -68,6 +84,11 @@ describe('DashboardWidgets', () => {
   beforeEach(() => {
     state.plugins = [];
     state.openModal.mockClear();
+  });
+
+  afterEach(() => {
+    // Back to the pass-through implementation given to vi.fn().
+    vi.mocked(frameProps.buildPluginFrameUrls).mockReset();
   });
 
   it('renders nothing when no plugin contributes widgets', () => {
@@ -119,6 +140,37 @@ describe('DashboardWidgets', () => {
     fireEvent.click(screen.getByTestId('frame-p1-w1'));
     expect(state.openModal).toHaveBeenCalledWith('p1', 'm1', { a: 1 });
     expect(screen.getByTestId('modal-node')).toBeInTheDocument();
+  });
+
+  it('renders nothing for an enabled plugin without any extensions', () => {
+    state.plugins = [
+      makePlugin({
+        manifest: { ...makePlugin().manifest, extensions: undefined },
+      }),
+    ];
+    const { container } = render(<DashboardWidgets />);
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('skips a widget whose plugin yields no frame URLs', async () => {
+    const actual = await vi.importActual<typeof frameProps>(
+      '../../../features/plugins/sandbox/frame-props'
+    );
+    vi.mocked(frameProps.buildPluginFrameUrls).mockImplementation((plugin) =>
+      plugin.manifest.id === 'broken'
+        ? null
+        : actual.buildPluginFrameUrls(plugin)
+    );
+    state.plugins = [
+      makePlugin({ manifest: { ...makePlugin().manifest, id: 'broken' } }),
+      makePlugin({ manifest: { ...makePlugin().manifest, id: 'ok' } }),
+    ];
+
+    render(<DashboardWidgets />);
+
+    expect(screen.getByText('Plugin Widgets')).toBeInTheDocument();
+    expect(screen.queryByTestId('frame-broken-w1')).toBeNull();
+    expect(screen.getByTestId('frame-ok-w1')).toBeInTheDocument();
   });
 
   it('renders no widgets for a plugin that declares none', () => {

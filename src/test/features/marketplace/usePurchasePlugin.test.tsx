@@ -165,6 +165,104 @@ describe('usePurchasePlugin', () => {
     expect(toast.success).toHaveBeenCalled();
   });
 
+  it('reports a cancel during the last allowed poll as cancelled, not timed out', async () => {
+    api.createCheckout.mockResolvedValue({
+      success: true,
+      data: { sessionId: 'cs_6', url: 'https://pay.test/cs_6' },
+    });
+    const { result } = renderHook(() =>
+      usePurchasePlugin('paid-plugin', 'Paid', {
+        pollIntervalMs: 0,
+        maxPolls: 1,
+      })
+    );
+    api.getCheckoutStatus.mockImplementation(async () => {
+      result.current.cancelPurchase();
+      return { success: true, data: { status: 'pending' } };
+    });
+
+    await act(async () => {
+      await result.current.handlePurchase();
+    });
+
+    expect(api.getCheckoutStatus).toHaveBeenCalledTimes(1);
+    expect(toast.info).toHaveBeenCalledWith(
+      'Purchase of Paid cancelled. You have not been charged unless you completed the payment in the browser.',
+      { id: 'toast-id' }
+    );
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(activateLicense).not.toHaveBeenCalled();
+  });
+
+  it('uses a generic message when checkout fails without one', async () => {
+    api.createCheckout.mockResolvedValue({ success: false });
+
+    const { result } = renderHook(() =>
+      usePurchasePlugin('paid-plugin', 'Paid', { pollIntervalMs: 0 })
+    );
+    await act(async () => {
+      await result.current.handlePurchase();
+    });
+
+    expect(toast.error).toHaveBeenCalledWith('Could not start checkout', {
+      id: 'toast-id',
+    });
+    expect(api.openExternal).not.toHaveBeenCalled();
+    expect(result.current.purchasing).toBe(false);
+  });
+
+  it('reports "Purchase failed" when something other than an Error is thrown', async () => {
+    api.createCheckout.mockRejectedValue('network down');
+
+    const { result } = renderHook(() =>
+      usePurchasePlugin('paid-plugin', 'Paid', { pollIntervalMs: 0 })
+    );
+    await act(async () => {
+      await result.current.handlePurchase();
+    });
+
+    expect(toast.error).toHaveBeenCalledWith('Purchase failed', {
+      id: 'toast-id',
+    });
+    expect(installPlugin).not.toHaveBeenCalled();
+    expect(result.current.purchasing).toBe(false);
+  });
+
+  it('states a timeout of several minutes in the plural', async () => {
+    vi.useFakeTimers();
+    try {
+      api.createCheckout.mockResolvedValue({
+        success: true,
+        data: { sessionId: 'cs_7', url: 'https://pay.test/cs_7' },
+      });
+      api.getCheckoutStatus.mockResolvedValue({
+        success: true,
+        data: { status: 'pending' },
+      });
+      const { result } = renderHook(() =>
+        usePurchasePlugin('paid-plugin', 'Paid', {
+          pollIntervalMs: 60_000,
+          maxPolls: 2,
+        })
+      );
+
+      await act(async () => {
+        const purchase = result.current.handlePurchase();
+        await vi.advanceTimersByTimeAsync(120_000);
+        await purchase;
+      });
+
+      expect(api.getCheckoutStatus).toHaveBeenCalledTimes(2);
+      expect(toast.error).toHaveBeenCalledWith(
+        'Payment was not confirmed after 2 minutes. If you completed it, contact support; otherwise try again.',
+        { id: 'toast-id' }
+      );
+      expect(result.current.purchasing).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('ignores concurrent clicks while purchasing', async () => {
     api.createCheckout.mockImplementation(
       () =>

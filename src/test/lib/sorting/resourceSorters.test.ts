@@ -378,6 +378,117 @@ describe('resourceSorters', () => {
     });
   });
 
+  describe('missing or malformed fields sort as empty', () => {
+    const sorter = getStatusSorter('deployments');
+    const available = {
+      status: { conditions: [{ type: 'Available' }] },
+    } as any;
+
+    it('getStatusSorter puts a resource without status first', () => {
+      const bare = { metadata: createMeta('bare') } as any;
+      expect(sorter(bare, available)).toBeLessThan(0);
+      expect(sorter(available, bare)).toBeGreaterThan(0);
+    });
+
+    it('getStatusSorter ignores a phase that is not a string', () => {
+      const odd = { status: { phase: 3 } } as any;
+      const running = { status: { phase: 'Running' } } as any;
+      expect(sorter(odd, running)).toBeLessThan(0);
+    });
+
+    it('getStatusSorter ignores conditions that are not a list', () => {
+      const noList = { status: { conditions: 'Ready' } } as any;
+      expect(sorter(noList, available)).toBeLessThan(0);
+    });
+
+    it('getStatusSorter ignores a first condition without a type', () => {
+      const noType = { status: { conditions: [{ status: 'True' }] } } as any;
+      expect(sorter(noType, available)).toBeLessThan(0);
+    });
+
+    it('sortByNamespace puts a cluster-scoped resource first', () => {
+      const clusterScoped = { metadata: { name: 'node-1' } } as any;
+      const namespaced = { metadata: createMeta('p', 'default') } as any;
+      expect(sortByNamespace(clusterScoped, namespaced)).toBeLessThan(0);
+    });
+
+    it('sortByRestarts counts a pod without container statuses as 0', () => {
+      const fresh = createPod({ status: { phase: 'Pending' } });
+      const restarted = createPod({
+        status: { containerStatuses: [{ restartCount: 2 }] },
+      });
+      expect(sortByRestarts(fresh, restarted)).toBe(-2);
+    });
+
+    it('sortByRestarts counts a container status without restartCount as 0', () => {
+      // A partial status used to make the sum NaN, so the pod sorted as 0
+      // whatever its other containers had restarted.
+      const partial = createPod({
+        status: { containerStatuses: [{ restartCount: 3 }, {}] },
+      });
+      const restarted = createPod({
+        status: { containerStatuses: [{ restartCount: 2 }] },
+      });
+      expect(sortByRestarts(partial, restarted)).toBe(1);
+    });
+
+    it('sortByNode sorts a resource whose spec is null without throwing', () => {
+      const nullSpec = { metadata: createMeta('p'), spec: null } as any;
+      const scheduled = createPod({
+        spec: { nodeName: 'node-a', containers: [] },
+      });
+      expect(sortByNode(nullSpec, scheduled)).toBeLessThan(0);
+      expect(sortByNode(scheduled, nullSpec)).toBeGreaterThan(0);
+    });
+
+    it('sortByIP puts a pod whose podIP is still empty first', () => {
+      const unassigned = createPod({ status: { podIP: '' } });
+      const assigned = createPod({ status: { podIP: '10.0.0.1' } });
+      expect(sortByIP(unassigned, assigned)).toBeLessThan(0);
+    });
+
+    it('sortByNode puts a pod whose nodeName is still empty first', () => {
+      const unscheduled = createPod({ spec: { nodeName: '', containers: [] } });
+      const scheduled = createPod({
+        spec: { nodeName: 'node-a', containers: [] },
+      });
+      expect(sortByNode(unscheduled, scheduled)).toBeLessThan(0);
+    });
+
+    it.each([
+      ['sortByReadyReplicas', sortByReadyReplicas, 'readyReplicas'],
+      ['sortByUpdatedReplicas', sortByUpdatedReplicas, 'updatedReplicas'],
+      ['sortByAvailableReplicas', sortByAvailableReplicas, 'availableReplicas'],
+    ] as const)(
+      '%s counts a workload without status as 0',
+      (_, sortFn, counter) => {
+        const bare = { metadata: createMeta('bare') } as any;
+        const scaled = { status: { [counter]: 3 } } as any;
+        expect(sortFn(bare, scaled)).toBe(-3);
+      }
+    );
+
+    it.each([
+      ['sortByKubeletVersion', sortByKubeletVersion, 'kubeletVersion'],
+      ['sortByKernelVersion', sortByKernelVersion, 'kernelVersion'],
+      [
+        'sortByContainerRuntime',
+        sortByContainerRuntime,
+        'containerRuntimeVersion',
+      ],
+    ] as const)('%s puts a node without nodeInfo first', (_, sortFn, field) => {
+      const bare = { metadata: createMeta('bare'), status: {} } as any;
+      const reported = { status: { nodeInfo: { [field]: 'v1' } } } as any;
+      expect(sortFn(bare, reported)).toBeLessThan(0);
+    });
+
+    it('sortByReadyReplicas counts a non-numeric counter as 0', () => {
+      const odd = { status: { readyReplicas: 'two' } } as any;
+      const ready = { status: { readyReplicas: 2 } } as any;
+      expect(sortByReadyReplicas(odd, ready)).toBe(-2);
+    });
+  });
+
   describe('sortByRestarts – non-pod resource', () => {
     it('should return 0 for non-pod resources', () => {
       const d1 = { kind: 'Deployment', status: {} } as any;

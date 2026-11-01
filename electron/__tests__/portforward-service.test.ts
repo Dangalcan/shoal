@@ -175,6 +175,86 @@ describe('PortForwardService', () => {
     expect(onClosed).toHaveBeenCalledWith(info, 'lost connection to pod');
   });
 
+  it('waits for the "Forwarding from" line and ignores repeats of it', async () => {
+    const child = new FakeChild();
+    vi.mocked(spawn).mockReturnValueOnce(
+      child as unknown as ReturnType<typeof spawn>
+    );
+    const promise = service.startForward(validArgs);
+
+    child.stdout.emit('data', Buffer.from('Handling connection for 8080\n'));
+    expect(service.listForwards()).toEqual([]);
+
+    child.stdout.emit(
+      'data',
+      Buffer.from('Forwarding from 127.0.0.1:8080 -> 80\n')
+    );
+    const info = await promise;
+    // kubectl prints one line per address family (IPv4 then IPv6).
+    child.stdout.emit(
+      'data',
+      Buffer.from('Forwarding from [::1]:8080 -> 80\n')
+    );
+
+    expect(service.listForwards()).toEqual([info]);
+  });
+
+  it('rejects when kubectl cannot be spawned', async () => {
+    const child = new FakeChild();
+    vi.mocked(spawn).mockReturnValueOnce(
+      child as unknown as ReturnType<typeof spawn>
+    );
+    const promise = service.startForward(validArgs);
+
+    child.emit('error', new Error('spawn kubectl ENOENT'));
+
+    await expect(promise).rejects.toThrow('spawn kubectl ENOENT');
+    expect(service.listForwards()).toEqual([]);
+  });
+
+  it('keeps an established forward on a late process error', async () => {
+    const onClosed = vi.fn();
+    const { child, promise } = startAndReady(service, validArgs, onClosed);
+    const info = await promise;
+
+    child.emit('error', new Error('read ECONNRESET'));
+
+    expect(service.listForwards()).toEqual([info]);
+    expect(onClosed).not.toHaveBeenCalled();
+  });
+
+  it('reports the exit code when kubectl dies silently before ready', async () => {
+    const child = new FakeChild();
+    vi.mocked(spawn).mockReturnValueOnce(
+      child as unknown as ReturnType<typeof spawn>
+    );
+    const promise = service.startForward(validArgs);
+
+    child.emit('exit', 3);
+
+    await expect(promise).rejects.toThrow(
+      'kubectl port-forward exited with code 3'
+    );
+  });
+
+  it('fires onClosed without an error when the forward ends silently', async () => {
+    const onClosed = vi.fn();
+    const { child, promise } = startAndReady(service, validArgs, onClosed);
+    const info = await promise;
+
+    child.emit('exit', 0);
+
+    expect(onClosed).toHaveBeenCalledWith(info, undefined);
+  });
+
+  it('works without an onClosed callback', async () => {
+    const { child, promise } = startAndReady(service);
+    await promise;
+
+    expect(() => child.emit('exit', 1)).not.toThrow();
+    expect(service.listForwards()).toEqual([]);
+  });
+
   it('stopAll kills every active forward', async () => {
     const first = startAndReady(service);
     await first.promise;

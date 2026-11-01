@@ -9,8 +9,10 @@ const columns = [
 
 function renderTable({
   onSort = vi.fn(),
+  onResize = vi.fn(),
   onResizeTo = vi.fn(),
   widths = {} as Record<string, number>,
+  resizingId = null as string | null,
 } = {}) {
   render(
     <ResourceTable
@@ -19,9 +21,9 @@ function renderTable({
       sortConfig={{ key: 'name', direction: 'desc' }}
       onSort={onSort}
       getColumnWidth={(id, width) => widths[id] ?? width}
-      onResize={vi.fn()}
+      onResize={onResize}
       onResizeTo={onResizeTo}
-      resizingId={null}
+      resizingId={resizingId}
     >
       <tr>
         <td>pod-a</td>
@@ -29,7 +31,7 @@ function renderTable({
       </tr>
     </ResourceTable>
   );
-  return { onSort, onResizeTo };
+  return { onSort, onResize, onResizeTo };
 }
 
 const nameHandle = () =>
@@ -115,6 +117,25 @@ describe('ResourceTable keyboard access', () => {
     const age = screen.getByRole('separator', { name: 'Resize Age column' });
     fireEvent.keyDown(age, { key: 'ArrowRight' });
     expect(onResizeTo).toHaveBeenLastCalledWith('age', 1000);
+  });
+
+  it('starts a mouse resize from the handle at the current width', () => {
+    const { onSort, onResize } = renderTable({ widths: { name: 180 } });
+
+    fireEvent.mouseDown(nameHandle(), { clientX: 40 });
+
+    expect(onResize).toHaveBeenCalledTimes(1);
+    expect(onResize).toHaveBeenCalledWith(expect.anything(), 'name', 180);
+    expect(onSort).not.toHaveBeenCalled();
+  });
+
+  it('highlights only the handle of the column being resized', () => {
+    renderTable({ resizingId: 'age' });
+
+    expect(
+      screen.getByRole('separator', { name: 'Resize Age column' })
+    ).toHaveClass('resize-handle-active');
+    expect(nameHandle()).not.toHaveClass('resize-handle-active');
   });
 
   it('leaves the other keys to the header cell', () => {

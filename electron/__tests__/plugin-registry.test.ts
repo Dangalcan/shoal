@@ -28,6 +28,7 @@ vi.mock('../services/security/encryption-utils', () => ({
 }));
 
 import fs from 'fs/promises';
+import log from '../logger';
 import { PluginRegistry } from '../services/plugins/plugin-registry';
 import type { Plugin, PluginConfig } from '../types/plugin-types';
 
@@ -84,6 +85,22 @@ describe('PluginRegistry', () => {
     it('should log and not throw when initialization itself errors', async () => {
       vi.mocked(fs.readFile).mockRejectedValue(new Error('Unexpected'));
       await expect(registry.initialize()).resolves.toBeUndefined();
+    });
+
+    it('logs a failure that escapes the configuration loader', async () => {
+      // A rejection without an error object has no `code` to compare with
+      // ENOENT, so the loader's own handler fails; initialize still resolves.
+      vi.mocked(fs.readFile).mockRejectedValue(null);
+      const errorSpy = vi.spyOn(log, 'error').mockImplementation(() => {});
+      try {
+        await expect(registry.initialize()).resolves.toBeUndefined();
+        expect(errorSpy).toHaveBeenCalledWith(
+          '[PluginRegistry] Failed to initialize:',
+          expect.any(String)
+        );
+      } finally {
+        errorSpy.mockRestore();
+      }
     });
   });
 
@@ -272,6 +289,18 @@ describe('PluginRegistry', () => {
 
       expect(registry.hasPlugin('p1')).toBe(true);
       expect(registry.getPluginCount()).toBe(1);
+    });
+
+    it('stores empty settings when the given config has none', async () => {
+      await registry.registerPlugin(makePlugin('p-bare'), {
+        enabled: true,
+      });
+
+      expect(registry.getPlugin('p-bare')?.config).toEqual({
+        enabled: true,
+        settings: {},
+      });
+      expect(registry.getPluginSettings('p-bare')).toEqual({});
     });
 
     it('should fall back to default config when none supplied', async () => {

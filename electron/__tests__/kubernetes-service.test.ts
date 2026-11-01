@@ -76,6 +76,14 @@ describe('KubernetesService', () => {
       );
     });
 
+    it('lists namespaces for the Pod Security Admission tab', async () => {
+      // It has no API resource of its own: namespace labels configure it.
+      execResolves(JSON.stringify({ items: [] }));
+
+      await service.getResources('podsecurityadmission', 'all');
+      expect(lastArgs()).toEqual(['get', 'namespaces', '-A', '-o', 'json']);
+    });
+
     it('should handle namespace all', async () => {
       execResolves(JSON.stringify({ items: [] }));
 
@@ -269,6 +277,14 @@ describe('KubernetesService', () => {
       expect(pluginEventBus.emitResourceDeleted).toHaveBeenCalled();
     });
 
+    it('never deletes through a read alias', async () => {
+      // A Pod Security row is a namespace; deleting it must not remove one.
+      execResolves('deleted');
+
+      await service.deleteResource('podsecurityadmission', 'dev', '');
+      expect(lastArgs()).toEqual(['delete', 'podsecurityadmission', 'dev']);
+    });
+
     it('should omit namespace flag when namespace is empty string', async () => {
       execResolves('deleted');
 
@@ -428,5 +444,89 @@ describe('pod metrics', () => {
       new Error('error: Metrics API not available')
     );
     await expect(svc.getPodMetrics('all', 'ctx')).resolves.toEqual([]);
+  });
+
+  it('parses a millicore value that is not a number as 0', () => {
+    expect(parseCpuToMillicores('m')).toBe(0);
+    expect(parseCpuToMillicores('abcm')).toBe(0);
+  });
+
+  it('parses Ti memory and rejects a number made only of dots', () => {
+    expect(parseMemoryToMi('2Ti')).toBe(2 * 1024 * 1024);
+    expect(parseMemoryToMi('...')).toBe(0);
+    expect(parseMemoryToMi('.Mi')).toBe(0);
+  });
+
+  it('skips lines with too few columns', () => {
+    expect(parseTopPodsOutput('nginx-1 5m\n', 'default')).toEqual([]);
+    expect(
+      parseTopPodsOutput('default nginx-1 5m\nkube-system dns 1m 2Mi\n', 'all')
+    ).toEqual([
+      { namespace: 'kube-system', name: 'dns', cpuMillicores: 1, memoryMi: 2 },
+    ]);
+  });
+
+  it('getPodMetrics works without a context and caches per namespace', async () => {
+    const svc = new KubernetesService();
+    mockSafeExec.mockResolvedValue({
+      stdout: 'nginx-1   5m   23Mi\n',
+      stderr: '',
+    });
+
+    const first = await svc.getPodMetrics('default');
+    const second = await svc.getPodMetrics('default');
+
+    expect(first).toEqual([
+      { namespace: 'default', name: 'nginx-1', cpuMillicores: 5, memoryMi: 23 },
+    ]);
+    expect(second).toEqual(first);
+    expect(mockSafeExec).toHaveBeenCalledTimes(1);
+    expect(lastArgs()).toEqual([
+      'top',
+      'pods',
+      '-n',
+      'default',
+      '--no-headers',
+    ]);
+  });
+
+  it('getPodMetrics rethrows failures unrelated to the metrics API', async () => {
+    const svc = new KubernetesService();
+    mockSafeExec.mockRejectedValue(new Error('connection refused'));
+
+    await expect(svc.getPodMetrics('default', 'ctx')).rejects.toThrow(
+      'connection refused'
+    );
+  });
+
+  it('getPodMetrics validates the namespace before running kubectl', async () => {
+    const svc = new KubernetesService();
+
+    await expect(svc.getPodMetrics('bad namespace!')).rejects.toThrow();
+    expect(mockSafeExec).not.toHaveBeenCalled();
+  });
+});
+
+describe('scaleResource without a namespace', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resourceReadCache.clear();
+  });
+
+  it.each(['', 'all'])('omits the namespace flag for %j', async (namespace) => {
+    execResolves('');
+
+    await new KubernetesService().scaleResource(
+      'replicasets',
+      'web-123',
+      namespace,
+      2
+    );
+
+    expect(lastArgs()).toEqual([
+      'scale',
+      'replicasets/web-123',
+      '--replicas=2',
+    ]);
   });
 });

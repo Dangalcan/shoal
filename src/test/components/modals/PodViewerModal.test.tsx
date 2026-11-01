@@ -132,6 +132,21 @@ describe('PodViewerModal', () => {
     // If unhandled, Vitest catches it.
   });
 
+  it('shows Unknown and 0/0 for a pod without status or spec', async () => {
+    mockElectronAPI.getPods.mockResolvedValue({
+      success: true,
+      data: [
+        { metadata: { namespace: 'default', name: 'bare-pod' } },
+      ] as unknown as K8sResource[],
+    });
+
+    render(<PodViewerModal {...defaultProps} />);
+
+    expect(await screen.findByText('bare-pod')).toBeInTheDocument();
+    expect(screen.getByText('Unknown')).toBeInTheDocument();
+    expect(screen.getByText('0/0')).toBeInTheDocument();
+  });
+
   it('should close when close button is clicked', async () => {
     render(<PodViewerModal {...defaultProps} />);
     const closeBtn = screen.getByText('Close');

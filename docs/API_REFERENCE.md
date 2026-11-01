@@ -207,7 +207,7 @@ Sets `KUBECONFIG` for every kubectl call and saves it to `app-settings.json` in 
 
 ## Manifests
 
-Manifests are YAML/JSON Kubernetes resource definitions stored locally in SQLite. They can be applied to the current cluster context directly from the UI.
+Manifests are YAML/JSON Kubernetes resource definitions stored locally in SQLite, each with the cluster context it belongs to. They can be applied to that context directly from the UI.
 
 ### `getManifests(clusterContext?)`
 
@@ -232,7 +232,7 @@ Deletes a saved manifest by ID.
 
 ### `applyManifest(id)`
 
-Applies a saved manifest to the currently active cluster context using `kubectl apply`.
+Applies a saved manifest with `kubectl apply --context <cluster_context>`, the context stored with the manifest (not necessarily the currently active one).
 
 - **Parameters**: `id`: `number`
 - **Returns**: `Promise<Result<void>>`

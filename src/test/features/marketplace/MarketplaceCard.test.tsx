@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { MarketplaceEntry } from '../../../types';
 import type { Plugin } from '../../../../electron/types/plugin-types';
 
@@ -129,6 +129,41 @@ describe('MarketplaceCard ownership states', () => {
 
     expect(installPlugin).toHaveBeenCalledWith('helm-manager');
     expect(onOpenDetail).not.toHaveBeenCalled();
+  });
+
+  it('installs a free plugin from the card without opening its details', async () => {
+    const onOpenDetail = vi.fn();
+    let finishInstall!: () => void;
+    installPlugin.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishInstall = resolve;
+        })
+    );
+    render(
+      <MarketplaceCard
+        entry={{ ...entry, price: 0 }}
+        onOpenDetail={onOpenDetail}
+      />
+    );
+
+    const install = screen.getByRole('button', { name: 'Install' });
+    expect(install).toHaveClass('btn--primary');
+    expect(install).not.toHaveClass('btn--warning');
+    fireEvent.click(install);
+
+    expect(installPlugin).toHaveBeenCalledWith('helm-manager');
+    expect(
+      await screen.findByRole('button', { name: 'Installing...' })
+    ).toBeDisabled();
+    expect(onOpenDetail).not.toHaveBeenCalled();
+
+    finishInstall();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', { name: 'Installing...' })
+      ).not.toBeInTheDocument()
+    );
   });
 
   it('shows waiting state with a working Cancel button while awaiting payment', async () => {
