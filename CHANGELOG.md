@@ -48,6 +48,36 @@ All notable changes to Shoal are documented here. The format follows
   context on its own when it opened, so a manifest saved before that answer
   arrived was stored under `default` (and Apply then failed), and one saved
   after a context switch kept the context the page had opened with.
+- About fifty columns of the less common resource tabs show their values:
+  they had no renderer of their own and fell back to a field named like the
+  column, so most of them always read `-` (DaemonSet node selector,
+  PodDisruptionBudget limits, lease holders, the role of a binding, event
+  objects...) and some read `[object Object]` (active jobs of a CronJob,
+  EndpointSlice ports and endpoints, webhooks). Sorting by those columns
+  now follows the values shown.
+- The PodSecurityAdmission tab lists the namespaces with the level each one
+  enforces, audits and warns about. It asked kubectl for a
+  `podsecurityadmission` resource, which does not exist, so it only ever
+  showed an error; its rows (namespaces) can be described and viewed as
+  YAML but offer no delete.
+- The Bindings tab is gone: Binding objects can be created but never listed,
+  so the tab could only show an error. A profile that still has it selected
+  opens on the first remaining tab.
+- Sorting pods by restarts counts a container without a restart count as 0
+  instead of the whole pod, and sorting by node no longer throws on a
+  resource without a spec.
+- The plugin settings dialog no longer crashes on a plugin whose
+  `configuration` has no `properties` (it says there is nothing to set), and
+  a select that shows its first option saves that option when left
+  untouched.
+- The marketplace heads a category or a search with its name and count, a
+  catalogue of three plugins or fewer is listed without a Featured row and
+  an empty "All Plugins (0)" section, and the plugin's detail dialog offers
+  the Update its card already showed.
+- The message while scaling to one replica says "1 replica".
+- Filtering the tab list of the Display Settings menu shows the matches
+  inside a collapsed category (Storage, Configuration, Access Control and
+  Advanced start collapsed), instead of leaving them hidden under it.
 
 ## [0.9.1] - 2026-10-31
 
