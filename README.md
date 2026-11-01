@@ -24,7 +24,7 @@ Website and downloads: [shoal.dangalcan.com](https://shoal.dangalcan.com).
 Download the latest release from [Releases](https://github.com/Dangalcan/shoal/releases). The installers are 64-bit (x64) only.
 
 - **Windows 10 or later:** `Shoal-Setup-<version>.exe` installs per user and updates itself; `Shoal-<version>-portable.exe` needs no install and does not auto-update. Neither is code-signed yet, so SmartScreen shows "Windows protected your PC" on first start: choose **More info → Run anyway**.
-- **Linux** (Ubuntu 22.04+ or equivalent, X11 or Wayland): `Shoal-<version>.AppImage` (`chmod +x` it, then run it) updates itself and needs `libfuse2` (`libfuse2t64` on Ubuntu 24.04). The `.deb` package (`sudo apt install ./shoal_<version>_amd64.deb`) needs no FUSE and does not auto-update. On Ubuntu 24.04 prefer the `.deb`: it installs an AppArmor profile that keeps Chromium's sandbox, which the AppImage has to turn off there.
+- **Linux** (Ubuntu 22.04+ or equivalent, X11 or Wayland): `Shoal-x86_64.AppImage` (`chmod +x` it, then run it) updates itself in place, so desktop shortcuts keep working, and needs `libfuse2` (`libfuse2t64` on Ubuntu 24.04). If you still run a `Shoal-<version>.AppImage` from 0.9.1 or earlier, its next update leaves `Shoal-x86_64.AppImage` in the same folder instead, so your shortcuts need one last fix; rename the file first to a name without a version number (`mv Shoal-0.9.1.AppImage Shoal.AppImage`) and the updater keeps that name. The `.deb` package (`sudo apt install ./shoal_<version>_amd64.deb`) needs no FUSE and does not auto-update. On Ubuntu 24.04 prefer the `.deb`: it installs an AppArmor profile that keeps Chromium's sandbox, which the AppImage has to turn off there.
 
 Shoal drives your clusters through tools you install separately: **kubectl** (required for anything cluster-related; Shoal tells you when it is missing), **kind** or **k3d** plus **Docker** running to create local clusters, and **kompose** (optional) for the Docker Compose migration. The [User Guide](docs/USER_GUIDE.md) covers the rest.
 
@@ -410,8 +410,8 @@ The 0.9 installers are not code-signed yet, so SmartScreen warns on first start.
 
 **Issue: The AppImage does not start on Linux**
 
-- Make it executable first: `chmod +x Shoal-<version>.AppImage`
-- AppImages need `libfuse2`, which Ubuntu 22.04 and later do not install by default: `sudo apt install libfuse2` (`libfuse2t64` on Ubuntu 24.04). Without it the AppImage still runs with `APPIMAGE_EXTRACT_AND_RUN=1 ./Shoal-<version>.AppImage`
+- Make it executable first: `chmod +x Shoal-x86_64.AppImage`
+- AppImages need `libfuse2`, which Ubuntu 22.04 and later do not install by default: `sudo apt install libfuse2` (`libfuse2t64` on Ubuntu 24.04). Without it the AppImage still runs with `APPIMAGE_EXTRACT_AND_RUN=1 ./Shoal-x86_64.AppImage`
 - `error while loading shared libraries: libasound.so.2` or `libgbm.so.1` (AppImage): the system lacks ALSA's or Mesa's GBM library, which desktop installs have and minimal ones such as WSL or containers may not: `sudo apt install libasound2t64 libgbm1` (`libasound2` before Ubuntu 24.04). The `.deb` declares both dependencies, so `apt install ./shoal_<version>_amd64.deb` brings them in
 - On Ubuntu 24.04 prefer the `.deb` (see [Installation](#-installation))
 

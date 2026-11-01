@@ -82,7 +82,8 @@ Official releases are generated in the `release/` directory.
 ### Output Formats
 
 - **Windows**: `.exe` (NSIS installer) and portable `.exe`
-- **Linux**: `.AppImage`, `.deb`
+- **Linux**: `Shoal-x86_64.AppImage` (no version in the name, see Auto-Update),
+  `shoal_<version>_amd64.deb`
 - **macOS**: not built in 0.9
 
 ### Auto-Update
@@ -103,6 +104,19 @@ release exists yet and the installed version is a pre-release does it check
 again accepting pre-releases. A release candidate therefore updates to the
 next candidate until `0.9.0` is published and to `0.9.0` after that; stable
 versions never receive pre-releases.
+
+The AppImage is published as `Shoal-x86_64.AppImage`
+(`build.appImage.artifactName` in `package.json`; electron-builder's default
+would be `Shoal-<version>.AppImage`). electron-updater's `AppImageUpdater`
+keeps the running file's name only when it contains no version number
+(`\d+\.\d+\.\d+`), otherwise it deletes the file and writes
+`Shoal-<new version>.AppImage` beside it; with the unversioned name every
+update is an in-place replacement and desktop entries, launchers and scripts
+keep working (#31). One-time effect: a user still running a versioned file
+from 0.9.1 or earlier gets `Shoal-x86_64.AppImage` in the same folder at the
+first update. The `.deb` keeps the version in its file name, as package
+managers expect, and the `*.AppImage` globs in `build.yml` and
+`docs/RELEASE.md` match either name.
 
 ### Cutting a release
 
@@ -136,8 +150,8 @@ npm ci
 ### AppImage does not launch on Linux
 
 ```bash
-chmod +x Shoal-<version>.AppImage
-./Shoal-<version>.AppImage
+chmod +x Shoal-x86_64.AppImage
+./Shoal-x86_64.AppImage
 ```
 
 - Ubuntu 22.04 and later do not install `libfuse2`, which AppImages need:

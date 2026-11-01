@@ -234,6 +234,9 @@
         "libgbm1"
       ]
     },
+    "appImage": {
+      "artifactName": "${productName}-${arch}.${ext}"
+    },
     "nsis": {
       "artifactName": "${productName}-Setup-${version}.${ext}"
     },
