@@ -122,6 +122,72 @@ describe('StatusCell', () => {
     expect(screen.getByText('Running')).toBeInTheDocument();
   });
 
+  it('renders NotReady for a Node whose Ready condition is not True', () => {
+    const node = {
+      ...mockNode,
+      status: {
+        ...mockNode.status,
+        conditions: [{ type: 'Ready', status: 'False' }],
+      },
+    };
+    render(
+      <table>
+        <tbody>
+          <tr>
+            <StatusCell resource={node} resourceType="nodes" style={style} />
+          </tr>
+        </tbody>
+      </table>
+    );
+    expect(screen.getByText('NotReady')).toHaveClass('status-badge-error');
+  });
+
+  it('renders Unknown for a Pod without a phase', () => {
+    const pod = {
+      metadata: {
+        name: 'p',
+        namespace: 'default',
+        creationTimestamp: '2026-01-01T00:00:00Z',
+      },
+      spec: { containers: [] },
+    };
+    render(
+      <table>
+        <tbody>
+          <tr>
+            <StatusCell resource={pod} resourceType="pods" style={style} />
+          </tr>
+        </tbody>
+      </table>
+    );
+    expect(screen.getByText('Unknown')).toHaveClass('status-badge-other');
+  });
+
+  it('renders Unknown for a PVC without a phase', () => {
+    const pvc = {
+      metadata: {
+        name: 'data',
+        namespace: 'default',
+        creationTimestamp: '2026-01-01T00:00:00Z',
+      },
+      spec: { resources: { requests: { storage: '1Gi' } } },
+    };
+    render(
+      <table>
+        <tbody>
+          <tr>
+            <StatusCell
+              resource={pvc}
+              resourceType="persistentvolumeclaim"
+              style={style}
+            />
+          </tr>
+        </tbody>
+      </table>
+    );
+    expect(screen.getByText('Unknown')).toHaveClass('status-badge-other');
+  });
+
   it('renders Unknown for mismatched types', () => {
     render(
       <table>

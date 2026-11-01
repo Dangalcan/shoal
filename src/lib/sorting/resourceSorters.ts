@@ -74,13 +74,15 @@ export const getStatusSorter = (
 };
 
 // Pod Specific
+// A container status without restartCount counts as 0, as RestartsCell
+// shows it; adding undefined would turn the whole sum into NaN.
 export const sortByRestarts = sortByNumber((r) => {
   if (isPod(r)) {
     return (
       r.status?.containerStatuses?.reduce(
-        (acc: number, c) => acc + c.restartCount,
+        (acc: number, c) => acc + (c.restartCount ?? 0),
         0
-      ) || 0
+      ) ?? 0
     );
   }
   return 0;
@@ -92,10 +94,12 @@ export const sortByIP = sortByString((r) => {
   return '';
 });
 
+// `spec` may be absent or null on a partial object; `in` would throw on null.
 export const sortByNode = sortByString((r) => {
-  if ('spec' in r && 'nodeName' in (r as Pod).spec!)
-    return (r as Pod).spec?.nodeName || '';
-  return '';
+  const spec: unknown = r.spec;
+  return isRecord(spec) && typeof spec.nodeName === 'string'
+    ? spec.nodeName
+    : '';
 });
 
 // Workload Specific

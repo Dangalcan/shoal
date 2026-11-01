@@ -29,6 +29,7 @@ vi.mock('../utils/env-utils', () => ({
 }));
 
 import { LicenseManager } from '../services/security/license-manager';
+import { isProduction } from '../utils/env-utils';
 import type { PluginLicenseInfo } from '../types/plugin-types';
 
 function makePlugin(
@@ -239,6 +240,57 @@ describe('LicenseManager', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('Invalid license key');
+    });
+
+    it('reports the HTTP status when the backend error has no message', async () => {
+      vi.stubEnv('MARKETPLACE_BACKEND_URL', 'http://localhost:3001');
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: false,
+          status: 403,
+          json: async () => ({}),
+        })
+      );
+
+      const result = await manager.activateLicense(
+        'test-plugin',
+        'SOME-LICENSE-KEY'
+      );
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Activation failed: 403',
+      });
+      expect(mockUpdateConfig).not.toHaveBeenCalled();
+    });
+
+    it('refuses an offline token in production builds', async () => {
+      vi.stubEnv('MARKETPLACE_BACKEND_URL', '');
+      vi.mocked(isProduction).mockReturnValueOnce(true);
+      mockGetPlugin.mockReturnValue(makePlugin('paid', { isActive: false }));
+
+      const result = await manager.activateLicense(
+        'test-plugin',
+        'VALID-LICENSE-KEY'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(
+        /requires MARKETPLACE_BACKEND_URL to be configured in production/
+      );
+      expect(mockUpdateConfig).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('checkLicense – expiry date in the future', () => {
+    it('stays valid until the expiry date', () => {
+      const future = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      mockGetPlugin.mockReturnValue(
+        makePlugin('paid', { isActive: true, expiresAt: future })
+      );
+
+      expect(manager.checkLicense('test-plugin')).toEqual({ valid: true });
     });
   });
 

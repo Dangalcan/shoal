@@ -66,6 +66,36 @@ describe('frame-runtime registry shim', () => {
     expect(mount).toHaveBeenCalledWith(ModalC, {});
   });
 
+  it('passes an empty props object to a modal when the host sent none', () => {
+    const { shim, mount } = shimFor({ kind: 'modal', modalId: 'm1' });
+    shim.registerModal({ id: 'm1', component: ModalC });
+    expect(mount).toHaveBeenCalledWith(ModalC, {});
+  });
+
+  it('ignores registrations without an id or a component', () => {
+    const { shim, mount } = shimFor({ kind: 'page' });
+    shim.registerPage({});
+    shim.registerPage(undefined as never);
+    shim.registerWidget({ component: WidgetC });
+    shim.registerWidget({ id: 'w1' });
+    shim.registerModal({ component: ModalC });
+    shim.registerModal({ id: 'm1' });
+    shim.registerResourceAction({ component: ModalC });
+    shim.registerResourceAction({ id: 'a1' });
+    expect(mount).not.toHaveBeenCalled();
+  });
+
+  it('does not mount an incomplete widget, modal or action registration for its own view', () => {
+    const widget = shimFor({ kind: 'widget', widgetId: 'w1' });
+    widget.shim.registerWidget({ id: 'w1' });
+    expect(widget.mount).not.toHaveBeenCalled();
+
+    const modal = shimFor({ kind: 'modal', modalId: 'm1' }, { a: 1 });
+    modal.shim.registerModal({ id: 'm1' });
+    modal.shim.registerResourceAction({ id: 'm1' });
+    expect(modal.mount).not.toHaveBeenCalled();
+  });
+
   it('mounts at most once', () => {
     const { shim, mount } = shimFor({ kind: 'page' });
     shim.registerPage({ component: PageC });

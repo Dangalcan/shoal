@@ -151,4 +151,44 @@ describe('FolderCard', () => {
     expect(card).not.toHaveClass('folder-card--drag-over');
     expect(onDropManifest).not.toHaveBeenCalled();
   });
+
+  it('ignores keys other than Enter and Space', () => {
+    renderCard();
+    fireEvent.keyDown(screen.getByRole('button', { name: /production/i }), {
+      key: 'Escape',
+    });
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it('does not highlight for an OS file drag', () => {
+    renderCard();
+    const card = screen.getByRole('button', { name: /production/i });
+
+    fireEvent.dragEnter(card, { dataTransfer: { types: ['Files'] } });
+
+    expect(card).not.toHaveClass('folder-card--drag-over');
+  });
+
+  it('clears the highlight when the drag leaves', () => {
+    renderCard();
+    const card = screen.getByRole('button', { name: /production/i });
+
+    fireEvent.dragEnter(card, {
+      dataTransfer: { types: [FOLDER_DRAG_TYPE], dropEffect: 'none' },
+    });
+    expect(card).toHaveClass('folder-card--drag-over');
+
+    fireEvent.dragLeave(card);
+
+    expect(card).not.toHaveClass('folder-card--drag-over');
+  });
+
+  it('ignores a typed drop that carries no payload', () => {
+    renderCard();
+    fireEvent.drop(screen.getByRole('button', { name: /production/i }), {
+      dataTransfer: { types: [FOLDER_DRAG_TYPE], getData: () => '' },
+    });
+    expect(onDropManifest).not.toHaveBeenCalled();
+    expect(onDropFolder).not.toHaveBeenCalled();
+  });
 });

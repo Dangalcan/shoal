@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '../utils';
 import userEvent from '@testing-library/user-event';
 import { createMockElectronAPI } from '../utils/mocks';
+import { mockToast } from '../mocks/toast-mock';
 import { TerminalPage } from '../../pages/TerminalPage';
 
 vi.mock('../../components/Terminal', () => ({
@@ -151,6 +152,21 @@ describe('TerminalPage', () => {
     render(<TerminalPage />, { api });
     await screen.findByTestId('terminal');
 
+    expect(screen.queryByLabelText('Shell type')).not.toBeInTheDocument();
+  });
+
+  it('reports a shell listing that throws and keeps the terminal', async () => {
+    api.terminalShells.mockRejectedValue(new Error('bridge down'));
+
+    render(<TerminalPage />, { api });
+
+    expect(await screen.findByTestId('terminal')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(mockToast.error).toHaveBeenCalledWith(
+        'Failed to list the shells',
+        expect.objectContaining({ description: 'bridge down' })
+      )
+    );
     expect(screen.queryByLabelText('Shell type')).not.toBeInTheDocument();
   });
 

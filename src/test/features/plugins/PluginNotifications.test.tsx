@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, waitFor } from '@testing-library/react';
 import { render } from '../../utils';
+import { createMockElectronAPI } from '../../utils/mocks';
 import { mockElectronAPI } from '../../setup';
 import { mockToast } from '../../mocks/toast-mock';
 import { PluginNotifications } from '../../../features/plugins/PluginNotifications';
@@ -96,5 +97,25 @@ describe('PluginNotifications', () => {
     expect(mockToast.info).toHaveBeenCalledWith('boo', {
       description: 'From: ghost-plugin',
     });
+  });
+
+  it('subscribes to nothing when the Electron bridge is missing', async () => {
+    const api = createMockElectronAPI();
+    const original = Object.getOwnPropertyDescriptor(window, 'electron');
+    Object.defineProperty(window, 'electron', {
+      value: undefined,
+      writable: true,
+      configurable: true,
+    });
+    try {
+      const { container } = render(<PluginNotifications />, { api });
+      await waitFor(() => expect(api.getPlugins).toHaveBeenCalled());
+
+      expect(container).toBeEmptyDOMElement();
+      expect(mockElectronAPI.onPluginNotification).not.toHaveBeenCalled();
+      expect(api.onPluginNotification).not.toHaveBeenCalled();
+    } finally {
+      Object.defineProperty(window, 'electron', original!);
+    }
   });
 });

@@ -3,6 +3,7 @@ import type { IpcMainInvokeEvent } from 'electron';
 import { app, ipcMain } from 'electron';
 import { spawn } from 'child_process';
 import { registerTerminalIpcHandlers } from '../ipc/terminal-ipc';
+import log from '../logger';
 import {
   resolveLocalShell,
   getTerminalCwd,
@@ -759,6 +760,141 @@ describe('terminal-ipc', () => {
         expect.objectContaining({ stdio: 'ignore' })
       );
       expect(child.kill).toHaveBeenCalledWith('SIGINT');
+    });
+
+    it('keeps stderr and start failures away from a destroyed renderer', async () => {
+      const child = makeFakeChild();
+      vi.mocked(spawn).mockReturnValue(
+        child as unknown as ReturnType<typeof spawn>
+      );
+      const { sessionId } = (
+        await getHandler('terminal:create')(mockEvent, { kind: 'local' })
+      ).data as { sessionId: string };
+      vi.mocked(mockEvent.sender.isDestroyed).mockReturnValue(true);
+
+      const stderrListener = child.stderr.on.mock.calls[0][1] as (
+        data: Buffer
+      ) => void;
+      stderrListener(Buffer.from('ignored'));
+      listener(child, 'error')?.(new Error('spawn powershell.exe EACCES'));
+
+      expect(mockEvent.sender.send).not.toHaveBeenCalled();
+      // The failed session is gone even though nobody was told.
+      await expect(
+        getHandler('terminal:input')(mockEvent, { sessionId, data: 'x' })
+      ).resolves.toMatchObject({ success: false });
+    });
+
+    it('logs an EPIPE on the shell stdin instead of crashing', async () => {
+      const child = makeFakeChild();
+      vi.mocked(spawn).mockReturnValue(
+        child as unknown as ReturnType<typeof spawn>
+      );
+      await getHandler('terminal:create')(mockEvent, { kind: 'local' });
+
+      const [event, onStdinError] = child.stdin.on.mock.calls[0] as [
+        string,
+        (err: Error) => void,
+      ];
+      expect(event).toBe('error');
+      expect(() => onStdinError(new Error('write EPIPE'))).not.toThrow();
+      expect(log.warn).toHaveBeenCalledWith(
+        expect.stringContaining('stdin:'),
+        'write EPIPE'
+      );
+    });
+
+    it('creates a session for a process without stdin', async () => {
+      const child = { ...makeFakeChild(), stdin: null };
+      vi.mocked(spawn).mockReturnValue(
+        child as unknown as ReturnType<typeof spawn>
+      );
+      const result = await getHandler('terminal:create')(mockEvent, {
+        kind: 'local',
+      });
+      const { sessionId } = result.data as { sessionId: string };
+
+      expect(result.success).toBe(true);
+      await expect(
+        getHandler('terminal:input')(mockEvent, { sessionId, data: 'x' })
+      ).resolves.toMatchObject({
+        success: false,
+        error: 'Terminal session is closed',
+      });
+    });
+
+    it('refuses to interrupt an unknown session or one without a pid', async () => {
+      await expect(
+        getHandler('terminal:interrupt')(mockEvent, { sessionId: 'missing' })
+      ).resolves.toMatchObject({
+        success: false,
+        error: 'No terminal session: missing',
+      });
+
+      const child = { ...makeFakeChild(), pid: undefined };
+      vi.mocked(spawn).mockReturnValue(
+        child as unknown as ReturnType<typeof spawn>
+      );
+      const { sessionId } = (
+        await getHandler('terminal:create')(mockEvent, { kind: 'local' })
+      ).data as { sessionId: string };
+      vi.mocked(spawn).mockClear();
+
+      await expect(
+        getHandler('terminal:interrupt')(mockEvent, { sessionId })
+      ).resolves.toMatchObject({ success: false });
+      expect(spawn).not.toHaveBeenCalled();
+      expect(child.kill).not.toHaveBeenCalled();
+    });
+
+    it('ignores a missing pkill on Linux and still interrupts the shell', async () => {
+      setPlatform('linux');
+      const child = makeFakeChild();
+      vi.mocked(spawn).mockReturnValue(
+        child as unknown as ReturnType<typeof spawn>
+      );
+      const { sessionId } = (
+        await getHandler('terminal:create')(mockEvent, { kind: 'local' })
+      ).data as { sessionId: string };
+      const pkill = { on: vi.fn() };
+      vi.mocked(spawn).mockReturnValue(
+        pkill as unknown as ReturnType<typeof spawn>
+      );
+
+      const result = await getHandler('terminal:interrupt')(mockEvent, {
+        sessionId,
+      });
+
+      expect(result).toMatchObject({ success: true });
+      const [event, onError] = pkill.on.mock.calls[0] as [
+        string,
+        (err: Error) => unknown,
+      ];
+      expect(event).toBe('error');
+      expect(onError(new Error('spawn pkill ENOENT'))).toBeUndefined();
+      expect(child.kill).toHaveBeenCalledWith('SIGINT');
+    });
+
+    it('interrupts only the children of the shell on Windows', async () => {
+      setPlatform('win32');
+      const child = makeFakeChild();
+      vi.mocked(spawn).mockReturnValue(
+        child as unknown as ReturnType<typeof spawn>
+      );
+      const { sessionId } = (
+        await getHandler('terminal:create')(mockEvent, { kind: 'local' })
+      ).data as { sessionId: string };
+
+      await getHandler('terminal:interrupt')(mockEvent, { sessionId });
+
+      expect(spawn).toHaveBeenLastCalledWith(
+        'powershell.exe',
+        expect.arrayContaining([
+          expect.stringContaining('ParentProcessId=1234'),
+        ]),
+        expect.objectContaining({ windowsHide: true, stdio: 'ignore' })
+      );
+      expect(child.kill).not.toHaveBeenCalled();
     });
 
     it('kills every open shell when the app quits', async () => {

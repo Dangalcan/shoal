@@ -28,7 +28,13 @@ function PluginSettingsDialog({ plugin, onClose }: PluginSettingsModalProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const schema = plugin.manifest.configuration;
+  // A configuration without properties (plugin.json is not validated against
+  // the schema type) has nothing to set: same as no configuration at all.
+  const configuration = plugin.manifest.configuration;
+  const schema =
+    configuration && Object.keys(configuration.properties ?? {}).length > 0
+      ? configuration
+      : undefined;
 
   // The context hands out a new `getSettings` on every render; the ref keeps
   // the effect below from reloading each time.
@@ -47,13 +53,11 @@ function PluginSettingsDialog({ plugin, onClose }: PluginSettingsModalProps) {
 
         // Merge with defaults
         const defaults: Record<string, unknown> = {};
-        if (schema.properties) {
-          Object.entries(schema.properties).forEach(([key, prop]) => {
-            if (prop.default !== undefined) {
-              defaults[key] = prop.default;
-            }
-          });
-        }
+        Object.entries(schema.properties).forEach(([key, prop]) => {
+          if (prop.default !== undefined) {
+            defaults[key] = prop.default;
+          }
+        });
 
         setSettings({ ...defaults, ...loaded });
       } catch (err: unknown) {

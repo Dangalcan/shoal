@@ -239,6 +239,21 @@ describe('mockApi', () => {
     mockApi.onPluginNotification(() => {})();
   });
 
+  it('gives every event subscription an unsubscribe function', () => {
+    const listeners = Object.entries(mockApi).filter(
+      ([key, value]) => /^on[A-Z]/.test(key) && typeof value === 'function'
+    );
+    expect(listeners.map(([key]) => key)).toEqual(
+      expect.arrayContaining(['onPluginStateChanged', 'onUpdateStatus'])
+    );
+
+    for (const [key, subscribe] of listeners) {
+      const unsubscribe = (subscribe as (cb: () => void) => unknown)(() => {});
+      expect(typeof unsubscribe, key).toBe('function');
+      expect(() => (unsubscribe as () => void)()).not.toThrow();
+    }
+  });
+
   it('should cover external + terminal stubs', async () => {
     expect((await mockApi.openExternal('https://example.com')).success).toBe(
       true
@@ -318,6 +333,7 @@ describe('mockApi', () => {
       )
     ).toEqual([]);
     expect(dataOf(await mockApi.checkForAppUpdates())).toBe('dev');
+    expect(dataOf(await mockApi.getUpdateStatus())).toBeNull();
     expect((await mockApi.installAppUpdate()).success).toBe(true);
     mockApi.onUpdateStatus(() => {})();
   });

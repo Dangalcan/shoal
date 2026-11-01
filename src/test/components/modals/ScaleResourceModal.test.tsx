@@ -115,6 +115,28 @@ describe('ScaleResourceModal', () => {
     expect(screen.getByLabelText('Replica count')).toHaveValue(6);
   });
 
+  it('keeps the edited count while closed and resets it on the next opening', () => {
+    const props = {
+      onClose: vi.fn(),
+      onScale: vi.fn(),
+      resourceType: 'deployments',
+      resourceName: 'web',
+      currentReplicas: 3,
+    };
+    const { rerender } = render(<ScaleResourceModal isOpen {...props} />);
+    fireEvent.change(screen.getByLabelText('Replica count'), {
+      target: { value: '7' },
+    });
+    expect(screen.getByLabelText('Replica count')).toHaveValue(7);
+
+    rerender(<ScaleResourceModal isOpen={false} {...props} />);
+    expect(screen.queryByLabelText('Replica count')).toBeNull();
+
+    rerender(<ScaleResourceModal isOpen {...props} />);
+    expect(screen.getByLabelText('Replica count')).toHaveValue(3);
+    expect(props.onScale).not.toHaveBeenCalled();
+  });
+
   it('does not scale when cancelled', () => {
     const props = renderModal();
 

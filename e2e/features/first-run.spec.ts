@@ -4,6 +4,11 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { launchApp, mainWindow } from '../fixtures/launch';
+import {
+  EMPTY_KUBECONFIG,
+  unreachableKubeconfig,
+  writeKubeconfig,
+} from '../fixtures/kubeconfig';
 import { extraToolDirs } from '../../electron/utils/path-env';
 
 /**
@@ -13,51 +18,7 @@ import { extraToolDirs } from '../../electron/utils/path-env';
  * installed (it is on the CI runners), the third hides it.
  */
 
-function writeKubeconfig(
-  name: string,
-  content: string
-): {
-  dir: string;
-  file: string;
-} {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), `shoal-${name}-`));
-  const file = path.join(dir, 'config');
-  fs.writeFileSync(file, content);
-  return { dir, file };
-}
-
-const EMPTY_KUBECONFIG = [
-  'apiVersion: v1',
-  'kind: Config',
-  'clusters: []',
-  'contexts: []',
-  'users: []',
-  'current-context: ""',
-  '',
-].join('\n');
-
-// TEST-NET-3 (RFC 5737) is never routed: the connection either hangs until
-// a timeout or fails at once, depending on the network. Both are fine here.
-const UNREACHABLE_KUBECONFIG = [
-  'apiVersion: v1',
-  'kind: Config',
-  'clusters:',
-  '  - name: nowhere',
-  '    cluster:',
-  '      server: https://203.0.113.1:6443',
-  '      insecure-skip-tls-verify: true',
-  'contexts:',
-  '  - name: unreachable',
-  '    context:',
-  '      cluster: nowhere',
-  '      user: nobody',
-  'users:',
-  '  - name: nobody',
-  '    user:',
-  '      token: not-a-real-token',
-  'current-context: unreachable',
-  '',
-].join('\n');
+const UNREACHABLE_KUBECONFIG = unreachableKubeconfig('unreachable');
 
 test.describe('empty kubeconfig', () => {
   let app: ElectronApplication;

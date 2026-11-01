@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ReactNode } from 'react';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { ApiProvider } from '../../../services/api-context';
 import { createMockElectronAPI } from '../../utils/mocks';
 import {
@@ -152,5 +152,24 @@ describe('useTerminalSession', () => {
     finish({ success: true, data: { sessionId: 'late', shellFamily: 'unix' } });
     await waitFor(() => expect(api.terminalKill).toHaveBeenCalledWith('late'));
     expect(result.current.sessionId).toBe('s1');
+  });
+
+  it('has nothing to kill when a late answer is a failure', async () => {
+    let finish: (v: any) => void = () => {};
+    api.terminalCreate.mockImplementationOnce(
+      () =>
+        new Promise<any>((resolve) => {
+          finish = resolve;
+        })
+    );
+    const { result, unmount } = renderSession({ kind: 'local', shell: 'a' });
+    expect(result.current.loading).toBe(true);
+
+    unmount();
+    await act(async () => {
+      finish({ success: false, error: 'shell not found' });
+    });
+
+    expect(api.terminalKill).not.toHaveBeenCalled();
   });
 });

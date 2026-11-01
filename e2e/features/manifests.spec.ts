@@ -7,7 +7,9 @@ import fs from 'fs';
 
 /**
  * Manifest Manager flows: create/edit/delete a manifest, load an example
- * template, and folder management. No cluster required (apply is not tested).
+ * template, folder management, moving a manifest between folders and
+ * uploading YAML files. No cluster required (applying a manifest is covered
+ * by cluster-workloads.spec.ts).
  *
  * The app is launched with an isolated, throwaway userData directory (via the
  * Electron `--user-data-dir` switch) so the manifest SQLite database starts
@@ -154,6 +156,80 @@ test('creates a folder, opens it, and navigates back via breadcrumbs', async () 
   await expect(
     window.locator('.manifest-card', { hasText: MANIFEST_NAME })
   ).toBeVisible();
+});
+
+test('moves a manifest into a folder and back to the root', async () => {
+  const card = window.locator('.manifest-card', { hasText: MANIFEST_NAME });
+  const folderCard = window.locator('.folder-card', { hasText: FOLDER_NAME });
+  const modal = window.locator('.base-modal-overlay');
+
+  await card.hover();
+  await card.locator('button[title="Move to Folder"]').click();
+  await expect(modal.locator('.base-modal-title')).toHaveText('Move to Folder');
+  const moveHere = modal.getByRole('button', { name: 'Move Here' });
+  // The current location cannot be picked, and nothing is picked yet.
+  await expect(
+    modal.getByRole('option', { name: 'All Manifests' })
+  ).toBeDisabled();
+  await expect(moveHere).toBeDisabled();
+  await modal.getByRole('option', { name: FOLDER_NAME }).click();
+  await moveHere.click();
+
+  // Gone from the root, inside the folder.
+  await expect(card).not.toBeVisible();
+  await folderCard.click();
+  await expect(card).toBeVisible();
+
+  // And back: from inside the folder the root is a valid destination.
+  await card.hover();
+  await card.locator('button[title="Move to Folder"]').click();
+  await expect(modal.getByRole('option', { name: FOLDER_NAME })).toBeDisabled();
+  await modal.getByRole('option', { name: 'All Manifests' }).click();
+  await modal.getByRole('button', { name: 'Move Here' }).click();
+  await expect(card).not.toBeVisible();
+
+  await window.locator('.folder-breadcrumbs__crumb').first().click();
+  await expect(card).toBeVisible();
+  await expect(folderCard).toBeVisible();
+});
+
+test('uploads YAML files and reports the ones it cannot import', async () => {
+  const uploaded = `e2e-upload-${RUN_ID}`;
+  await window.locator('input[type="file"]').setInputFiles([
+    {
+      name: `${uploaded}.yaml`,
+      mimeType: 'application/yaml',
+      buffer: Buffer.from(SAMPLE_YAML),
+    },
+    {
+      name: 'notes.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('not a manifest'),
+    },
+  ]);
+
+  await expect(
+    window.locator('[data-sonner-toast]', {
+      hasText: 'Successfully imported 1 manifest',
+    })
+  ).toBeVisible();
+  await expect(
+    window.locator('[data-sonner-toast][data-type="error"]', {
+      hasText: 'Failed to import 1 file: Invalid file type: notes.txt',
+    })
+  ).toBeVisible();
+
+  // The file name, without its extension, names the manifest.
+  const card = window.locator('.manifest-card', { hasText: uploaded });
+  await expect(card).toBeVisible();
+  await expect(card.locator('h3')).toHaveText(uploaded);
+  await expect(card.locator('.yaml-preview')).toContainText('kind: ConfigMap');
+
+  // Clean up so the last test sees only its own manifest.
+  await card.hover();
+  await card.locator('button[title="Delete"]').click();
+  await window.getByRole('button', { name: 'Delete Manifest' }).last().click();
+  await expect(card).not.toBeVisible();
 });
 
 test('deletes the folder and the manifest', async () => {

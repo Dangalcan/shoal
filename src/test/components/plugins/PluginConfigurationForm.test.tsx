@@ -222,6 +222,127 @@ describe('PluginConfigurationForm', () => {
     consoleError.mockRestore();
   });
 
+  it('shows a generic save error when the parent rejects with a non-Error', async () => {
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    const onSave = vi.fn().mockRejectedValue('EROFS');
+    render(
+      <PluginConfigurationForm
+        schema={{
+          properties: {
+            name: { type: 'string', label: 'Name', placeholder: 'name' },
+          },
+        }}
+        initialValues={{ name: 'x' }}
+        onSave={onSave}
+        onCancel={vi.fn()}
+      />
+    );
+
+    save();
+
+    expect(
+      await screen.findByText('Failed to save settings')
+    ).toBeInTheDocument();
+    expect(onSave).toHaveBeenCalledWith({ name: 'x' });
+    consoleError.mockRestore();
+  });
+
+  it('saves the option picked in a select that has no value or default', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PluginConfigurationForm
+        schema={{
+          properties: {
+            mode: {
+              type: 'select',
+              label: 'Mode',
+              enum: ['fast', 'safe'],
+            },
+          },
+        }}
+        initialValues={{}}
+        onSave={onSave}
+        onCancel={vi.fn()}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText('Mode'), {
+      target: { value: 'safe' },
+    });
+    save();
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith({ mode: 'safe' }));
+  });
+
+  it('saves the first option of an untouched select that has no value or default', async () => {
+    // The browser shows the first option; saving must store what was shown.
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PluginConfigurationForm
+        schema={{
+          properties: {
+            mode: { type: 'select', label: 'Mode', enum: ['fast', 'safe'] },
+            level: {
+              type: 'select',
+              label: 'Level',
+              enum: ['info', 'debug'],
+              default: 'debug',
+            },
+            empty: { type: 'select', label: 'Empty', enum: [] },
+          },
+        }}
+        initialValues={{}}
+        onSave={onSave}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(screen.getByLabelText('Mode')).toHaveValue('fast');
+    save();
+
+    // A default stays the default (the settings dialog stores it), and a
+    // select without options has nothing to store.
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith({ mode: 'fast' }));
+  });
+
+  it('renders a configuration without properties as a form without fields', async () => {
+    // plugin.json is not checked against the schema type, so "properties"
+    // can be missing; this used to throw while rendering.
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PluginConfigurationForm
+        schema={{ title: 'Nothing here' } as PluginConfigurationSchema}
+        initialValues={{}}
+        onSave={onSave}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('heading', { name: 'Nothing here' })).toBeTruthy();
+    expect(screen.queryAllByRole('textbox')).toHaveLength(0);
+    save();
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith({}));
+  });
+
+  it('starts a list field empty when its stored value is not a list', () => {
+    render(
+      <PluginConfigurationForm
+        schema={{
+          properties: { hosts: { type: 'array', label: 'Hosts' } },
+        }}
+        initialValues={{ hosts: 'a,b' }}
+        onSave={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '+ Add Item' }));
+    expect(screen.getByRole('textbox', { name: 'Hosts 1' })).toHaveValue('');
+  });
+
   it('cancels and flags unsupported field types', () => {
     const onCancel = vi.fn();
     const odd = {

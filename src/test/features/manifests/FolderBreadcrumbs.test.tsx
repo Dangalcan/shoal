@@ -126,4 +126,16 @@ describe('FolderBreadcrumbs', () => {
     expect(onDropFolder).toHaveBeenCalledWith(9, 1);
     expect(onDropManifest).not.toHaveBeenCalled();
   });
+
+  it('ignores a typed drop that carries no payload', () => {
+    renderCrumbs();
+    fireEvent.drop(screen.getByText('infra'), {
+      dataTransfer: {
+        types: [MANIFEST_DRAG_TYPE, FOLDER_DRAG_TYPE],
+        getData: () => '',
+      },
+    });
+    expect(onDropManifest).not.toHaveBeenCalled();
+    expect(onDropFolder).not.toHaveBeenCalled();
+  });
 });

@@ -10,15 +10,22 @@ vi.mock('../utils/safe-exec', () => ({
   safeExec: vi.fn(),
   ALLOWED_TOOLS: new Set(['kubectl']),
 }));
-vi.mock('../services/kubernetes/kubernetes-service', () => ({
-  READ_TIMEOUT_MS: 30_000,
-  kubernetesService: {
-    getResources: vi.fn(),
-    getPodMetrics: vi.fn(),
-    scaleResource: vi.fn(),
-    deleteResource: vi.fn(),
-  },
-}));
+vi.mock('../services/kubernetes/kubernetes-service', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('../services/kubernetes/kubernetes-service')
+    >();
+  return {
+    READ_TIMEOUT_MS: 30_000,
+    kubectlReadType: actual.kubectlReadType,
+    kubernetesService: {
+      getResources: vi.fn(),
+      getPodMetrics: vi.fn(),
+      scaleResource: vi.fn(),
+      deleteResource: vi.fn(),
+    },
+  };
+});
 vi.mock('../services/kubernetes/resource-read-cache', () => ({
   resourceReadCache: { clear: vi.fn() },
 }));
@@ -172,6 +179,33 @@ describe('resource IPC handlers', () => {
     );
   });
 
+  it('describes and exports the namespace behind a Pod Security row', async () => {
+    // Pod Security Admission has no API resource: its tab lists namespaces.
+    vi.mocked(safeExec).mockResolvedValue({ stdout: 'Name: dev', stderr: '' });
+
+    await getHandler('describe-resource')(mockEvent, {
+      contextName: 'kind-dev',
+      resourceType: 'podsecurityadmission',
+      resourceName: 'dev',
+    });
+    expect(safeExec).toHaveBeenLastCalledWith(
+      'kubectl',
+      ['describe', 'namespaces', 'dev', '--context', 'kind-dev'],
+      READ_TIMEOUT
+    );
+
+    await getHandler('get-resource-yaml')(mockEvent, {
+      contextName: 'kind-dev',
+      resourceType: 'podsecurityadmission',
+      resourceName: 'dev',
+    });
+    expect(safeExec).toHaveBeenLastCalledWith(
+      'kubectl',
+      ['get', 'namespaces', 'dev', '--context', 'kind-dev', '-o', 'yaml'],
+      READ_TIMEOUT
+    );
+  });
+
   it('rejects arguments that are not valid kubectl identifiers', async () => {
     const result = await getHandler('get-logs')(mockEvent, {
       contextName: 'kind-dev',
@@ -250,6 +284,119 @@ describe('resource IPC handlers', () => {
       3,
       'kind-dev'
     );
+  });
+
+  it('get-resources accepts the "all" namespace and rejects a bad one', async () => {
+    vi.mocked(kubernetesService.getResources).mockResolvedValue([] as never);
+
+    const all = await getHandler('get-resources')(mockEvent, {
+      contextName: 'kind-dev',
+      resourceType: 'services',
+      namespace: 'all',
+    });
+    expect(all).toEqual({ success: true, data: [] });
+    expect(kubernetesService.getResources).toHaveBeenCalledWith(
+      'services',
+      'all',
+      'kind-dev'
+    );
+
+    const bad = await getHandler('get-resources')(mockEvent, {
+      contextName: 'kind-dev',
+      resourceType: 'services',
+      namespace: '-A',
+    });
+    expect(bad.success).toBe(false);
+    expect(kubernetesService.getResources).toHaveBeenCalledTimes(1);
+  });
+
+  it('get-pod-metrics validates a concrete namespace', async () => {
+    vi.mocked(kubernetesService.getPodMetrics).mockResolvedValue([] as never);
+
+    const ok = await getHandler('get-pod-metrics')(mockEvent, {
+      contextName: 'kind-dev',
+      namespace: 'default',
+    });
+    expect(ok).toEqual({ success: true, data: [] });
+    expect(kubernetesService.getPodMetrics).toHaveBeenCalledWith(
+      'default',
+      'kind-dev'
+    );
+
+    const bad = await getHandler('get-pod-metrics')(mockEvent, {
+      contextName: 'kind-dev',
+      namespace: 'Bad_Namespace',
+    });
+    expect(bad.success).toBe(false);
+    expect(kubernetesService.getPodMetrics).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['', 'all'])(
+    'scale-resource skips namespace validation for %j',
+    async (namespace) => {
+      vi.mocked(kubernetesService.scaleResource).mockResolvedValue(
+        undefined as never
+      );
+
+      const result = await getHandler('scale-resource')(mockEvent, {
+        contextName: 'kind-dev',
+        resourceType: 'deployments',
+        resourceName: 'web',
+        namespace,
+        replicas: 1,
+      });
+
+      expect(result.success).toBe(true);
+      expect(kubernetesService.scaleResource).toHaveBeenCalledWith(
+        'deployments',
+        'web',
+        namespace,
+        1,
+        'kind-dev'
+      );
+    }
+  );
+
+  it('scale-resource rejects a bad namespace', async () => {
+    const result = await getHandler('scale-resource')(mockEvent, {
+      contextName: 'kind-dev',
+      resourceType: 'deployments',
+      resourceName: 'web',
+      namespace: 'a b',
+      replicas: 1,
+    });
+
+    expect(result.success).toBe(false);
+    expect(kubernetesService.scaleResource).not.toHaveBeenCalled();
+  });
+
+  it('delete-resource validates a concrete namespace', async () => {
+    vi.mocked(kubernetesService.deleteResource).mockResolvedValue(
+      undefined as never
+    );
+
+    const ok = await getHandler('delete-resource')(mockEvent, {
+      contextName: 'kind-dev',
+      resourceType: 'pods',
+      resourceName: 'web-1',
+      namespace: 'default',
+    });
+    expect(ok.success).toBe(true);
+    expect(kubernetesService.deleteResource).toHaveBeenCalledWith(
+      'pods',
+      'web-1',
+      'default',
+      'kind-dev'
+    );
+
+    const bad = await getHandler('delete-resource')(mockEvent, {
+      contextName: 'kind-dev',
+      resourceType: 'pods',
+      resourceName: 'web-1',
+      namespace: 'default; rm',
+    });
+    expect(bad.success).toBe(false);
+    expect(kubernetesService.deleteResource).toHaveBeenCalledTimes(1);
   });
 
   it('delete-resource goes through the service', async () => {

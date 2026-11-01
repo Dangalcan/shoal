@@ -27,6 +27,26 @@ describe('getForwardablePorts', () => {
     expect(getForwardablePorts(pod, 'pod')).toEqual([8080, 9090]);
   });
 
+  it('skips service ports without a port number', () => {
+    const svc = {
+      metadata: { name: 'svc' },
+      spec: { ports: [{ name: 'http' }, { port: 8443 }] },
+    } as K8sResource;
+
+    expect(getForwardablePorts(svc, 'service')).toEqual([8443]);
+  });
+
+  it('skips container ports without a containerPort', () => {
+    const pod = {
+      metadata: { name: 'pod' },
+      spec: {
+        containers: [{ ports: [{ name: 'metrics' }, { containerPort: 3000 }] }],
+      },
+    } as K8sResource;
+
+    expect(getForwardablePorts(pod, 'pod')).toEqual([3000]);
+  });
+
   it('returns empty for resources without port declarations', () => {
     const bare = { metadata: { name: 'x' } } as K8sResource;
     expect(getForwardablePorts(bare, 'pod')).toEqual([]);

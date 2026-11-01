@@ -11,7 +11,7 @@ vi.mock('child_process', () => ({
   default: { execFile: mocks.execFile },
 }));
 
-import { safeExec, ALLOWED_TOOLS } from '../utils/safe-exec';
+import { safeExec, ALLOWED_TOOLS, describeExecError } from '../utils/safe-exec';
 
 describe('safeExec', () => {
   beforeEach(() => {
@@ -118,5 +118,36 @@ describe('safeExec', () => {
   it('exposes the shared tool allowlist', () => {
     expect(ALLOWED_TOOLS.has('kubectl')).toBe(true);
     expect(ALLOWED_TOOLS.has('bash')).toBe(false);
+  });
+});
+
+describe('describeExecError', () => {
+  it('wraps a thrown value that is not an Error', () => {
+    const error = describeExecError('helm', 'exit status 2');
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toBe('exit status 2');
+  });
+
+  it('wraps null and undefined without crashing', () => {
+    expect(describeExecError('kind', null).message).toBe('null');
+    expect(describeExecError('kind', undefined).message).toBe('undefined');
+  });
+
+  it('ignores stderr that is not a string or only whitespace', () => {
+    const original = new Error('Command failed: k3d version');
+    expect(
+      describeExecError('k3d', Object.assign(original, { stderr: 42 }))
+    ).toBe(original);
+    expect(
+      describeExecError('k3d', Object.assign(original, { stderr: '  \n ' }))
+    ).toBe(original);
+  });
+
+  it('only names a timeout when the process was killed by SIGTERM', () => {
+    const killed = Object.assign(new Error('killed'), {
+      killed: true,
+      signal: 'SIGKILL',
+    });
+    expect(describeExecError('kubectl', killed)).toBe(killed);
   });
 });

@@ -102,6 +102,50 @@ describe('PluginWatcher', () => {
     expect(closeMock).toHaveBeenCalled();
   });
 
+  it('does not watch a plugin twice', async () => {
+    vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
+    (fs.watch as any).mockReturnValue({ close: vi.fn() });
+
+    await pluginWatcher.watch('p1', vi.fn());
+    await pluginWatcher.watch('p1', vi.fn());
+
+    expect(pluginLoader.getPluginPath).toHaveBeenCalledTimes(1);
+    expect(fs.watch).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not watch a plugin whose directory is unknown', async () => {
+    vi.mocked(pluginLoader.getPluginPath).mockResolvedValue(null);
+
+    await pluginWatcher.watch('p1', vi.fn());
+
+    expect(fs.watch).not.toHaveBeenCalled();
+    // Nothing was registered, so stopping finds nothing to close.
+    pluginWatcher.stop('p1');
+    expect(log.info).not.toHaveBeenCalledWith(
+      '[PluginWatcher] Stopped watcher for p1'
+    );
+  });
+
+  it('cancels a pending reload when the watcher stops', async () => {
+    vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
+    let watchCallback: any;
+    const closeMock = vi.fn();
+    (fs.watch as any).mockImplementation((_p: any, _o: any, cb: any) => {
+      watchCallback = cb;
+      return { close: closeMock };
+    });
+    const onReload = vi.fn().mockResolvedValue(undefined);
+    await pluginWatcher.watch('p1', onReload);
+
+    watchCallback('change', 'index.js');
+    pluginWatcher.stop('p1');
+    vi.advanceTimersByTime(1_000);
+    await Promise.resolve();
+
+    expect(onReload).not.toHaveBeenCalled();
+    expect(closeMock).toHaveBeenCalledTimes(1);
+  });
+
   it('should handle reload errors', async () => {
     vi.mocked(pluginLoader.getPluginPath).mockResolvedValue('/path');
     let watchCallback: any;

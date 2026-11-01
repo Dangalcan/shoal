@@ -27,6 +27,7 @@ import {
   SignatureService,
   describeSignatureProblem,
 } from '../services/security/signature-service';
+import log from '../logger';
 
 interface SignScript {
   signPlugin: (dir: string, privateKeyPem: string) => unknown;
@@ -188,5 +189,45 @@ describe('SignatureService', () => {
     // Signed with the override key, which an installed build must not trust:
     // the environment would otherwise replace the plugin signing key.
     expect(await service.verifyPlugin(dir)).toBe(false);
+  });
+
+  it('warns only once that MARKETPLACE_PUBLIC_KEY is ignored in packaged builds', async () => {
+    electronMock.app.isPackaged = true;
+    const packaged = new SignatureService();
+    const warn = vi.spyOn(log, 'warn').mockImplementation(() => {});
+    const error = vi.spyOn(log, 'error').mockImplementation(() => {});
+    signPlugin(dir, privateKey);
+    try {
+      expect(await packaged.verifyPlugin(dir)).toBe(false);
+      expect(await packaged.verifyPlugin(dir)).toBe(false);
+      const ignored = warn.mock.calls.filter(([message]) =>
+        String(message).includes('MARKETPLACE_PUBLIC_KEY is ignored')
+      );
+      expect(ignored).toHaveLength(1);
+    } finally {
+      warn.mockRestore();
+      error.mockRestore();
+    }
+  });
+
+  it('reports an unreadable verification key as an invalid signature', async () => {
+    vi.stubEnv(
+      'MARKETPLACE_PUBLIC_KEY',
+      '-----BEGIN PUBLIC KEY-----\nnot-a-key\n-----END PUBLIC KEY-----'
+    );
+    const error = vi.spyOn(log, 'error').mockImplementation(() => {});
+    signPlugin(dir, privateKey);
+    try {
+      expect(await service.checkPlugin(dir)).toEqual({
+        ok: false,
+        problem: 'invalid signature',
+      });
+      expect(error).toHaveBeenCalledWith(
+        '[SignatureService] Signature check failed:',
+        expect.any(Error)
+      );
+    } finally {
+      error.mockRestore();
+    }
   });
 });

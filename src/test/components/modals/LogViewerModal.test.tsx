@@ -1,10 +1,19 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach,
+  afterEach,
+  onTestFinished,
+} from 'vitest';
 // Unmock component for unit testing
 vi.unmock('../../../components/modals/LogViewerModal');
 
 import { render, screen, waitFor, fireEvent, act } from '../../utils';
 import { LogViewerModal } from '../../../components/modals/LogViewerModal';
 import { mockElectronAPI } from '../../setup';
+import { mockToast } from '../../mocks/toast-mock';
 
 describe('LogViewerModal', () => {
   beforeEach(() => {
@@ -316,5 +325,213 @@ describe('LogViewerModal', () => {
     );
     fireEvent.click(screen.getByTitle('Copy logs'));
     await waitFor(() => expect(writeText).toHaveBeenCalledWith('Test logs'));
+  });
+});
+
+describe('LogViewerModal snapshot edge cases', () => {
+  type LogsAnswer = { success: true; data: string };
+
+  /** A getLogs answer the test settles by hand. */
+  function deferred() {
+    let resolve: (value: LogsAnswer) => void = () => {};
+    let reject: (reason: unknown) => void = () => {};
+    const promise = new Promise<LogsAnswer>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  }
+
+  const props = {
+    isOpen: true,
+    onClose: vi.fn(),
+    clusterName: 'kind-dev',
+    podName: 'pod-a',
+    namespace: 'default',
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockElectronAPI.getLogs.mockResolvedValue({
+      success: true,
+      data: 'first line\nsecond line',
+    });
+  });
+
+  it('says no line matches the filter and clears it', async () => {
+    render(<LogViewerModal {...props} />);
+    const content = await screen.findByTestId('log-content');
+    await waitFor(() => expect(content).toHaveTextContent('first line'));
+
+    fireEvent.change(screen.getByLabelText('Filter logs'), {
+      target: { value: 'nothing like this' },
+    });
+    expect(content).toHaveTextContent('No matches found.');
+
+    const clear = document.querySelector<HTMLButtonElement>('.search-clear');
+    expect(clear).not.toBeNull();
+    fireEvent.click(clear!);
+
+    expect(screen.getByLabelText('Filter logs')).toHaveValue('');
+    expect(content).toHaveTextContent('first line second line');
+    expect(document.querySelector('.search-clear')).toBeNull();
+  });
+
+  it('does not ask for logs without a pod name', async () => {
+    render(<LogViewerModal {...props} podName="" />);
+
+    expect(await screen.findByTestId('log-content')).toHaveTextContent(
+      'No logs.'
+    );
+    expect(mockElectronAPI.getLogs).not.toHaveBeenCalled();
+  });
+
+  it('fetches again when Refresh Now is clicked', async () => {
+    render(<LogViewerModal {...props} />);
+    await waitFor(() =>
+      expect(screen.getByTestId('log-content')).toHaveTextContent('first line')
+    );
+    mockElectronAPI.getLogs.mockResolvedValueOnce({
+      success: true,
+      data: 'refreshed line',
+    });
+
+    fireEvent.click(screen.getByTitle('Refresh Now'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('log-content')).toHaveTextContent(
+        'refreshed line'
+      )
+    );
+    expect(mockElectronAPI.getLogs).toHaveBeenCalledTimes(2);
+  });
+
+  it('drops the answer for a container that is no longer picked', async () => {
+    const appLogs = deferred();
+    mockElectronAPI.getLogs.mockImplementation(
+      ({ container }: { container?: string }) =>
+        container === 'app'
+          ? appLogs.promise
+          : Promise.resolve({ success: true, data: 'sidecar lines' })
+    );
+    render(<LogViewerModal {...props} containers={['app', 'sidecar']} />);
+    await waitFor(() =>
+      expect(mockElectronAPI.getLogs).toHaveBeenCalledTimes(1)
+    );
+
+    fireEvent.change(screen.getByLabelText('Container'), {
+      target: { value: 'sidecar' },
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('log-content')).toHaveTextContent(
+        'sidecar lines'
+      )
+    );
+
+    await act(async () => {
+      appLogs.resolve({ success: true, data: 'app lines' });
+    });
+    expect(screen.getByTestId('log-content')).toHaveTextContent(
+      'sidecar lines'
+    );
+    expect(screen.queryByText('app lines')).not.toBeInTheDocument();
+  });
+
+  it('drops the failure of a request that is no longer the newest', async () => {
+    const appLogs = deferred();
+    mockElectronAPI.getLogs.mockImplementation(
+      ({ container }: { container?: string }) =>
+        container === 'app'
+          ? appLogs.promise
+          : Promise.resolve({ success: true, data: 'sidecar lines' })
+    );
+    render(<LogViewerModal {...props} containers={['app', 'sidecar']} />);
+    await waitFor(() =>
+      expect(mockElectronAPI.getLogs).toHaveBeenCalledTimes(1)
+    );
+    fireEvent.change(screen.getByLabelText('Container'), {
+      target: { value: 'sidecar' },
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('log-content')).toHaveTextContent(
+        'sidecar lines'
+      )
+    );
+
+    await act(async () => {
+      appLogs.reject(new Error('app container gone'));
+    });
+    expect(screen.queryByText('Failed to load logs')).not.toBeInTheDocument();
+    expect(screen.queryByText('app container gone')).not.toBeInTheDocument();
+  });
+
+  it('shows the message of a request that throws', async () => {
+    mockElectronAPI.getLogs.mockRejectedValue(new Error('bridge down'));
+    render(<LogViewerModal {...props} />);
+
+    expect(await screen.findByText('Failed to load logs')).toBeInTheDocument();
+    expect(screen.getByText('bridge down')).toBeInTheDocument();
+  });
+
+  it('shows a generic message when the request throws a non-error', async () => {
+    mockElectronAPI.getLogs.mockRejectedValue('socket closed');
+    render(<LogViewerModal {...props} />);
+
+    expect(await screen.findByText('Failed to load logs')).toBeInTheDocument();
+    expect(
+      screen.getByText('An unexpected error occurred')
+    ).toBeInTheDocument();
+  });
+
+  it('keeps auto-scroll on while a scroll stays near the bottom', async () => {
+    render(<LogViewerModal {...props} />);
+    const content = await screen.findByTestId('log-content');
+    await waitFor(() => expect(content).toHaveTextContent('first line'));
+    const box = { top: 0 };
+    Object.defineProperty(content, 'clientHeight', { get: () => 200 });
+    Object.defineProperty(content, 'scrollHeight', { get: () => 1000 });
+    Object.defineProperty(content, 'scrollTop', {
+      get: () => box.top,
+      set: (v: number) => {
+        box.top = v;
+      },
+    });
+    fireEvent.click(screen.getByTitle('Auto-refresh (5s)'));
+
+    // 10px short of the bottom still counts as the bottom.
+    box.top = 790;
+    fireEvent.scroll(content);
+    expect(screen.queryByText(/auto-scroll paused/i)).toBeNull();
+
+    box.top = 300;
+    fireEvent.scroll(content);
+    expect(
+      await screen.findByRole('button', { name: /auto-scroll paused/i })
+    ).toBeInTheDocument();
+  });
+
+  it('reports a copy the clipboard refuses', async () => {
+    const original = navigator.clipboard;
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
+      configurable: true,
+    });
+    onTestFinished(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        value: original,
+        configurable: true,
+      });
+    });
+    render(<LogViewerModal {...props} />);
+    await waitFor(() =>
+      expect(screen.getByTestId('log-content')).toHaveTextContent('first line')
+    );
+
+    fireEvent.click(screen.getByTitle('Copy logs'));
+
+    await waitFor(() =>
+      expect(mockToast.error).toHaveBeenCalledWith('Could not copy the logs')
+    );
+    expect(mockToast.success).not.toHaveBeenCalled();
   });
 });

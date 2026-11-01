@@ -203,7 +203,7 @@ Please read our architecture guides before contributing:
 
 3. **Testing:**
    - Write tests for all new features
-   - Maintain minimum coverage thresholds (90% lines/statements/functions, 80% branches)
+   - Maintain minimum coverage thresholds (97% lines/statements/functions, 95% branches)
    - Test both happy paths and error cases
 
 4. **Error Handling:**

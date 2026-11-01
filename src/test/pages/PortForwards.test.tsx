@@ -38,6 +38,17 @@ describe('PortForwards page', () => {
     expect(screen.getByText('1 active')).toBeInTheDocument();
   });
 
+  it('shows a start time it cannot parse as it came', async () => {
+    window.electron.portForwardList = vi.fn().mockResolvedValue({
+      success: true,
+      data: [{ ...forward, startedAt: 'just now' }],
+    });
+
+    render(<PortForwards />);
+
+    expect(await screen.findByText('just now')).toBeInTheDocument();
+  });
+
   it('shows the empty state when nothing is forwarded', async () => {
     window.electron.portForwardList = vi
       .fn()

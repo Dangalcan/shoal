@@ -207,6 +207,42 @@ describe('PluginProvider', () => {
     await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull());
   });
 
+  it.each([
+    [
+      'rejects with an Error',
+      () => mockApi.getPlugins.mockRejectedValue(new Error('IPC closed')),
+      'IPC closed',
+    ],
+    [
+      'rejects with a non-Error',
+      () => mockApi.getPlugins.mockRejectedValue('IPC closed'),
+      'Failed to load plugins',
+    ],
+    [
+      'fails without a message',
+      () => mockApi.getPlugins.mockResolvedValue({ success: false }),
+      'Failed to load plugins',
+    ],
+  ])(
+    'exposes the load error when the plugin list %s',
+    async (_label, arrange, expected) => {
+      arrange();
+      const ErrorProbe = () => {
+        const { loading, error } = usePlugins();
+        if (loading) return <div>Loading...</div>;
+        return <div role="alert">{error}</div>;
+      };
+
+      render(
+        <PluginProvider>
+          <ErrorProbe />
+        </PluginProvider>
+      );
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(expected);
+    }
+  );
+
   it('should enable a plugin', async () => {
     mockApi.enablePlugin.mockResolvedValue({ success: true });
 

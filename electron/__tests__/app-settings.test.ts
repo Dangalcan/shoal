@@ -46,6 +46,30 @@ describe('AppSettingsStore', () => {
     await store.update({ kubeconfigPath: undefined });
     expect(await new AppSettingsStore().load()).toEqual({});
   });
+
+  it.each(['null', '42', '"text"'])(
+    'treats a settings file holding %s as empty',
+    async (content) => {
+      fs.writeFileSync(path.join(userData, 'app-settings.json'), content);
+      expect(await new AppSettingsStore().load()).toEqual({});
+    }
+  );
+
+  it('get() returns a copy of the loaded settings', async () => {
+    fs.writeFileSync(
+      path.join(userData, 'app-settings.json'),
+      JSON.stringify({ windowMaximized: true })
+    );
+    const store = new AppSettingsStore();
+    expect(store.get()).toEqual({});
+
+    await store.load();
+    const settings = store.get();
+    expect(settings).toEqual({ windowMaximized: true });
+
+    settings.windowMaximized = false;
+    expect(store.get()).toEqual({ windowMaximized: true });
+  });
 });
 
 describe('assertKubeconfigPath', () => {
@@ -79,6 +103,15 @@ describe('assertKubeconfigPath', () => {
     await expect(assertKubeconfigPath(dir)).rejects.toThrow(
       'Kubeconfig file not found'
     );
+  });
+
+  it('rejects a value with no path in it', async () => {
+    await expect(assertKubeconfigPath('')).rejects.toThrow(
+      'Kubeconfig path is empty'
+    );
+    await expect(
+      assertKubeconfigPath(path.delimiter + path.delimiter)
+    ).rejects.toThrow('Kubeconfig path is empty');
   });
 });
 

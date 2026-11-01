@@ -160,6 +160,61 @@ describe('useAsyncData', () => {
     expect(result.current.loading).toBe(false);
   });
 
+  it('ignores the answer of a request that a newer one replaced', async () => {
+    let finishFirst: (value: unknown) => void = () => {};
+    const fetchFn = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishFirst = resolve;
+          })
+      )
+      .mockResolvedValueOnce({ success: true, data: 'fresh' });
+    const { result } = renderHook(() => useAsyncData({ fetchFn }));
+
+    await act(async () => {
+      await result.current.refetch();
+    });
+    expect(result.current.data).toBe('fresh');
+
+    await act(async () => {
+      finishFirst({ success: true, data: 'stale' });
+    });
+    expect(result.current.data).toBe('fresh');
+    expect(result.current.loading).toBe(false);
+  });
+
+  it('ignores a failure of a request that a newer one replaced', async () => {
+    let failFirst: (err: Error) => void = () => {};
+    const fetchFn = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise((_, reject) => {
+            failFirst = reject;
+          })
+      )
+      .mockResolvedValueOnce({ success: true, data: 'fresh' });
+    const { result } = renderHook(() =>
+      useAsyncData({ fetchFn, errorTitle: 'Load Failed' })
+    );
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await result.current.refetch();
+    });
+    expect(result.current.data).toBe('fresh');
+
+    await act(async () => {
+      failFirst(new Error('stale failure'));
+    });
+    expect(result.current.error).toBeNull();
+    expect(result.current.data).toBe('fresh');
+    expect(result.current.loading).toBe(false);
+    expect(mockedHandleError).not.toHaveBeenCalled();
+  });
+
   it('skips the toast when shouldReport returns false', async () => {
     const fetchFn = vi.fn().mockResolvedValue({
       success: false,
@@ -243,6 +298,22 @@ describe('useAsyncData', () => {
       const initial = fetchFn.mock.calls.length;
       await vi.advanceTimersByTimeAsync(1000);
       expect(fetchFn.mock.calls.length).toBeGreaterThan(initial);
+    });
+
+    it('does not refresh while the fetch is switched off', async () => {
+      const fetchFn = vi.fn().mockResolvedValue({ success: true, data: 1 });
+      const { result } = renderHook(() =>
+        useAsyncData({
+          fetchFn,
+          autoRefreshInterval: 1000,
+          skipInitialFetch: true,
+        })
+      );
+
+      await vi.advanceTimersByTimeAsync(3000);
+      expect(fetchFn).not.toHaveBeenCalled();
+      expect(result.current.loading).toBe(false);
+      expect(result.current.data).toBeNull();
     });
   });
 });

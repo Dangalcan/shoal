@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, userEvent, waitFor, fireEvent } from '../utils';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  fireEvent,
+  within,
+} from '../utils';
 import { createMockElectronAPI } from '../utils/mocks';
 import { CreateCluster } from '../../pages/CreateCluster';
 
@@ -295,5 +302,54 @@ describe('CreateCluster Page', () => {
     expect(
       screen.getByRole('button', { name: /create cluster/i })
     ).not.toBeDisabled();
+  });
+
+  it('opens the install guide of the missing provider CLI', async () => {
+    mockApi.getToolStatus = vi
+      .fn()
+      .mockImplementation(async (tool: string) => ({
+        success: true,
+        data: { tool, installed: tool !== 'k3d', running: true },
+      }));
+    render(<CreateCluster />, { api: mockApi });
+
+    fireEvent.click(screen.getByRole('button', { name: /k3d/i }));
+    const panel = (await screen.findByText('k3d not found')).closest(
+      '[role="alert"]'
+    ) as HTMLElement;
+    fireEvent.click(
+      within(panel).getByRole('button', { name: 'Install instructions' })
+    );
+
+    expect(mockApi.openExternal).toHaveBeenCalledWith(
+      'https://k3d.io/stable/#installation'
+    );
+    expect(
+      screen.getByRole('button', { name: /create cluster/i })
+    ).toHaveAttribute('title', 'Install k3d first');
+  });
+
+  it('explains a missing Docker and opens its install guide', async () => {
+    mockApi.getToolStatus = vi
+      .fn()
+      .mockImplementation(async (tool: string) => ({
+        success: true,
+        data: { tool, installed: tool !== 'docker', running: true },
+      }));
+    render(<CreateCluster />, { api: mockApi });
+
+    const panel = (await screen.findByText('Docker not found')).closest(
+      '[role="alert"]'
+    ) as HTMLElement;
+    expect(panel).toHaveTextContent(
+      'kind runs the cluster nodes as Docker containers. Install Docker and make sure it is running.'
+    );
+    fireEvent.click(
+      within(panel).getByRole('button', { name: 'Install instructions' })
+    );
+
+    expect(mockApi.openExternal).toHaveBeenCalledWith(
+      'https://docs.docker.com/get-started/get-docker/'
+    );
   });
 });

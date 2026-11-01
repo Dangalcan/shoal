@@ -72,7 +72,7 @@ const PERMISSION_LABELS: Record<
 };
 
 export function PluginDetailModal({ entry, onClose }: PluginDetailModalProps) {
-  const { isInstalled, installedPlugin, installing, handleInstall } =
+  const { isInstalled, hasUpdate, installedPlugin, installing, handleInstall } =
     useInstallPlugin(entry.id, entry.name);
   const { purchasing, awaitingPayment, handlePurchase, cancelPurchase } =
     usePurchasePlugin(entry.id, entry.name);
@@ -225,6 +225,24 @@ export function PluginDetailModal({ entry, onClose }: PluginDetailModalProps) {
                 <ShoppingCart size={16} /> Buy again — ${entry.price}
               </button>
             </>
+          ) : hasUpdate ? (
+            // Same as the card: an installed plugin with a newer version
+            // in the marketplace offers the update, whatever its licence.
+            <button
+              className="btn btn--warning btn--full"
+              onClick={handleInstall}
+              disabled={installing}
+            >
+              {installing ? (
+                <>
+                  <span className="spinner spinner--small" /> Installing...
+                </>
+              ) : (
+                <>
+                  <Download size={16} /> Update
+                </>
+              )}
+            </button>
           ) : ownership === 'licensed' ? (
             <>
               <button

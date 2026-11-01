@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import {
   applyInitialTheme,
   readInitialTheme,
@@ -46,5 +46,24 @@ describe('applyInitialTheme', () => {
   it('defaults to light when nothing is saved and the system is light', () => {
     expect(applyInitialTheme()).toBe('light');
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+  });
+
+  it('follows the system when localStorage itself cannot be reached', () => {
+    localStorage.setItem(THEME_STORAGE_KEY, 'light');
+    vi.mocked(window.matchMedia).mockReturnValueOnce({
+      matches: true,
+    } as MediaQueryList);
+    const storage = vi
+      .spyOn(window, 'localStorage', 'get')
+      .mockImplementation(() => {
+        throw new DOMException('denied', 'SecurityError');
+      });
+
+    try {
+      expect(applyInitialTheme()).toBe('dark');
+      expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+    } finally {
+      storage.mockRestore();
+    }
   });
 });

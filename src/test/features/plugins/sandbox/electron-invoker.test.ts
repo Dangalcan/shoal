@@ -18,6 +18,7 @@ function mockElectron(overrides?: Partial<ElectronAPI>): {
     getPods: method('getPods'),
     getNamespaces: method('getNamespaces'),
     getLogs: method('getLogs'),
+    getPodMetrics: method('getPodMetrics'),
     describeResource: method('describeResource'),
     getResourceYaml: method('getResourceYaml'),
     deleteResource: method('deleteResource'),
@@ -78,6 +79,16 @@ describe('createElectronInvoker', () => {
       'getLogs-data'
     );
     expect(fns.getLogs).toHaveBeenCalledWith(arg);
+  });
+
+  it('routes kubernetes.getPodMetrics', async () => {
+    const { electron, fns } = mockElectron();
+    const invoke = createElectronInvoker(electron);
+    const arg = { contextName: 'c', namespace: 'n' };
+    await expect(invoke('kubernetes.getPodMetrics', [arg])).resolves.toBe(
+      'getPodMetrics-data'
+    );
+    expect(fns.getPodMetrics).toHaveBeenCalledWith(arg);
   });
 
   it('routes kubernetes.describeResource', async () => {

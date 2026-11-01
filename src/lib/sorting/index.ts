@@ -1,13 +1,40 @@
 import type { ResourceType } from '../resources/resource-definitions';
+import {
+  compareFieldValues,
+  getFieldColumn,
+  type FieldColumn,
+} from '../resources/field-columns';
 import type { SorterFunction } from './types';
 import * as Sorters from './resourceSorters';
 
 export * from './types';
 
 /**
- * Returns a sorter function for a given column and resource type
+ * Sorts by a field column's value (see `compareFieldValues`): the same value
+ * the cell shows, so the order matches what the table displays.
+ */
+const sortByFieldColumn =
+  (column: FieldColumn): SorterFunction =>
+  (a, b) =>
+    compareFieldValues(column.value(a), column.value(b));
+
+/**
+ * Returns a sorter function for a given column and resource type. A field
+ * column of the kind wins over the shared cases below, which assume the
+ * workload meaning of ids such as `available`.
  */
 export const getSorterForColumn = (
+  columnId: string,
+  resourceType: ResourceType
+): SorterFunction => {
+  const field = getFieldColumn(resourceType, columnId);
+  return field
+    ? sortByFieldColumn(field)
+    : getColumnSorter(columnId, resourceType);
+};
+
+/** The sorter of a column that is not a field column. */
+const getColumnSorter = (
   columnId: string,
   resourceType: ResourceType
 ): SorterFunction => {

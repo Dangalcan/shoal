@@ -53,6 +53,24 @@ describe('useClusterTabs', () => {
     expect(hidden.current.tabs.map((t) => t.id)).toEqual(['services', 'nodes']);
   });
 
+  it('ignores a stored kind that is no longer a tab', () => {
+    // Bindings used to be a tab (kubectl cannot list it); a profile that had
+    // it visible and active must land on a real tab.
+    window.localStorage.setItem(
+      'k8s_desktop_visible_resources',
+      JSON.stringify(['bindings', 'services'])
+    );
+    window.localStorage.setItem(
+      'cluster-tab-kind-dev',
+      JSON.stringify('bindings')
+    );
+    const { result } = renderHook(() => useClusterTabs('kind-dev'));
+
+    expect(result.current.activeTab).toBe('services');
+    expect(result.current.visibleResources).toEqual(['services']);
+    expect(result.current.tabs.map((t) => t.id)).toEqual(['services']);
+  });
+
   it('falls back to pods when nothing is visible', () => {
     window.localStorage.setItem('k8s_desktop_visible_resources', '[]');
     const { result } = renderHook(() => useClusterTabs('kind-dev'));

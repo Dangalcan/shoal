@@ -1,31 +1,13 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useAsyncData } from '../../hooks/useAsyncData';
-import { handleError } from '../../lib/error-handler';
 import { useApi } from '../../services/api-context';
+import { useClusterContext } from '../clusters/ClusterContext';
 import type { Manifest } from '../../types.d';
 import { useManifestFolders } from './useManifestFolders';
 import { useManifestEditor } from './useManifestEditor';
 import { useManifestImport } from './useManifestImport';
 import { useManifestActions } from './useManifestActions';
 import { useManifestFolderDialogs } from './useManifestFolderDialogs';
-
-/** The active kubectl context, read once; '' until it answers. */
-function useActiveContext(): string {
-  const api = useApi();
-  const [activeContext, setActiveContext] = useState<string>('');
-  useEffect(() => {
-    const fetchContext = async () => {
-      const result = await api.getCurrentContext();
-      if (result.success && result.data) {
-        setActiveContext(result.data);
-      }
-    };
-    fetchContext().catch((err) =>
-      handleError(err, 'Failed to read the current context')
-    );
-  }, [api]);
-  return activeContext;
-}
 
 /**
  * The manifest library page: the manifests of the current folder, the
@@ -61,8 +43,9 @@ export function useManifestsPage() {
     await Promise.all([fetchManifests(), refetchFolders()]);
   };
 
-  // New manifests are stored under the active context.
-  const activeContext = useActiveContext();
+  // New manifests are stored under the context the sidebar shows (known
+  // since start-up, updated on every switch), never a slower read of its own.
+  const { currentContext: activeContext } = useClusterContext();
 
   const editor = useManifestEditor({
     save: (editingId, form) =>

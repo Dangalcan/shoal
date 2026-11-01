@@ -194,4 +194,97 @@ describe('getSorterForColumn', () => {
       expect(sorter(a, b)).toBe(0);
     });
   });
+  describe('field columns', () => {
+    /** Sorts resources ascending, as the table does, and lists their names. */
+    const sortedNames = (
+      columnId: string,
+      resourceType: Parameters<typeof getSorterForColumn>[1],
+      items: K8sResource[]
+    ) =>
+      [...items]
+        .sort(getSorterForColumn(columnId, resourceType))
+        .map((item) => item.metadata.name);
+
+    it('sorts a numeric field numerically, missing values last', () => {
+      const names = sortedNames('value', 'priorityclass', [
+        makeResource('high', { value: 2000001000 }),
+        makeResource('none'),
+        makeResource('low', { value: 1000 }),
+        makeResource('mid', { value: 100000 }),
+      ]);
+      expect(names).toEqual(['low', 'mid', 'high', 'none']);
+    });
+
+    it('sorts a duration by its seconds, not its text', () => {
+      const names = sortedNames('duration', 'lease', [
+        makeResource('long', { spec: { leaseDurationSeconds: 120 } }),
+        makeResource('short', { spec: { leaseDurationSeconds: 15 } }),
+      ]);
+      expect(names).toEqual(['short', 'long']);
+    });
+
+    it('sorts a boolean field false before true', () => {
+      const names = sortedNames('suspend', 'cronjobs', [
+        makeResource('paused', { spec: { suspend: true } }),
+        makeResource('running', { spec: { suspend: false } }),
+        makeResource('default', { spec: {} }),
+      ]);
+      expect(names).toEqual(['running', 'default', 'paused']);
+    });
+
+    it('sorts the last-seen time chronologically', () => {
+      const names = sortedNames('last-seen', 'events', [
+        makeResource('latest', {
+          lastTimestamp: '2026-10-31T12:00:00Z',
+        }),
+        makeResource('earliest', {
+          lastTimestamp: '2026-10-30T09:00:00Z',
+        }),
+        makeResource('middle', {
+          eventTime: '2026-10-31T08:30:00.000000Z',
+        }),
+      ]);
+      expect(names).toEqual(['earliest', 'middle', 'latest']);
+    });
+
+    it('sorts a text field naturally', () => {
+      const names = sortedNames('reason', 'events', [
+        makeResource('e1', { reason: 'Pulled' }),
+        makeResource('e2', { reason: 'BackOff' }),
+        makeResource('e3'),
+        makeResource('e4', { reason: 'Created' }),
+      ]);
+      expect(names).toEqual(['e2', 'e4', 'e1', 'e3']);
+    });
+
+    it('sorts a snapshot size by bytes', () => {
+      const names = sortedNames('size', 'volumesnapshot', [
+        makeResource('big', { status: { restoreSize: '2Gi' } }),
+        makeResource('small', { status: { restoreSize: '500Mi' } }),
+      ]);
+      expect(names).toEqual(['small', 'big']);
+    });
+
+    it('takes the field over a shared case with the same id', () => {
+      // `available` means available replicas for workloads; an APIService
+      // sorts by its Available condition instead.
+      const names = sortedNames('available', 'apiservice', [
+        makeResource('up', {
+          status: { conditions: [{ type: 'Available', status: 'True' }] },
+        }),
+        makeResource('down', {
+          status: {
+            conditions: [
+              {
+                type: 'Available',
+                status: 'False',
+                reason: 'FailedDiscoveryCheck',
+              },
+            ],
+          },
+        }),
+      ]);
+      expect(names).toEqual(['down', 'up']);
+    });
+  });
 });

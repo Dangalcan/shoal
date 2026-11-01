@@ -29,6 +29,20 @@ describe('Card Component', () => {
     expect(container.firstChild).toHaveClass('custom-card-class');
   });
 
+  it('renders a header for an icon alone', () => {
+    const { container } = render(
+      <Card icon={<svg data-testid="card-icon" />}>Content</Card>
+    );
+    expect(screen.getByTestId('card-icon')).toBeInTheDocument();
+    expect(container.querySelector('.ui-card-header')).toBeInTheDocument();
+    expect(screen.queryByRole('heading')).toBeNull();
+  });
+
+  it('renders no header without title, action or icon', () => {
+    const { container } = render(<Card>Content</Card>);
+    expect(container.querySelector('.ui-card-header')).toBeNull();
+  });
+
   it('renders title and action together', () => {
     render(
       <Card title="Title" headerAction={<button>Action</button>}>

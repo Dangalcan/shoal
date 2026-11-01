@@ -417,4 +417,43 @@ describe('plugin sandbox bridge + sdk', () => {
     expect(posted).toEqual([]);
     expect(port.onmessage).toBeNull();
   });
+
+  it('drops the response of a call that finishes after disposal', async () => {
+    const posted: unknown[] = [];
+    const port: PortLike = {
+      onmessage: null,
+      postMessage: (m) => posted.push(m),
+      start: () => {},
+      close: () => {},
+    };
+    let finish!: (value: unknown) => void;
+    const invoke = vi.fn(
+      () =>
+        new Promise<unknown>((resolve) => {
+          finish = resolve;
+        })
+    );
+    const bridge = new PluginHostBridge(port, {
+      pluginId: 'p',
+      permissions: new Set<PluginPermission>(['kubernetes']),
+      invoke,
+    });
+    bridge.start();
+
+    port.onmessage?.({
+      data: {
+        kind: 'rpc-request',
+        id: 9,
+        method: 'kubernetes.getClusters',
+        args: [],
+      },
+    });
+    await vi.waitFor(() => expect(invoke).toHaveBeenCalled());
+
+    bridge.dispose();
+    finish(['c1']);
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(posted).toEqual([]);
+  });
 });

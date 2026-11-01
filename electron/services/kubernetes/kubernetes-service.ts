@@ -125,6 +125,22 @@ export function parseTopPodsOutput(
 /** Sanity cap to catch typos and hostile input; real clusters rarely need more. */
 const MAX_REPLICAS = 1000;
 
+/**
+ * Resource tabs whose rows are objects of another kind. Pod Security
+ * Admission has no API resource: it is configured through namespace labels,
+ * so its tab lists namespaces. Only reads (list, describe, YAML) go through
+ * an alias; delete, scale and edit never do, so a row of such a tab cannot
+ * remove the object behind it.
+ */
+const READ_ALIASES: Readonly<Record<string, string>> = {
+  podsecurityadmission: 'namespaces',
+};
+
+/** The kubectl resource type to read for a resource tab. */
+export function kubectlReadType(type: string): string {
+  return READ_ALIASES[type] ?? type;
+}
+
 export class KubernetesService {
   /**
    * Get resources of a specific type
@@ -146,7 +162,7 @@ export class KubernetesService {
         async () => {
           const { stdout } = await safeExec(
             'kubectl',
-            ['get', type, ...ctx, ...ns, '-o', 'json'],
+            ['get', kubectlReadType(type), ...ctx, ...ns, '-o', 'json'],
             { timeout: READ_TIMEOUT_MS }
           );
           const data = JSON.parse(stdout) as Record<string, unknown>;

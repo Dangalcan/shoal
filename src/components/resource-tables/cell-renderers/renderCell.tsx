@@ -13,6 +13,13 @@ import type {
   Service,
 } from '../../../types/k8s-types';
 import type { ResourceType } from '../../../lib/resources/resource-definitions';
+import {
+  fieldColumnText,
+  formatFieldValue,
+  getFieldColumn,
+  toFieldValue,
+  type FieldValue,
+} from '../../../lib/resources/field-columns';
 import { isRecord } from '../../../lib/type-guards';
 import { TextCell } from '../ResourceCells';
 import * as Cells from './index';
@@ -236,7 +243,9 @@ const CELLS_BY_TYPE: Partial<Record<ResourceType, CellMap>> = {
 };
 
 /**
- * Renders a cell based on column ID and resource type.
+ * Renders a cell based on column ID and resource type: a dedicated cell
+ * component, else a field column (`lib/resources/field-columns.ts`), else
+ * the generic fallback.
  */
 export const renderCell = ({
   colId,
@@ -246,40 +255,48 @@ export const renderCell = ({
 }: RenderCellOptions) => {
   const renderer = COMMON_CELLS[colId] ?? CELLS_BY_TYPE[resourceType]?.[colId];
   if (renderer) return renderer(resource, resourceType, style);
+  const field = getFieldColumn(resourceType, colId);
+  if (field) {
+    return (
+      <TextCell
+        key={colId}
+        content={fieldColumnText(field, resource)}
+        style={style}
+      />
+    );
+  }
   return renderGenericCell({ colId, resource, resourceType, style });
 };
 
 /**
- * Renders generic cells for columns that don't have dedicated components
- * This is a fallback for less common columns
+ * The first string, number or boolean named like the column on the
+ * resource, its spec or its status. Objects and lists never qualify: they
+ * need a field column of their own.
+ */
+function genericFieldValue(resource: K8sResource, colId: string): FieldValue {
+  for (const source of [resource, resource.spec, resource.status]) {
+    const value = isRecord(source) ? toFieldValue(source[colId]) : undefined;
+    if (value !== undefined) return value;
+  }
+  return undefined;
+}
+
+/**
+ * Fallback for columns added without a renderer or a field column: shows a
+ * same-named primitive field, else `-` (and warns in development).
  */
 function renderGenericCell({
   colId,
   resource,
   style,
 }: RenderCellOptions): React.ReactNode {
-  const res = resource as unknown as Record<string, unknown>;
-  const spec = isRecord(res.spec) ? res.spec : {};
-  const status = isRecord(res.status) ? res.status : {};
-
-  // Handle common properties dynamically if possible
-  if (colId in res) {
-    return <TextCell key={colId} content={String(res[colId])} style={style} />;
-  }
-  if (colId in spec) {
-    return <TextCell key={colId} content={String(spec[colId])} style={style} />;
-  }
-  if (colId in status) {
-    return (
-      <TextCell key={colId} content={String(status[colId])} style={style} />
-    );
-  }
-
-  // Return a placeholder for truly unknown columns
-  if (import.meta.env.DEV) {
+  const value = genericFieldValue(resource, colId);
+  if (value === undefined && import.meta.env.DEV) {
     console.warn(
-      `[renderCell] No renderer for column "${colId}" — add a case to renderCell.tsx`
+      `[renderCell] No renderer for column "${colId}" — add a case to renderCell.tsx or lib/resources/field-columns.ts`
     );
   }
-  return <TextCell key={colId} content="-" style={style} />;
+  return (
+    <TextCell key={colId} content={formatFieldValue(value)} style={style} />
+  );
 }

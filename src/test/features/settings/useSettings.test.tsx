@@ -129,4 +129,32 @@ describe('useSettings', () => {
     });
     expect(result.current.localSettingsSaved).toBe(false);
   });
+
+  it('stores the auto-refresh switch and flashes the saved indicator', async () => {
+    const { result } = renderSettings();
+    await waitFor(() => expect(api.getKubeconfigPath).toHaveBeenCalled());
+
+    act(() => {
+      result.current.setAutoRefresh(false);
+    });
+
+    expect(result.current.autoRefresh).toBe(false);
+    expect(result.current.localSettingsSaved).toBe(true);
+    expect(window.localStorage.getItem('k8s_desktop_auto_refresh')).toBe(
+      'false'
+    );
+  });
+
+  it('reports a kubeconfig path read that throws', async () => {
+    api.getKubeconfigPath.mockRejectedValue(new Error('bridge down'));
+    const { result } = renderSettings();
+
+    await waitFor(() =>
+      expect(mockToast.error).toHaveBeenCalledWith(
+        'Failed to read the kubeconfig path',
+        expect.objectContaining({ description: 'bridge down' })
+      )
+    );
+    expect(result.current.kubeconfigPath).toBe('');
+  });
 });

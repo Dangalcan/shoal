@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '../utils';
+import { render, screen, fireEvent, waitFor, mockToast } from '../utils';
 import { Sidebar } from '../../components/Sidebar';
 import { useTheme } from '../../hooks';
 import {
@@ -129,5 +129,25 @@ describe('Sidebar', () => {
       expect(window.electron.getAppVersion).toHaveBeenCalled()
     );
     expect(container.querySelector('.sidebar-version')).toHaveTextContent(/^$/);
+  });
+
+  it('reports a version request that throws', async () => {
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    vi.mocked(window.electron.getAppVersion).mockRejectedValueOnce(
+      new Error('ipc closed')
+    );
+
+    const { container } = render(<Sidebar />);
+
+    await waitFor(() =>
+      expect(mockToast.error).toHaveBeenCalledWith(
+        'Failed to read the app version',
+        expect.objectContaining({ description: 'ipc closed' })
+      )
+    );
+    expect(container.querySelector('.sidebar-version')).toHaveTextContent(/^$/);
+    consoleError.mockRestore();
   });
 });

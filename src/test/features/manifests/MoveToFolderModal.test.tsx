@@ -83,4 +83,21 @@ describe('MoveToFolderModal', () => {
     expect(screen.getByText('nginx').closest('button')).toBeDisabled();
     expect(screen.getByText('apps').closest('button')).not.toBeDisabled();
   });
+
+  it('lists each folder once when the stored tree loops back on itself', () => {
+    renderModal({
+      folders: [
+        makeFolder({ id: 1, name: 'infra' }),
+        makeFolder({ id: 2, name: 'apps', parent_id: 1 }),
+        // A corrupt row: folder 1 again, now under its own child.
+        makeFolder({ id: 1, name: 'infra-loop', parent_id: 2 }),
+      ],
+    });
+
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual([
+      'All Manifests',
+      'infra',
+      'apps',
+    ]);
+  });
 });

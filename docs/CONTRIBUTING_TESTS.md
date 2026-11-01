@@ -162,10 +162,19 @@ We maintain high standards for core logic. The thresholds live in
 `vitest.config.ts`, and CI runs `npm run test:coverage`, so a pull request
 that drops below any of them fails:
 
-- **Lines**: 90%
-- **Statements**: 90%
-- **Functions**: 90%
-- **Branches**: 80%
+- **Lines**: 97%
+- **Statements**: 97%
+- **Functions**: 97%
+- **Branches**: 95%
+
+They sit a few points under what the suite reaches (in November 2026:
+99.8% statements, 99.4% branches, 100% functions and lines), so they
+catch a change that arrives without tests rather than demand every last
+arm. The arms still uncovered are defensive checks no input can reach (a
+`?? ''` after `split()`, a guard on a button that is disabled under the
+same condition, a type-narrowing `if` on a value that is always set);
+cover a new one when a test can reach it, and do not bend a test to reach
+one that cannot.
 
 Every production file counts (`coverage.include` in `vitest.config.ts` lists
 `electron/**` and `src/**`), so a new page or IPC handler with no test drags

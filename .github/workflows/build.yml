@@ -225,14 +225,16 @@ jobs:
 
       - name: Smoke tests on the installed app (Windows, no clusters)
         if: runner.os == 'Windows'
-        # The Windows runner cannot run Linux containers, so the two specs
+        # The Windows runner cannot run Linux containers, so the three specs
         # that create kind clusters are left out.
         run: >-
           npx playwright test
           e2e/features/navigation.spec.ts
           e2e/features/first-run.spec.ts
+          e2e/features/settings.spec.ts
           e2e/features/terminal.spec.ts
           e2e/features/manifests.spec.ts
+          e2e/features/migration.spec.ts
           e2e/features/plugins.spec.ts
           e2e/features/sandbox-widget.spec.ts
           e2e/features/sandbox-theme.spec.ts

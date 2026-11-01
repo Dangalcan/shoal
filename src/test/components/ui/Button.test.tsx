@@ -22,6 +22,24 @@ describe('Button Component', () => {
     expect(document.querySelector('.animate-spin')).toBeInTheDocument();
   });
 
+  it('uses a smaller spinner for a small loading button', () => {
+    const { container, rerender } = render(
+      <Button loading size="sm">
+        Save
+      </Button>
+    );
+    expect(container.querySelector('.animate-spin')).toHaveAttribute(
+      'width',
+      '14'
+    );
+
+    rerender(<Button loading>Save</Button>);
+    expect(container.querySelector('.animate-spin')).toHaveAttribute(
+      'width',
+      '18'
+    );
+  });
+
   it('renders disabled state', () => {
     render(<Button disabled>Click me</Button>);
     expect(screen.getByRole('button')).toBeDisabled();
