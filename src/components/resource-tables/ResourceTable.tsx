@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import { activateOnKey } from '../../lib/a11y';
@@ -66,6 +66,13 @@ export const ResourceTable: React.FC<ResourceTableProps> = ({
   resizingId,
   children,
 }) => {
+  // The resize handle sits inside the header cell with its own aria-label,
+  // which the cell's name-from-content would swallow ("Name Resize Name
+  // column"); naming the cell by its label span keeps the name exactly the
+  // column label, which the e2e specs and screen readers rely on.
+  const labelIdBase = useId();
+  const labelId = (id: string) => `${labelIdBase}-${id}`;
+
   const onHandleKeyDown = (
     e: React.KeyboardEvent<HTMLDivElement>,
     col: ColumnDef,
@@ -95,6 +102,7 @@ export const ResourceTable: React.FC<ResourceTableProps> = ({
                     key={col.id}
                     className="table-head-cell"
                     style={{ width: `${width}px` }}
+                    aria-labelledby={labelId(col.id)}
                     onClick={() => onSort(col.id)}
                     onKeyDown={(e) => activateOnKey(e, () => onSort(col.id))}
                     tabIndex={0}
@@ -107,7 +115,7 @@ export const ResourceTable: React.FC<ResourceTableProps> = ({
                     }
                   >
                     <div className="table-head-cell-content">
-                      <span>{col.label}</span>
+                      <span id={labelId(col.id)}>{col.label}</span>
                       {isSorted &&
                         (sortConfig.direction === 'asc' ? (
                           <ChevronUp size={14} className="sort-icon" />
