@@ -332,12 +332,12 @@ describe('PluginManager with the real PluginLoader (in-process plugin)', () => {
     expect(probe('ticks')).toBe(0);
   });
 
-  // Still open in master: disablePlugin() during an activation runs
-  // deactivate() before activate() has started its timer, then the activation
-  // finishes, starts the interval and marks the plugin enabled although the
-  // registry has it disabled. The fix belongs to plugin-manager.ts (wait for
-  // or cancel the in-flight activation); unskip this test with it.
-  it.skip('disabling a plugin that is still activating stops the timer activate() goes on to start', async () => {
+  // #78: disablePlugin() during an activation used to run deactivate() before
+  // activate() had started its timer; the activation then finished, started
+  // the interval and marked the plugin enabled although the registry had it
+  // disabled. Now the disable flips the registry and the activation stops
+  // its own instance when it settles.
+  it('disabling a plugin that is still activating stops the timer activate() goes on to start', async () => {
     const { startup, cluster } = await startWithActivationInFlight(manager);
 
     await manager.disablePlugin(PLUGIN_ID);

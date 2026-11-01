@@ -32,6 +32,11 @@ All notable changes to Shoal are documented here. The format follows
 
 ### Fixed
 
+- Disabling a plugin while it is still activating (start-up waiting on
+  kubectl, a Disable click during a slow first cluster call) now leaves it
+  disabled: the activation stops the instance it started as soon as it
+  settles, instead of finishing into an enabled plugin with a running timer
+  while the Plugins page showed it disabled (#78).
 - The Manifests page shows why the library could not be loaded, with the
   database message and a Retry button, instead of the empty-library
   invitation to upload: a locked, corrupt or unreadable `manifests.db` no
