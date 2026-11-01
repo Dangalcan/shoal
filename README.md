@@ -106,7 +106,7 @@ Shoal drives your clusters through tools you install separately: **kubectl** (re
 
 ### Developer Tools
 
-- 🧪 Test suite with coverage thresholds enforced in CI (90% lines, 80% branches)
+- 🧪 Test suite with coverage thresholds enforced in CI (97% lines, 95% branches)
 - 📚 Detailed contribution guides
 - 🎯 Type-safe IPC communication
 - 🔧 Hot-reload development mode

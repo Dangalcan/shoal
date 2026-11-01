@@ -44,11 +44,13 @@ export default defineConfig({
       // Every production file counts, not only the ones a test happens to
       // import; the process entry points are exercised by the e2e suite.
       include: ['electron/**/*.ts', 'src/**/*.{ts,tsx}'],
+      // A ratchet a few points under what the suite reaches (all four at
+      // 99-100% in November 2026): room for a change, not for a regression.
       thresholds: {
-        lines: 90,
-        statements: 90,
-        functions: 90,
-        branches: 80,
+        lines: 97,
+        statements: 97,
+        functions: 97,
+        branches: 95,
       },
       exclude: [
         // Glob patterns: Vitest 5 no longer treats a bare directory
