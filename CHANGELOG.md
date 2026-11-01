@@ -16,6 +16,20 @@ All notable changes to Shoal are documented here. The format follows
   The width is kept like a dragged one, and no column goes below 50 px or
   above 1000 px, by mouse or keyboard.
 
+### Changed
+
+- The Linux AppImage is published as `Shoal-x86_64.AppImage`, without the
+  version in its name (`build.appImage.artifactName`). electron-updater
+  keeps the running file's name only when it contains no version number, so
+  from now on an update replaces the file in place and the desktop entries,
+  launchers and scripts that point at it keep working; until now every
+  update deleted the old file and left `Shoal-<new version>.AppImage`
+  beside it, which broke them. One-time effect: a `Shoal-0.9.1.AppImage`
+  (or older) that updates to this version becomes `Shoal-x86_64.AppImage`
+  in the same folder, so its shortcuts need one last fix, unless the file
+  was renamed to a name without a version number first, which the updater
+  keeps. The `.deb` is not affected (#31).
+
 ### Fixed
 
 - The Manifests page shows why the library could not be loaded, with the

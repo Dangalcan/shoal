@@ -47,7 +47,8 @@ newest **non** pre-release.
    named after the tag and uploads:
    - Windows: `Shoal-Setup-<version>.exe`, its `.blockmap`, the portable
      `Shoal-<version>-portable.exe`, `latest.yml`
-   - Linux: `Shoal-<version>.AppImage`, `shoal_<version>_amd64.deb`,
+   - Linux: `Shoal-x86_64.AppImage` (no version in the name, so updates
+     replace it in place), `shoal_<version>_amd64.deb`,
      `latest-linux.yml`
 
    Tag builds upload nothing as a workflow artifact: the `smoke` and `deb`
@@ -162,8 +163,9 @@ and uploaded to a draft. Used for `v0.9.0-rc.3` on 2026-10-24.
 4. The checks above (asar contents, `resources`, fuses), plus: the `sha512`
    in `latest.yml` and `latest-linux.yml` matches the installers
    (`openssl dgst -sha512 -binary <file> | openssl base64 -A`), the asar
-   `package.json` carries the tagged version, and `dpkg-deb --info` on the
-   `.deb` lists the expected dependencies. Run the E2E suite against the
+   `package.json` carries the tagged version, `latest-linux.yml` names
+   `Shoal-x86_64.AppImage` in `path` and `files`, and `dpkg-deb --info` on
+   the `.deb` lists the expected dependencies. Run the E2E suite against the
    packaged executable (`SHOAL_E2E_EXECUTABLE=release/win-unpacked/Shoal.exe
 npx playwright test`) in place of the Windows smoke job; the Linux smoke
    has no local substitute, so install the AppImage and the `.deb` on a Linux

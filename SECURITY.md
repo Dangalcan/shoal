@@ -15,7 +15,7 @@ The following versions of Shoal are currently supported with security updates:
 The 0.9 installers are **not code-signed**, so Windows SmartScreen warns on first start. Download them only from this repository's [Releases](https://github.com/Dangalcan/shoal/releases) page. To check a download, compare its SHA-512 with the one electron-builder publishes next to it: `latest.yml` lists the Windows installer, `latest-linux.yml` the AppImage. Both store the hash base64-encoded, so compute it the same way:
 
 ```bash
-openssl dgst -sha512 -binary Shoal-<version>.AppImage | base64 -w0
+openssl dgst -sha512 -binary Shoal-x86_64.AppImage | base64 -w0
 ```
 
 ```powershell
