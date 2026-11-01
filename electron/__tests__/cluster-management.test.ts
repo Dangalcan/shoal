@@ -1,4 +1,3 @@
-// @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ClusterManagementService } from '../services/cluster/cluster-management-service';
 import { safeExec } from '../utils/safe-exec';

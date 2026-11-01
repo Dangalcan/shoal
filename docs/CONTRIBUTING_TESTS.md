@@ -36,6 +36,14 @@ electron/__tests__/   # Main-process service and IPC tests (node environment)
 e2e/                  # Playwright End-to-End tests
 ```
 
+`vitest.config.ts` runs the unit tests as two projects: `electron` covers
+`electron/**` on plain Node with no setup file, and `src` covers `src/**` on
+jsdom with `src/test/setup.ts` (the jest-dom matchers, the `sonner` mock,
+`window.electron` from `createMockElectronAPI()`, cleanup after each test).
+A main-process test never boots a DOM; a renderer-side test that needs plain
+Node opts out per file with a `// @vitest-environment node` docblock.
+`npx vitest --run --project electron` (or `src`) runs one project alone.
+
 ---
 
 ## Writing Component & Hook Tests

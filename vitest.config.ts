@@ -14,8 +14,30 @@ export default defineConfig({
       '**/.*/**',
     ],
     globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
+    // One project per process. The main-process tests need only Node, so
+    // they skip the jsdom boot (the largest cost of a run) and the renderer
+    // setup file; the renderer tests keep jsdom and the shared setup. Both
+    // inherit everything else from this config (`extends: true`); coverage
+    // is read from the root only and spans both projects.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'electron',
+          include: ['electron/**/*.test.ts'],
+          environment: 'node',
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'src',
+          include: ['src/**/*.test.{ts,tsx}'],
+          environment: 'jsdom',
+          setupFiles: ['./src/test/setup.ts'],
+        },
+      },
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
