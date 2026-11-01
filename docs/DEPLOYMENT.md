@@ -11,7 +11,16 @@ This guide covers building and distributing Shoal for production environments.
   node-pty only for Windows and macOS, so the Linux build compiles it
   (`npm run rebuild:node-pty`, part of `build:linux` and of the Linux
   release job). The project `.npmrc` turns dependency install scripts off,
-  so `npm ci` compiles nothing (npm/cli#9837).
+  so `npm ci` compiles nothing (npm/cli#9837). `build.files` keeps only
+  the prebuild of the platform being built:
+  `!node_modules/node-pty/prebuilds/!(${os}32-${arch})/**` expands to
+  `!(win32-x64)` on Windows (that prebuild stays, darwin and arm64 go) and
+  to `!(linux32-x64)` on Linux (every prebuild goes; the compiled
+  `build/Release/pty.node` ships instead). electron-builder expands
+  `${os}` to `win`, `linux` or `mac` and `${arch}` to `x64` in file
+  patterns. Do not move such rules into a platform-level `files` array:
+  one made of exclusions alone makes electron-builder pack the whole
+  project directory into `app.asar`.
 - No platform-specific tools: electron-builder downloads what it needs
   (NSIS on Windows, its packaging tools for the AppImage and the `.deb` on
   Linux). Each platform is built on its own OS; the CI runners are

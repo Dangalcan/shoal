@@ -146,7 +146,7 @@
       "!node_modules/node-pty/binding.gyp",
       "!node_modules/node-pty/lib/*.test.js",
       "!node_modules/node-pty/lib/*.test.js.map",
-      "!node_modules/node-pty/prebuilds/{darwin-*,win32-arm64}/**",
+      "!node_modules/node-pty/prebuilds/!(${os}32-${arch})/**",
       "!node_modules/node-pty/prebuilds/**/*.pdb"
     ],
     "asarUnpack": [
