@@ -25,6 +25,22 @@ function findInPath(exe: string): string | null {
   return null;
 }
 
+/**
+ * Full path of a program found on PATH, or null. child_process.spawn does
+ * this lookup itself; node-pty does not add `.exe` to a bare name on
+ * Windows (its ConPTY loader reports "File not found" for `kubectl` while
+ * kubectl.exe sits on PATH), so a pseudo-terminal spawn needs the path.
+ */
+export function findExecutable(name: string): string | null {
+  const candidates =
+    process.platform === 'win32' ? [`${name}.exe`, name] : [name];
+  for (const candidate of candidates) {
+    const found = findInPath(candidate);
+    if (found) return found;
+  }
+  return null;
+}
+
 function firstExisting(candidates: string[]): string | null {
   for (const candidate of candidates) {
     if (existsSync(candidate)) return candidate;

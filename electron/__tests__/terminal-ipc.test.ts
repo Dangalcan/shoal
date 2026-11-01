@@ -67,6 +67,11 @@ vi.mock('../services/terminal/local-shells', () => ({
         };
   }),
   getTerminalCwd: vi.fn(() => '/tmp/shoal-terminal'),
+  // node-pty needs kubectl's full path (it does not add .exe to a bare
+  // name on Windows); child_process.spawn resolves PATH itself.
+  findExecutable: vi.fn((name: string) =>
+    name === 'kubectl' ? 'C:/tools/kubectl.exe' : null
+  ),
 }));
 
 type IpcHandler = (
@@ -267,7 +272,7 @@ describe('terminal-ipc', () => {
       });
       expect(spawn).not.toHaveBeenCalled();
       expect(ptySpawn).toHaveBeenCalledWith(
-        'kubectl',
+        'C:/tools/kubectl.exe',
         [
           'exec',
           '-it',

@@ -7,6 +7,7 @@ import {
   assertResourceName,
 } from './ipc-utils';
 import {
+  findExecutable,
   getDefaultShellId,
   getLocalShells,
   getTerminalCwd,
@@ -77,8 +78,10 @@ export function registerTerminalIpcHandlers(): void {
         const { kind } = args;
 
         let file: string;
-        // Arguments on pipes, and in a pseudo-terminal (they differ for
-        // kubectl, which takes `-t` only when its stdin is a terminal).
+        // Program and arguments in a pseudo-terminal; they differ for
+        // kubectl, which takes `-t` only when its stdin is a terminal and
+        // which node-pty cannot find by its bare name on Windows.
+        let ptyFile: string;
         let spawnArgs: string[];
         let ptyArgs: string[];
         let cwd: string | undefined;
@@ -91,6 +94,7 @@ export function registerTerminalIpcHandlers(): void {
           // allowlist — never an arbitrary executable path.
           const localShell = resolveLocalShell(args.shell);
           file = localShell.file;
+          ptyFile = file;
           spawnArgs = [...localShell.args];
           ptyArgs = spawnArgs;
           cwd = getTerminalCwd();
@@ -113,6 +117,7 @@ export function registerTerminalIpcHandlers(): void {
           // same as safe-exec). No cmd.exe: /c re-parses metacharacters,
           // which would turn renderer input into host command injection.
           file = 'kubectl';
+          ptyFile = findExecutable(file) ?? file;
           const execArgs = [
             podName,
             '-n',
@@ -163,7 +168,7 @@ export function registerTerminalIpcHandlers(): void {
         let session: TerminalSession | null = spawnPtySession(
           {
             sessionId,
-            file,
+            file: ptyFile,
             args: ptyArgs,
             cwd: cwd ?? getTerminalCwd(),
             cols,

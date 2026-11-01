@@ -3,6 +3,7 @@ import { existsSync } from 'fs';
 import os from 'os';
 import path from 'path';
 import {
+  findExecutable,
   getLocalShells,
   getDefaultShellId,
   resolveLocalShell,
@@ -52,6 +53,18 @@ describe('local-shells', () => {
     expect(() => resolveLocalShell('/bin/sh; rm -rf /')).toThrow(
       /Unknown or unavailable shell/
     );
+  });
+
+  it('finds a program on PATH by its bare name, with .exe on Windows', () => {
+    const name = process.platform === 'win32' ? 'cmd' : 'sh';
+    const found = findExecutable(name);
+    expect(found).not.toBeNull();
+    expect(path.isAbsolute(found!)).toBe(true);
+    expect(existsSync(found!)).toBe(true);
+    if (process.platform === 'win32') {
+      expect(found!.toLowerCase().endsWith('cmd.exe')).toBe(true);
+    }
+    expect(findExecutable('shoal-no-such-program-xyz')).toBeNull();
   });
 
   it('returns the home directory as the terminal cwd', () => {
