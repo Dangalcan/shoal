@@ -64,6 +64,8 @@ export function Manifests() {
         folderItemCounts={page.folderItemCounts}
         manifests={page.visibleManifests}
         loading={page.loading && page.manifests.length === 0}
+        error={page.loadError}
+        onRetry={page.retryLoad}
         isEmpty={page.isEmpty}
         currentFolderId={folders.currentFolderId}
         importer={importer}

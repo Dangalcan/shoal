@@ -13,6 +13,10 @@ export interface UseManifestFoldersOptions {
 export interface UseManifestFoldersResult {
   folders: ManifestFolder[];
   foldersLoading: boolean;
+  /** Message of the last failed folder load; null once a load succeeds. */
+  foldersError: string | null;
+  /** Loads the folder list again, keeping the current list until it answers. */
+  refetchFolders: () => Promise<void>;
   currentFolderId: number | null;
   currentFolder: ManifestFolder | null;
   /** Path from the root to the current folder (root itself excluded). */
@@ -44,6 +48,7 @@ export function useManifestFolders(
   const {
     data: foldersData,
     loading: foldersLoading,
+    error: foldersError,
     refetch: refetchFolders,
   } = useAsyncData<ManifestFolder[]>({
     fetchFn: () => api.getManifestFolders(),
@@ -161,6 +166,8 @@ export function useManifestFolders(
   return {
     folders,
     foldersLoading,
+    foldersError,
+    refetchFolders,
     currentFolderId,
     currentFolder,
     breadcrumbs,
