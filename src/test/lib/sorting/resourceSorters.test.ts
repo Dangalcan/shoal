@@ -420,6 +420,27 @@ describe('resourceSorters', () => {
       expect(sortByRestarts(fresh, restarted)).toBe(-2);
     });
 
+    it('sortByRestarts counts a container status without restartCount as 0', () => {
+      // A partial status used to make the sum NaN, so the pod sorted as 0
+      // whatever its other containers had restarted.
+      const partial = createPod({
+        status: { containerStatuses: [{ restartCount: 3 }, {}] },
+      });
+      const restarted = createPod({
+        status: { containerStatuses: [{ restartCount: 2 }] },
+      });
+      expect(sortByRestarts(partial, restarted)).toBe(1);
+    });
+
+    it('sortByNode sorts a resource whose spec is null without throwing', () => {
+      const nullSpec = { metadata: createMeta('p'), spec: null } as any;
+      const scheduled = createPod({
+        spec: { nodeName: 'node-a', containers: [] },
+      });
+      expect(sortByNode(nullSpec, scheduled)).toBeLessThan(0);
+      expect(sortByNode(scheduled, nullSpec)).toBeGreaterThan(0);
+    });
+
     it('sortByIP puts a pod whose podIP is still empty first', () => {
       const unassigned = createPod({ status: { podIP: '' } });
       const assigned = createPod({ status: { podIP: '10.0.0.1' } });

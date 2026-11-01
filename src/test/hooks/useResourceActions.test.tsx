@@ -131,10 +131,14 @@ describe('useResourceActions', () => {
       .mock.calls.map((call) => call[1]);
     expect(one).toEqual(
       expect.objectContaining({
+        loadingMessage: 'Scaling deployments/web to 1 replica...',
         successMessage: 'Scaled to 1 replica',
         errorTitle: 'Failed to scale resource',
         onSuccess: onActionComplete,
       })
+    );
+    expect(several?.loadingMessage).toBe(
+      'Scaling deployments/web to 3 replicas...'
     );
     expect(several?.successMessage).toBe('Scaled to 3 replicas');
   });

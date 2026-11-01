@@ -68,6 +68,7 @@ export function useResourceActions(
   const handleScale = useCallback(
     async (resName: string, ns: string, type: string, replicas: number) => {
       if (!contextName) return;
+      const count = `${replicas} replica${replicas === 1 ? '' : 's'}`;
 
       await handleAsyncOperation(
         () =>
@@ -79,8 +80,8 @@ export function useResourceActions(
             replicas,
           }),
         {
-          loadingMessage: `Scaling ${type}/${resName} to ${replicas} replicas...`,
-          successMessage: `Scaled to ${replicas} replica${replicas === 1 ? '' : 's'}`,
+          loadingMessage: `Scaling ${type}/${resName} to ${count}...`,
+          successMessage: `Scaled to ${count}`,
           errorTitle: 'Failed to scale resource',
           onSuccess: onActionComplete,
         }
