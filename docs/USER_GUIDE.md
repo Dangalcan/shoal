@@ -76,6 +76,7 @@ Navigate to **"Clusters"** in the sidebar to see a list of your connected cluste
 
 - **Namespace Filter**: Use the dropdown at the top to filter resources by namespace (e.g., `default`, `kube-system`). The namespace selected on start comes from **Default Namespace** in Settings.
 - **Resource Tabs**: Switch between the resource kinds: workloads (Pods, Deployments, ReplicaSets, DaemonSets, StatefulSets, Jobs, CronJobs), networking (Services, Ingresses, EndpointSlices, NetworkPolicies), configuration (ConfigMaps, Secrets, ServiceAccounts), storage (PVs, PVCs, StorageClasses), RBAC, cluster objects (Nodes, Events, CRDs) and more. The gear button lets you hide tabs and columns you do not use.
+- **Columns**: Click a header to sort by that column (again to reverse the order) and drag the handle on its right edge to change its width; Shoal remembers the widths. From the keyboard, Tab moves through the headers (Enter or Space sorts) and the resize handle that follows each one: Left and Right change the width by 10 px, by 50 px with Shift, and Home restores the default width.
 - **Refresh**: Tables refresh on their own at the interval set in Settings (**Auto-Refresh Data**), or on demand with the refresh button.
 
 ### Resource Actions

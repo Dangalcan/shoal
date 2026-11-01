@@ -20,6 +20,7 @@ interface ClusterResourceDisplayProps {
   onSort: (key: string) => void;
   getColumnWidth: (id: string, defWidth: number) => number;
   onResize: (e: React.MouseEvent, id: string, currentWidth: number) => void;
+  onResizeTo: (id: string, width: number) => void;
   resizingId: string | null;
   onDescribe: (item: K8sResource) => void;
   onYaml: (item: K8sResource) => void;
@@ -44,6 +45,7 @@ export const ClusterResourceDisplay: React.FC<ClusterResourceDisplayProps> = ({
   onSort,
   getColumnWidth,
   onResize,
+  onResizeTo,
   resizingId,
   onDescribe,
   onYaml,
@@ -94,6 +96,7 @@ export const ClusterResourceDisplay: React.FC<ClusterResourceDisplayProps> = ({
         onSort={onSort}
         getColumnWidth={getColumnWidth}
         onResize={onResize}
+        onResizeTo={onResizeTo}
         resizingId={resizingId}
       >
         {sortedItems.map((item, idx) => (
