@@ -805,6 +805,39 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
 
       expect(nameTh).toHaveStyle({ width: '300px' });
     });
+
+    it('resizes columns from the keyboard and keeps the width', async () => {
+      renderPage();
+      await waitFor(() => expect(screen.getByText('Name')).toBeInTheDocument());
+      const nameTh = screen.getByText('Name').closest('th')!;
+      const handle = within(nameTh).getByRole('separator', {
+        name: 'Resize Name column',
+      });
+
+      handle.focus();
+      expect(handle).toHaveFocus();
+      fireEvent.keyDown(handle, { key: 'ArrowRight' });
+      fireEvent.keyDown(handle, { key: 'ArrowRight' });
+      expect(nameTh).toHaveStyle({ width: '220px' });
+      expect(handle).toHaveAttribute('aria-valuenow', '220');
+
+      fireEvent.keyDown(handle, { key: 'ArrowLeft', shiftKey: true });
+      expect(nameTh).toHaveStyle({ width: '170px' });
+      expect(
+        JSON.parse(window.localStorage.getItem('columnWidths')!)
+      ).toMatchObject({ name: 170 });
+
+      // Never below the 50 px floor; Home restores the default width.
+      for (let i = 0; i < 4; i++) {
+        fireEvent.keyDown(handle, { key: 'ArrowLeft', shiftKey: true });
+      }
+      expect(nameTh).toHaveStyle({ width: '50px' });
+      fireEvent.keyDown(handle, { key: 'Home' });
+      expect(nameTh).toHaveStyle({ width: '200px' });
+
+      // The keys stayed on the handle: the header cell did not sort.
+      expect(nameTh).toHaveAttribute('aria-sort', 'none');
+    });
   });
 
   describe('Status Badge Edge Cases', () => {

@@ -3,6 +3,18 @@ import { useLocalStorage } from './useLocalStorage';
 
 import type { SortConfig } from '../lib/sorting/types';
 
+/** A column is never narrower than this, by mouse or keyboard... */
+export const MIN_COLUMN_WIDTH = 50;
+/** ...nor wider. Both bound the resize handles' `aria-value*` too. */
+export const MAX_COLUMN_WIDTH = 1000;
+
+export function clampColumnWidth(width: number): number {
+  return Math.min(
+    MAX_COLUMN_WIDTH,
+    Math.max(MIN_COLUMN_WIDTH, Math.round(width))
+  );
+}
+
 interface TableStateResult {
   sortConfig: SortConfig | null;
   handleSort: (key: string) => void;
@@ -39,8 +51,10 @@ export function useTableState(
     Record<string, number>
   >('columnWidths', {});
 
+  // Every resize, dragged or keyed, lands here, so the bounds apply once.
   const handleResize = (columnId: string, width: number) => {
-    setColumnWidths((prev) => ({ ...prev, [columnId]: width }));
+    const clamped = clampColumnWidth(width);
+    setColumnWidths((prev) => ({ ...prev, [columnId]: clamped }));
   };
 
   const getColumnWidth = (id: string, defWidth: number) => {
@@ -94,8 +108,7 @@ export function useTableState(
 
     const handleMouseMove = (e: MouseEvent) => {
       const delta = e.clientX - resizing.startX;
-      const newWidth = Math.max(50, resizing.startWidth + delta);
-      handleResize(resizing.id, newWidth);
+      handleResize(resizing.id, resizing.startWidth + delta);
     };
 
     const handleMouseUp = () => setResizing(null);
