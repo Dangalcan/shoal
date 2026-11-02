@@ -94,6 +94,20 @@ All notable changes to Shoal are documented here. The format follows
   inside a collapsed category (Storage, Configuration, Access Control and
   Advanced start collapsed), instead of leaving them hidden under it.
 
+### Security
+
+- A plugin that fails its signature check no longer runs. Installed builds
+  listed such a plugin as an error, but its card kept the Enable button and
+  clicking it ran the plugin's code; a plugin saved as enabled whose files
+  had changed also started by itself on the next launch. Now Enable, Reload
+  and start-up all refuse it, the button is off, and the files are verified
+  again right before their code loads. Plugins imported through the app were
+  already checked first, so this needed a folder placed in the plugins
+  directory by hand or a changed file. A plugin folder must also be named
+  after its plugin id: activation finds the files through the id, so a folder
+  under another name could have its signature checked while the code of
+  another folder ran.
+
 ## [0.9.1] - 2026-10-31
 
 Same-day follow-up to 0.9.0: the Linux package pulls in the libraries it

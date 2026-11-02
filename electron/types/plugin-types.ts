@@ -248,6 +248,13 @@ export interface Plugin {
   latestVersion?: string;
   /** Shipped with the app: can be disabled, never uninstalled. */
   bundled?: boolean;
+  /**
+   * Refused at discovery (invalid manifest, failed signature, files outside
+   * its folder): listed so the user sees why, but its code never runs. A
+   * plugin that fails in activate() has `state: 'error'` without this flag
+   * and may be enabled again.
+   */
+  loadFailed?: boolean;
 
   // Lifecycle hooks
   beforeActivate?: (context: PluginContext) => Promise<void>;

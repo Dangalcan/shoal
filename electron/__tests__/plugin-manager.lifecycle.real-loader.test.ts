@@ -349,4 +349,75 @@ describe('PluginManager with the real PluginLoader (in-process plugin)', () => {
     await vi.advanceTimersByTimeAsync(TICK_MS * 3);
     expect(probe('ticks')).toBe(0);
   });
+
+  // The signature is only a boundary if nothing starts what discovery refused:
+  // 0.9.1 listed an unsigned plugin as an error and then ran it on Enable.
+  describe('a plugin that fails its signature check', () => {
+    function expectRefused() {
+      const plugin = manager.getPlugin(PLUGIN_ID);
+      expect(plugin?.state).toBe('error');
+      expect(plugin?.loadFailed).toBe(true);
+      expect(plugin?.error).toContain('not signed');
+      expect(probe('activations')).toBe(0);
+      expect(pluginLoader['localHandles'].has(PLUGIN_ID)).toBe(false);
+    }
+
+    beforeEach(() => {
+      vi.stubEnv('ALLOW_UNSIGNED_PLUGINS', 'false');
+    });
+
+    it('Enable refuses it without running it or saving it as enabled', async () => {
+      await manager.initialize();
+
+      await expect(manager.enablePlugin(PLUGIN_ID)).rejects.toThrow(
+        'not signed'
+      );
+
+      expectRefused();
+      expect(pluginRegistry.isPluginEnabled(PLUGIN_ID)).toBe(false);
+    });
+
+    it('start-up does not run it when it was saved as enabled', async () => {
+      writeConfig({ [PLUGIN_ID]: { enabled: true, settings: {} } });
+
+      await manager.initialize();
+
+      expectRefused();
+    });
+
+    it('Reload refuses it', async () => {
+      await manager.initialize();
+
+      await expect(manager.reloadPlugin(PLUGIN_ID)).rejects.toThrow(
+        'not signed'
+      );
+
+      expectRefused();
+    });
+
+    it('Disable clears the saved flag and the card keeps saying why', async () => {
+      writeConfig({ [PLUGIN_ID]: { enabled: true, settings: {} } });
+      await manager.initialize();
+
+      await manager.disablePlugin(PLUGIN_ID);
+
+      expectRefused();
+      expect(probe('deactivations')).toBe(0);
+      expect(pluginRegistry.isPluginEnabled(PLUGIN_ID)).toBe(false);
+    });
+
+    it('Enable refuses files that stopped verifying after discovery', async () => {
+      vi.stubEnv('ALLOW_UNSIGNED_PLUGINS', 'true');
+      await manager.initialize();
+      expect(manager.getPlugin(PLUGIN_ID)?.state).toBe('disabled');
+      vi.stubEnv('ALLOW_UNSIGNED_PLUGINS', 'false');
+
+      await expect(manager.enablePlugin(PLUGIN_ID)).rejects.toThrow(
+        'not signed'
+      );
+
+      expect(manager.getPlugin(PLUGIN_ID)?.state).toBe('error');
+      expect(probe('activations')).toBe(0);
+    });
+  });
 });
