@@ -55,5 +55,5 @@ jobs:
 
       - name: Unit & integration tests
         # With coverage: the job fails if a threshold in vitest.config.ts
-        # (90 lines/statements/functions, 80 branches) drops.
+        # (97 lines/statements/functions, 95 branches) drops.
         run: npm run test:coverage

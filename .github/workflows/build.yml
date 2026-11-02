@@ -217,6 +217,18 @@ jobs:
         with:
           install_only: true
 
+      # The migration spec converts a real compose file where kompose is there.
+      # The Windows runner stays without it, for the "kompose not found" case.
+      - name: Install kompose (Linux)
+        if: runner.os == 'Linux'
+        env:
+          KOMPOSE_VERSION: v1.38.0
+          KOMPOSE_SHA256: 65a6a720605bead3964e8b22d423a0763de451a236fe03de902e366cf3d9c147
+        run: |
+          curl -fsSL -o kompose "https://github.com/kubernetes/kompose/releases/download/$KOMPOSE_VERSION/kompose-linux-amd64"
+          echo "$KOMPOSE_SHA256  kompose" | sha256sum -c -
+          sudo install -m 755 kompose /usr/local/bin/kompose
+
       - name: Install kubectl (Windows)
         if: runner.os == 'Windows'
         # The first-run spec needs kubectl on the PATH. Third-party action in
