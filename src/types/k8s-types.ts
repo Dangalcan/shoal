@@ -43,6 +43,7 @@ export interface K8sResource<TSpec = unknown, TStatus = unknown> {
 export interface ContainerStatus {
   name: string;
   ready: boolean;
+  started?: boolean;
   restartCount: number;
   image: string;
   imageID?: string;
@@ -53,12 +54,18 @@ export interface ContainerStatus {
 export interface ContainerState {
   waiting?: { reason?: string; message?: string };
   running?: { startedAt?: string };
-  terminated?: { exitCode?: number; reason?: string; message?: string };
+  terminated?: {
+    exitCode?: number;
+    signal?: number;
+    reason?: string;
+    message?: string;
+  };
 }
 
 export interface Container {
   name: string;
   image: string;
+  restartPolicy?: string;
   ports?: ContainerPort[];
   env?: EnvVar[];
   resources?: ResourceRequirements;
@@ -137,6 +144,7 @@ export interface ReadinessGate {
 
 export interface PodStatus {
   phase: string;
+  reason?: string;
   conditions?: PodCondition[];
   podIP?: string;
   hostIP?: string;

@@ -3,6 +3,10 @@ import { BaseModal } from './BaseModal';
 import { useApi } from '../../services/api-context';
 import { useAsyncData } from '../../hooks/useAsyncData';
 import { StatusBadge } from '../ui';
+import {
+  getPodStatus,
+  getStatusVariant,
+} from '../../lib/resources/resource-status';
 import type { Pod } from '../../types/k8s-types';
 import type { Result } from '../../types/result';
 
@@ -70,8 +74,7 @@ export function PodViewerModal({
             </thead>
             <tbody className="modal-table-body">
               {pods.map((pod, idx) => {
-                const status = pod.status?.phase ?? 'Unknown';
-                const isRunning = status === 'Running';
+                const status = getPodStatus(pod);
                 const readyCount =
                   pod.status?.containerStatuses?.filter((s) => s.ready)
                     .length || 0;
@@ -87,7 +90,7 @@ export function PodViewerModal({
                     <td>
                       <StatusBadge
                         label={status}
-                        variant={isRunning ? 'success' : 'warning'}
+                        variant={getStatusVariant(status, 'pods')}
                       />
                     </td>
                     <td className="modal-mono-cell">
