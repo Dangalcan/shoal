@@ -18,7 +18,6 @@ import type {
   PluginModuleHandle,
   PluginModuleInvokeOptions,
 } from './module-handle';
-import { pluginEventBus } from '../plugin-events';
 import { getErrorMessage } from '../../../utils/error-utils';
 import log from '../../../logger';
 import { hostEnvironment } from './host-environment';
