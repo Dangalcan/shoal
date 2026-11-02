@@ -84,6 +84,9 @@ describe('PluginConfigurationForm', () => {
     );
     expect(screen.getByLabelText('Level').tagName).toBe('SELECT');
     expect(screen.getByLabelText('Tags 1')).toHaveValue('alpha');
+    expect(
+      screen.getByRole('button', { name: 'Remove Tags item 1' })
+    ).toBeInTheDocument();
   });
 
   it('renders one control per field type', () => {
@@ -177,8 +180,8 @@ describe('PluginConfigurationForm', () => {
     const items = screen.getAllByDisplayValue(/^(old|)$/);
     fireEvent.change(items[1], { target: { value: 'blue' } });
     // Remove the first ("old") and the empty last one.
-    fireEvent.click(screen.getAllByRole('button', { name: '×' })[2]);
-    fireEvent.click(screen.getAllByRole('button', { name: '×' })[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Tags item 3' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Tags item 1' }));
 
     save();
 

@@ -368,9 +368,7 @@ describe('LogViewerModal snapshot edge cases', () => {
     });
     expect(content).toHaveTextContent('No matches found.');
 
-    const clear = document.querySelector<HTMLButtonElement>('.search-clear');
-    expect(clear).not.toBeNull();
-    fireEvent.click(clear!);
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filter' }));
 
     expect(screen.getByLabelText('Filter logs')).toHaveValue('');
     expect(content).toHaveTextContent('first line second line');
