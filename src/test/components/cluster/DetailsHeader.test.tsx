@@ -11,7 +11,7 @@ describe('DetailsHeader', () => {
 
   it('navigates back when the back button is clicked', () => {
     render(<DetailsHeader name="test-cluster" />);
-    const backButton = screen.getByRole('button');
+    const backButton = screen.getByRole('button', { name: 'Go back' });
     fireEvent.click(backButton);
     // Since we use useNavigate(-1), we can't easily verify the navigation in this unit test
     // without spying on the internal navigate function, but customRender uses MemoryRouter.

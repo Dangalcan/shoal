@@ -243,6 +243,7 @@ export function PluginConfigurationForm({
                 />
                 <button
                   type="button"
+                  aria-label={`Remove ${property.label} item ${index + 1}`}
                   onClick={() => {
                     const newItems = items.filter((_, i) => i !== index);
                     handleChange(key, newItems, property);
