@@ -6,7 +6,7 @@
  * same rules; execution goes through utils/safe-exec.ts (execFile, no shell).
  */
 
-import type { IpcMainInvokeEvent } from 'electron';
+import type { IpcMainInvokeEvent, WebContents } from 'electron';
 import { getErrorMessage } from '../utils/error-utils';
 import log from '../logger';
 
@@ -46,6 +46,22 @@ export function redactForLog(value: unknown, depth = 0): unknown {
     return `${value.slice(0, MAX_LOGGED_STRING)}... (${value.length} chars)`;
   }
   return value;
+}
+
+/**
+ * Calls `stop` whenever the renderer behind `sender` goes away: a reload, a
+ * crash or a closed window. A reload starts a new main-frame document; hash
+ * route changes are same-document navigations and do not count.
+ */
+export function onRendererUnload(
+  sender: WebContents,
+  stop: (why: string) => void
+): void {
+  sender.on('did-start-navigation', (details) => {
+    if (details.isMainFrame && !details.isSameDocument) stop('Reload');
+  });
+  sender.on('render-process-gone', () => stop('Renderer gone'));
+  sender.once('destroyed', () => stop('Window closed'));
 }
 
 export const wrapIpcHandler = <T>(

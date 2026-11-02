@@ -210,9 +210,37 @@ describe('PluginLoader', () => {
       };
 
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(manifest));
-      const p = await loader.loadPluginFromDirectory('/p');
+      const p = await loader.loadPluginFromDirectory('/p1');
       expect(p?.state).toBe('error');
       expect(p?.error).toBe('refused: no signature file');
+      expect(p?.loadFailed).toBe(true);
+    });
+
+    it('should refuse a folder that is not named after the plugin id', async () => {
+      const { signatureService } =
+        await import('../services/security/signature-service');
+      vi.mocked(signatureService.checkPlugin).mockClear();
+      vi.mocked(fs.readFile).mockResolvedValue(
+        JSON.stringify({
+          id: 'p1',
+          name: 'P1',
+          version: '1.0.0',
+          description: 'D',
+          author: 'A',
+          main: 'index.js',
+          permissions: ['ui'],
+          license: { type: 'free', spdx: 'MIT' },
+        })
+      );
+
+      const p = await loader.loadPluginFromDirectory('/signed-elsewhere');
+
+      expect(p?.state).toBe('error');
+      expect(p?.loadFailed).toBe(true);
+      expect(p?.error).toBe(
+        'The plugin folder "signed-elsewhere" must be named after the plugin id "p1".'
+      );
+      expect(signatureService.checkPlugin).not.toHaveBeenCalled();
     });
 
     it('should resolve existing renderer', async () => {
@@ -230,7 +258,7 @@ describe('PluginLoader', () => {
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(manifest));
       vi.mocked(fs.access).mockResolvedValue(undefined); // All exist
 
-      const p = await loader.loadPluginFromDirectory('/p');
+      const p = await loader.loadPluginFromDirectory('/p1');
       expect(fixPath(p?.rendererEntry || '')).toContain('r.js');
     });
 
@@ -252,7 +280,7 @@ describe('PluginLoader', () => {
         return undefined;
       }) as any;
 
-      const p = await loader.loadPluginFromDirectory('/p');
+      const p = await loader.loadPluginFromDirectory('/p1');
       expect(p?.rendererEntry).toBeUndefined();
     });
 
@@ -274,7 +302,7 @@ describe('PluginLoader', () => {
         return undefined;
       }) as any;
 
-      const p = await loader.loadPluginFromDirectory('/p');
+      const p = await loader.loadPluginFromDirectory('/p1');
       expect(p?.rendererStyles).toHaveLength(1);
       expect(fixPath(p?.rendererStyles![0] || '')).toContain('s1.css');
     });
@@ -299,7 +327,7 @@ describe('PluginLoader', () => {
         vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(manifest));
         vi.mocked(fs.access).mockResolvedValue(undefined);
 
-        const p = await loader.loadPluginFromDirectory('/p');
+        const p = await loader.loadPluginFromDirectory('/p1');
         expect(p?.state).toBe('error');
         expect(p?.error).toContain('escapes the plugin directory');
         expect(p?.rendererEntry).toBeUndefined();
@@ -379,6 +407,37 @@ describe('PluginLoader', () => {
       loader.unregisterPlugin('p1');
       loader.registerPlugin(p);
       expect(await loader.acquireModuleHandle('p1', '/p')).not.toBe(fourth);
+    });
+
+    it('acquireModuleHandle never reads the code of a plugin refused at discovery', async () => {
+      loader.registerPlugin(
+        createErrorPlugin({ id: 'p1', main: 'idx.js' }, 'refused: not signed')
+      );
+      vi.mocked(fs.readFile).mockClear();
+
+      await expect(loader.acquireModuleHandle('p1', '/p1')).rejects.toThrow(
+        'refused: not signed'
+      );
+
+      expect(fs.readFile).not.toHaveBeenCalled();
+    });
+
+    it('acquireModuleHandle verifies the files again before running them', async () => {
+      const { signatureService } =
+        await import('../services/security/signature-service');
+      const p = { manifest: { id: 'p1', main: 'idx.js' } } as any;
+      loader.registerPlugin(p);
+      vi.mocked(signatureService.checkPlugin).mockResolvedValueOnce({
+        ok: false,
+        problem: 'files changed',
+      });
+      vi.mocked(fs.readFile).mockClear();
+
+      await expect(loader.acquireModuleHandle('p1', '/p1')).rejects.toThrow(
+        'refused: files changed'
+      );
+
+      expect(fs.readFile).not.toHaveBeenCalled();
     });
 
     it('unregisterPlugin should remove from map', () => {

@@ -164,6 +164,35 @@ describe('Dashboard Page', () => {
     );
   });
 
+  it('says the cluster list could not be read, with a way to retry', async () => {
+    mockClusterState([], 'None', mockApi);
+    mockApi.getClusters = vi.fn().mockResolvedValue({
+      success: false,
+      error: 'error loading config file: yaml: line 1',
+    });
+    render(<Dashboard />, { api: mockApi });
+
+    expect(
+      await screen.findByText('Could not read your clusters')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'error loading config file: yaml: line 1'
+    );
+    expect(screen.queryByText('No clusters found')).toBeNull();
+
+    mockApi.getClusters = vi.fn().mockResolvedValue({
+      success: true,
+      data: ['kind-a'],
+    });
+    const callsBefore = vi.mocked(mockApi.getClusters).mock.calls.length;
+    fireEvent.click(screen.getByRole('button', { name: 'Try Again' }));
+    await waitFor(() =>
+      expect(vi.mocked(mockApi.getClusters).mock.calls.length).toBeGreaterThan(
+        callsBefore
+      )
+    );
+  });
+
   it('should handle empty clusters list', async () => {
     mockClusterState([], 'None', mockApi);
     render(<Dashboard />, { api: mockApi });

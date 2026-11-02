@@ -214,6 +214,8 @@ export function createMockElectronAPI(
     terminalResize: vi
       .fn()
       .mockResolvedValue({ success: true, data: undefined }),
+    terminalAttach: vi.fn().mockResolvedValue({ success: true, data: true }),
+    terminalAck: vi.fn().mockResolvedValue({ success: true, data: true }),
     terminalKill: vi.fn().mockResolvedValue({ success: true, data: undefined }),
     terminalInterrupt: vi
       .fn()

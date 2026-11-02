@@ -391,7 +391,9 @@ nothing from outside loads) and the host stays where it was.
 Against a packaged build (`SHOAL_E2E_EXECUTABLE`) unsigned plugins never
 load, so the spec checks that instead: the bundled plugins are listed and
 the fixture's card is in the error state with the message that the plugin
-is not signed.
+is not signed, its Enable button is off, the main process refuses the
+`enablePlugin` call, and a second launch with the plugin saved as enabled
+does not start it (the log never shows its `activate` hook).
 
 ---
 

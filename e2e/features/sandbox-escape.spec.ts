@@ -19,7 +19,8 @@ import { launchApp, mainWindow } from '../fixtures/launch';
  * Dev builds load the unsigned fixture (ALLOW_UNSIGNED_PLUGINS). Packaged
  * builds ignore that flag, so against SHOAL_E2E_EXECUTABLE the spec checks
  * the opposite: the unsigned plugin is listed as an error that explains the
- * missing signature and none of its code is loaded.
+ * missing signature, and neither Enable nor a start-up with it saved as
+ * enabled runs any of its code.
  */
 
 const PLUGIN_ID = 'escape-probe';
@@ -42,18 +43,32 @@ const EXPECTED_BLOCKED = [
   'clipboard-read',
 ];
 
+/** A new user data directory holding a user-installed copy of the fixture. */
+function installFixture(): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'shoal-e2e-escape-'));
+  fs.cpSync(FIXTURE_DIR, path.join(dir, 'plugins', PLUGIN_ID), {
+    recursive: true,
+  });
+  return dir;
+}
+
+function mainLog(dir: string): string {
+  return fs.readFileSync(path.join(dir, 'logs', 'main.log'), 'utf8');
+}
+
+/** The log line of a hook that really ran. */
+function ranActivate(dir: string): boolean {
+  return mainLog(dir).includes(`Executing activate for ${PLUGIN_ID}`);
+}
+
 let app: ElectronApplication;
 let window: Page;
+let userDataDir: string;
 const consoleErrors: string[] = [];
 
 test.beforeAll(async () => {
   // A user-installed copy of the fixture, discovered on first start.
-  const userDataDir = fs.mkdtempSync(
-    path.join(os.tmpdir(), 'shoal-e2e-escape-')
-  );
-  fs.cpSync(FIXTURE_DIR, path.join(userDataDir, 'plugins', PLUGIN_ID), {
-    recursive: true,
-  });
+  userDataDir = installFixture();
 
   app = await launchApp({ userDataDir });
   window = await mainWindow(app);
@@ -94,6 +109,59 @@ test('a packaged build does not load the unsigned plugin', async () => {
   );
   await expect(pluginCard().locator('.plugin-state')).toHaveText('Error');
   expect(pluginHostFrame()).toBeUndefined();
+
+  // The card offers no Enable, and the main process refuses the call as well.
+  await expect(
+    pluginCard().getByRole('button', { name: 'Enable' })
+  ).toBeDisabled();
+  const result = await window.evaluate(
+    (id) =>
+      (
+        globalThis as unknown as {
+          electron: {
+            enablePlugin(id: string): Promise<{
+              success: boolean;
+              error?: string;
+            }>;
+          };
+        }
+      ).electron.enablePlugin(id),
+    PLUGIN_ID
+  );
+  expect(result.success).toBe(false);
+  expect(result.error).toContain('not signed');
+  await expect(pluginCard().locator('.plugin-state')).toHaveText('Error');
+  expect(ranActivate(userDataDir)).toBe(false);
+});
+
+test('a packaged build does not start an unsigned plugin saved as enabled', async () => {
+  test.skip(!PACKAGED, 'dev builds load unsigned plugins on purpose');
+
+  const dir = installFixture();
+  fs.writeFileSync(
+    path.join(dir, 'plugin-config.json'),
+    JSON.stringify({ [PLUGIN_ID]: { enabled: true, settings: {} } })
+  );
+  const second = await launchApp({ userDataDir: dir });
+  try {
+    const page = await mainWindow(second);
+    await page.getByRole('link', { name: 'Plugins' }).click();
+    const card = page.locator('.plugin-card', { hasText: PLUGIN_NAME });
+
+    // The card reads Error from discovery on, so a look at it proves nothing
+    // until start-up has been through the enabled plugins.
+    await expect
+      .poll(() => mainLog(dir), { timeout: 30_000 })
+      .toContain('Plugin system initialized');
+
+    expect(ranActivate(dir)).toBe(false);
+    await expect(card.locator('.plugin-state')).toHaveText('Error');
+    await expect(card.locator('.plugin-card__error')).toContainText(
+      'not signed'
+    );
+  } finally {
+    await second.close();
+  }
 });
 
 test('every escape attempt from the plugin frame is blocked', async () => {

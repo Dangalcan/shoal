@@ -21,7 +21,8 @@ import log from '../../logger';
 import { getErrorMessage } from '../../utils/error-utils';
 import { pluginLoader } from './plugin-loader';
 import { pluginRegistry } from './plugin-registry';
-import { createPluginContext } from './plugin-context';
+import { createPluginContext, disposePluginContext } from './plugin-context';
+import { pluginHostManager } from './host/plugin-host-manager';
 import {
   getAllPluginExtensions,
   clearPluginExtensions,
@@ -67,6 +68,15 @@ async function callHookIfExists(
     { withContext: context !== undefined, timeoutMs: HOOK_TIMEOUT_MS },
     context
   );
+}
+
+/** Throws the reason a plugin was refused at discovery; its code never runs. */
+function assertLoadable(plugin: Plugin | undefined): void {
+  if (plugin?.loadFailed) {
+    throw new Error(
+      plugin.error ?? `Plugin ${plugin.manifest.id} could not be loaded`
+    );
+  }
 }
 
 /** Exports the plugin manager calls itself; the UI cannot invoke them as actions. */
@@ -125,6 +135,10 @@ export class PluginManager {
     try {
       log.info('[PluginManager] Initializing plugin system...');
 
+      pluginHostManager.onUnexpectedExit((pluginId, code) =>
+        this.handleHostExit(pluginId, code)
+      );
+
       // Initialize registry
       await pluginRegistry.initialize();
 
@@ -178,6 +192,28 @@ export class PluginManager {
       );
       throw error;
     }
+  }
+
+  /**
+   * The utility process of an enabled plugin ended on its own. The plugin is
+   * not running any more, so its card says so instead of "Enabled", and Enable
+   * starts it again.
+   */
+  private handleHostExit(pluginId: string, code: number): void {
+    if (this.getPlugin(pluginId)?.state !== 'enabled') return;
+
+    disposePluginContext(
+      pluginRegistry.getPluginContext(pluginId) as PluginContext | undefined
+    );
+    pluginLoader.releaseModuleHandle(pluginId);
+    clearPluginExtensions(pluginId);
+    pluginRegistry.clearPluginContext(pluginId);
+    pluginLoader.updatePluginState(
+      pluginId,
+      'error',
+      `The plugin's process stopped unexpectedly (exit code ${code}). Enable it to start it again.`
+    );
+    pluginEventBus.emitPluginDeactivated(pluginId);
   }
 
   /**
@@ -249,6 +285,8 @@ export class PluginManager {
     // Snapshot which deps are currently disabled so we can report what was auto-enabled
     const pluginEntry = pluginRegistry.getPlugin(pluginId);
     const plugin = pluginEntry?.plugin;
+    // Before the registry says enabled, which would stick across restarts.
+    assertLoadable(plugin);
     const depIds = plugin?.manifest?.dependencies
       ? Object.keys(plugin.manifest.dependencies)
       : [];
@@ -348,6 +386,7 @@ export class PluginManager {
 
     const plugin = this.getPlugin(pluginId);
     if (!plugin) throw new Error(`Plugin ${pluginId} not found`);
+    assertLoadable(plugin);
 
     const path = await pluginLoader.getPluginPath(pluginId);
     if (!path) throw new Error(`Could not find path for plugin ${pluginId}`);
@@ -409,6 +448,9 @@ export class PluginManager {
       const entry = pluginRegistry.getPlugin(pluginId);
       if (!entry) throw new Error(`Plugin ${pluginId} not found`);
       const plugin = entry.plugin;
+      // Start-up reaches this for a plugin saved as enabled whose files no
+      // longer verify.
+      assertLoadable(plugin);
 
       // Start-up activates every enabled plugin while the user may already be
       // clicking Enable: a second activation would run activate() again (two
@@ -558,6 +600,7 @@ export class PluginManager {
       } catch {
         // Best-effort rollback; the original activation error is rethrown below
       }
+      disposePluginContext(context);
       clearPluginExtensions(pluginId);
       pluginLoader.releaseModuleHandle(pluginId);
       throw error;
@@ -578,6 +621,11 @@ export class PluginManager {
     try {
       const entry = pluginRegistry.getPlugin(pluginId);
       if (!entry) {
+        return;
+      }
+
+      // None of its code ever ran, and its card keeps saying why.
+      if (this.getPlugin(pluginId)?.loadFailed) {
         return;
       }
 
@@ -606,6 +654,9 @@ export class PluginManager {
           error
         );
       }
+
+      // Its handlers and watches stop with it, whatever its hooks did
+      disposePluginContext(context);
 
       // Tear down any isolated host process and unload plugin code
       pluginLoader.releaseModuleHandle(pluginId);

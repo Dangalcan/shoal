@@ -136,7 +136,9 @@ export function PluginCard({
       <div className="plugin-card__actions">
         <button
           onClick={() => onToggle(plugin)}
-          disabled={isLoading || plugin.state === 'loading'}
+          disabled={
+            isLoading || plugin.state === 'loading' || plugin.loadFailed
+          }
           className={`btn btn--sm ${plugin.state === 'enabled' ? 'btn--danger' : 'btn--primary'}`}
         >
           {isLoading ? (

@@ -46,8 +46,11 @@ test.describe('empty kubeconfig', () => {
 
   test('the cluster list says how to add one', async () => {
     await window.getByRole('link', { name: 'Clusters' }).click();
+    // The list waits on the run's first kubectl call, which a cold Windows
+    // runner can take well over the default 5 s to start.
     await expect(window.locator('.clusters-empty-title')).toHaveText(
-      'No clusters found'
+      'No clusters found',
+      { timeout: 30_000 }
     );
     await expect(window.locator('.clusters-empty-subtitle')).toContainText(
       'KUBECONFIG'
@@ -59,6 +62,35 @@ test.describe('empty kubeconfig', () => {
     expect(
       await window.locator('[data-sonner-toast][data-type="error"]').count()
     ).toBe(0);
+  });
+});
+
+test.describe('broken kubeconfig', () => {
+  let app: ElectronApplication;
+  let window: Page;
+  let dir: string;
+
+  test.beforeAll(async () => {
+    const kubeconfig = writeKubeconfig('broken', 'apiVersion: [not yaml\n');
+    dir = kubeconfig.dir;
+    app = await launchApp({ env: { KUBECONFIG: kubeconfig.file } });
+    window = await mainWindow(app);
+  });
+
+  test.afterAll(async () => {
+    await app.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test('the cluster list says it could not read them, not that there are none', async () => {
+    await window.getByRole('link', { name: 'Clusters' }).click();
+    await expect(window.locator('.clusters-empty-title')).toHaveText(
+      'Could not read your clusters',
+      { timeout: 30_000 }
+    );
+    await expect(
+      window.getByRole('button', { name: 'Try Again' })
+    ).toBeVisible();
   });
 });
 

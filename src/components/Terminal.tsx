@@ -35,6 +35,9 @@ interface TerminalProps {
   className?: string;
 }
 
+/** Output drawn between two reports to the main process. */
+const ACK_EVERY = 128 * 1024;
+
 /**
  * Input for a session without a pseudo-terminal: buffer the line, echo it
  * locally and send it on Enter.
@@ -160,6 +163,7 @@ export function Terminal({
       attachPipeInput(terminal, api, sessionId, isLocal, isWindowsShell);
     }
 
+    let undrawnAck = 0;
     const cleanupOutput = api.onTerminalOutput((sid: string, data: string) => {
       if (sid !== sessionId) return;
       // A pseudo-terminal already emits \r\n, and full-screen programs
@@ -169,7 +173,15 @@ export function Terminal({
       // under a Windows shell (kubectl writes \n even though PowerShell
       // itself prints \r\n), so there every bare line feed becomes \r\n
       // for xterm to return to column 0; a \r\n already there stays.
-      terminal.write(isPty ? data : data.replace(/\r?\n/g, '\r\n'));
+      terminal.write(isPty ? data : data.replace(/\r?\n/g, '\r\n'), () => {
+        // Tells the main process how far drawing has got, in batches, so it
+        // can hold back a program that writes faster than this.
+        undrawnAck += data.length;
+        if (undrawnAck >= ACK_EVERY) {
+          void api.terminalAck(sessionId, undrawnAck);
+          undrawnAck = 0;
+        }
+      });
     });
 
     const cleanupExit = api.onTerminalExited((sid: string) => {
@@ -177,6 +189,9 @@ export function Terminal({
         terminal.write('\r\n\x1b[31m[Process exited]\x1b[0m\r\n');
       }
     });
+
+    // Both listeners are on: what the shell said since it started can come.
+    void api.terminalAttach(sessionId);
 
     const observer = new ResizeObserver(() => fit());
     observer.observe(containerRef.current!);

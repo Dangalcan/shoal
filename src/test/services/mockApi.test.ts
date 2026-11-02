@@ -266,6 +266,8 @@ describe('mockApi', () => {
     expect((await mockApi.terminalShells()).success).toBe(false);
     expect((await mockApi.terminalInput('s', 'data')).success).toBe(false);
     expect((await mockApi.terminalResize('s', 80, 24)).success).toBe(false);
+    expect((await mockApi.terminalAttach('s')).success).toBe(false);
+    expect((await mockApi.terminalAck('s', 1)).success).toBe(false);
     expect((await mockApi.terminalKill('s')).success).toBe(false);
     expect((await mockApi.terminalInterrupt('s')).success).toBe(false);
 

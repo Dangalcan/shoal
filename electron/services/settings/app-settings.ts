@@ -6,6 +6,7 @@
  * child process reads from process.env.KUBECONFIG.
  */
 
+import { mkdirSync, renameSync, writeFileSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
 import { app } from 'electron';
@@ -57,8 +58,22 @@ export class AppSettingsStore {
       if (next[key] === undefined) delete next[key];
     }
     this.settings = next;
-    await fs.mkdir(path.dirname(this.filePath), { recursive: true });
-    await fs.writeFile(this.filePath, JSON.stringify(next, null, 2), 'utf-8');
+    this.write(next);
+  }
+
+  /**
+   * Synchronous and through a temporary file. The window state is saved on
+   * 'close', right before the process exits: an asynchronous writeFile, which
+   * truncates first, did not survive that and left an empty file, losing the
+   * kubeconfig path on most quits. The rename also means a crash or a full disk
+   * leaves the previous settings in place.
+   */
+  private write(settings: AppSettings): void {
+    const target = this.filePath;
+    const temporary = `${target}.tmp`;
+    mkdirSync(path.dirname(target), { recursive: true });
+    writeFileSync(temporary, JSON.stringify(settings, null, 2), 'utf-8');
+    renameSync(temporary, target);
   }
 }
 

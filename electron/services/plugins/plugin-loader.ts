@@ -102,6 +102,20 @@ export class PluginLoader {
         return createErrorPlugin(manifest, validationError);
       }
 
+      // Activation finds a plugin's files through its id (resolvePluginPath),
+      // so a folder under another name would have its signature checked here
+      // while the code of the folder named after the id runs.
+      const folderName = path.basename(pluginPath);
+      if (folderName !== manifest.id) {
+        log.error(
+          `[PluginLoader] Folder of ${pluginPath} does not match plugin id ${manifest.id}`
+        );
+        return createErrorPlugin(
+          manifest,
+          `The plugin folder "${folderName}" must be named after the plugin id "${manifest.id}".`
+        );
+      }
+
       const verification = await signatureService.checkPlugin(pluginPath);
       if (!verification.ok) {
         log.error(
@@ -257,6 +271,27 @@ export class PluginLoader {
   }
 
   /**
+   * The last check before a plugin's code runs. Every path that executes it
+   * comes through acquireModuleHandle, so this is what makes the signature a
+   * boundary: discovery only lists a refused plugin, and the files may have
+   * changed since discovery (an update, a Reload after editing them).
+   */
+  private async assertRunnable(
+    pluginId: string,
+    pluginPath: string
+  ): Promise<void> {
+    const plugin = this.loadedPlugins.get(pluginId);
+    if (!plugin) throw new Error(`Plugin ${pluginId} not found`);
+    if (plugin.loadFailed) {
+      throw new Error(plugin.error ?? `Plugin ${pluginId} could not be loaded`);
+    }
+    const verification = await signatureService.checkPlugin(pluginPath);
+    if (!verification.ok) {
+      throw new Error(describeSignatureProblem(verification.problem));
+    }
+  }
+
+  /**
    * Get a callable handle to the plugin module. Isolated plugins reuse their
    * running utility process; in-process plugins reuse the vm instance created
    * by the first call (the one activate() ran in) until releaseModuleHandle
@@ -279,8 +314,8 @@ export class PluginLoader {
           `Plugin ${pluginId} is isolated and requires a context to load`
         );
       }
-      const plugin = this.loadedPlugins.get(pluginId);
-      if (!plugin) throw new Error(`Plugin ${pluginId} not found`);
+      await this.assertRunnable(pluginId, pluginPath);
+      const plugin = this.loadedPlugins.get(pluginId)!;
       const mainFile = path.join(
         pluginPath,
         plugin.manifest.main || 'index.js'
@@ -301,6 +336,7 @@ export class PluginLoader {
 
     const local = this.localHandles.get(pluginId);
     if (local) return local;
+    await this.assertRunnable(pluginId, pluginPath);
     const moduleExports = await this.loadPluginCode(pluginId, pluginPath);
     const handle = new LocalPluginModule(moduleExports);
     this.localHandles.set(pluginId, handle);

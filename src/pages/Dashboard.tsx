@@ -9,6 +9,7 @@ import {
   Container,
   Layers,
   GitBranch,
+  AlertCircle,
 } from 'lucide-react';
 import { PodViewerModal } from '../components/modals/PodViewerModal';
 import { useClusterContext } from '../features/clusters/ClusterContext';
@@ -132,6 +133,7 @@ export function Dashboard() {
     currentContext,
     fetchClusters,
     loading: clustersLoading,
+    clustersError,
   } = useClusterContext();
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -310,6 +312,19 @@ export function Dashboard() {
                   </li>
                 ))}
               </ul>
+            ) : clustersError ? (
+              <div className="dashboard-empty-state" role="alert">
+                <AlertCircle size={32} />
+                <p>Could not read your clusters</p>
+                <p className="dashboard-empty-state__hint">{clustersError}</p>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => void fetchClusters()}
+                >
+                  Try Again
+                </Button>
+              </div>
             ) : (
               <div className="dashboard-empty-state">
                 <Box size={32} />

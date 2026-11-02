@@ -46,6 +46,9 @@ describe('ClusterProvider error reporting', () => {
       )
     );
     expect(result.current.clusters).toEqual([]);
+    expect(result.current.clustersError).toBe(
+      'The kubeconfig file is not valid YAML'
+    );
   });
 
   it('leaves a missing kubectl to the page notice', async () => {

@@ -3,6 +3,8 @@ import { Result } from '../../types/result';
 export interface ClusterState {
   clusters: string[];
   loading: boolean;
+  /** Why the list could not be read; a missing kubectl has its own notice. */
+  clustersError: string | null;
   currentContext: string;
   switching: string | null;
   deleting: string | null;

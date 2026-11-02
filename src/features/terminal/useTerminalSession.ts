@@ -67,16 +67,23 @@ export function useTerminalSession(
   const sessionIdRef = useRef<string | null>(null);
   useEffect(() => {
     let cancelled = false;
-    void api.terminalCreate(argsRef.current).then((result) => {
-      if (cancelled) {
-        // The request changed or the owner unmounted while the shell was
-        // starting: nobody will use this session, so it is killed at once.
-        if (result.success) void api.terminalKill(result.data.sessionId);
-        return;
-      }
-      if (result.success) sessionIdRef.current = result.data.sessionId;
-      setSettled({ key, result });
-    });
+    api
+      .terminalCreate(argsRef.current)
+      .then((result) => {
+        if (cancelled) {
+          // The request changed or the owner unmounted while the shell was
+          // starting: nobody will use this session, so it is killed at once.
+          if (result.success) void api.terminalKill(result.data.sessionId);
+          return;
+        }
+        if (result.success) sessionIdRef.current = result.data.sessionId;
+        setSettled({ key, result });
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        // The bridge itself failed: an error to show, not an endless spinner.
+        setSettled({ key, result: { success: false, error: String(error) } });
+      });
     return () => {
       cancelled = true;
       if (sessionIdRef.current) {

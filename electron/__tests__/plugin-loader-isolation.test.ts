@@ -15,7 +15,9 @@ vi.mock('electron', () => ({
 vi.mock('../services/security/signature-service', () => ({
   signatureService: {
     verifyPlugin: vi.fn().mockResolvedValue(true),
+    checkPlugin: vi.fn().mockResolvedValue({ ok: true }),
   },
+  describeSignatureProblem: (problem: string) => `refused: ${problem}`,
 }));
 
 vi.mock('../services/plugins/path-service', () => ({
@@ -134,6 +136,45 @@ describe('PluginLoader isolation', () => {
   });
 
   describe('acquireModuleHandle', () => {
+    it('spawns no utility process for a plugin refused at discovery', async () => {
+      loader.registerPlugin({
+        ...makePlugin('p1'),
+        state: 'error',
+        error: 'refused: not signed',
+        loadFailed: true,
+      });
+
+      await expect(
+        loader.acquireModuleHandle(
+          'p1',
+          '/mock/user/data/plugins/p1',
+          fakeContext
+        )
+      ).rejects.toThrow('refused: not signed');
+
+      expect(pluginHostManager.spawn).not.toHaveBeenCalled();
+    });
+
+    it('spawns no utility process when the files no longer verify', async () => {
+      const { signatureService } =
+        await import('../services/security/signature-service');
+      loader.registerPlugin(makePlugin('p1'));
+      vi.mocked(signatureService.checkPlugin).mockResolvedValueOnce({
+        ok: false,
+        problem: 'files changed',
+      });
+
+      await expect(
+        loader.acquireModuleHandle(
+          'p1',
+          '/mock/user/data/plugins/p1',
+          fakeContext
+        )
+      ).rejects.toThrow('refused: files changed');
+
+      expect(pluginHostManager.spawn).not.toHaveBeenCalled();
+    });
+
     it('spawns a utility process for isolated plugins', async () => {
       const plugin = makePlugin('p1');
       loader.registerPlugin(plugin);
