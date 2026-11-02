@@ -452,6 +452,180 @@ const FIELD_COLUMNS: Partial<Record<ResourceType, ColumnMap>> = {
   },
 };
 
+// Columns with a cell of their own -------------------------------------------
+
+/** A service port as its cell shows it (`80/TCP`). */
+const portText = (port: Record<string, unknown>): string => {
+  const protocol = str(port.protocol);
+  return protocol ? `${String(port.port)}/${protocol}` : String(port.port);
+};
+
+/** The IP, else the hostname, of a load balancer entry. */
+const loadBalancerAddress = (entry: Record<string, unknown>) =>
+  str(entry.ip) ?? str(entry.hostname);
+
+const volumeCapacity = computed((r) =>
+  quantity(
+    at(r, 'status', 'capacity', 'storage') ??
+      at(r, 'spec', 'capacity', 'storage')
+  )
+);
+
+const volumeModeOf = computed(
+  (r) => str(at(r, 'spec', 'volumeMode')) ?? 'Filesystem'
+);
+
+const specReplicas = computed((r) => num(at(r, 'spec', 'replicas')) ?? 0);
+
+/**
+ * What the columns rendered by a cell component
+ * (components/resource-tables/cell-renderers) sort by: the value their cell
+ * shows, in a form that orders like it (`500Mi` before `2Gi`). A test renders
+ * each cell next to its value, so the two cannot drift apart unseen.
+ */
+const CELL_COLUMNS: Partial<Record<ResourceType, ColumnMap>> = {
+  pods: {
+    'nominated-node': stringAt('status', 'nominatedNodeName'),
+    'readiness-gates': computed((r) =>
+      joined(
+        records(at(r, 'spec', 'readinessGates')).flatMap((gate) =>
+          strings([gate.conditionType])
+        )
+      )
+    ),
+  },
+  replicasets: { desired: specReplicas },
+  replicationcontroller: { desired: specReplicas },
+  daemonsets: {
+    desired: computed(
+      (r) => num(at(r, 'status', 'desiredNumberScheduled')) ?? 0
+    ),
+  },
+  jobs: {
+    completions: computed((r) => {
+      const succeeded = num(at(r, 'status', 'succeeded')) ?? 0;
+      return `${succeeded} / ${num(at(r, 'spec', 'completions')) || 1}`;
+    }),
+    duration: computed((r) => {
+      const start = str(at(r, 'status', 'startTime'));
+      if (!start) return undefined;
+      const end = str(at(r, 'status', 'completionTime'));
+      return (end ? Date.parse(end) : Date.now()) - Date.parse(start);
+    }),
+  },
+  cronjobs: {
+    schedule: stringAt('spec', 'schedule'),
+    'last-schedule': stringAt('status', 'lastScheduleTime'),
+  },
+  services: {
+    type: computed((r) => str(at(r, 'spec', 'type')) ?? 'ClusterIP'),
+    'cluster-ip': stringAt('spec', 'clusterIP'),
+    'external-ip': computed((r) =>
+      joined(
+        records(at(r, 'status', 'loadBalancer', 'ingress')).flatMap((entry) =>
+          strings([loadBalancerAddress(entry)])
+        )
+      )
+    ),
+    ports: computed((r) =>
+      joined(records(at(r, 'spec', 'ports')).map(portText))
+    ),
+  },
+  ingress: {
+    class: computed(
+      (r) =>
+        str(at(r, 'spec', 'ingressClassName')) ??
+        str(at(r, 'metadata', 'annotations', 'kubernetes.io/ingress.class'))
+    ),
+    hosts: computed(
+      (r) =>
+        joined(
+          records(at(r, 'spec', 'rules')).flatMap((rule) =>
+            strings([rule.host])
+          )
+        ) ?? '*'
+    ),
+    address: computed((r) => {
+      const [first] = records(at(r, 'status', 'loadBalancer', 'ingress'));
+      return first && loadBalancerAddress(first);
+    }),
+    ports: computed((r) => {
+      const ports: string[] = [];
+      if (at(r, 'spec', 'rules') || at(r, 'spec', 'defaultBackend')) {
+        ports.push('80');
+      }
+      if (at(r, 'spec', 'tls')) ports.push('443');
+      return joined(ports) ?? '80';
+    }),
+  },
+  hpa: {
+    reference: computed((r) =>
+      kindName(
+        str(at(r, 'spec', 'scaleTargetRef', 'kind')),
+        str(at(r, 'spec', 'scaleTargetRef', 'name'))
+      )
+    ),
+    // Current use of the first metric, while its cell has both numbers to show.
+    targets: computed((r) => {
+      const [metric] = records(at(r, 'status', 'currentMetrics'));
+      const [target] = records(at(r, 'spec', 'metrics'));
+      return num(at(target, 'resource', 'target', 'averageUtilization')) ===
+        undefined
+        ? undefined
+        : num(at(metric, 'resource', 'current', 'averageUtilization'));
+    }),
+    minpods: numberAt('spec', 'minReplicas'),
+    maxpods: numberAt('spec', 'maxReplicas'),
+    replicas: numberAt('status', 'currentReplicas'),
+  },
+  persistentvolume: {
+    capacity: volumeCapacity,
+    'access-modes': joinedAt('spec', 'accessModes'),
+    'reclaim-policy': computed(
+      (r) => str(at(r, 'spec', 'persistentVolumeReclaimPolicy')) ?? 'Delete'
+    ),
+    claim: computed((r) =>
+      kindName(
+        str(at(r, 'spec', 'claimRef', 'namespace')),
+        str(at(r, 'spec', 'claimRef', 'name'))
+      )
+    ),
+    storageclass: stringAt('spec', 'storageClassName'),
+    volumemode: volumeModeOf,
+  },
+  persistentvolumeclaim: {
+    volume: stringAt('spec', 'volumeName'),
+    capacity: volumeCapacity,
+    'access-modes': joinedAt('spec', 'accessModes'),
+    storageclass: stringAt('spec', 'storageClassName'),
+    volumemode: volumeModeOf,
+    'selected-node': stringAt(
+      'metadata',
+      'annotations',
+      'volume.kubernetes.io/selected-node'
+    ),
+    vac: stringAt('spec', 'volumeAttributesClassName'),
+  },
+  secrets: { type: stringAt('type') },
+  storageclass: {
+    provisioner: stringAt('provisioner'),
+    'reclaim-policy': computed((r) => str(at(r, 'reclaimPolicy')) ?? 'Delete'),
+    'binding-mode': stringAt('volumeBindingMode'),
+    'allow-expansion': flagAt('allowVolumeExpansion'),
+  },
+};
+
+/** What a column with a cell of its own sorts by, if it is listed. */
+export function getCellColumn(
+  resourceType: ResourceType,
+  columnId: string
+): FieldColumn | undefined {
+  const columns = CELL_COLUMNS[resourceType];
+  return columns && Object.prototype.hasOwnProperty.call(columns, columnId)
+    ? columns[columnId]
+    : undefined;
+}
+
 /** The field column for a kind's column id, if it is one. */
 export function getFieldColumn(
   resourceType: ResourceType,
