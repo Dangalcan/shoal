@@ -29,6 +29,7 @@ Issues labelled [`good first issue`](https://github.com/Dangalcan/shoal/labels/g
 - **Claim it:** leave a comment on the issue so nobody else starts on it. You do not need to wait for a reply.
 - **No cluster needed for most of them:** the unit tests run without one. When an issue needs a real one, [kind](https://kind.sigs.k8s.io/) is enough.
 - **Running the tests:** `npm test` takes a few minutes. While you work, run one file with `npx vitest --run path/to/file.test.tsx`.
+- **Type checks:** Vitest does not check types, and the pre-commit hook skips the test files. Run `npm run typecheck:test` before pushing a test: CI runs it first and stops there on an error.
 - **Checks on your pull request:** GitHub holds them until a maintainer approves the run, so they may show as waiting for a while.
 - **Allow edits by maintainers:** leave it ticked. Branches must be up to date with `master` before merging, and this lets a maintainer update yours.
 - **Changelog:** add a line to `CHANGELOG.md` under `Unreleased` when users will notice the change.
