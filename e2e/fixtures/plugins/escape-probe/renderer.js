@@ -21,6 +21,7 @@
   // still not reach anything. The CSP report tells both cases apart.
   var TARGET = 'https://escape-probe.invalid/';
   var PROBE_TIMEOUT_MS = 5000;
+  var SCRIPT_BASE = document.currentScript.src.replace(/renderer\.js.*$/, '');
 
   var violations = [];
   document.addEventListener('securitypolicyviolation', function (event) {
@@ -145,16 +146,26 @@
       ) {
         return 'open';
       }
-      // Nor can a nested frame hand the constructor back.
-      var nested = document.createElement('iframe');
-      document.body.appendChild(nested);
-      try {
-        return nested.contentWindow.RTCPeerConnection ? 'open' : 'blocked';
-      } catch {
-        return 'blocked';
-      } finally {
-        nested.remove();
-      }
+      return 'blocked';
+    },
+    'webrtc-nested': function () {
+      // A srcdoc frame is a new realm that may run the plugin's scripts: the
+      // CSP has no say over about:srcdoc and it inherits allow-scripts. If its
+      // script never reports, the probe times out and the spec fails, because
+      // then nothing was tested.
+      return settle(
+        new Promise(function (resolve) {
+          window.addEventListener('message', function onReport(event) {
+            if (!event.data || !event.data.nestedWebrtc) return;
+            window.removeEventListener('message', onReport);
+            resolve(event.data.nestedWebrtc);
+          });
+          var nested = document.createElement('iframe');
+          nested.srcdoc =
+            '<script src="' + SCRIPT_BASE + 'nested-webrtc.js"></script>';
+          document.body.appendChild(nested);
+        })
+      );
     },
     'clipboard-read': function () {
       if (!navigator.clipboard || !navigator.clipboard.readText) {

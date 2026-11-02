@@ -81,6 +81,20 @@ describe('withoutSecretData', () => {
     expect(secret.data).toEqual({ password: 'cGFzcw==' });
   });
 
+  it('redacts the items of a SecretList that leave out their kind', () => {
+    const list = {
+      kind: 'SecretList',
+      items: [{ metadata: { name: 'db' }, data: { password: 'cGFzcw==' } }],
+    };
+    expect(withoutSecretData(list)).toEqual({
+      kind: 'SecretList',
+      items: [{ metadata: { name: 'db' } }],
+    });
+    // A plain List says nothing about items without a kind.
+    const other = { kind: 'List', items: [{ data: { key: 'value' } }] };
+    expect(withoutSecretData(other)).toEqual(other);
+  });
+
   it('copes with a Secret without annotations or metadata', () => {
     expect(withoutSecretData({ kind: 'Secret', data: { a: 'b' } })).toEqual({
       kind: 'Secret',

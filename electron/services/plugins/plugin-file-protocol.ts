@@ -10,6 +10,7 @@
  * plugin frame, could read arbitrary files such as ~/.kube/config.
  */
 
+import { realpathSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
 import { pathToFileURL } from 'url';
@@ -53,7 +54,7 @@ export async function resolvePluginFile(
  * The host document (public/plugin-host/index.html) carries the same text in
  * a <meta>; the header makes sure any other document a frame could show
  * keeps it: no network, no plugins, no forms, no nested frames. Two things
- * are out of its reach: WebRTC, which the frame runtime removes, and DNS
+ * are out of its reach: WebRTC, which the preload removes, and DNS
  * lookups through `<link rel="dns-prefetch">`, which nothing here can stop
  * (see SECURITY.md).
  */
@@ -70,6 +71,15 @@ export const PLUGIN_FILE_CSP = [
   "frame-src 'none'",
 ].join('; ');
 
+/** The path with links resolved, or as given when it does not exist. */
+function resolveLinks(target: string): string {
+  try {
+    return realpathSync(target);
+  } catch {
+    return path.normalize(target);
+  }
+}
+
 /**
  * True for the plugin frames' host document: the one in the app's build, or the
  * dev server's in development. The file name alone would not do: a plugin can
@@ -82,11 +92,11 @@ export function isPluginHostDocument(
 ): boolean {
   const requested = fromPluginFileUrl(url, platform);
   if (requested) {
-    const actual = path.normalize(requested);
-    const hostDocument = path.join(
-      pathService.getAppDistDir(),
-      'plugin-host',
-      'index.html'
+    // The document URL and the app path can reach the file by different
+    // routes when the install path goes through a junction or a symlink.
+    const actual = resolveLinks(requested);
+    const hostDocument = resolveLinks(
+      path.join(pathService.getAppDistDir(), 'plugin-host', 'index.html')
     );
     return platform === 'win32'
       ? actual.toLowerCase() === hostDocument.toLowerCase()

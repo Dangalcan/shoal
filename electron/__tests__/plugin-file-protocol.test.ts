@@ -248,11 +248,30 @@ describe('plugin frame policy', () => {
 
     it('ignores the case of the path on Windows only', () => {
       const url = toPluginFileUrl(
-        'C:/Shoal/app.asar/dist/plugin-host/index.html'
+        path.join(appPath.toUpperCase(), 'dist', 'plugin-host', 'index.html')
       );
-      vi.mocked(app.getAppPath).mockReturnValue('c:/shoal/APP.asar');
-      expect(isPluginHostDocument(url, 'win32')).toBe(true);
-      expect(isPluginHostDocument(url, 'linux')).toBe(false);
+      expect(isPluginHostDocument(url)).toBe(process.platform === 'win32');
+    });
+
+    it('follows a junction or symlink in the install path', () => {
+      const real = fs.mkdtempSync(path.join(os.tmpdir(), 'shoal-host-real-'));
+      const link = `${real}-link`;
+      const inside = (root: string) =>
+        path.join(root, 'dist', 'plugin-host', 'index.html');
+      fs.mkdirSync(path.dirname(inside(real)), { recursive: true });
+      fs.writeFileSync(inside(real), '');
+      fs.symlinkSync(real, link, 'junction');
+      try {
+        vi.mocked(app.getAppPath).mockReturnValue(link);
+        expect(isPluginHostDocument(toPluginFileUrl(inside(real)))).toBe(true);
+        expect(isPluginHostDocument(toPluginFileUrl(inside(link)))).toBe(true);
+
+        vi.mocked(app.getAppPath).mockReturnValue(real);
+        expect(isPluginHostDocument(toPluginFileUrl(inside(link)))).toBe(true);
+      } finally {
+        fs.unlinkSync(link);
+        fs.rmSync(real, { recursive: true, force: true });
+      }
     });
 
     it('refuses a document of the same name anywhere else', () => {

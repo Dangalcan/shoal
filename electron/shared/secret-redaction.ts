@@ -23,11 +23,23 @@ function isDict(value: unknown): value is Dict {
 
 /** A copy of `resource` without its Secret payload; other kinds pass through. */
 export function withoutSecretData(resource: unknown): unknown {
+  return redact(resource);
+}
+
+/** `listItemKind`: kubectl fills in the kind of the items of a typed list. */
+function redact(resource: unknown, listItemKind?: string): unknown {
   if (!isDict(resource)) return resource;
   if (Array.isArray(resource.items)) {
-    return { ...resource, items: resource.items.map(withoutSecretData) };
+    const itemKind =
+      typeof resource.kind === 'string'
+        ? resource.kind.replace(/List$/, '')
+        : undefined;
+    return {
+      ...resource,
+      items: resource.items.map((item) => redact(item, itemKind)),
+    };
   }
-  if (resource.kind !== 'Secret') return resource;
+  if ((resource.kind ?? listItemKind) !== 'Secret') return resource;
   const copy: Dict = { ...resource };
   delete copy.data;
   delete copy.stringData;

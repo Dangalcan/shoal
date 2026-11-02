@@ -378,7 +378,8 @@ The sandbox under a hostile plugin (no cluster needed). Before launch, the
 spec copies `e2e/fixtures/plugins/escape-probe` into the user data
 directory as a user-installed plugin. The plugin declares no permissions;
 its page tries to reach the host DOM, navigate the top window, open a
-popup, use `fetch`, XHR, WebSocket and WebRTC, read the clipboard, find Node
+popup, use `fetch`, XHR, WebSocket and WebRTC (also from a script in a nested
+`srcdoc` frame), read the clipboard, find Node
 globals and call the bridge beyond its permissions (`k8sPlugin` and the
 legacy `window.electron` shim). It prints one `name=outcome` line per probe
 inside the frame; the spec reads them through `frameLocator` and expects

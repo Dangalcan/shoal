@@ -92,9 +92,9 @@ if (!isPrimaryInstance) {
 // away from itself (reloads and hash routes are fine). http(s) links go to the
 // system browser.
 app.on('web-contents-created', (_event, contents) => {
-  // Nothing here uses WebRTC, and plugin frames lose it altogether (see
-  // frame-runtime.tsx). This is the second layer: no UDP, in case a frame ever
-  // gets hold of a peer connection.
+  // Nothing here uses WebRTC, and the preload removes it from every frame.
+  // This is the second layer: no UDP, in case a frame ever gets hold of a peer
+  // connection.
   contents.setWebRTCIPHandlingPolicy('disable_non_proxied_udp');
   contents.setWindowOpenHandler(({ url }) => {
     openExternalSafe(url).catch((error: unknown) =>
@@ -202,6 +202,10 @@ function createWindow(): void {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // Despite the name, no Node.js here: the sandbox stays on. It runs the
+      // preload in subframes too, which is what removes WebRTC from plugin
+      // frames. The preload exposes the bridge in the main frame only.
+      nodeIntegrationInSubFrames: true,
     },
   });
   win = mainWindow;

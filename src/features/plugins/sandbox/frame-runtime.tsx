@@ -21,15 +21,6 @@ import type { SdkPortLike } from './plugin-sdk';
 
 const PLUGIN_PORT_INIT = 'k8s-plugin-port-init';
 
-// A plugin frame has no network, and the CSP cannot say so for WebRTC: it has
-// no directive for it, so a peer connection reaches any address over UDP and
-// TCP. Nothing in a frame needs WebRTC, so its constructors go before any plugin
-// code runs. They cannot come back: a nested frame's realm is cross-origin to
-// this one, and the main process keeps this frame on this document.
-for (const name of Object.getOwnPropertyNames(window)) {
-  if (name.includes('RTC')) Reflect.deleteProperty(window, name);
-}
-
 /** Which contribution this frame mounts: the page, a widget, or a modal. */
 export type FrameView =
   | { kind: 'page' }

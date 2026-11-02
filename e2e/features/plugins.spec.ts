@@ -93,4 +93,15 @@ test('enabled plugin page renders its sandboxed frame', async () => {
   await expect(
     window.frameLocator('iframe').first().getByText('Cluster Details')
   ).toBeVisible({ timeout: 15_000 });
+
+  // The preload runs in the frame too, which is what removes WebRTC from it.
+  // This is the check that reaches installed builds, where the hostile plugin
+  // of sandbox-escape.spec.ts cannot load.
+  const frame = window
+    .frames()
+    .find((candidate) => candidate.url().includes('plugin-host/index.html'));
+  expect(frame, 'plugin host document loaded').toBeDefined();
+  expect(await frame!.evaluate(() => typeof RTCPeerConnection)).toBe(
+    'undefined'
+  );
 });

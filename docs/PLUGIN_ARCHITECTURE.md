@@ -110,11 +110,15 @@ renderers cannot open a connection on their own; everything goes through
 for 1.0.)
 
 The policy has two blind spots. CSP has no directive for WebRTC, which reaches
-any address over UDP and TCP, so `frame-runtime.tsx` removes its constructors
-before any plugin code runs, and the main process sets the
-`disable_non_proxied_udp` WebRTC policy as a second layer (alone it would still
-let TURN over TCP through). A nested frame cannot bring the constructors back,
-because its realm is cross-origin to the frame's. The other blind spot is open:
+any address over UDP and TCP. A plugin can also get a fresh realm: neither
+`frame-src` nor the main process stop an `<iframe srcdoc>`, which inherits the
+right to run the plugin's scripts. So `electron/preload.ts` runs in every frame
+(`nodeIntegrationInSubFrames`, which adds no Node.js with the sandbox on) and
+removes the constructors before the frame's scripts run; it exposes the bridge
+in the main frame only, and `wrapIpcHandler` refuses calls from any other. The
+main process also sets the `disable_non_proxied_udp` WebRTC policy as a second
+layer (alone it would still let TURN over TCP through). The other blind spot is
+open:
 `<link rel="dns-prefetch">` makes DNS lookups regardless of the policy, and
 neither `X-DNS-Prefetch-Control` nor `--dns-prefetch-disable` stops it in
 Electron. It has to be closed before third-party plugins (1.0).

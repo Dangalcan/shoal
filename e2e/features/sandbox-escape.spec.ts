@@ -41,6 +41,7 @@ const EXPECTED_BLOCKED = [
   'xhr',
   'websocket',
   'webrtc',
+  'webrtc-nested',
   'sdk-permission',
   'shim-permission',
   'clipboard-read',
