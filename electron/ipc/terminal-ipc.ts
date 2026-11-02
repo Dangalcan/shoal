@@ -1,6 +1,8 @@
 import { app, ipcMain } from 'electron';
+import type { WebContents } from 'electron';
 import { randomUUID } from 'crypto';
 import {
+  onRendererUnload,
   wrapIpcHandler,
   assertContext,
   assertNamespace,
@@ -67,7 +69,72 @@ function assertDimension(value: unknown, name: string): number {
   return value;
 }
 
+// Flow control. The output a terminal has not drawn yet is counted, and past
+// the high mark the shell is paused until the renderer catches up, so a program
+// writing as fast as it can cannot outrun xterm's write buffer.
+const FLOW_HIGH_MARK = 1024 * 1024;
+const FLOW_LOW_MARK = 256 * 1024;
+
+/** What a terminal may say before it listens; the newest text is kept. */
+const MAX_UNATTACHED_OUTPUT = 1024 * 1024;
+
+/** A session as the renderer sees it, which outlives the shell until attached. */
+interface SessionOutlet {
+  ownerId: number;
+  /** Messages waiting for the renderer to subscribe; null once it has. */
+  pending:
+    { channel: string; payload: { sessionId: string; data?: string } }[] | null;
+  pendingOutput: number;
+  /** Output sent and not yet reported as drawn. */
+  undrawn: number;
+  paused: boolean;
+}
+
 const sessions = new Map<string, TerminalSession>();
+const outlets = new Map<string, SessionOutlet>();
+
+/** Windows whose reload, crash or close already ends their sessions. */
+const watchedSenders = new WeakSet<WebContents>();
+
+function endSession(sessionId: string): void {
+  sessions.get(sessionId)?.kill();
+  sessions.delete(sessionId);
+  outlets.delete(sessionId);
+}
+
+function endSessionsOnUnload(sender: WebContents): void {
+  if (watchedSenders.has(sender)) return;
+  watchedSenders.add(sender);
+  const ownerId = sender.id;
+  onRendererUnload(sender, (why) => {
+    let ended = 0;
+    for (const [sessionId, outlet] of outlets) {
+      if (outlet.ownerId !== ownerId) continue;
+      endSession(sessionId);
+      ended += 1;
+    }
+    if (ended > 0) log.info(`[Terminal] ${why}: ended ${ended} session(s)`);
+  });
+}
+
+/** Holds a message for a renderer that has not subscribed yet. */
+function holdForAttach(
+  outlet: SessionOutlet,
+  channel: string,
+  payload: { sessionId: string; data?: string }
+): void {
+  const pending = outlet.pending!;
+  pending.push({ channel, payload });
+  outlet.pendingOutput += payload.data?.length ?? 0;
+  while (outlet.pendingOutput > MAX_UNATTACHED_OUTPUT) {
+    const oldest = pending.findIndex((message) => message.payload.data);
+    const dropped = pending[oldest]?.payload.data?.length ?? 0;
+    outlet.pendingOutput -= dropped;
+    // It will never be drawn, so flow control must not wait for it.
+    outlet.undrawn -= dropped;
+    pending.splice(oldest, 1);
+  }
+}
 
 export function registerTerminalIpcHandlers(): void {
   ipcMain.handle(
@@ -145,14 +212,39 @@ export function registerTerminalIpcHandlers(): void {
             : assertDimension(args.rows, 'rows');
 
         const sessionId = randomUUID();
-        const send = (channel: string, payload: object) => {
-          if (!event.sender.isDestroyed()) event.sender.send(channel, payload);
+        endSessionsOnUnload(event.sender);
+        const outlet: SessionOutlet = {
+          ownerId: event.sender.id,
+          pending: [],
+          pendingOutput: 0,
+          undrawn: 0,
+          paused: false,
+        };
+        outlets.set(sessionId, outlet);
+        // The shell can say something, or fail, before the renderer has the
+        // session id and subscribes: that waits for terminal:attach.
+        const send = (
+          channel: string,
+          payload: { sessionId: string; data?: string }
+        ) => {
+          if (outlet.pending) holdForAttach(outlet, channel, payload);
+          else if (!event.sender.isDestroyed()) {
+            event.sender.send(channel, payload);
+          }
         };
         const events: TerminalSessionEvents = {
-          onData: (data) => send('terminal:output', { sessionId, data }),
+          onData: (data) => {
+            send('terminal:output', { sessionId, data });
+            outlet.undrawn += data.length;
+            if (!outlet.paused && outlet.undrawn > FLOW_HIGH_MARK) {
+              outlet.paused = true;
+              sessions.get(sessionId)?.pause();
+            }
+          },
           onExit: () => {
             sessions.delete(sessionId);
             send('terminal:exited', { sessionId });
+            if (!outlet.pending) outlets.delete(sessionId);
             log.info(`[Terminal] Session ${sessionId} exited`);
           },
           onError: (message) => {
@@ -193,6 +285,46 @@ export function registerTerminalIpcHandlers(): void {
           transport: session.transport,
           windowsPty: session.windowsPty,
         };
+      }
+    )
+  );
+
+  // The renderer listens now: what the shell said meanwhile goes out, in order.
+  ipcMain.handle(
+    'terminal:attach',
+    wrapIpcHandler(
+      'terminal:attach',
+      async (event, { sessionId }: { sessionId: string }) => {
+        const outlet = outlets.get(sessionId);
+        if (!outlet?.pending) return true;
+        const pending = outlet.pending;
+        outlet.pending = null;
+        for (const { channel, payload } of pending) {
+          if (!event.sender.isDestroyed()) event.sender.send(channel, payload);
+        }
+        if (!sessions.has(sessionId)) outlets.delete(sessionId);
+        return true;
+      }
+    )
+  );
+
+  // The renderer has drawn this much more of the output.
+  ipcMain.handle(
+    'terminal:ack',
+    wrapIpcHandler(
+      'terminal:ack',
+      async (
+        _event,
+        { sessionId, drawn }: { sessionId: string; drawn: number }
+      ) => {
+        const outlet = outlets.get(sessionId);
+        if (!outlet || !Number.isFinite(drawn) || drawn <= 0) return true;
+        outlet.undrawn = Math.max(0, outlet.undrawn - drawn);
+        if (outlet.paused && outlet.undrawn < FLOW_LOW_MARK) {
+          outlet.paused = false;
+          sessions.get(sessionId)?.resume();
+        }
+        return true;
       }
     )
   );
@@ -249,12 +381,9 @@ export function registerTerminalIpcHandlers(): void {
     wrapIpcHandler(
       'terminal:kill',
       async (_event, { sessionId }: { sessionId: string }) => {
-        const session = sessions.get(sessionId);
-        if (session) {
-          session.kill();
-          sessions.delete(sessionId);
-          log.info(`[Terminal] Killed session ${sessionId}`);
-        }
+        const known = sessions.has(sessionId);
+        endSession(sessionId);
+        if (known) log.info(`[Terminal] Killed session ${sessionId}`);
         return true;
       }
     )
@@ -276,9 +405,6 @@ export function registerTerminalIpcHandlers(): void {
 
   // Shells are plain child processes: without this they outlive the app.
   app.on('will-quit', () => {
-    for (const [sessionId, session] of sessions) {
-      session.kill();
-      sessions.delete(sessionId);
-    }
+    for (const sessionId of [...sessions.keys()]) endSession(sessionId);
   });
 }

@@ -113,6 +113,7 @@ vi.mock('../services/plugins/plugin-extensions', () => ({
   savePluginExtensions: vi.fn(),
 }));
 vi.mock('../services/plugins/plugin-context', () => ({
+  disposePluginContext: vi.fn(),
   createPluginContext: vi.fn().mockReturnValue({
     pluginId: 'test-plugin',
     pluginPath: '/mock/plugin',

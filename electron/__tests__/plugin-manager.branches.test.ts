@@ -87,6 +87,7 @@ vi.mock('../services/marketplace/marketplace-service', () => ({
 }));
 vi.mock('../services/plugins/plugin-context', () => ({
   createPluginContext: mocks.createPluginContext,
+  disposePluginContext: vi.fn(),
 }));
 vi.mock('../services/plugins/plugin-extensions', () => mocks.extensions);
 vi.mock('../services/plugins/plugin-watcher', () => ({

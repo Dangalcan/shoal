@@ -46,8 +46,11 @@ test.describe('empty kubeconfig', () => {
 
   test('the cluster list says how to add one', async () => {
     await window.getByRole('link', { name: 'Clusters' }).click();
+    // The list waits on the run's first kubectl call, which a cold Windows
+    // runner can take well over the default 5 s to start.
     await expect(window.locator('.clusters-empty-title')).toHaveText(
-      'No clusters found'
+      'No clusters found',
+      { timeout: 30_000 }
     );
     await expect(window.locator('.clusters-empty-subtitle')).toContainText(
       'KUBECONFIG'

@@ -514,6 +514,20 @@ no size.
   anything else is rejected)
 - **Returns**: `Promise<Result<boolean>>`
 
+### `terminalAttach(sessionId)`
+
+Tells the main process the renderer is listening for a session's output. Whatever the shell said since it started, including a failure to start, is held until this call and then sent in order (up to 1 MiB, newest kept).
+
+- **Parameters**: `sessionId`: `string`
+- **Returns**: `Promise<Result<boolean>>`
+
+### `terminalAck(sessionId, drawn)`
+
+Reports how many more characters of output the terminal has drawn. The shell is paused while more than 1 MiB is undrawn and resumes below 256 KiB, so a program that writes faster than the terminal draws is held back.
+
+- **Parameters**: `sessionId`: `string`, `drawn`: `number`
+- **Returns**: `Promise<Result<boolean>>`
+
 ### `terminalKill(sessionId)`
 
 Kills a terminal session.

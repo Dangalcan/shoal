@@ -319,6 +319,14 @@ export const mockApi: ElectronAPI = {
     success: false,
     error: 'Not available in browser',
   }),
+  terminalAttach: async () => ({
+    success: false,
+    error: 'Not available in browser',
+  }),
+  terminalAck: async () => ({
+    success: false,
+    error: 'Not available in browser',
+  }),
   terminalKill: async () => ({
     success: false,
     error: 'Not available in browser',

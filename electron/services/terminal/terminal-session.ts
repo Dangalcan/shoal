@@ -41,6 +41,10 @@ export interface TerminalSession {
   resize(cols: number, rows: number): void;
   /** Ctrl+C: stops the running command and leaves the shell open. */
   interrupt(): void;
+  /** Stops reading the shell's output, which holds a chatty program back. */
+  pause(): void;
+  /** Reads the shell's output again after pause(). */
+  resume(): void;
   /** Ends the shell and releases its handles. */
   kill(): void;
 }

@@ -263,6 +263,10 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.invoke('terminal:input', { sessionId, data }),
   terminalResize: (sessionId: string, cols: number, rows: number) =>
     ipcRenderer.invoke('terminal:resize', { sessionId, cols, rows }),
+  terminalAttach: (sessionId: string) =>
+    ipcRenderer.invoke('terminal:attach', { sessionId }),
+  terminalAck: (sessionId: string, drawn: number) =>
+    ipcRenderer.invoke('terminal:ack', { sessionId, drawn }),
   terminalKill: (sessionId: string) =>
     ipcRenderer.invoke('terminal:kill', { sessionId }),
   terminalInterrupt: (sessionId: string) =>

@@ -335,6 +335,8 @@ export interface ElectronAPI {
     cols: number,
     rows: number
   ) => Promise<Result<boolean>>;
+  terminalAttach: (sessionId: string) => Promise<Result<boolean>>;
+  terminalAck: (sessionId: string, drawn: number) => Promise<Result<boolean>>;
   terminalKill: (sessionId: string) => Promise<Result<boolean>>;
   terminalInterrupt: (sessionId: string) => Promise<Result<boolean>>;
   onTerminalOutput: (

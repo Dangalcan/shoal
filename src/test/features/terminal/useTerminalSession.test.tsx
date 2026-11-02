@@ -39,6 +39,32 @@ describe('useTerminalSession', () => {
     });
   });
 
+  it('reports a bridge that fails instead of loading forever', async () => {
+    vi.mocked(api.terminalCreate).mockRejectedValueOnce(new Error('no bridge'));
+
+    const { result } = renderSession({ kind: 'local', shell: 'bash' });
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.error).toContain('no bridge');
+    expect(result.current.sessionId).toBeNull();
+  });
+
+  it('ignores a bridge failure after the owner moved on', async () => {
+    let fail: (error: Error) => void = () => {};
+    vi.mocked(api.terminalCreate).mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          fail = reject;
+        })
+    );
+
+    const { result, unmount } = renderSession({ kind: 'local', shell: 'bash' });
+    unmount();
+    await act(async () => fail(new Error('too late')));
+
+    expect(result.current.error).toBeNull();
+  });
+
   it('creates the session on mount and reports it', async () => {
     const { result } = renderSession({ kind: 'local', shell: 'bash' });
     expect(result.current).toEqual({
