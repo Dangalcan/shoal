@@ -82,7 +82,12 @@ export function MarketplaceCard({
       onClick={() => onOpenDetail(entry)}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => activateOnKey(e, () => onOpenDetail(entry))}
+      onKeyDown={(e) => {
+        // Same shape as FolderCard: Enter/Space on an inner button must run
+        // that button, so only a key on the card itself opens the detail.
+        if (e.target !== e.currentTarget) return;
+        activateOnKey(e, () => onOpenDetail(entry));
+      }}
     >
       {badge}
 

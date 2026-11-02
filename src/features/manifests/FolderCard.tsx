@@ -69,6 +69,12 @@ export function FolderCard({
       draggable
       onClick={() => onOpen(folder.id)}
       onKeyDown={(e) => {
+        // Enter/Space on an inner button must reach it: the browser turns
+        // the key into a click on the button, and swallowing the key here
+        // opened the card instead, so folders were unreachable by keyboard
+        // (the mouse path works because the button wrapper stops clicks
+        // from bubbling — nothing did that for keys).
+        if (e.target !== e.currentTarget) return;
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           onOpen(folder.id);
