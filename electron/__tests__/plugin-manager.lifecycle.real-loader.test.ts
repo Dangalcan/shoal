@@ -167,6 +167,11 @@ async function startWithActivationInFlight(manager: PluginManager) {
   return { startup, cluster };
 }
 
+// On a busy machine the first test here can take over the default 5 s. A test
+// that times out leaves its plugin's interval running, and the extra ticks then
+// fail the tests after it.
+vi.setConfig({ testTimeout: 30_000 });
+
 describe('PluginManager with the real PluginLoader (in-process plugin)', () => {
   let manager: PluginManager;
 

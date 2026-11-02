@@ -232,7 +232,7 @@ To use Shoal, see [Installation](#-installation). To develop it:
 1.  Install dependencies, then set up the git hooks once:
 
     ```bash
-    npm install
+    npm ci
     npm run prepare
     ```
 
@@ -388,11 +388,13 @@ We welcome contributions! Please see our contribution guides:
 - [Testing Guide](docs/CONTRIBUTING_TESTS.md)
 - [Plugin Development Guide](docs/PLUGINS_GUIDE.md)
 
+Looking for somewhere to start? Issues labelled [`good first issue`](https://github.com/Dangalcan/shoal/labels/good%20first%20issue) are small and say where to look and how to test, and [Your First Contribution](CONTRIBUTING.md#your-first-contribution) has the rest.
+
 ### Quick Start for Contributors
 
 1. Fork the repository
 2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/shoal.git`
-3. Install dependencies and the git hooks: `npm install && npm run prepare`
+3. Install dependencies and the git hooks: `npm ci && npm run prepare`
 4. Create a branch: `git checkout -b feature/your-feature`
 5. Make your changes
 6. Run tests: `npm run test`
@@ -438,7 +440,7 @@ The 0.9 installers are not code-signed yet, so SmartScreen warns on first start.
 ```bash
 # Clear cache and rebuild
 rm -rf node_modules dist dist-electron
-npm install
+npm ci
 npm run dev
 ```
 

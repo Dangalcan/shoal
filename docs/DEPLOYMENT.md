@@ -35,7 +35,7 @@ This guide covers building and distributing Shoal for production environments.
 ### 1. Install Dependencies
 
 ```bash
-npm install
+npm ci
 ```
 
 On Linux, also compile node-pty, which ships no prebuilt binary there (needs `make`, `g++` and `python3`). Without it the build's terminals run on pipes:
