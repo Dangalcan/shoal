@@ -50,6 +50,8 @@ All notable changes to Shoal are documented here. The format follows
 
 ### Fixed
 
+- Resource tables pause auto-refresh while the window is hidden and refresh
+  once when it becomes visible again (#97).
 - The cluster back, log filter clear and plugin-array remove buttons have
   action-specific accessible names for screen readers (#99).
 - Disabling a plugin while it is still activating (start-up waiting on
