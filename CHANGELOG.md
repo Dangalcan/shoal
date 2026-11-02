@@ -93,6 +93,12 @@ All notable changes to Shoal are documented here. The format follows
 - Filtering the tab list of the Display Settings menu shows the matches
   inside a collapsed category (Storage, Configuration, Access Control and
   Advanced start collapsed), instead of leaving them hidden under it.
+- Quitting Shoal no longer forgets the saved kubeconfig path and window
+  position. The window state is written when the window closes, right before
+  the process exits, and that write could be cut off after emptying
+  `app-settings.json`, which happened on most quits on a fast machine. The file
+  is now written in one step through a temporary file, so a quit, a crash or a
+  full disk leaves the previous settings in place.
 
 ## [0.9.1] - 2026-10-31
 
