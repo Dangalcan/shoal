@@ -7,9 +7,6 @@ name: E2E
 # an unsigned plugin, which a packaged build refuses to load.
 
 on:
-  push:
-    branches:
-      - ci/e2e-on-pull-requests
   pull_request:
     branches:
       - master

@@ -40,7 +40,6 @@ const EXPECTED_BLOCKED = [
   'sdk-permission',
   'shim-permission',
   'clipboard-read',
-  'deliberately-missing-probe',
 ];
 
 let app: ElectronApplication;
