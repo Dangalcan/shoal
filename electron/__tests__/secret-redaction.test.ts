@@ -49,6 +49,52 @@ describe('withoutSecretData', () => {
     expect(JSON.stringify(secret)).toBe(before);
   });
 
+  it('redacts the Secrets inside a list, also a nested one', () => {
+    const secret = {
+      kind: 'Secret',
+      metadata: { name: 'db' },
+      data: { password: 'cGFzcw==' },
+    };
+    const configMap = { kind: 'ConfigMap', data: { key: 'value' } };
+    const list = {
+      kind: 'List',
+      items: [
+        secret,
+        configMap,
+        { kind: 'SecretList', items: [{ ...secret, stringData: { a: 'b' } }] },
+      ],
+    };
+
+    expect(withoutSecretData(list)).toEqual({
+      kind: 'List',
+      items: [
+        { kind: 'Secret', metadata: { name: 'db' } },
+        configMap,
+        {
+          kind: 'SecretList',
+          items: [{ kind: 'Secret', metadata: { name: 'db' } }],
+        },
+      ],
+    });
+    // The manifest other plugins still hold keeps its data.
+    expect(list.items[0]).toBe(secret);
+    expect(secret.data).toEqual({ password: 'cGFzcw==' });
+  });
+
+  it('redacts the items of a SecretList that leave out their kind', () => {
+    const list = {
+      kind: 'SecretList',
+      items: [{ metadata: { name: 'db' }, data: { password: 'cGFzcw==' } }],
+    };
+    expect(withoutSecretData(list)).toEqual({
+      kind: 'SecretList',
+      items: [{ metadata: { name: 'db' } }],
+    });
+    // A plain List says nothing about items without a kind.
+    const other = { kind: 'List', items: [{ data: { key: 'value' } }] };
+    expect(withoutSecretData(other)).toEqual(other);
+  });
+
   it('copes with a Secret without annotations or metadata', () => {
     expect(withoutSecretData({ kind: 'Secret', data: { a: 'b' } })).toEqual({
       kind: 'Secret',

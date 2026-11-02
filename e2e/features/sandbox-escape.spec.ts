@@ -4,6 +4,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { launchApp, mainWindow } from '../fixtures/launch';
+import { toPluginFileUrl } from '../../electron/shared/plugin-file-url';
 
 /**
  * Plugin sandbox under a hostile plugin.
@@ -11,10 +12,11 @@ import { launchApp, mainWindow } from '../fixtures/launch';
  * The fixture plugin in e2e/fixtures/plugins/escape-probe declares no
  * permissions and, once its page is open, tries to get out of its frame:
  * the host DOM, top-level navigation, window.open, fetch, XHR, WebSocket,
- * the clipboard, Node globals and bridge calls beyond its permissions. It
- * prints one `name=outcome` line per probe; every outcome must be
- * `blocked`. The spec then asks the frame to navigate itself to an outside
- * URL, which the host document's CSP refuses.
+ * WebRTC, the clipboard, Node globals and bridge calls beyond its permissions.
+ * It prints one `name=outcome` line per probe; every outcome must be
+ * `blocked`. The spec then asks the frame to move to a host document of its
+ * own, which the main process refuses, and to an outside URL, which the host
+ * document's CSP refuses.
  *
  * Dev builds load the unsigned fixture (ALLOW_UNSIGNED_PLUGINS). Packaged
  * builds ignore that flag, so against SHOAL_E2E_EXECUTABLE the spec checks
@@ -38,6 +40,8 @@ const EXPECTED_BLOCKED = [
   'fetch',
   'xhr',
   'websocket',
+  'webrtc',
+  'webrtc-nested',
   'sdk-permission',
   'shim-permission',
   'clipboard-read',
@@ -200,6 +204,31 @@ test('every escape attempt from the plugin frame is blocked', async () => {
   // window.open and the top-level navigation attempt left the host alone.
   expect(app.windows()).toHaveLength(1);
   expect(window.url()).toContain('#/plugin/escape-probe');
+});
+
+test('the frame cannot move to a host document of its own', async () => {
+  test.skip(PACKAGED, 'needs the unsigned fixture plugin (dev build only)');
+
+  const frame = pluginHostFrame();
+  expect(frame, 'plugin host document loaded').toBeDefined();
+  const ownDocument = toPluginFileUrl(
+    path.join(userDataDir, 'plugins', PLUGIN_ID, 'plugin-host', 'index.html')
+  );
+
+  await frame!
+    .evaluate((url) => {
+      globalThis.location.href = url;
+    }, ownDocument)
+    .catch(() => undefined);
+
+  await expect
+    .poll(() => mainLog(userDataDir))
+    .toContain(`Blocked frame navigation to ${ownDocument}`);
+  const content = window.frameLocator('.plugin-page-container iframe');
+  await expect(content.getByTestId('own-host-document')).toHaveCount(0);
+  await expect(
+    content.locator('[data-testid="escape-probe-results"]')
+  ).toContainText('done=true');
 });
 
 test('the frame cannot navigate itself to an outside URL', async () => {
