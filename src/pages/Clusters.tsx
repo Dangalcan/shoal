@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  AlertCircle,
   Server,
   Trash2,
   RefreshCw,
@@ -28,6 +29,7 @@ export function Clusters() {
   const {
     clusters,
     loading,
+    clustersError,
     deleting,
     currentContext,
     switching,
@@ -173,6 +175,25 @@ export function Clusters() {
             );
           })}
         </div>
+      ) : clustersError ? (
+        <Animate type="fade">
+          <div className="clusters-empty" role="alert">
+            <div className="clusters-empty-icon">
+              <AlertCircle size={48} />
+            </div>
+            <h3 className="clusters-empty-title">
+              Could not read your clusters
+            </h3>
+            <p className="clusters-empty-subtitle">{clustersError}</p>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => void fetchClusters()}
+            >
+              Try Again
+            </Button>
+          </div>
+        </Animate>
       ) : (
         <Animate type="fade">
           <div className="clusters-empty">

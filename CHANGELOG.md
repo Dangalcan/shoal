@@ -93,6 +93,13 @@ All notable changes to Shoal are documented here. The format follows
 - Filtering the tab list of the Display Settings menu shows the matches
   inside a collapsed category (Storage, Configuration, Access Control and
   Advanced start collapsed), instead of leaving them hidden under it.
+- A kubeconfig Shoal cannot read shows the error and a Try Again button on the
+  Clusters page and the Dashboard. Once the toast was gone, both said "No
+  clusters found" and suggested creating one.
+- The namespace selector shows the namespace the table is filtered by when it is
+  not in the list, such as a Default Namespace that does not exist on this
+  cluster. It said "All Namespaces" over a filtered table, and choosing that did
+  nothing because it already looked selected.
 
 ## [0.9.1] - 2026-10-31
 

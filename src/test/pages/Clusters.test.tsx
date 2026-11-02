@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor, fireEvent } from '../utils';
+import { render, screen, waitFor, fireEvent } from '../utils';
+import { Clusters } from '../../pages/Clusters';
 import { toast } from 'sonner';
 import {
   mockApi,
@@ -78,11 +79,47 @@ describe('Clusters Page', () => {
     expect(screen.queryByText('Running')).toBeNull();
   });
 
+  it('says the list could not be read, with a way to retry', async () => {
+    mockApi.getClusters = vi
+      .fn()
+      .mockResolvedValueOnce({
+        success: false,
+        error: 'error loading config file: yaml: line 1',
+      })
+      .mockResolvedValue({ success: true, data: ['kind-a'] });
+    render(<Clusters />, { api: mockApi });
+
+    expect(
+      await screen.findByText('Could not read your clusters')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('error loading config file: yaml: line 1')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('No clusters found')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Try Again' }));
+    expect(await screen.findByText('kind-a')).toBeInTheDocument();
+    expect(screen.queryByText('Could not read your clusters')).toBeNull();
+  });
+
+  it('leaves a missing kubectl to its notice, without the read error', async () => {
+    mockApi.getClusters = vi.fn().mockResolvedValue({
+      success: false,
+      error: 'kubectl is not installed or not on the PATH',
+    });
+    render(<Clusters />, { api: mockApi });
+
+    expect(await screen.findByText(/No clusters found/i)).toBeInTheDocument();
+    expect(screen.queryByText('Could not read your clusters')).toBeNull();
+  });
+
   it('should handle load error gracefully', async () => {
     mockApi.getClusters = vi.fn().mockRejectedValue(new Error('Fetch failed'));
-    renderClustersPage();
+    render(<Clusters />, { api: mockApi });
     await waitFor(() => {
-      expect(screen.getByText(/No clusters found/i)).toBeInTheDocument();
+      expect(
+        screen.getByText('Could not read your clusters')
+      ).toBeInTheDocument();
     });
   });
 
