@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { IpcMainInvokeEvent } from 'electron';
 import { app, ipcMain } from 'electron';
 import { spawn } from 'child_process';
+import { EventEmitter } from 'events';
 import { registerTerminalIpcHandlers } from '../ipc/terminal-ipc';
 import log from '../logger';
 import {
@@ -82,13 +83,34 @@ type IpcHandler = (
 
 function makeFakeChild() {
   return {
-    stdout: { on: vi.fn() },
-    stderr: { on: vi.fn() },
-    stdin: { write: vi.fn(), on: vi.fn(), destroyed: false },
+    stdout: { on: vi.fn(), pause: vi.fn(), resume: vi.fn() },
+    stderr: { on: vi.fn(), pause: vi.fn(), resume: vi.fn() },
+    stdin: { write: vi.fn(), on: vi.fn(), end: vi.fn(), destroyed: false },
     on: vi.fn(),
     kill: vi.fn(),
     pid: 1234,
   };
+}
+
+/** A child whose streams really emit, for tests of what it says when. */
+function makeChild() {
+  return Object.assign(new EventEmitter(), {
+    stdout: Object.assign(new EventEmitter(), {
+      pause: vi.fn(),
+      resume: vi.fn(),
+    }),
+    stderr: Object.assign(new EventEmitter(), {
+      pause: vi.fn(),
+      resume: vi.fn(),
+    }),
+    stdin: Object.assign(new EventEmitter(), {
+      write: vi.fn(),
+      end: vi.fn(),
+      destroyed: false,
+    }),
+    kill: vi.fn(),
+    pid: 1234,
+  });
 }
 
 function makeFakePty() {
@@ -99,6 +121,8 @@ function makeFakePty() {
     write: vi.fn(),
     resize: vi.fn(),
     kill: vi.fn(),
+    pause: vi.fn(),
+    resume: vi.fn(),
   };
 }
 
@@ -113,18 +137,389 @@ function installFakeNodePty(pty: ReturnType<typeof makeFakePty>) {
 
 const mockEvent = {
   sender: {
+    id: 1,
     isDestroyed: vi.fn(() => false),
     send: vi.fn(),
+    on: vi.fn(),
+    once: vi.fn(),
   },
 } as unknown as IpcMainInvokeEvent;
 
-function getHandler(channel: string): IpcHandler {
+function getRawHandler(channel: string): IpcHandler {
   const call = vi
     .mocked(ipcMain.handle)
     .mock.calls.find(([name]) => name === channel);
   if (!call) throw new Error(`No handler registered for ${channel}`);
   return call[1] as IpcHandler;
 }
+
+/**
+ * The handler for a channel. terminal:create also attaches, as the renderer
+ * does, so most tests see output as soon as it happens; the tests of the time
+ * before attaching use getRawHandler.
+ */
+function getHandler(channel: string): IpcHandler {
+  const handler = getRawHandler(channel);
+  if (channel !== 'terminal:create') return handler;
+  return (async (event: IpcMainInvokeEvent, args: unknown) => {
+    const result = await (handler as (...a: unknown[]) => Promise<any>)(
+      event,
+      args
+    );
+    if (result.success) {
+      await (getRawHandler('terminal:attach') as (...a: unknown[]) => unknown)(
+        event,
+        { sessionId: result.data.sessionId }
+      );
+    }
+    return result;
+  }) as unknown as IpcHandler;
+}
+
+describe('terminal-ipc: before the renderer attaches', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(mockEvent.sender.isDestroyed).mockReturnValue(false);
+    vi.mocked(loadNodePty).mockReturnValue(null);
+    vi.mocked(spawn).mockReturnValue(makeChild() as never);
+    registerTerminalIpcHandlers();
+  });
+
+  const create = async () => {
+    const result = await (getRawHandler('terminal:create') as any)(mockEvent, {
+      kind: 'local',
+    });
+    return result.data.sessionId as string;
+  };
+  const attach = (sessionId: string) =>
+    (getRawHandler('terminal:attach') as any)(mockEvent, { sessionId });
+  const child = () => vi.mocked(spawn).mock.results[0]!.value as any;
+
+  it('holds what the shell says until then, and sends it in order', async () => {
+    const sessionId = await create();
+
+    child().stdout.emit('data', Buffer.from('one '));
+    child().stderr.emit('data', Buffer.from('two'));
+    expect(mockEvent.sender.send).not.toHaveBeenCalled();
+
+    await attach(sessionId);
+    expect(vi.mocked(mockEvent.sender.send).mock.calls).toEqual([
+      ['terminal:output', { sessionId, data: 'one ' }],
+      ['terminal:output', { sessionId, data: 'two' }],
+    ]);
+
+    child().stdout.emit('data', Buffer.from('three'));
+    expect(mockEvent.sender.send).toHaveBeenLastCalledWith('terminal:output', {
+      sessionId,
+      data: 'three',
+    });
+  });
+
+  it('still delivers a failure to start, which comes before the id is known', async () => {
+    const sessionId = await create();
+
+    child().emit('error', new Error('spawn kubectl ENOENT'));
+    expect(mockEvent.sender.send).not.toHaveBeenCalled();
+
+    await attach(sessionId);
+    expect(vi.mocked(mockEvent.sender.send).mock.calls).toEqual([
+      [
+        'terminal:output',
+        expect.objectContaining({
+          sessionId,
+          data: expect.stringContaining('spawn kubectl ENOENT'),
+        }),
+      ],
+      ['terminal:exited', { sessionId }],
+    ]);
+  });
+
+  it('keeps the newest output when a shell says too much meanwhile', async () => {
+    const sessionId = await create();
+    const chunk = 'x'.repeat(600 * 1024);
+
+    child().stdout.emit('data', Buffer.from(`first${chunk}`));
+    child().stdout.emit('data', Buffer.from(`second${chunk}`));
+    await attach(sessionId);
+
+    const sent = vi.mocked(mockEvent.sender.send).mock.calls;
+    expect(sent).toHaveLength(1);
+    expect((sent[0]![1] as { data: string }).data.startsWith('second')).toBe(
+      true
+    );
+  });
+
+  it('attaching twice, or to a session it never knew, sends nothing more', async () => {
+    const sessionId = await create();
+    child().stdout.emit('data', Buffer.from('once'));
+    await attach(sessionId);
+    await attach(sessionId);
+    await attach('no-such-session');
+    expect(mockEvent.sender.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops the held output of a session killed before attaching', async () => {
+    const sessionId = await create();
+    child().stdout.emit('data', Buffer.from('never seen'));
+
+    await (getRawHandler('terminal:kill') as any)(mockEvent, { sessionId });
+    await attach(sessionId);
+
+    expect(mockEvent.sender.send).not.toHaveBeenCalled();
+  });
+
+  it('does not send to a window closed before attaching', async () => {
+    const sessionId = await create();
+    child().stdout.emit('data', Buffer.from('never seen'));
+    vi.mocked(mockEvent.sender.isDestroyed).mockReturnValue(true);
+
+    await attach(sessionId);
+
+    expect(mockEvent.sender.send).not.toHaveBeenCalled();
+  });
+});
+
+describe('terminal-ipc: flow control', () => {
+  const MB = 1024 * 1024;
+  const pty = {
+    pid: 1,
+    onData: vi.fn(),
+    onExit: vi.fn(),
+    write: vi.fn(),
+    resize: vi.fn(),
+    kill: vi.fn(),
+    pause: vi.fn(),
+    resume: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(mockEvent.sender.isDestroyed).mockReturnValue(false);
+    vi.mocked(loadNodePty).mockReturnValue({
+      spawn: vi.fn(() => pty),
+    } as unknown as NodePty);
+    registerTerminalIpcHandlers();
+  });
+
+  const start = async () => {
+    const result = (await getHandler('terminal:create')(mockEvent, {
+      kind: 'local',
+    })) as any;
+    return {
+      sessionId: result.data.sessionId as string,
+      output: pty.onData.mock.calls[0]![0] as (data: string) => void,
+    };
+  };
+  const ack = (sessionId: string, drawn: number) =>
+    (getRawHandler('terminal:ack') as any)(mockEvent, { sessionId, drawn });
+
+  it('pauses the shell past the high mark and resumes below the low mark', async () => {
+    const { sessionId, output } = await start();
+
+    output('x'.repeat(MB));
+    expect(pty.pause).not.toHaveBeenCalled();
+    output('x');
+    expect(pty.pause).toHaveBeenCalledTimes(1);
+    output('x');
+    expect(pty.pause).toHaveBeenCalledTimes(1);
+
+    await ack(sessionId, MB / 2);
+    expect(pty.resume).not.toHaveBeenCalled();
+    await ack(sessionId, MB / 2);
+    expect(pty.resume).toHaveBeenCalledTimes(1);
+
+    await ack(sessionId, MB);
+    expect(pty.resume).toHaveBeenCalledTimes(1);
+  });
+
+  it('pauses both streams of a shell on pipes', async () => {
+    vi.mocked(loadNodePty).mockReturnValue(null);
+    vi.mocked(spawn).mockReturnValue(makeChild() as never);
+    const result = (await getHandler('terminal:create')(mockEvent, {
+      kind: 'local',
+    })) as any;
+    const child = vi.mocked(spawn).mock.results.at(-1)!.value as any;
+
+    child.stdout.emit('data', Buffer.from('x'.repeat(MB + 1)));
+    expect(child.stdout.pause).toHaveBeenCalledTimes(1);
+    expect(child.stderr.pause).toHaveBeenCalledTimes(1);
+
+    await ack(result.data.sessionId, MB + 1);
+    expect(child.stdout.resume).toHaveBeenCalledTimes(1);
+    expect(child.stderr.resume).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a report that makes no sense, or for a session that is gone', async () => {
+    const { sessionId, output } = await start();
+    output('x'.repeat(MB + 1));
+
+    await ack(sessionId, -5);
+    await ack(sessionId, Number.NaN);
+    await ack('no-such-session', MB);
+
+    expect(pty.resume).not.toHaveBeenCalled();
+  });
+});
+
+describe('terminal-ipc: when the renderer goes away', () => {
+  const makeSender = (id: number) => ({
+    id,
+    isDestroyed: vi.fn(() => false),
+    send: vi.fn(),
+    on: vi.fn(),
+    once: vi.fn(),
+  });
+  let sender: ReturnType<typeof makeSender>;
+  let realPlatform: PropertyDescriptor;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    realPlatform = Object.getOwnPropertyDescriptor(process, 'platform')!;
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+    vi.mocked(loadNodePty).mockReturnValue(null);
+    vi.mocked(spawn).mockImplementation(() => makeChild() as never);
+    registerTerminalIpcHandlers();
+    sender = makeSender(7);
+  });
+
+  afterEach(() => {
+    Object.defineProperty(process, 'platform', realPlatform);
+    vi.mocked(spawn).mockReset();
+  });
+
+  const startSession = async (owner = sender) => {
+    await getHandler('terminal:create')(
+      { sender: owner } as unknown as IpcMainInvokeEvent,
+      { kind: 'local' }
+    );
+    return vi.mocked(spawn).mock.results.at(-1)!.value as {
+      kill: ReturnType<typeof vi.fn>;
+    };
+  };
+  const onEvent = (name: string) =>
+    [...sender.on.mock.calls, ...sender.once.mock.calls].find(
+      ([registered]) => registered === name
+    )![1] as (details?: object) => void;
+
+  it('ends the sessions of that window on a reload, and only those', async () => {
+    const mine = [await startSession(), await startSession()];
+    const others = await startSession(makeSender(8));
+
+    onEvent('did-start-navigation')({
+      isMainFrame: true,
+      isSameDocument: false,
+    });
+
+    for (const child of mine) expect(child.kill).toHaveBeenCalled();
+    expect(others.kill).not.toHaveBeenCalled();
+  });
+
+  it.each(['render-process-gone', 'destroyed'])(
+    'ends them on %s',
+    async (name) => {
+      const child = await startSession();
+      onEvent(name)();
+      expect(child.kill).toHaveBeenCalled();
+    }
+  );
+
+  it('keeps them on a change of route or a navigation in a frame', async () => {
+    const child = await startSession();
+    const navigated = onEvent('did-start-navigation');
+
+    navigated({ isMainFrame: true, isSameDocument: true });
+    navigated({ isMainFrame: false, isSameDocument: false });
+
+    expect(child.kill).not.toHaveBeenCalled();
+  });
+
+  it('watches a window once, however many sessions it opens', async () => {
+    await startSession();
+    await startSession();
+    const watching = sender.on.mock.calls.filter(
+      ([name]) => name === 'did-start-navigation'
+    );
+    expect(watching).toHaveLength(1);
+  });
+});
+
+describe('terminal-ipc: ending a shell on pipes', () => {
+  let realPlatform: PropertyDescriptor;
+  const setPlatform = (value: string) =>
+    Object.defineProperty(process, 'platform', { value });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+    realPlatform = Object.getOwnPropertyDescriptor(process, 'platform')!;
+    vi.mocked(loadNodePty).mockReturnValue(null);
+    vi.mocked(spawn).mockImplementation(() => makeChild() as never);
+    registerTerminalIpcHandlers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    Object.defineProperty(process, 'platform', realPlatform);
+    vi.mocked(spawn).mockReset();
+  });
+
+  const startAndKill = async () => {
+    const result = (await getHandler('terminal:create')(mockEvent, {
+      kind: 'local',
+    })) as any;
+    const child = vi.mocked(spawn).mock.results.at(-1)!.value as ReturnType<
+      typeof makeChild
+    >;
+    await (getRawHandler('terminal:kill') as any)(mockEvent, {
+      sessionId: result.data.sessionId,
+    });
+    return child;
+  };
+
+  it('closes stdin and sends SIGTERM, then SIGKILL to a shell that stays', async () => {
+    setPlatform('linux');
+    const child = await startAndKill();
+
+    expect(child.stdin.end).toHaveBeenCalled();
+    expect(child.kill).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(2_000);
+    expect(child.kill).toHaveBeenLastCalledWith('SIGKILL');
+  });
+
+  it('does not force a shell that already left', async () => {
+    setPlatform('linux');
+    const child = await startAndKill();
+
+    child.emit('exit');
+    vi.advanceTimersByTime(2_000);
+
+    expect(child.kill).toHaveBeenCalledTimes(1);
+  });
+
+  it('ends the whole process tree on Windows', async () => {
+    setPlatform('win32');
+    const child = await startAndKill();
+
+    expect(spawn).toHaveBeenLastCalledWith(
+      'taskkill',
+      ['/PID', '1234', '/T', '/F'],
+      expect.objectContaining({ windowsHide: true })
+    );
+    expect(child.kill).not.toHaveBeenCalled();
+  });
+
+  it('falls back to kill() when taskkill cannot run', async () => {
+    setPlatform('win32');
+    const child = await startAndKill();
+
+    const taskkill = vi.mocked(spawn).mock.results.at(-1)!
+      .value as EventEmitter;
+    taskkill.emit('error', new Error('no taskkill'));
+
+    expect(child.kill).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe('terminal-ipc', () => {
   beforeEach(() => {
@@ -644,7 +1039,7 @@ describe('terminal-ipc', () => {
         getHandler('terminal:kill')(mockEvent, { sessionId })
       ).resolves.toMatchObject({ success: true });
       expect(child.kill).toHaveBeenCalledTimes(
-        process.platform === 'win32' ? 1 : 2
+        process.platform === 'win32' ? 0 : 2
       );
 
       await expect(
@@ -909,7 +1304,15 @@ describe('terminal-ipc', () => {
 
       quit?.();
 
-      expect(child.kill).toHaveBeenCalled();
+      if (process.platform === 'win32') {
+        expect(spawn).toHaveBeenLastCalledWith(
+          'taskkill',
+          ['/PID', '1234', '/T', '/F'],
+          expect.anything()
+        );
+      } else {
+        expect(child.kill).toHaveBeenCalled();
+      }
     });
   });
 });
