@@ -193,17 +193,25 @@ describe('FolderCard', () => {
     expect(onDropFolder).not.toHaveBeenCalled();
   });
 
-  it('lets Enter on an inner button run it without opening the folder', async () => {
-    // fireEvent.keyDown does not show #98: it never produces the click the
-    // browser would. user-event does, and the card's onKeyDown used to
-    // swallow the key and open the folder instead.
-    const user = userEvent.setup();
-    renderCard();
-    await user.click(screen.getByTitle('Rename Folder'));
+  it.each([
+    ['Enter', '{Enter}'],
+    ['Space', ' '],
+  ])(
+    'lets %s on an inner button run it without opening the folder',
+    async (_name, key) => {
+      // fireEvent.keyDown does not show #98: it never produces the click the
+      // browser would. user-event does, and the card's onKeyDown used to
+      // swallow the key and open the folder instead. The button gets focus
+      // without a click, so a call to onRename can only come from the key.
+      const user = userEvent.setup();
+      renderCard();
+      screen.getByTitle('Rename Folder').focus();
 
-    await user.keyboard('{Enter}');
+      await user.keyboard(key);
 
-    expect(onRename).toHaveBeenCalledWith(folder);
-    expect(onOpen).not.toHaveBeenCalled();
-  });
+      expect(onRename).toHaveBeenCalledTimes(1);
+      expect(onRename).toHaveBeenCalledWith(folder);
+      expect(onOpen).not.toHaveBeenCalled();
+    }
+  );
 });
