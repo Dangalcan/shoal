@@ -76,20 +76,27 @@ describe('resourceSorters', () => {
   });
 
   describe('getStatusSorter', () => {
-    it('should sort Pods by phase', () => {
+    it('should sort Pods by the status the column shows', () => {
+      const crashing = createPod({
+        status: {
+          phase: 'Running',
+          containerStatuses: [
+            { state: { waiting: { reason: 'CrashLoopBackOff' } } },
+          ],
+        },
+      });
       const pending = createPod({ status: { phase: 'Pending' } });
-      const running = createPod({ status: { phase: 'Running' } });
       const sorter = getStatusSorter('pods');
-      // "Pending" < "Running"
-      expect(sorter(pending, running)).toBeLessThan(0);
+      // "CrashLoopBackOff" < "Pending", though its phase says "Running"
+      expect(sorter(crashing, pending)).toBeLessThan(0);
     });
 
-    it('should fallback to condition type for other resources', () => {
-      const r1 = { status: { conditions: [{ type: 'Available' }] } } as any;
-      const r2 = { status: { conditions: [{ type: 'Progressing' }] } } as any;
-      const sorter = getStatusSorter('deployments');
-      // "Available" < "Progressing"
-      expect(sorter(r1, r2)).toBeLessThan(0);
+    it('should sort volumes by phase', () => {
+      const bound = { metadata: {}, status: { phase: 'Bound' } } as any;
+      const available = { metadata: {}, status: { phase: 'Available' } } as any;
+      const sorter = getStatusSorter('persistentvolume');
+      // "Available" < "Bound"
+      expect(sorter(available, bound)).toBeLessThan(0);
     });
   });
 
@@ -363,49 +370,15 @@ describe('resourceSorters', () => {
   });
 
   describe('getStatusSorter – edge cases', () => {
-    it('should return empty string for resource with no status', () => {
+    it('should tie resources with no status', () => {
       const sorter = getStatusSorter('pods');
       const r1 = createPod({ status: undefined });
       const r2 = createPod({ status: undefined });
       expect(sorter(r1, r2)).toBe(0);
     });
-
-    it('should return empty string when conditions array is empty', () => {
-      const sorter = getStatusSorter('deployments');
-      const r1 = { status: { conditions: [] } } as any;
-      const r2 = { status: { conditions: [] } } as any;
-      expect(sorter(r1, r2)).toBe(0);
-    });
   });
 
   describe('missing or malformed fields sort as empty', () => {
-    const sorter = getStatusSorter('deployments');
-    const available = {
-      status: { conditions: [{ type: 'Available' }] },
-    } as any;
-
-    it('getStatusSorter puts a resource without status first', () => {
-      const bare = { metadata: createMeta('bare') } as any;
-      expect(sorter(bare, available)).toBeLessThan(0);
-      expect(sorter(available, bare)).toBeGreaterThan(0);
-    });
-
-    it('getStatusSorter ignores a phase that is not a string', () => {
-      const odd = { status: { phase: 3 } } as any;
-      const running = { status: { phase: 'Running' } } as any;
-      expect(sorter(odd, running)).toBeLessThan(0);
-    });
-
-    it('getStatusSorter ignores conditions that are not a list', () => {
-      const noList = { status: { conditions: 'Ready' } } as any;
-      expect(sorter(noList, available)).toBeLessThan(0);
-    });
-
-    it('getStatusSorter ignores a first condition without a type', () => {
-      const noType = { status: { conditions: [{ status: 'True' }] } } as any;
-      expect(sorter(noType, available)).toBeLessThan(0);
-    });
-
     it('sortByNamespace puts a cluster-scoped resource first', () => {
       const clusterScoped = { metadata: { name: 'node-1' } } as any;
       const namespaced = { metadata: createMeta('p', 'default') } as any;

@@ -70,6 +70,15 @@ async function callHookIfExists(
   );
 }
 
+/** Throws the reason a plugin was refused at discovery; its code never runs. */
+function assertLoadable(plugin: Plugin | undefined): void {
+  if (plugin?.loadFailed) {
+    throw new Error(
+      plugin.error ?? `Plugin ${plugin.manifest.id} could not be loaded`
+    );
+  }
+}
+
 /** Exports the plugin manager calls itself; the UI cannot invoke them as actions. */
 const LIFECYCLE_HOOKS = new Set([
   'beforeActivate',
@@ -276,6 +285,8 @@ export class PluginManager {
     // Snapshot which deps are currently disabled so we can report what was auto-enabled
     const pluginEntry = pluginRegistry.getPlugin(pluginId);
     const plugin = pluginEntry?.plugin;
+    // Before the registry says enabled, which would stick across restarts.
+    assertLoadable(plugin);
     const depIds = plugin?.manifest?.dependencies
       ? Object.keys(plugin.manifest.dependencies)
       : [];
@@ -375,6 +386,7 @@ export class PluginManager {
 
     const plugin = this.getPlugin(pluginId);
     if (!plugin) throw new Error(`Plugin ${pluginId} not found`);
+    assertLoadable(plugin);
 
     const path = await pluginLoader.getPluginPath(pluginId);
     if (!path) throw new Error(`Could not find path for plugin ${pluginId}`);
@@ -436,6 +448,9 @@ export class PluginManager {
       const entry = pluginRegistry.getPlugin(pluginId);
       if (!entry) throw new Error(`Plugin ${pluginId} not found`);
       const plugin = entry.plugin;
+      // Start-up reaches this for a plugin saved as enabled whose files no
+      // longer verify.
+      assertLoadable(plugin);
 
       // Start-up activates every enabled plugin while the user may already be
       // clicking Enable: a second activation would run activate() again (two
@@ -606,6 +621,11 @@ export class PluginManager {
     try {
       const entry = pluginRegistry.getPlugin(pluginId);
       if (!entry) {
+        return;
+      }
+
+      // None of its code ever ran, and its card keeps saying why.
+      if (this.getPlugin(pluginId)?.loadFailed) {
         return;
       }
 
