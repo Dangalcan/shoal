@@ -178,11 +178,29 @@ export function useAsyncData<T>(
   useEffect(() => {
     if (options.autoRefreshInterval && options.autoRefreshInterval > 0) {
       const interval = setInterval(() => {
-        if (!options.skipInitialFetch) {
+        if (
+          !options.skipInitialFetch &&
+          document.visibilityState === 'visible'
+        ) {
           void refetch();
         }
       }, options.autoRefreshInterval);
-      return () => clearInterval(interval);
+
+      let wasHidden = document.visibilityState === 'hidden';
+      const handleVisibilityChange = () => {
+        const visible = document.visibilityState === 'visible';
+        if (wasHidden && visible && !options.skipInitialFetch) void refetch();
+        wasHidden = !visible;
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      return () => {
+        clearInterval(interval);
+        document.removeEventListener(
+          'visibilitychange',
+          handleVisibilityChange
+        );
+      };
     }
   }, [refetch, options.autoRefreshInterval, options.skipInitialFetch]);
 

@@ -287,8 +287,39 @@ describe('useAsyncData', () => {
   });
 
   describe('auto-refresh', () => {
-    beforeEach(() => vi.useFakeTimers());
-    afterEach(() => vi.useRealTimers());
+    let visibilityState: 'visible' | 'hidden' = 'visible';
+    let originalVisibilityDescriptor: PropertyDescriptor | undefined;
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      originalVisibilityDescriptor = Object.getOwnPropertyDescriptor(
+        document,
+        'visibilityState'
+      );
+      visibilityState = 'visible';
+      Object.defineProperty(document, 'visibilityState', {
+        configurable: true,
+        get: () => visibilityState,
+      });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      if (originalVisibilityDescriptor) {
+        Object.defineProperty(
+          document,
+          'visibilityState',
+          originalVisibilityDescriptor
+        );
+      } else {
+        Reflect.deleteProperty(document, 'visibilityState');
+      }
+    });
+
+    const setVisibility = (state: 'visible' | 'hidden') => {
+      visibilityState = state;
+      document.dispatchEvent(new Event('visibilitychange'));
+    };
 
     it('refetches on the auto-refresh interval', async () => {
       const fetchFn = vi.fn().mockResolvedValue({ success: true, data: 1 });
@@ -314,6 +345,46 @@ describe('useAsyncData', () => {
       expect(fetchFn).not.toHaveBeenCalled();
       expect(result.current.loading).toBe(false);
       expect(result.current.data).toBeNull();
+    });
+
+    it('pauses while hidden and refreshes once when visible again', async () => {
+      const fetchFn = vi.fn().mockResolvedValue({ success: true, data: 1 });
+      const { unmount } = renderHook(() =>
+        useAsyncData({ fetchFn, autoRefreshInterval: 1000 })
+      );
+      await act(async () => vi.advanceTimersByTimeAsync(0));
+      const initialCalls = fetchFn.mock.calls.length;
+      expect(initialCalls).toBe(1);
+
+      setVisibility('hidden');
+      await act(async () => vi.advanceTimersByTimeAsync(3000));
+      expect(fetchFn).toHaveBeenCalledTimes(initialCalls);
+
+      await act(async () => {
+        setVisibility('visible');
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(fetchFn).toHaveBeenCalledTimes(initialCalls + 1);
+
+      await act(async () => vi.advanceTimersByTimeAsync(1000));
+      expect(fetchFn).toHaveBeenCalledTimes(initialCalls + 2);
+      unmount();
+    });
+
+    it('cleans up the timer and visibility listener on unmount', async () => {
+      const fetchFn = vi.fn().mockResolvedValue({ success: true, data: 1 });
+      setVisibility('hidden');
+      const { unmount } = renderHook(() =>
+        useAsyncData({ fetchFn, autoRefreshInterval: 1000 })
+      );
+      await act(async () => vi.advanceTimersByTimeAsync(0));
+      const initialCalls = fetchFn.mock.calls.length;
+
+      unmount();
+      setVisibility('visible');
+      await act(async () => vi.advanceTimersByTimeAsync(3000));
+
+      expect(fetchFn).toHaveBeenCalledTimes(initialCalls);
     });
   });
 });
