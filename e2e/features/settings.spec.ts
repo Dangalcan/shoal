@@ -193,6 +193,13 @@ test('local preferences are saved as they change', async () => {
 test('the kubeconfig path, preferences and theme survive a restart', async () => {
   const theme = await window.locator('html').getAttribute('data-theme');
   await app.close();
+  // The window state is saved on close, right before the process exits; an
+  // interrupted write used to leave this file empty on most quits.
+  const saved = JSON.parse(
+    fs.readFileSync(path.join(userDataDir, 'app-settings.json'), 'utf-8')
+  ) as { kubeconfigPath?: string };
+  expect(saved.kubeconfigPath).toBe(alternative.file);
+
   // The same KUBECONFIG as the first launch: the saved path must win.
   await launch();
 
