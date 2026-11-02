@@ -14,7 +14,7 @@
 
 import { app, ipcMain } from 'electron';
 import type { WebContents } from 'electron';
-import { wrapIpcHandler } from './ipc-utils';
+import { onRendererUnload, wrapIpcHandler } from './ipc-utils';
 import {
   logStreamService,
   LogStreamArgs,
@@ -28,17 +28,10 @@ function stopStreamsOnUnload(sender: WebContents): void {
   if (watchedSenders.has(sender)) return;
   watchedSenders.add(sender);
   const ownerId = sender.id;
-  const stopOwned = (why: string) => {
+  onRendererUnload(sender, (why) => {
     const stopped = logStreamService.stopOwnedBy(ownerId);
     if (stopped > 0) log.info(`[LogStream] ${why}: stopped ${stopped}`);
-  };
-  // A reload starts a new main-frame document; hash-route changes are
-  // same-document navigations and keep the stream.
-  sender.on('did-start-navigation', (details) => {
-    if (details.isMainFrame && !details.isSameDocument) stopOwned('Reload');
   });
-  sender.on('render-process-gone', () => stopOwned('Renderer gone'));
-  sender.once('destroyed', () => stopOwned('Window closed'));
 }
 
 /** Sends to the main frame only. False when the window is gone. */

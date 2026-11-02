@@ -86,10 +86,42 @@ export function spawnPipeSession(
     interrupt() {
       interruptChildren(child);
     },
+    pause() {
+      child.stdout?.pause();
+      child.stderr?.pause();
+    },
+    resume() {
+      child.stdout?.resume();
+      child.stderr?.resume();
+    },
     kill() {
-      child.kill();
+      killShell(child, () => ended);
     },
   };
+}
+
+/** How long a shell gets to leave on its own before it is forced to. */
+const KILL_GRACE_MS = 2_000;
+
+/**
+ * Ends a shell on pipes for good. An interactive bash ignores SIGTERM and
+ * waits on its stdin, so the stdin closes first and SIGKILL follows if it is
+ * still there. On Windows kill() only reaches the shell, not what it started.
+ */
+function killShell(child: ChildProcess, hasEnded: () => boolean): void {
+  child.stdin?.end();
+  if (process.platform === 'win32' && child.pid) {
+    spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
+      windowsHide: true,
+      stdio: 'ignore',
+    }).on('error', () => child.kill());
+    return;
+  }
+  child.kill();
+  const force = setTimeout(() => {
+    if (!hasEnded()) child.kill('SIGKILL');
+  }, KILL_GRACE_MS);
+  force.unref();
 }
 
 /**

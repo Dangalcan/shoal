@@ -9,7 +9,6 @@
  */
 
 import type {
-  AnyK8sResource,
   Pod,
   Node,
   Deployment,
@@ -19,22 +18,8 @@ import type {
 import type { ResourceType } from '../resources/resource-definitions';
 import type { SorterFunction } from './types';
 import { sortByString, sortByNumber, sortByDate } from './sortStrategies';
+import { getResourceStatus } from '../resources/resource-status';
 import { isPod, isRecord } from '../type-guards';
-
-/**
- * Helper to safely extract the phase or condition status from a resource.
- * @param r - The Kubernetes resource
- * @returns The phase string or first condition type, or empty string.
- */
-const getPhase = (r: AnyK8sResource): string => {
-  const status: unknown = r.status;
-  if (!isRecord(status)) return '';
-  if ('phase' in status) {
-    return typeof status.phase === 'string' ? status.phase : '';
-  }
-  const [first] = Array.isArray(status.conditions) ? status.conditions : [];
-  return isRecord(first) && typeof first.type === 'string' ? first.type : '';
-};
 
 /**
  * Reads a numeric status counter (`readyReplicas`, `numberReady`, ...) from a
@@ -64,14 +49,8 @@ export const sortByAge = sortByDate((r) => r.metadata.creationTimestamp);
  * @param resourceType - The type of resource to get the sorter for
  * @returns A SorterFunction
  */
-export const getStatusSorter = (
-  _resourceType: ResourceType
-): SorterFunction => {
-  return sortByString((r) => {
-    if (isPod(r)) return r.status?.phase || '';
-    return getPhase(r as AnyK8sResource);
-  });
-};
+export const getStatusSorter = (resourceType: ResourceType): SorterFunction =>
+  sortByString((r) => getResourceStatus(r, resourceType));
 
 // Pod Specific
 // A container status without restartCount counts as 0, as RestartsCell

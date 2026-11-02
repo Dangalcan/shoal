@@ -10,7 +10,10 @@ vi.mock('../logger', () => ({
   },
 }));
 
-import { createPluginContext } from '../services/plugins/plugin-context';
+import {
+  createPluginContext,
+  disposePluginContext,
+} from '../services/plugins/plugin-context';
 import {
   getAllPluginExtensions,
   clearPluginExtensions,
@@ -786,6 +789,106 @@ describe('Plugin Context', () => {
       expect(spy).toHaveBeenCalledTimes(2);
 
       consoleSpy.mockRestore();
+    });
+
+    describe('disposePluginContext', () => {
+      it('takes off every listener of the context, and only of that context', async () => {
+        const { pluginEventBus } =
+          await import('../services/plugins/plugin-events');
+        const on = vi.mocked(pluginEventBus.on);
+        const off = vi.mocked(pluginEventBus.off);
+        const other = createPluginContext('other', pluginPath, ['kubernetes']);
+        other.events.onClusterConnected(vi.fn());
+        const othersListener = on.mock.calls.at(-1)?.[1];
+        on.mockClear();
+        off.mockClear();
+
+        const ctx = createPluginContext(pluginId, pluginPath, ['kubernetes']);
+        ctx.events.onClusterConnected(vi.fn());
+        ctx.events.onClusterDisconnected(vi.fn());
+        ctx.events.onResourceCreated(vi.fn());
+        ctx.events.onResourceUpdated(vi.fn());
+        ctx.events.onResourceDeleted(vi.fn());
+        ctx.events.onBroadcast('refresh', vi.fn());
+        const registered = on.mock.calls.map(([event, listener]) => [
+          event,
+          listener,
+        ]);
+        expect(registered).toHaveLength(6);
+
+        disposePluginContext(ctx);
+
+        expect(off.mock.calls).toEqual(registered);
+        expect(off).not.toHaveBeenCalledWith(
+          'cluster:connected',
+          othersListener
+        );
+      });
+
+      it('returns what undoes each subscription', async () => {
+        const { pluginEventBus } =
+          await import('../services/plugins/plugin-events');
+        const off = vi.mocked(pluginEventBus.off);
+        const ctx = createPluginContext(pluginId, pluginPath, []);
+        const handler = vi.fn();
+
+        const stop = ctx.events.onClusterConnected(
+          handler
+        ) as unknown as () => void;
+        off.mockClear();
+        stop();
+        expect(off).toHaveBeenCalledWith('cluster:connected', handler);
+
+        // Already gone: disposing does not take it off twice.
+        off.mockClear();
+        disposePluginContext(ctx);
+        expect(off).not.toHaveBeenCalled();
+      });
+
+      it('stops the resource watches that are still running', () => {
+        const kill = vi.fn();
+        vi.mocked(child_process.spawn).mockReturnValue({
+          on: vi.fn(),
+          stdout: { on: vi.fn() },
+          stderr: { on: vi.fn() },
+          kill,
+        } as never);
+        const ctx = createPluginContext(pluginId, pluginPath, ['kubernetes']);
+
+        const stopFirst = ctx.kubernetes.watchResources('pods', vi.fn());
+        ctx.kubernetes.watchResources('services', vi.fn());
+        stopFirst();
+        expect(kill).toHaveBeenCalledTimes(1);
+
+        disposePluginContext(ctx);
+        expect(kill).toHaveBeenCalledTimes(2);
+
+        // Nothing is left to stop.
+        disposePluginContext(ctx);
+        expect(kill).toHaveBeenCalledTimes(2);
+      });
+
+      it('forgets a broadcast handler the plugin already took off', async () => {
+        const { pluginEventBus } =
+          await import('../services/plugins/plugin-events');
+        const off = vi.mocked(pluginEventBus.off);
+        const ctx = createPluginContext(pluginId, pluginPath, []);
+        const handler = vi.fn();
+        const another = vi.fn();
+        ctx.events.onBroadcast('refresh', handler);
+        ctx.events.onBroadcast('refresh', another);
+
+        ctx.events.offBroadcast('refresh', handler);
+        off.mockClear();
+        disposePluginContext(ctx);
+
+        expect(off).toHaveBeenCalledTimes(1);
+        expect(off).toHaveBeenCalledWith('plugin-broadcast:refresh', another);
+      });
+
+      it('accepts a plugin that never got a context', () => {
+        expect(() => disposePluginContext(undefined)).not.toThrow();
+      });
     });
 
     it('should handle app hooks', async () => {

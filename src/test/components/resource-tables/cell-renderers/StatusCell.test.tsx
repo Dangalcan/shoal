@@ -60,7 +60,10 @@ describe('StatusCell', () => {
     const mockJob = {
       kind: 'Job',
       spec: { template: {} },
-      status: { succeeded: 1 },
+      status: {
+        succeeded: 1,
+        conditions: [{ type: 'Complete', status: 'True' }],
+      },
     };
     render(
       <table>
@@ -82,7 +85,7 @@ describe('StatusCell', () => {
     const mockJob = {
       kind: 'Job',
       spec: { template: {} },
-      status: { failed: 1 },
+      status: { failed: 1, conditions: [{ type: 'Failed', status: 'True' }] },
     };
     render(
       <table>
@@ -104,7 +107,7 @@ describe('StatusCell', () => {
     const mockJob = {
       kind: 'Job',
       spec: { template: {} },
-      status: { active: 1, succeeded: 0 },
+      status: { active: 1 },
     };
     render(
       <table>
@@ -160,7 +163,7 @@ describe('StatusCell', () => {
         </tbody>
       </table>
     );
-    expect(screen.getByText('Unknown')).toHaveClass('status-badge-other');
+    expect(screen.getByText('Unknown')).toHaveClass('status-badge-error');
   });
 
   it('renders Unknown for a PVC without a phase', () => {

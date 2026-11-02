@@ -87,6 +87,39 @@ const renderTerminal = (
 };
 
 describe('Terminal', () => {
+  it('attaches only once it is listening', () => {
+    renderTerminal('local');
+    expect(api.terminalAttach).toHaveBeenCalledWith('s1');
+    const attached = vi.mocked(api.terminalAttach).mock.invocationCallOrder[0]!;
+    expect(
+      vi.mocked(api.onTerminalOutput).mock.invocationCallOrder[0]!
+    ).toBeLessThan(attached);
+    expect(
+      vi.mocked(api.onTerminalExited).mock.invocationCallOrder[0]!
+    ).toBeLessThan(attached);
+  });
+
+  it('reports what it has drawn in batches, once xterm has drawn it', () => {
+    renderTerminal('local', 's1', 'windows', 'pty');
+    termWrite.mockClear();
+    const chunk = 'x'.repeat(100 * 1024);
+
+    capturedOutput('s1', chunk);
+    expect(api.terminalAck).not.toHaveBeenCalled();
+    const drawn = termWrite.mock.calls[0]![1] as () => void;
+    drawn();
+    expect(api.terminalAck).not.toHaveBeenCalled();
+
+    capturedOutput('s1', chunk);
+    expect(api.terminalAck).not.toHaveBeenCalled();
+    (termWrite.mock.calls[1]![1] as () => void)();
+    expect(api.terminalAck).toHaveBeenCalledWith('s1', chunk.length * 2);
+
+    capturedOutput('s1', 'y');
+    (termWrite.mock.calls[2]![1] as () => void)();
+    expect(api.terminalAck).toHaveBeenCalledTimes(1);
+  });
+
   it('handles local input: printable, backspace, ctrl-c, enter+clear', () => {
     renderTerminal('local');
     const cb = onDataCbs[0]!;
@@ -139,7 +172,7 @@ describe('Terminal', () => {
     expect(termClear).toHaveBeenCalled();
 
     capturedOutput('s1', 'x\n'); // unix output normalized to \r\n
-    expect(termWrite).toHaveBeenCalledWith('x\r\n');
+    expect(termWrite).toHaveBeenCalledWith('x\r\n', expect.any(Function));
   });
 
   it('uses \\n eol for pod-exec Enter (no clear branch)', () => {
@@ -157,7 +190,7 @@ describe('Terminal', () => {
     expect(termWrite).not.toHaveBeenCalledWith('ignored\r\n');
 
     capturedOutput('s1', 'x\n');
-    expect(termWrite).toHaveBeenCalledWith('x\r\n');
+    expect(termWrite).toHaveBeenCalledWith('x\r\n', expect.any(Function));
   });
 
   it('returns to column 0 after bare line feeds from a Windows shell', () => {
@@ -165,7 +198,8 @@ describe('Terminal', () => {
     // PowerShell prints \r\n; a native command such as kubectl prints \n.
     capturedOutput('s1', 'PS C:\\> kubectl get pods\r\nNAME\nweb-1\n');
     expect(termWrite).toHaveBeenCalledWith(
-      'PS C:\\> kubectl get pods\r\nNAME\r\nweb-1\r\n'
+      'PS C:\\> kubectl get pods\r\nNAME\r\nweb-1\r\n',
+      expect.any(Function)
     );
   });
 
@@ -249,7 +283,10 @@ describe('Terminal', () => {
 
       // Full-screen programs rely on a bare \n meaning "down one line".
       capturedOutput('s1', 'a\nb\r\n\x1b[2J');
-      expect(termWrite).toHaveBeenCalledWith('a\nb\r\n\x1b[2J');
+      expect(termWrite).toHaveBeenCalledWith(
+        'a\nb\r\n\x1b[2J',
+        expect.any(Function)
+      );
     });
 
     it('still resizes through the fit addon', () => {

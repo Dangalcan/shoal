@@ -386,6 +386,8 @@ The `EventsAPI` provides a global event bus for the application.
 | `onResourceUpdated(handler)`     | Called when K8s resource is updated                     |
 | `onResourceDeleted(handler)`     | Called when K8s resource is deleted                     |
 
+Shoal drops these subscriptions and any running `watchResources` when the plugin is disabled, reloaded or fails to activate, so `deactivate` only has to clear what the plugin started itself, such as timers.
+
 The three resource events need the `kubernetes` permission; a Secret reaches the handler without its data unless the plugin also holds `secrets`.
 
 #### context.storage
@@ -435,7 +437,7 @@ Package your plugin as a `.zip` archive containing `plugin.json`, `index.js`, an
 - **Windows**: `%APPDATA%\shoal\plugins\`
 - **Linux**: `~/.config/shoal/plugins/`
 
-Packaged builds only load plugins that carry a valid `plugin.json.sig`. The signature covers the whole plugin: the file lists the SHA-256 of every file in the plugin directory (manifest and code) and an RSA-SHA256 signature over that list, made with the Shoal signing key. Any file changed, added or removed after signing makes the plugin fail to load, so sign last. Plugin ids of the plugins bundled with Shoal are reserved and cannot be imported. Unsigned or out-of-date plugins load only in development (`npm run dev`, which sets `ALLOW_UNSIGNED_PLUGINS=true`). In installed builds, **"Load Unpacked Plugin"** checks the signature before copying anything and refuses an unsigned plugin with an explanation. During the 0.9 beta there is no way to get a third-party plugin signed yet; signing through the marketplace arrives with 1.0.
+Packaged builds only load plugins that carry a valid `plugin.json.sig`. The signature covers the whole plugin: the file lists the SHA-256 of every file in the plugin directory (manifest and code) and an RSA-SHA256 signature over that list, made with the Shoal signing key. Any file changed, added or removed after signing makes the plugin fail to load, so sign last: its card shows the reason, Enable stays off, and only Uninstall or fixing the files and restarting Shoal clears it. The plugin folder must be named after the plugin id. Plugin ids of the plugins bundled with Shoal are reserved and cannot be imported. Unsigned or out-of-date plugins load only in development (`npm run dev`, which sets `ALLOW_UNSIGNED_PLUGINS=true`). In installed builds, **"Load Unpacked Plugin"** checks the signature before copying anything and refuses an unsigned plugin with an explanation. During the 0.9 beta there is no way to get a third-party plugin signed yet; signing through the marketplace arrives with 1.0.
 
 ### Paid Plugins & Licensing (planned for 1.0)
 

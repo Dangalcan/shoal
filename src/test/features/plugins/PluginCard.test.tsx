@@ -48,6 +48,26 @@ describe('PluginCard', () => {
     expect(screen.queryByTitle('Uninstall Plugin')).toBeNull();
   });
 
+  it('offers no Enable for a plugin refused at discovery', () => {
+    renderCard(
+      makePlugin({
+        state: 'error',
+        error: 'This plugin is not signed.',
+        loadFailed: true,
+      })
+    );
+
+    expect(screen.getByRole('button', { name: 'Enable' })).toBeDisabled();
+    expect(screen.getByText('This plugin is not signed.')).toBeInTheDocument();
+    expect(screen.getByTitle('Uninstall Plugin')).toBeEnabled();
+  });
+
+  it('lets a plugin that failed in activate() be enabled again', () => {
+    renderCard(makePlugin({ state: 'error', error: 'cluster unreachable' }));
+
+    expect(screen.getByRole('button', { name: 'Enable' })).toBeEnabled();
+  });
+
   it('says Enabling while a disabled plugin turns on', () => {
     renderCard(makePlugin({ state: 'disabled' }), 'p1');
     expect(screen.getByRole('button', { name: 'Enabling...' })).toBeDisabled();

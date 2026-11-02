@@ -212,7 +212,7 @@ Both plugins add a page to the sidebar; Resource Monitor also adds a widget to t
 
 ### Other Plugins
 
-Installed builds of the 0.9 beta only run plugins signed with the Shoal key, which means the two bundled ones. **Load Unpacked Plugin** checks the signature before copying anything and refuses an unsigned plugin. To develop a plugin, run Shoal from source (`npm run dev`), which loads unsigned plugins; see the [Plugin Developer Guide](PLUGINS_GUIDE.md).
+Installed builds of the 0.9 beta only run plugins signed with the Shoal key, which means the two bundled ones. **Load Unpacked Plugin** checks the signature before copying anything and refuses an unsigned plugin. A plugin folder that fails the check some other way shows **Error** with the reason and cannot be enabled, only uninstalled. To develop a plugin, run Shoal from source (`npm run dev`), which loads unsigned plugins; see the [Plugin Developer Guide](PLUGINS_GUIDE.md).
 
 > **Planned for 1.0:** the plugin marketplace (browse, install and update plugins from inside the app), signing for third-party plugins, paid plugins, trials and licenses. In the 0.9 beta the Marketplace tab is hidden.
 

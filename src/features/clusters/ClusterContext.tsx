@@ -29,6 +29,7 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
   const {
     data: clusters,
     loading,
+    error,
     refetch: fetchClusters,
   } = useAsyncData({
     fetchFn,
@@ -108,6 +109,7 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
   const value: ClusterContextValue = {
     clusters: clusters || [],
     loading,
+    clustersError: error && !isToolMissingMessage(error) ? error : null,
     currentContext,
     switching,
     deleting,

@@ -42,11 +42,40 @@ async function wrapK8sCall<T>(fn: () => Promise<T>, label: string): Promise<T> {
 /**
  * Create a plugin context with controlled API access
  */
+type BusListener = Parameters<typeof pluginEventBus.on>[1];
+
+/** What each context has to undo when its plugin stops. */
+const contextDisposers = new WeakMap<PluginContext, () => void>();
+
+/**
+ * Drops everything a plugin subscribed to through this context: event bus
+ * listeners and resource watches. A plugin cannot do it itself (deactivate()
+ * receives no context and the app events have no unsubscribe), so without this
+ * its handlers kept running after Disable, one more set per Enable.
+ */
+export function disposePluginContext(context: PluginContext | undefined): void {
+  if (context) contextDisposers.get(context)?.();
+}
+
 export function createPluginContext(
   pluginId: string,
   pluginPath: string,
   permissions: string[]
 ): PluginContext {
+  const subscriptions = new Set<{ event: string; listener: BusListener }>();
+  const activeWatches = new Set<() => void>();
+
+  /** Listens on the event bus; the result stops listening. */
+  const subscribe = (event: string, listener: BusListener): (() => void) => {
+    const subscription = { event, listener };
+    pluginEventBus.on(event, listener);
+    subscriptions.add(subscription);
+    return () => {
+      pluginEventBus.off(event, listener);
+      subscriptions.delete(subscription);
+    };
+  };
+
   // Kubernetes API. Each method checks its own permission (reads need
   // `kubernetes`, changes need `kubernetes:write`), and without `secrets`
   // every Secret a plugin receives travels without its data.
@@ -178,10 +207,13 @@ export function createPluginContext(
       });
 
       // Return cleanup function
-      return () => {
+      const stop = () => {
         log.info(`[PluginContext] ${pluginId} stopped watching ${type}`);
         watchProcess.kill();
+        activeWatches.delete(stop);
       };
+      activeWatches.add(stop);
+      return stop;
     },
   };
 
@@ -437,11 +469,21 @@ export function createPluginContext(
       log.info(`[PluginContext] ${pluginId} broadcasted event: ${event}`);
     },
     onBroadcast: (event: string, handler: (...args: unknown[]) => void) => {
-      pluginEventBus.on(`plugin-broadcast:${event}`, handler);
+      const stop = subscribe(`plugin-broadcast:${event}`, handler);
       log.info(`[PluginContext] ${pluginId} listening to broadcast: ${event}`);
+      return stop;
     },
     offBroadcast: (event: string, handler: (...args: unknown[]) => void) => {
-      pluginEventBus.off(`plugin-broadcast:${event}`, handler);
+      const busEvent = `plugin-broadcast:${event}`;
+      pluginEventBus.off(busEvent, handler);
+      for (const subscription of subscriptions) {
+        if (
+          subscription.event === busEvent &&
+          subscription.listener === handler
+        ) {
+          subscriptions.delete(subscription);
+        }
+      }
       log.info(
         `[PluginContext] ${pluginId} stopped listening to broadcast: ${event}`
       );
@@ -449,40 +491,45 @@ export function createPluginContext(
 
     // App lifecycle hooks
     onClusterConnected: (handler: (cluster: unknown) => void) => {
-      pluginEventBus.on('cluster:connected', handler);
+      const stop = subscribe('cluster:connected', handler);
       log.info(`[PluginContext] ${pluginId} subscribed to cluster:connected`);
+      return stop;
     },
     onClusterDisconnected: (handler: (cluster: unknown) => void) => {
-      pluginEventBus.on('cluster:disconnected', handler);
+      const stop = subscribe('cluster:disconnected', handler);
       log.info(
         `[PluginContext] ${pluginId} subscribed to cluster:disconnected`
       );
+      return stop;
     },
     // Resource events carry whole manifests, so they need the permission
     // that reading resources needs, and Secrets travel without their data
     // unless the plugin holds `secrets`.
     onResourceCreated: (handler: (resource: unknown) => void) => {
       requireClusterAccess();
-      pluginEventBus.on('resource:created', (resource: unknown) =>
+      const stop = subscribe('resource:created', (resource: unknown) =>
         handler(redact(resource))
       );
       log.info(`[PluginContext] ${pluginId} subscribed to resource:created`);
+      return stop;
     },
     onResourceUpdated: (handler: (resource: unknown) => void) => {
       requireClusterAccess();
-      pluginEventBus.on('resource:updated', (resource: unknown) =>
+      const stop = subscribe('resource:updated', (resource: unknown) =>
         handler(redact(resource))
       );
       log.info(`[PluginContext] ${pluginId} subscribed to resource:updated`);
+      return stop;
     },
     onResourceDeleted: (handler: (resource: unknown) => void) => {
       requireClusterAccess();
-      pluginEventBus.on('resource:deleted', handler);
+      const stop = subscribe('resource:deleted', handler);
       log.info(`[PluginContext] ${pluginId} subscribed to resource:deleted`);
+      return stop;
     },
   };
 
-  return {
+  const context: PluginContext = {
     pluginId,
     pluginPath,
     kubernetes,
@@ -491,6 +538,14 @@ export function createPluginContext(
     logger,
     events,
   };
+  contextDisposers.set(context, () => {
+    for (const { event, listener } of subscriptions) {
+      pluginEventBus.off(event, listener);
+    }
+    subscriptions.clear();
+    for (const stop of activeWatches) stop();
+  });
+  return context;
 }
 
 /**

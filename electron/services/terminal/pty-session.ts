@@ -95,6 +95,12 @@ export function spawnPtySession(
       // Windows) for the foreground program, as any terminal does.
       if (open) term.write('\x03');
     },
+    pause() {
+      if (open) term.pause();
+    },
+    resume() {
+      if (open) term.resume();
+    },
     kill() {
       if (open) term.kill();
     },

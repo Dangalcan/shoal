@@ -222,9 +222,11 @@ All plugin-related IPC methods are exposed on `window.electron`. See [API_REFERE
 2. PluginLoader scans directories for plugin.json manifests
 3. Manifests validated against schema (id, name, version, description, author, main, permissions, license)
 4. SignatureService verifies the signature and that every plugin file still matches its signed hash (a failure only warns in dev with ALLOW_UNSIGNED_PLUGINS)
+3. Manifests validated against schema (id, name, version, main, permissions)
+4. SignatureService verifies the signature and that every plugin file still matches its signed hash (a failure only warns in dev with ALLOW_UNSIGNED_PLUGINS). A plugin refused here, or in step 3, or kept in a folder not named after its id, stays listed in the error state (`loadFailed`) and never runs
 5. DependencyResolver sorts plugins by dependency graph
 6. PluginRegistry checks enabled/disabled state from plugin-config.json
-7. For enabled plugins: PluginContext created → plugin.beforeActivate() → plugin.activate()
+7. For enabled plugins: PluginContext created → the files are verified again → plugin.beforeActivate() → plugin.activate()
 8. UI extensions (sidebar items, pages) registered in extensions registry
 9. plugin.afterActivate() called
 ```
