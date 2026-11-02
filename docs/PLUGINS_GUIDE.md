@@ -13,7 +13,7 @@ Shoal uses a **Hybrid Plugin Architecture**.
 
 Before developing plugins, ensure you have:
 
-- **Shoal running from source** (`git clone`, `npm install`, `npm run dev`; Node.js v22.12+). Only development builds load unsigned plugins
+- **Shoal running from source** (`git clone`, `npm ci`, `npm run dev`; Node.js v22.12+). Only development builds load unsigned plugins
 - **TypeScript** knowledge (recommended)
 - **React** knowledge (for UI extensions)
 - Basic understanding of Kubernetes concepts

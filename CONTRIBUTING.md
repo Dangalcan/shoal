@@ -6,6 +6,7 @@ Thank you for your interest in contributing to Shoal! This document provides gui
 
 - [Code of Conduct](#code-of-conduct)
 - [How to Contribute](#how-to-contribute)
+  - [Your First Contribution](#your-first-contribution)
   - [Reporting Bugs](#reporting-bugs)
   - [Suggesting Features](#suggesting-features)
   - [Pull Requests](#pull-requests)
@@ -20,6 +21,17 @@ Thank you for your interest in contributing to Shoal! This document provides gui
 Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md). We are committed to providing a welcoming and inclusive environment for all contributors.
 
 ## How to Contribute
+
+### Your First Contribution
+
+Issues labelled [`good first issue`](https://github.com/Dangalcan/shoal/labels/good%20first%20issue) are small and say where to look and how to test. [`help wanted`](https://github.com/Dangalcan/shoal/labels/help%20wanted) ones are bigger.
+
+- **Claim it:** leave a comment on the issue so nobody else starts on it. You do not need to wait for a reply.
+- **No cluster needed for most of them:** the unit tests run without one. When an issue needs a real one, [kind](https://kind.sigs.k8s.io/) is enough.
+- **Running the tests:** `npm test` takes a few minutes. While you work, run one file with `npx vitest --run path/to/file.test.tsx`.
+- **Checks on your pull request:** GitHub holds them until a maintainer approves the run, so they may show as waiting for a while.
+- **Allow edits by maintainers:** leave it ticked. Branches must be up to date with `master` before merging, and this lets a maintainer update yours.
+- **Changelog:** add a line to `CHANGELOG.md` under `Unreleased` when users will notice the change.
 
 ### Reporting Bugs
 
@@ -150,9 +162,13 @@ Before submitting, make sure:
 2. **Install dependencies and the git hooks:**
 
    ```bash
-   npm install
+   npm ci
    npm run prepare
    ```
+
+   `npm ci` installs exactly what `package-lock.json` lists and leaves the
+   file alone. `npm install` can rewrite it, and that noise does not belong in
+   a pull request, so keep it for changing a dependency.
 
    The project `.npmrc` turns dependency install scripts off: npm would
    otherwise try to compile better-sqlite3 (npm/cli#9837) although it ships
@@ -170,7 +186,7 @@ Before submitting, make sure:
    npm run dev
    ```
 
-   This starts:
+   The first start downloads the Electron binary. This starts:
    - Vite dev server (React app) on `http://localhost:5173`
    - Electron main process (the marketplace tab uses the sample catalog in
      `electron/data/marketplace.json`)
