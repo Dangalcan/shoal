@@ -4,7 +4,7 @@
  * Runs inside the sandboxed plugin frame (`sandbox="allow-scripts"`, opaque
  * origin, the frame CSP, no permissions granted) and tries every way out it
  * can think of: the host DOM, top-level navigation, popups, the network, the
- * clipboard, Node globals and the plugin bridge beyond its permissions. Each
+ * clipboard, WebRTC, Node globals and the plugin bridge beyond its permissions. Each
  * probe reports `blocked` or `open`; the e2e spec reads the lines from the
  * frame and expects every one to be `blocked`.
  *
@@ -21,6 +21,7 @@
   // still not reach anything. The CSP report tells both cases apart.
   var TARGET = 'https://escape-probe.invalid/';
   var PROBE_TIMEOUT_MS = 5000;
+  var SCRIPT_BASE = document.currentScript.src.replace(/renderer\.js.*$/, '');
 
   var violations = [];
   document.addEventListener('securitypolicyviolation', function (event) {
@@ -133,6 +134,36 @@
       return settle(
         window.electron.getClusters().then(function (result) {
           return result && result.success ? 'open' : 'blocked';
+        })
+      );
+    },
+    webrtc: function () {
+      // The CSP has no directive for WebRTC: a peer connection would reach any
+      // address over UDP and TCP.
+      if (
+        typeof RTCPeerConnection !== 'undefined' ||
+        typeof webkitRTCPeerConnection !== 'undefined'
+      ) {
+        return 'open';
+      }
+      return 'blocked';
+    },
+    'webrtc-nested': function () {
+      // A srcdoc frame is a new realm that may run the plugin's scripts: the
+      // CSP has no say over about:srcdoc and it inherits allow-scripts. If its
+      // script never reports, the probe times out and the spec fails, because
+      // then nothing was tested.
+      return settle(
+        new Promise(function (resolve) {
+          window.addEventListener('message', function onReport(event) {
+            if (!event.data || !event.data.nestedWebrtc) return;
+            window.removeEventListener('message', onReport);
+            resolve(event.data.nestedWebrtc);
+          });
+          var nested = document.createElement('iframe');
+          nested.srcdoc =
+            '<script src="' + SCRIPT_BASE + 'nested-webrtc.js"></script>';
+          document.body.appendChild(nested);
         })
       );
     },
