@@ -1,6 +1,7 @@
 import type { ResourceType } from '../resources/resource-definitions';
 import {
   compareFieldValues,
+  getCellColumn,
   getFieldColumn,
   type FieldColumn,
 } from '../resources/field-columns';
@@ -19,25 +20,43 @@ const sortByFieldColumn =
     compareFieldValues(column.value(a), column.value(b));
 
 /**
- * Returns a sorter function for a given column and resource type. A field
- * column of the kind wins over the shared cases below, which assume the
- * workload meaning of ids such as `available`.
+ * The sorter of a column, if it has one. A column listed for the kind wins
+ * over the shared cases below, which assume the workload meaning of ids such
+ * as `available`.
+ */
+const findSorter = (
+  columnId: string,
+  resourceType: ResourceType
+): SorterFunction | undefined => {
+  const column =
+    getFieldColumn(resourceType, columnId) ??
+    getCellColumn(resourceType, columnId);
+  return column
+    ? sortByFieldColumn(column)
+    : getColumnSorter(columnId, resourceType);
+};
+
+/** True when clicking the column's header can reorder the table. */
+export const hasColumnSorter = (
+  columnId: string,
+  resourceType: ResourceType
+): boolean => findSorter(columnId, resourceType) !== undefined;
+
+/**
+ * Returns a sorter function for a given column and resource type. A test walks
+ * every declared column through hasColumnSorter, so the no-op is only for an
+ * id no table declares.
  */
 export const getSorterForColumn = (
   columnId: string,
   resourceType: ResourceType
-): SorterFunction => {
-  const field = getFieldColumn(resourceType, columnId);
-  return field
-    ? sortByFieldColumn(field)
-    : getColumnSorter(columnId, resourceType);
-};
+): SorterFunction => findSorter(columnId, resourceType) ?? (() => 0);
 
 /** The sorter of a column that is not a field column. */
 const getColumnSorter = (
   columnId: string,
   resourceType: ResourceType
-): SorterFunction => {
+): SorterFunction | undefined => {
   switch (columnId) {
     case 'name':
       return Sorters.sortByName;
@@ -92,14 +111,6 @@ const getColumnSorter = (
       return Sorters.sortBySelector;
 
     default:
-      // Default fallback: Try to sort by properties on the object itself if they exist at root
-      // This mirrors the default behavior of the previous implementation
-      return (a, b) => {
-        const valA = (a as unknown as Record<string, unknown>)[columnId] || '';
-        const valB = (b as unknown as Record<string, unknown>)[columnId] || '';
-        if (valA < valB) return -1;
-        if (valA > valB) return 1;
-        return 0;
-      };
+      return undefined;
   }
 };

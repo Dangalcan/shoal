@@ -171,29 +171,6 @@ describe('getSorterForColumn', () => {
     expect(typeof sorter).toBe('function');
   });
 
-  describe('default fallback', () => {
-    it('should sort by root property when column is unknown', () => {
-      const sorter = getSorterForColumn('customField', 'pods');
-      const a = { ...makeResource('p1'), customField: 'apple' } as any;
-      const b = { ...makeResource('p2'), customField: 'banana' } as any;
-      expect(sorter(a, b)).toBeLessThan(0);
-      expect(sorter(b, a)).toBeGreaterThan(0);
-    });
-
-    it('should return 0 for equal custom field values', () => {
-      const sorter = getSorterForColumn('customField', 'pods');
-      const a = { ...makeResource('p1'), customField: 'same' } as any;
-      const b = { ...makeResource('p2'), customField: 'same' } as any;
-      expect(sorter(a, b)).toBe(0);
-    });
-
-    it('should treat missing custom field as empty string', () => {
-      const sorter = getSorterForColumn('missingField', 'pods');
-      const a = makeResource('p1');
-      const b = makeResource('p2');
-      expect(sorter(a, b)).toBe(0);
-    });
-  });
   describe('field columns', () => {
     /** Sorts resources ascending, as the table does, and lists their names. */
     const sortedNames = (

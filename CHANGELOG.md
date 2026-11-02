@@ -104,6 +104,49 @@ All notable changes to Shoal are documented here. The format follows
 - Closing a terminal on pipes (no node-pty) ends the shell. An interactive bash
   ignores SIGTERM and stayed until quit, and on Windows what the shell had
   started survived it.
+- A disabled plugin stops reacting to events. Handlers registered with
+  `onClusterConnected`, `onResourceCreated` and the other app events, and
+  resource watches, stayed active after Disable, because a plugin has no way to
+  take them off, and every re-enable added another set. Shoal now drops them
+  when the plugin stops, or when its activation fails.
+- A plugin whose utility process crashes shows **Error** with the reason instead
+  of staying on **Enabled**, and Enable starts it again.
+- Clicking a column header sorts the table on every column. On 38 columns of 13
+  tabs, most of them visible by default (Service type and ports, PersistentVolume
+  capacity and claim, Ingress hosts, HPA targets, CronJob schedule...), the header
+  showed a sort arrow and the rows stayed where they were. Sizes sort by amount
+  (`500Mi` before `2Gi`), counts and durations as numbers, and a row with no
+  value goes last. The External IP of a Service and the Replicas of an HPA sorted
+  by a field those kinds do not have, and are fixed too.
+- The Status column says what `kubectl get` says. Pods only showed their
+  phase, so a pod in CrashLoopBackOff or being deleted read "Running" and one
+  in ImagePullBackOff read "Pending"; they now show the reason, as do init
+  containers (`Init:0/1`, `Init:CrashLoopBackOff`). PersistentVolumes always
+  read "Unknown"; they show their phase. A running Job read "Unknown", a Job at
+  1 of 5 completions read "Complete" and one retrying after a failed pod read
+  "Failed"; Jobs now go by their conditions. Cordoned nodes read
+  `Ready,SchedulingDisabled`, and the badge colour and the sort order follow
+  the same text.
+- Quitting Shoal no longer forgets the saved kubeconfig path and window
+  position. The window state is written when the window closes, right before
+  the process exits, and that write could be cut off after emptying
+  `app-settings.json`, which happened on most quits on a fast machine. The file
+  is now written in one step through a temporary file, so a quit, a crash or a
+  full disk leaves the previous settings in place.
+
+### Security
+
+- A plugin that fails its signature check no longer runs. Installed builds
+  listed such a plugin as an error, but its card kept the Enable button and
+  clicking it ran the plugin's code; a plugin saved as enabled whose files
+  had changed also started by itself on the next launch. Now Enable, Reload
+  and start-up all refuse it, the button is off, and the files are verified
+  again right before their code loads. Plugins imported through the app were
+  already checked first, so this needed a folder placed in the plugins
+  directory by hand or a changed file. A plugin folder must also be named
+  after its plugin id: activation finds the files through the id, so a folder
+  under another name could have its signature checked while the code of
+  another folder ran.
 
 ## [0.9.1] - 2026-10-31
 

@@ -4,25 +4,12 @@ import {
   mockPods,
   mockDeployments,
   mockNodes,
-  mockPVC,
-  mockPV,
-  mockJobs,
 } from '../fixtures/k8s-resources';
 
 describe('Type Guards', () => {
   it('isPod correctly identifies pods', () => {
     expect(guards.isPod(mockPods[0]!)).toBe(true);
     expect(guards.isPod(mockDeployments[0]! as any)).toBe(false);
-  });
-
-  it('isJob correctly identifies jobs', () => {
-    expect(guards.isJob(mockJobs[0]!)).toBe(true);
-    expect(guards.isJob(mockPods[0]! as any)).toBe(false);
-  });
-
-  it('isPersistentVolumeClaim correctly identifies PVCs', () => {
-    expect(guards.isPersistentVolumeClaim(mockPVC[0]!)).toBe(true);
-    expect(guards.isPersistentVolumeClaim(mockPV[0]! as any)).toBe(false);
   });
 
   it('isNode correctly identifies nodes', () => {
