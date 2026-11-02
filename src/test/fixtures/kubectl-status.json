@@ -1,0 +1,1446 @@
+[
+  {
+    "resourceType": "pods",
+    "expected": "Completed",
+    "resource": {
+      "kind": "Pod",
+      "metadata": {
+        "name": "completed",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:20Z"
+      },
+      "spec": {
+        "restartPolicy": "Never",
+        "containers": [
+          {
+            "name": "main",
+            "image": "busybox:1.36"
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-11-02T12:20:28Z",
+            "status": "False",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "PodCompleted",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "PodCompleted",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "PodCompleted",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "lastState": {},
+            "name": "main",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "containerd://638ce87fe93251f225863561b76e7a5153a22997c71c18791f8e195504281d45",
+                "exitCode": 0,
+                "finishedAt": "2026-11-02T12:20:26Z",
+                "reason": "Completed",
+                "startedAt": "2026-11-02T12:20:26Z"
+              }
+            }
+          }
+        ],
+        "phase": "Succeeded"
+      }
+    }
+  },
+  {
+    "resourceType": "pods",
+    "expected": "CreateContainerConfigError",
+    "resource": {
+      "kind": "Pod",
+      "metadata": {
+        "name": "config-error",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:20Z"
+      },
+      "spec": {
+        "restartPolicy": "Always",
+        "containers": [
+          {
+            "name": "main",
+            "image": "busybox:1.36"
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-11-02T12:20:29Z",
+            "status": "True",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "ContainersNotReady",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "ContainersNotReady",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "lastState": {},
+            "name": "main",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "waiting": {
+                "message": "secret \"does-not-exist\" not found",
+                "reason": "CreateContainerConfigError"
+              }
+            }
+          }
+        ],
+        "phase": "Pending"
+      }
+    }
+  },
+  {
+    "resourceType": "pods",
+    "expected": "CrashLoopBackOff",
+    "resource": {
+      "kind": "Pod",
+      "metadata": {
+        "name": "crashloop",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:20Z"
+      },
+      "spec": {
+        "restartPolicy": "Always",
+        "containers": [
+          {
+            "name": "main",
+            "image": "busybox:1.36"
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-11-02T12:20:25Z",
+            "status": "True",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:26Z",
+            "reason": "ContainersNotReady",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:26Z",
+            "reason": "ContainersNotReady",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "lastState": {
+              "terminated": {
+                "containerID": "containerd://9e68223ba30f37e9fee6dceb83b014397407ac4bfd47c36014c1fb4b56634dfb",
+                "exitCode": 1,
+                "finishedAt": "2026-11-02T12:21:06Z",
+                "reason": "Error",
+                "startedAt": "2026-11-02T12:21:06Z"
+              }
+            },
+            "name": "main",
+            "ready": false,
+            "restartCount": 3,
+            "started": false,
+            "state": {
+              "waiting": {
+                "message": "back-off 40s restarting failed container=main pod=crashloop_default(31cbfcb7-72e5-4c2f-b0d4-928550e8c6c6)",
+                "reason": "CrashLoopBackOff"
+              }
+            }
+          }
+        ],
+        "phase": "Running"
+      }
+    }
+  },
+  {
+    "resourceType": "pods",
+    "expected": "Error",
+    "resource": {
+      "kind": "Pod",
+      "metadata": {
+        "name": "failed",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:20Z"
+      },
+      "spec": {
+        "restartPolicy": "Never",
+        "containers": [
+          {
+            "name": "main",
+            "image": "busybox:1.36"
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-11-02T12:20:29Z",
+            "status": "False",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "lastState": {},
+            "name": "main",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "containerd://79b23a137cf430a3f4ae40efa66b632318de751c1a8a6b8c8ab3f454e98dbd1c",
+                "exitCode": 3,
+                "finishedAt": "2026-11-02T12:20:27Z",
+                "reason": "Error",
+                "startedAt": "2026-11-02T12:20:27Z"
+              }
+            }
+          }
+        ],
+        "phase": "Failed"
+      }
+    }
+  },
+  {
+    "resourceType": "pods",
+    "expected": "SchedulingGated",
+    "resource": {
+      "kind": "Pod",
+      "metadata": {
+        "name": "gated",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:20Z"
+      },
+      "spec": {
+        "restartPolicy": "Always",
+        "schedulingGates": [
+          {
+            "name": "example.com/hold"
+          }
+        ],
+        "containers": [
+          {
+            "name": "main",
+            "image": "busybox:1.36"
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "SchedulingGated",
+            "status": "False",
+            "type": "PodScheduled"
+          }
+        ],
+        "phase": "Pending"
+      }
+    }
+  },
+  {
+    "resourceType": "pods",
+    "expected": "ImagePullBackOff",
+    "resource": {
+      "kind": "Pod",
+      "metadata": {
+        "name": "image-pull",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:20Z"
+      },
+      "spec": {
+        "restartPolicy": "Always",
+        "containers": [
+          {
+            "name": "main",
+            "image": "registry.invalid/nope:1"
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-11-02T12:20:27Z",
+            "status": "True",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "ContainersNotReady",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "ContainersNotReady",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "lastState": {},
+            "name": "main",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "waiting": {
+                "message": "Back-off pulling image \"registry.invalid/nope:1\"",
+                "reason": "ImagePullBackOff"
+              }
+            }
+          }
+        ],
+        "phase": "Pending"
+      }
+    }
+  },
+  {
+    "resourceType": "pods",
+    "expected": "Init:CrashLoopBackOff",
+    "resource": {
+      "kind": "Pod",
+      "metadata": {
+        "name": "init-crash",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:20Z"
+      },
+      "spec": {
+        "restartPolicy": "Always",
+        "containers": [
+          {
+            "name": "main",
+            "image": "busybox:1.36"
+          }
+        ],
+        "initContainers": [
+          {
+            "name": "init",
+            "image": "busybox:1.36"
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-11-02T12:20:26Z",
+            "status": "True",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "ContainersNotInitialized",
+            "status": "False",
+            "type": "Initialized"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "ContainersNotReady",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "ContainersNotReady",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "lastState": {},
+            "name": "main",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "waiting": {
+                "reason": "PodInitializing"
+              }
+            }
+          }
+        ],
+        "initContainerStatuses": [
+          {
+            "lastState": {
+              "terminated": {
+                "containerID": "containerd://0613661fcd202c6ddf1fe14c3a6b3707895b3e6a46fb29150c596abaca24f2ef",
+                "exitCode": 1,
+                "finishedAt": "2026-11-02T12:21:06Z",
+                "reason": "Error",
+                "startedAt": "2026-11-02T12:21:06Z"
+              }
+            },
+            "name": "init",
+            "ready": false,
+            "restartCount": 3,
+            "started": false,
+            "state": {
+              "waiting": {
+                "message": "back-off 40s restarting failed container=init pod=init-crash_default(c8d60498-8814-4076-8b1b-190d3351e970)",
+                "reason": "CrashLoopBackOff"
+              }
+            }
+          }
+        ],
+        "phase": "Pending"
+      }
+    }
+  },
+  {
+    "resourceType": "pods",
+    "expected": "Init:ImagePullBackOff",
+    "resource": {
+      "kind": "Pod",
+      "metadata": {
+        "name": "init-pull",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:20Z"
+      },
+      "spec": {
+        "restartPolicy": "Always",
+        "containers": [
+          {
+            "name": "main",
+            "image": "busybox:1.36"
+          }
+        ],
+        "initContainers": [
+          {
+            "name": "init",
+            "image": "registry.invalid/nope:1"
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-11-02T12:20:28Z",
+            "status": "True",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "ContainersNotInitialized",
+            "status": "False",
+            "type": "Initialized"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "ContainersNotReady",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "ContainersNotReady",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "lastState": {},
+            "name": "main",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "waiting": {
+                "reason": "PodInitializing"
+              }
+            }
+          }
+        ],
+        "initContainerStatuses": [
+          {
+            "lastState": {},
+            "name": "init",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "waiting": {
+                "message": "Back-off pulling image \"registry.invalid/nope:1\"",
+                "reason": "ImagePullBackOff"
+              }
+            }
+          }
+        ],
+        "phase": "Pending"
+      }
+    }
+  },
+  {
+    "resourceType": "pods",
+    "expected": "Init:0/1",
+    "resource": {
+      "kind": "Pod",
+      "metadata": {
+        "name": "init-running",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:20Z"
+      },
+      "spec": {
+        "restartPolicy": "Always",
+        "containers": [
+          {
+            "name": "main",
+            "image": "busybox:1.36"
+          }
+        ],
+        "initContainers": [
+          {
+            "name": "init",
+            "image": "busybox:1.36"
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-11-02T12:20:28Z",
+            "status": "True",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "ContainersNotInitialized",
+            "status": "False",
+            "type": "Initialized"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "ContainersNotReady",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "ContainersNotReady",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "lastState": {},
+            "name": "main",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "waiting": {
+                "reason": "PodInitializing"
+              }
+            }
+          }
+        ],
+        "initContainerStatuses": [
+          {
+            "lastState": {},
+            "name": "init",
+            "ready": false,
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-11-02T12:20:28Z"
+              }
+            }
+          }
+        ],
+        "phase": "Pending"
+      }
+    }
+  },
+  {
+    "resourceType": "pods",
+    "expected": "NotReady",
+    "resource": {
+      "kind": "Pod",
+      "metadata": {
+        "name": "one-done-one-running",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:20Z"
+      },
+      "spec": {
+        "restartPolicy": "Never",
+        "containers": [
+          {
+            "name": "done",
+            "image": "busybox:1.36"
+          },
+          {
+            "name": "main",
+            "image": "busybox:1.36"
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-11-02T12:20:32Z",
+            "status": "True",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "ContainersNotReady",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "ContainersNotReady",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "lastState": {},
+            "name": "done",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "containerd://c943e4a39e716115926730857c9379775fbd97715a14bf918081988937f9b4a5",
+                "exitCode": 0,
+                "finishedAt": "2026-11-02T12:20:31Z",
+                "reason": "Completed",
+                "startedAt": "2026-11-02T12:20:31Z"
+              }
+            }
+          },
+          {
+            "lastState": {},
+            "name": "main",
+            "ready": true,
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-11-02T12:20:31Z"
+              }
+            }
+          }
+        ],
+        "phase": "Running"
+      }
+    }
+  },
+  {
+    "resourceType": "pods",
+    "expected": "Running",
+    "resource": {
+      "kind": "Pod",
+      "metadata": {
+        "name": "running",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:20Z"
+      },
+      "spec": {
+        "restartPolicy": "Always",
+        "containers": [
+          {
+            "name": "main",
+            "image": "busybox:1.36"
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-11-02T12:20:25Z",
+            "status": "True",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:25Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:25Z",
+            "status": "True",
+            "type": "ContainersReady"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "lastState": {},
+            "name": "main",
+            "ready": true,
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-11-02T12:20:24Z"
+              }
+            }
+          }
+        ],
+        "phase": "Running"
+      }
+    }
+  },
+  {
+    "resourceType": "pods",
+    "expected": "Running",
+    "resource": {
+      "kind": "Pod",
+      "metadata": {
+        "name": "sidecar",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:20Z"
+      },
+      "spec": {
+        "restartPolicy": "Always",
+        "containers": [
+          {
+            "name": "main",
+            "image": "busybox:1.36"
+          }
+        ],
+        "initContainers": [
+          {
+            "name": "side",
+            "image": "busybox:1.36",
+            "restartPolicy": "Always"
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-11-02T12:20:29Z",
+            "status": "True",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:29Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:30Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:30Z",
+            "status": "True",
+            "type": "ContainersReady"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "lastState": {},
+            "name": "main",
+            "ready": true,
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-11-02T12:20:29Z"
+              }
+            }
+          }
+        ],
+        "initContainerStatuses": [
+          {
+            "lastState": {},
+            "name": "side",
+            "ready": true,
+            "restartCount": 0,
+            "started": true,
+            "state": {
+              "running": {
+                "startedAt": "2026-11-02T12:20:29Z"
+              }
+            }
+          }
+        ],
+        "phase": "Running"
+      }
+    }
+  },
+  {
+    "resourceType": "pods",
+    "expected": "Error",
+    "resource": {
+      "kind": "Pod",
+      "metadata": {
+        "name": "signal-killed",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:20Z"
+      },
+      "spec": {
+        "restartPolicy": "Never",
+        "containers": [
+          {
+            "name": "main",
+            "image": "busybox:1.36"
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-11-02T12:20:33Z",
+            "status": "False",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "lastState": {},
+            "name": "main",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "containerd://e8a88f6c4fc213b0f3de7bf48b1951645b2c0c0c5e58164919ed8bfe7c3ef08c",
+                "exitCode": 1,
+                "finishedAt": "2026-11-02T12:20:32Z",
+                "reason": "Error",
+                "startedAt": "2026-11-02T12:20:32Z"
+              }
+            }
+          }
+        ],
+        "phase": "Failed"
+      }
+    }
+  },
+  {
+    "resourceType": "pods",
+    "expected": "Error",
+    "resource": {
+      "kind": "Pod",
+      "metadata": {
+        "name": "terminating",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:20Z",
+        "deletionTimestamp": "2026-11-02T12:20:57Z",
+        "finalizers": ["example.com/hold"]
+      },
+      "spec": {
+        "restartPolicy": "Always",
+        "containers": [
+          {
+            "name": "main",
+            "image": "busybox:1.36"
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-11-02T12:21:28Z",
+            "status": "False",
+            "type": "PodReadyToStartContainers"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:21:28Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:21:28Z",
+            "reason": "PodFailed",
+            "status": "False",
+            "type": "ContainersReady"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "lastState": {},
+            "name": "main",
+            "ready": false,
+            "restartCount": 0,
+            "started": false,
+            "state": {
+              "terminated": {
+                "containerID": "containerd://b3bcf178099d33a4c9ba4c171552654567842e6d2e995cbe913931fa607275af",
+                "exitCode": 137,
+                "finishedAt": "2026-11-02T12:21:27Z",
+                "reason": "Error",
+                "startedAt": "2026-11-02T12:20:30Z"
+              }
+            }
+          }
+        ],
+        "phase": "Failed"
+      }
+    }
+  },
+  {
+    "resourceType": "pods",
+    "expected": "Pending",
+    "resource": {
+      "kind": "Pod",
+      "metadata": {
+        "name": "unschedulable",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:20Z"
+      },
+      "spec": {
+        "restartPolicy": "Always",
+        "containers": [
+          {
+            "name": "main",
+            "image": "busybox:1.36"
+          }
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "Unschedulable",
+            "status": "False",
+            "type": "PodScheduled"
+          }
+        ],
+        "phase": "Pending"
+      }
+    }
+  },
+  {
+    "resourceType": "jobs",
+    "expected": "Complete",
+    "resource": {
+      "kind": "Job",
+      "metadata": {
+        "name": "job-complete",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:20Z"
+      },
+      "spec": {
+        "suspend": false,
+        "completions": 1,
+        "parallelism": 1
+      },
+      "status": {
+        "completionTime": "2026-11-02T12:20:37Z",
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-11-02T12:20:37Z",
+            "reason": "CompletionsReached",
+            "status": "True",
+            "type": "SuccessCriteriaMet"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:37Z",
+            "reason": "CompletionsReached",
+            "status": "True",
+            "type": "Complete"
+          }
+        ],
+        "succeeded": 1
+      }
+    }
+  },
+  {
+    "resourceType": "jobs",
+    "expected": "Failed",
+    "resource": {
+      "kind": "Job",
+      "metadata": {
+        "name": "job-failed",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:20Z"
+      },
+      "spec": {
+        "suspend": false,
+        "completions": 1,
+        "parallelism": 1
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-11-02T12:20:35Z",
+            "reason": "BackoffLimitExceeded",
+            "status": "True",
+            "type": "FailureTarget"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:35Z",
+            "reason": "BackoffLimitExceeded",
+            "status": "True",
+            "type": "Failed"
+          }
+        ],
+        "failed": 1
+      }
+    }
+  },
+  {
+    "resourceType": "jobs",
+    "expected": "Running",
+    "resource": {
+      "kind": "Job",
+      "metadata": {
+        "name": "job-one-of-many",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:20Z"
+      },
+      "spec": {
+        "suspend": false,
+        "completions": 2,
+        "parallelism": 2
+      },
+      "status": {
+        "active": 1,
+        "completedIndexes": "0",
+        "succeeded": 1
+      }
+    }
+  },
+  {
+    "resourceType": "jobs",
+    "expected": "Running",
+    "resource": {
+      "kind": "Job",
+      "metadata": {
+        "name": "job-retrying",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:20Z"
+      },
+      "spec": {
+        "suspend": false,
+        "completions": 1,
+        "parallelism": 1
+      },
+      "status": {
+        "failed": 3
+      }
+    }
+  },
+  {
+    "resourceType": "jobs",
+    "expected": "Running",
+    "resource": {
+      "kind": "Job",
+      "metadata": {
+        "name": "job-running",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:20Z"
+      },
+      "spec": {
+        "suspend": false,
+        "completions": 1,
+        "parallelism": 1
+      },
+      "status": {
+        "active": 1
+      }
+    }
+  },
+  {
+    "resourceType": "jobs",
+    "expected": "Suspended",
+    "resource": {
+      "kind": "Job",
+      "metadata": {
+        "name": "job-suspended",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:20Z"
+      },
+      "spec": {
+        "suspend": true,
+        "completions": 1,
+        "parallelism": 1
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-11-02T12:20:20Z",
+            "reason": "JobSuspended",
+            "status": "True",
+            "type": "Suspended"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "resourceType": "persistentvolume",
+    "expected": "Available",
+    "resource": {
+      "kind": "PersistentVolume",
+      "metadata": {
+        "name": "pv-available",
+        "creationTimestamp": "2026-11-02T12:20:20Z",
+        "finalizers": ["kubernetes.io/pv-protection"]
+      },
+      "spec": {
+        "storageClassName": "manual-a",
+        "accessModes": ["ReadWriteOnce"]
+      },
+      "status": {
+        "phase": "Available"
+      }
+    }
+  },
+  {
+    "resourceType": "persistentvolume",
+    "expected": "Terminating",
+    "resource": {
+      "kind": "PersistentVolume",
+      "metadata": {
+        "name": "pv-bound",
+        "creationTimestamp": "2026-11-02T12:20:20Z",
+        "deletionTimestamp": "2026-11-02T12:20:58Z",
+        "finalizers": ["kubernetes.io/pv-protection"]
+      },
+      "spec": {
+        "storageClassName": "manual-b",
+        "accessModes": ["ReadWriteOnce"]
+      },
+      "status": {
+        "phase": "Bound"
+      }
+    }
+  },
+  {
+    "resourceType": "persistentvolume",
+    "expected": "Bound",
+    "resource": {
+      "kind": "PersistentVolume",
+      "metadata": {
+        "name": "pv-bound-2",
+        "creationTimestamp": "2026-11-02T12:21:16Z",
+        "finalizers": ["kubernetes.io/pv-protection"]
+      },
+      "spec": {
+        "storageClassName": "manual-d",
+        "accessModes": ["ReadWriteOnce"]
+      },
+      "status": {
+        "phase": "Bound"
+      }
+    }
+  },
+  {
+    "resourceType": "persistentvolume",
+    "expected": "Released",
+    "resource": {
+      "kind": "PersistentVolume",
+      "metadata": {
+        "name": "pv-released",
+        "creationTimestamp": "2026-11-02T12:20:20Z",
+        "finalizers": ["kubernetes.io/pv-protection"]
+      },
+      "spec": {
+        "storageClassName": "manual-c",
+        "accessModes": ["ReadWriteOnce"]
+      },
+      "status": {
+        "phase": "Released"
+      }
+    }
+  },
+  {
+    "resourceType": "persistentvolumeclaim",
+    "expected": "Bound",
+    "resource": {
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "pvc-bound",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:21Z",
+        "finalizers": ["kubernetes.io/pvc-protection"]
+      },
+      "spec": {
+        "storageClassName": "manual-b",
+        "accessModes": ["ReadWriteOnce"]
+      },
+      "status": {
+        "accessModes": ["ReadWriteOnce"],
+        "capacity": {
+          "storage": "1Gi"
+        },
+        "phase": "Bound"
+      }
+    }
+  },
+  {
+    "resourceType": "persistentvolumeclaim",
+    "expected": "Bound",
+    "resource": {
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "pvc-bound-2",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:21:16Z",
+        "finalizers": ["kubernetes.io/pvc-protection"]
+      },
+      "spec": {
+        "storageClassName": "manual-d",
+        "accessModes": ["ReadWriteOnce"]
+      },
+      "status": {
+        "accessModes": ["ReadWriteOnce"],
+        "capacity": {
+          "storage": "1Gi"
+        },
+        "phase": "Bound"
+      }
+    }
+  },
+  {
+    "resourceType": "persistentvolumeclaim",
+    "expected": "Terminating",
+    "resource": {
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "pvc-held",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:21Z",
+        "deletionTimestamp": "2026-11-02T12:20:58Z",
+        "finalizers": ["example.com/hold"]
+      },
+      "spec": {
+        "storageClassName": "no-such-class",
+        "accessModes": ["ReadWriteOnce"]
+      },
+      "status": {
+        "phase": "Pending"
+      }
+    }
+  },
+  {
+    "resourceType": "persistentvolumeclaim",
+    "expected": "Pending",
+    "resource": {
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "pvc-pending",
+        "namespace": "default",
+        "creationTimestamp": "2026-11-02T12:20:21Z",
+        "finalizers": ["kubernetes.io/pvc-protection"]
+      },
+      "spec": {
+        "storageClassName": "no-such-class",
+        "accessModes": ["ReadWriteOnce"]
+      },
+      "status": {
+        "phase": "Pending"
+      }
+    }
+  },
+  {
+    "resourceType": "nodes",
+    "expected": "Ready",
+    "resource": {
+      "kind": "Node",
+      "metadata": {
+        "name": "shoal-status-control-plane",
+        "creationTimestamp": "2026-11-02T12:19:53Z"
+      },
+      "spec": {},
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-11-02T12:19:50Z",
+            "reason": "KubeletHasSufficientMemory",
+            "status": "False",
+            "type": "MemoryPressure"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:19:50Z",
+            "reason": "KubeletHasNoDiskPressure",
+            "status": "False",
+            "type": "DiskPressure"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:19:50Z",
+            "reason": "KubeletHasSufficientPID",
+            "status": "False",
+            "type": "PIDPressure"
+          },
+          {
+            "lastTransitionTime": "2026-11-02T12:20:16Z",
+            "reason": "KubeletReady",
+            "status": "True",
+            "type": "Ready"
+          }
+        ]
+      }
+    }
+  }
+]

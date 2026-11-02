@@ -104,7 +104,10 @@ export function validateManifest(manifest: PluginManifest): string | null {
   return null;
 }
 
-/** Creates a Plugin instance in the 'error' state for a manifest that failed validation. */
+/**
+ * Creates a Plugin instance in the 'error' state for a plugin refused at
+ * discovery. It is only listed: `loadFailed` keeps its code from ever running.
+ */
 export function createErrorPlugin(
   manifest: Partial<PluginManifest>,
   error: string
@@ -122,6 +125,7 @@ export function createErrorPlugin(
     },
     state: 'error',
     error,
+    loadFailed: true,
     installedAt: new Date().toISOString(),
   };
 }

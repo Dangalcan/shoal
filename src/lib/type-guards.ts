@@ -3,13 +3,7 @@
  * These functions help TypeScript narrow types at runtime
  */
 
-import type {
-  K8sResource,
-  Pod,
-  Job,
-  PersistentVolumeClaim,
-  Node,
-} from '../types/k8s-types';
+import type { K8sResource, Pod, Node } from '../types/k8s-types';
 
 /**
  * Check if a resource is a Pod
@@ -19,32 +13,6 @@ export function isPod(resource: K8sResource): resource is Pod {
     resource.spec !== undefined &&
     'containers' in (resource.spec as Record<string, unknown>) &&
     Array.isArray((resource.spec as Record<string, unknown>).containers)
-  );
-}
-
-/**
- * Check if a resource is a Job
- */
-export function isJob(resource: K8sResource): resource is Job {
-  return (
-    resource.spec !== undefined &&
-    'template' in (resource.spec as Record<string, unknown>) &&
-    resource.status !== undefined &&
-    ('succeeded' in (resource.status as Record<string, unknown>) ||
-      'failed' in (resource.status as Record<string, unknown>))
-  );
-}
-
-/**
- * Check if a resource is a PersistentVolumeClaim
- */
-export function isPersistentVolumeClaim(
-  resource: K8sResource
-): resource is PersistentVolumeClaim {
-  return (
-    resource.spec !== undefined &&
-    'resources' in (resource.spec as Record<string, unknown>) &&
-    resource.metadata.namespace !== undefined // PVCs are namespaced
   );
 }
 

@@ -47,6 +47,51 @@ describe('AppSettingsStore', () => {
     expect(await new AppSettingsStore().load()).toEqual({});
   });
 
+  it('has the file written by the time update() returns', () => {
+    // The window's last state is saved on 'close' and the process exits right
+    // after: nothing may wait for a later tick, so this test does not await.
+    const settingsFile = path.join(userData, 'app-settings.json');
+    fs.writeFileSync(settingsFile, JSON.stringify({ kubeconfigPath: '/old' }));
+
+    void new AppSettingsStore().update({ windowMaximized: true });
+
+    expect(JSON.parse(fs.readFileSync(settingsFile, 'utf-8'))).toEqual({
+      windowMaximized: true,
+    });
+  });
+
+  it('creates the user data folder if it is missing', async () => {
+    const parent = userData;
+    userData = path.join(parent, 'not', 'yet');
+
+    await new AppSettingsStore().update({ windowMaximized: true });
+
+    expect(await new AppSettingsStore().load()).toEqual({
+      windowMaximized: true,
+    });
+    userData = parent;
+  });
+
+  it('keeps the previous settings when a write fails', async () => {
+    const settingsFile = path.join(userData, 'app-settings.json');
+    const store = new AppSettingsStore();
+    await store.update({ kubeconfigPath: '/kept' });
+    // A directory where the temporary file goes makes the write fail, the way
+    // a full disk or a denied write does, before the settings file is touched.
+    fs.mkdirSync(`${settingsFile}.tmp`);
+
+    await expect(store.update({ kubeconfigPath: '/new' })).rejects.toThrow();
+
+    expect(JSON.parse(fs.readFileSync(settingsFile, 'utf-8'))).toEqual({
+      kubeconfigPath: '/kept',
+    });
+  });
+
+  it('leaves no temporary file behind', async () => {
+    await new AppSettingsStore().update({ windowMaximized: true });
+    expect(fs.readdirSync(userData)).toEqual(['app-settings.json']);
+  });
+
   it.each(['null', '42', '"text"'])(
     'treats a settings file holding %s as empty',
     async (content) => {
