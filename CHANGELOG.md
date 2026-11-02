@@ -36,6 +36,9 @@ All notable changes to Shoal are documented here. The format follows
   such as `vim`, `less`, `top` or `k9s` work. When the pseudo-terminal
   cannot start (no node-pty binary for the platform) the session falls
   back to pipes with the previous behaviour, and the log says why (#30).
+- A program that floods the terminal is held back until the terminal has
+  drawn what it already wrote, so the app stays responsive and Ctrl+C lands
+  quickly. Without it, a Linux pty could outrun xterm's write buffer.
 - Pod exec sessions get a TTY too: kubectl runs inside the same
   pseudo-terminal with `exec -it`, so the container shell echoes and edits
   the line itself, follows the window size and can run full-screen
@@ -93,6 +96,14 @@ All notable changes to Shoal are documented here. The format follows
 - Filtering the tab list of the Display Settings menu shows the matches
   inside a collapsed category (Storage, Configuration, Access Control and
   Advanced start collapsed), instead of leaving them hidden under it.
+- Reloading the window no longer leaves shells behind. Every terminal and pod
+  shell open at the time kept running until Shoal quit, one more set per reload.
+- What a shell says before the terminal is listening reaches it. A pod terminal
+  with kubectl missing stayed blank, because the error and the exit came before
+  the page had subscribed; a fast shell could lose its first prompt the same way.
+- Closing a terminal on pipes (no node-pty) ends the shell. An interactive bash
+  ignores SIGTERM and stayed until quit, and on Windows what the shell had
+  started survived it.
 - A disabled plugin stops reacting to events. Handlers registered with
   `onClusterConnected`, `onResourceCreated` and the other app events, and
   resource watches, stayed active after Disable, because a plugin has no way to

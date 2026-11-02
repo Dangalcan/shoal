@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
-import type { ElectronApplication, Page } from '@playwright/test';
+import type {
+  ConsoleMessage,
+  ElectronApplication,
+  Page,
+} from '@playwright/test';
 import { launchApp, mainWindow } from '../fixtures/launch';
 
 /**
@@ -90,6 +94,31 @@ test('Ctrl+C stops a running command and the shell keeps working', async () => {
 
   await run(`echo ${marker}`);
   await expectMarker(marker, 2);
+});
+
+test('a program flooding the terminal can still be stopped', async () => {
+  const errors: string[] = [];
+  const onConsole = (message: ConsoleMessage) => {
+    if (message.type() === 'error') errors.push(message.text());
+  };
+  window.on('console', onConsole);
+
+  // Node is there wherever the suite runs. The app must stay responsive and
+  // xterm must not drop output for lack of flow control.
+  await run(`node -e "for(;;)console.log('y'.repeat(2000))"`);
+  await window.waitForTimeout(8_000);
+  await window.keyboard.press('Control+C');
+
+  const marker = `e2e-flood-${Date.now().toString(36)}`;
+  await expect(async () => {
+    await run(`echo ${marker}`);
+    await expectMarker(marker, 1);
+  }).toPass({ timeout: 60_000 });
+
+  window.off('console', onConsole);
+  expect(errors.filter((text) => /discarded|flow control/i.test(text))).toEqual(
+    []
+  );
 });
 
 test('New Terminal starts a fresh session', async () => {
