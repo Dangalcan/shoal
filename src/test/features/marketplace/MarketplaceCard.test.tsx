@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { MarketplaceEntry } from '../../../types';
 import type { Plugin } from '../../../../electron/types/plugin-types';
 
@@ -164,6 +165,23 @@ describe('MarketplaceCard ownership states', () => {
         screen.queryByRole('button', { name: 'Installing...' })
       ).not.toBeInTheDocument()
     );
+  });
+
+  it('lets Enter on an inner button run it without opening the details', async () => {
+    const onOpenDetail = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <MarketplaceCard
+        entry={{ ...entry, price: 0 }}
+        onOpenDetail={onOpenDetail}
+      />
+    );
+    screen.getByRole('button', { name: 'Install' }).focus();
+
+    await user.keyboard('{Enter}');
+
+    expect(installPlugin).toHaveBeenCalledWith('helm-manager');
+    expect(onOpenDetail).not.toHaveBeenCalled();
   });
 
   it('shows waiting state with a working Cancel button while awaiting payment', async () => {
