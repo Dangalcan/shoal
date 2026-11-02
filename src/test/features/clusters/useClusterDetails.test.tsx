@@ -96,4 +96,46 @@ describe('useClusterDetails', () => {
       'age',
     ]);
   });
+
+  it('keeps CronJobs without a last schedule last in both sort directions', async () => {
+    window.localStorage.setItem(
+      'cluster-tab-kind-dev',
+      JSON.stringify('cronjobs')
+    );
+    api.getResources.mockResolvedValue({
+      success: true,
+      data: [
+        {
+          metadata: { name: 'often', namespace: 'default', uid: '1' },
+          status: { lastScheduleTime: '2026-11-02T17:40:00Z' },
+        },
+        {
+          metadata: { name: 'report', namespace: 'default', uid: '2' },
+          status: {},
+        },
+      ],
+    });
+    const { result } = renderDetails();
+    await waitFor(() => expect(result.current.items).toHaveLength(2));
+
+    act(() => result.current.table.handleSort('last-schedule'));
+    expect(result.current.table.sortConfig).toEqual({
+      key: 'last-schedule',
+      direction: 'asc',
+    });
+    expect(result.current.sortedItems.map((r) => r.metadata.name)).toEqual([
+      'often',
+      'report',
+    ]);
+
+    act(() => result.current.table.handleSort('last-schedule'));
+    expect(result.current.table.sortConfig).toEqual({
+      key: 'last-schedule',
+      direction: 'desc',
+    });
+    expect(result.current.sortedItems.map((r) => r.metadata.name)).toEqual([
+      'often',
+      'report',
+    ]);
+  });
 });
