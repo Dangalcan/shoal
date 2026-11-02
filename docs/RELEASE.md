@@ -25,15 +25,14 @@ newest **non** pre-release.
 
 ## Cutting a release
 
-1. Make sure `master` is green: CI and gitleaks; Build/Release green once the
-   repository is public.
+1. Make sure `master` is green: CI, gitleaks and Build/Release.
 2. On a branch, bump `version` in `package.json` (and the two version fields at
    the top of `package-lock.json`), update `CHANGELOG.md`, open a PR and
-   merge it. Release candidates accumulate under the
-   `## [Unreleased] - 0.9.0 public beta` heading. For the stable release,
-   retitle that heading `## [0.9.0] - 2026-11-02`, add an empty
-   `## [Unreleased]` above it and update the compare links at the bottom of
-   the file (`[0.9.0]: .../compare/v0.9.0-rc.3...v0.9.0`).
+   merge it. Changes accumulate under the `## [Unreleased]` heading. For a
+   stable release, retitle that heading with the version and the date, as in
+   `## [0.9.2] - 2026-11-09`, add an empty `## [Unreleased]` above it and
+   update the compare links at the bottom of the file
+   (`[0.9.2]: .../compare/v0.9.1...v0.9.2`).
 3. Tag the merge commit and push the tag:
 
    ```bash
@@ -128,7 +127,7 @@ the wrapped error electron-updater raises when no stable release exists
 and never looked at pre-releases. rc.6 fixed that, and an installed rc.6
 confirmed it by logging "No stable release published yet; checking
 pre-releases" and then that no newer version exists. `rc.6 → 0.9.0` on
-2026-11-02 checks that a pre-release moves to the stable channel.
+2026-10-31 confirmed that a pre-release moves to the stable channel.
 
 ## When Actions cannot run
 
@@ -157,7 +156,7 @@ and uploaded to a draft. Used for `v0.9.0-rc.3` on 2026-10-24.
    ```bash
    MSYS_NO_PATHCONV=1 docker run --rm -v "$PWD:/project" -v shoal-rc3-nm:/project/node_modules \
      -v shoal-electron-cache:/root/.cache/electron -v shoal-npm-cache:/root/.npm -w /project \
-     electronuserland/builder:22 bash -lc "npm ci && npm run build:react && npm run build:electron && npx electron-builder --linux --publish never"
+     electronuserland/builder:22 bash -lc "npm ci && npm run rebuild:node-pty && npm run build:react && npm run build:electron && npx electron-builder --linux --publish never"
    ```
 
 4. The checks above (asar contents, `resources`, fuses), plus: the `sha512`

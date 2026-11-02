@@ -96,6 +96,11 @@ All notable changes to Shoal are documented here. The format follows
 - Filtering the tab list of the Display Settings menu shows the matches
   inside a collapsed category (Storage, Configuration, Access Control and
   Advanced start collapsed), instead of leaving them hidden under it.
+- Help → User Guide opens the guide of the running version instead of the one on
+  `master`, which can describe things that version does not have.
+- A plugin scaffolded from the template gets its sidebar entry. The template
+  declared it in `extensions.sidebar` of the manifest, which nothing reads; it
+  now registers it in `activate()`, as the guides say.
 - A kubeconfig Shoal cannot read shows the error and a Try Again button on the
   Clusters page and the Dashboard. Once the toast was gone, both said "No
   clusters found" and suggested creating one.

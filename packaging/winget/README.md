@@ -12,7 +12,7 @@ Manifest schema 1.12.0, the version wingetcreate 1.12 writes and the manifests m
 
 ## What is fixed and what is filled in on release day
 
-- **`InstallerSha256`** is `0000…` (64 zeros) until `v0.9.1` is published. Fill it with any of:
+- **`InstallerSha256`** comes from the published release, by any of:
   - the digest GitHub shows next to the asset on the release page, also available as `gh api repos/Dangalcan/shoal/releases/tags/v0.9.1 --jq '.assets[] | "\(.name) \(.digest)"'`;
   - `certutil -hashfile Shoal-Setup-0.9.1.exe SHA256` or `(Get-FileHash Shoal-Setup-0.9.1.exe).Hash` on a downloaded copy;
   - `wingetcreate update Dangalcan.Shoal --version 0.9.1 --urls <installer url>`, once the package exists in winget-pkgs: it downloads the installer and writes the hash itself.

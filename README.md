@@ -26,6 +26,16 @@ Download the latest release from [Releases](https://github.com/Dangalcan/shoal/r
 - **Windows 10 or later:** `Shoal-Setup-<version>.exe` installs per user and updates itself; `Shoal-<version>-portable.exe` needs no install and does not auto-update. Neither is code-signed yet, so SmartScreen shows "Windows protected your PC" on first start: choose **More info → Run anyway**.
 - **Linux** (Ubuntu 22.04+ or equivalent, X11 or Wayland): `Shoal-x86_64.AppImage` (`chmod +x` it, then run it) updates itself in place, so desktop shortcuts keep working, and needs `libfuse2` (`libfuse2t64` on Ubuntu 24.04). If you still run a `Shoal-<version>.AppImage` from 0.9.1 or earlier, its next update leaves `Shoal-x86_64.AppImage` in the same folder instead, so your shortcuts need one last fix; rename the file first to a name without a version number (`mv Shoal-0.9.1.AppImage Shoal.AppImage`) and the updater keeps that name. The `.deb` package (`sudo apt install ./shoal_<version>_amd64.deb`) needs no FUSE and does not auto-update. On Ubuntu 24.04 prefer the `.deb`: it installs an AppArmor profile that keeps Chromium's sandbox, which the AppImage has to turn off there.
 
+On Windows you can also install it with [Scoop](https://scoop.sh):
+
+```bash
+scoop bucket add shoal https://github.com/Dangalcan/scoop-shoal
+```
+
+```bash
+scoop install shoal
+```
+
 Shoal drives your clusters through tools you install separately: **kubectl** (required for anything cluster-related; Shoal tells you when it is missing), **kind** or **k3d** plus **Docker** running to create local clusters, and **kompose** (optional) for the Docker Compose migration. The [User Guide](docs/USER_GUIDE.md) covers the rest.
 
 ## Table of Contents
@@ -143,7 +153,7 @@ shoal/
 │   ├── preload.ts         # ContextBridge — secure IPC surface
 │   ├── database.ts        # SQLite setup (manifests)
 │   ├── logger.ts          # electron-log setup (main.log)
-│   ├── ipc/               # IPC handler modules (cluster, resources, logs, plugins, manifests, migration, terminal, portforward, update, app)
+│   ├── ipc/               # IPC handler modules (cluster, resources, logs, helm, marketplace, tools, plugins, manifests, migration, terminal, portforward, update, app)
 │   ├── services/          # Business logic
 │   │   ├── cluster/       # Kind/K3d cluster management
 │   │   ├── kubernetes/    # kubectl API wrapper and read cache
@@ -166,11 +176,11 @@ shoal/
 │   └── tsconfig.json      # Main process TS config
 ├── src/                    # ⚛️ Renderer Source (React)
 │   ├── components/        # Reusable UI components (tables, modals, sidebar, terminal)
-│   ├── features/          # Feature modules (clusters, logs, manifests, migration, plugins, portforward, settings, terminal, updates)
+│   ├── features/          # Feature modules (clusters, logs, manifests, migration, marketplace, plugins, portforward, settings, terminal, updates)
 │   ├── hooks/             # Custom React hooks
 │   ├── layouts/           # Page layouts
-│   ├── pages/             # Route-level components (Dashboard, Clusters, Manifests, Migration, Plugins, PortForwards, Terminal, Settings)
-│   ├── services/          # Frontend API service layer & plugin UI registry
+│   ├── pages/             # Route-level components (Dashboard, Clusters, ClusterDetails, CreateCluster, PluginPage, Manifests, Migration, Plugins, PortForwards, Terminal, Settings)
+│   ├── services/          # Frontend API service layer
 │   ├── types/             # Frontend TypeScript interfaces
 │   ├── lib/               # Utilities and resource definitions
 │   ├── test/              # Renderer unit tests (Vitest + Testing Library)
@@ -301,10 +311,10 @@ Shoal maintains high test coverage standards:
 
 | Metric     | Minimum Threshold |
 | ---------- | ----------------- |
-| Lines      | 90%               |
-| Statements | 90%               |
-| Functions  | 90%               |
-| Branches   | 80%               |
+| Lines      | 97%               |
+| Statements | 97%               |
+| Functions  | 97%               |
+| Branches   | 95%               |
 
 ### Running Tests
 
@@ -362,7 +372,7 @@ Releases are built and published by CI from `v*` tags; see [docs/RELEASE.md](doc
 
 ## 🗺 Roadmap
 
-- **0.9.x** (beta fixes): keyboard access to every table and card and whatever the beta feedback shows first. 0.9.1 already split the plugin permissions (reads, writes, Helm and Secret data as separate grants) and moved plugin secrets to the OS keystore. Report what you miss on [GitHub Issues](https://github.com/Dangalcan/shoal/issues).
+- **0.9.x** (beta fixes): whatever the beta feedback shows first. 0.9.1 split the plugin permissions (reads, writes, Helm and Secret data as separate grants) and moved plugin secrets to the OS keystore; 0.9.2 brings a real pseudo-terminal, keyboard access to the column resize handles and a Status column that says what `kubectl get` says. Report what you miss on [GitHub Issues](https://github.com/Dangalcan/shoal/issues).
 - **1.0** (planned for Q1 2027): code-signed installers (no more SmartScreen warning), macOS builds, the plugin marketplace with third-party and paid plugins.
 - **Marketplace** (planned for 1.0): the marketplace client (catalog, installs, trials, licenses and checkout) is in the code base but hidden in the 0.9 beta: the Marketplace tab only appears when the app runs with `MARKETPLACE_ENABLED=true`, which `npm run dev` sets. It talks to a separate backend that is not public yet, selected through `MARKETPLACE_BACKEND_URL`; without one, development builds fall back to the sample catalog in `electron/data/marketplace.json`.
 - **Not planned**: telemetry or accounts. Shoal works offline and sends nothing anywhere except the update check against GitHub Releases.

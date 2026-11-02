@@ -56,18 +56,38 @@ describe('TemplateService', () => {
       expect(manifest.license.spdx).toBe('MIT');
     });
 
-    it('should include a sidebar extension pointing to the plugin route', async () => {
+    it('should register a sidebar item for the plugin route in activate()', async () => {
       await service.scaffoldPlugin('/output/my-plugin', options);
 
       const writeFileCalls = vi.mocked(fs.writeFile).mock.calls;
       const manifestCall = writeFileCalls.find((call) =>
         (call[0] as string).endsWith('plugin.json')
       )!;
-      const manifest = JSON.parse(manifestCall[1] as string);
+      expect(JSON.parse(manifestCall[1] as string).extensions).toBeUndefined();
 
-      expect(manifest.extensions.sidebar).toHaveLength(1);
-      expect(manifest.extensions.sidebar[0].id).toBe('my-plugin-page');
-      expect(manifest.extensions.sidebar[0].route).toBe('/plugin/my-plugin');
+      const indexCall = writeFileCalls.find((call) =>
+        (call[0] as string).endsWith('index.js')
+      )!;
+      const registered: unknown[] = [];
+      const pluginModule: { exports: { activate?: (c: unknown) => void } } = {
+        exports: {},
+      };
+      new Function('module', indexCall[1] as string)(pluginModule);
+      pluginModule.exports.activate?.({
+        logger: { info: () => {} },
+        ui: {
+          showNotification: () => {},
+          registerSidebarItem: (item: unknown) => registered.push(item),
+        },
+      });
+
+      expect(registered).toEqual([
+        {
+          id: 'my-plugin-page',
+          label: options.name,
+          route: '/plugin/my-plugin',
+        },
+      ]);
     });
 
     it('should include default configuration schema', async () => {

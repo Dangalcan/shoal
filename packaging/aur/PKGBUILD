@@ -6,7 +6,9 @@
 # .deb's postinst would do. Validation and release steps: README.md next to
 # this file.
 
-pkgname=shoal-bin
+# Not shoal-bin: that AUR name is another project (BT10011/shoal), which also
+# installs /usr/bin/shoal, so the command here is shoal-desktop.
+pkgname=shoal-desktop-bin
 _pkgname=shoal
 pkgver=0.9.1
 pkgrel=1
@@ -41,9 +43,9 @@ optdepends=(
   'docker: container runtime that kind and k3d clusters run on'
   'kompose: migrate Docker Compose projects to Kubernetes manifests'
 )
-provides=("${_pkgname}=${pkgver}")
-conflicts=("${_pkgname}")
-backup=("etc/apparmor.d/${_pkgname}")
+provides=("shoal-desktop=${pkgver}")
+conflicts=('shoal-desktop')
+backup=('etc/apparmor.d/shoal-desktop')
 options=('!strip' '!debug')
 source=("https://github.com/Dangalcan/shoal/releases/download/v${pkgver}/${_pkgname}_${pkgver}_amd64.deb")
 # Release day: the digest GitHub shows next to the asset, or `updpkgsums`.
@@ -54,7 +56,7 @@ package() {
 
   # The .deb creates this link in its postinst instead of shipping it.
   install -dm755 "${pkgdir}/usr/bin"
-  ln -s "/opt/Shoal/${_pkgname}" "${pkgdir}/usr/bin/${_pkgname}"
+  ln -s "/opt/Shoal/${_pkgname}" "${pkgdir}/usr/bin/shoal-desktop"
 
   # The postinst makes chrome-sandbox SUID only on kernels without user
   # namespaces; Arch kernels have them, so a plain executable is enough.
@@ -62,7 +64,7 @@ package() {
 
   # AppArmor profile shipped in the .deb; only read where AppArmor is enabled.
   install -Dm644 "${pkgdir}/opt/Shoal/resources/apparmor-profile" \
-    "${pkgdir}/etc/apparmor.d/${_pkgname}"
+    "${pkgdir}/etc/apparmor.d/shoal-desktop"
 
   # Debian packaging leftovers (fpm's generated changelog).
   rm -rf "${pkgdir}/usr/share/doc" "${pkgdir}/usr/share/lintian"

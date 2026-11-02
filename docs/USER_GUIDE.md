@@ -23,6 +23,8 @@ Welcome to **Shoal**, your modern cockpit for Kubernetes management. This guide 
 
 Shoal 0.9 is a public beta for **Windows** and **Linux** (macOS arrives with 1.0).
 
+On Windows you can install it with [Scoop](https://scoop.sh) instead: `scoop bucket add shoal https://github.com/Dangalcan/scoop-shoal`, then `scoop install shoal`. This is the portable build, which `scoop update shoal` keeps up to date.
+
 1. Download the latest release from the [Releases page](https://github.com/Dangalcan/shoal/releases).
 2. Install the application:
    - **Windows**: Run `Shoal-Setup-<version>.exe`. The installer is not code-signed yet, so SmartScreen may show "Windows protected your PC": choose **More info → Run anyway**. Prefer no install? Use `Shoal-<version>-portable.exe` (it does not update itself).

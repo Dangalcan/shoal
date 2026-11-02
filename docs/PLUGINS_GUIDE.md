@@ -6,7 +6,7 @@ This guide explains how to build, test, and distribute plugins for Shoal.
 
 Shoal uses a **Hybrid Plugin Architecture**.
 
-- **Main Process**: Handle system-level tasks via Node.js.
+- **Main Process**: Run plugin logic in a Node.js sandbox, through the `context` API.
 - **Renderer Process**: Extend the UI with React components.
 
 ## Prerequisites
@@ -60,15 +60,6 @@ The `plugin.json` file defines the identity and capabilities of your plugin.
     "type": "free",
     "spdx": "MIT"
   },
-  "extensions": {
-    "sidebar": [
-      {
-        "id": "cool-page",
-        "label": "Cool Features",
-        "route": "/plugin/my-cool-plugin"
-      }
-    ]
-  },
   "configuration": {
     "title": "Plugin Settings",
     "properties": {
@@ -112,7 +103,7 @@ The `plugin.json` file defines the identity and capabilities of your plugin.
 
 - **dependencies**: A map of plugin IDs and semver version constraints. Required plugins will be auto-enabled or requested.
 - **data**: An array of file paths (relative to plugin root) to be automatically loaded into `context.storage` on activation. The storage key is `data/` plus the path without its extension, with a leading `data/` folder collapsed: `data/default-presets.json` is read with `context.storage.get('data/default-presets')`.
-- **configuration**: Defines a schema for settings. The UI is automatically generated with validation. Supported types: `string`, `number`, `boolean`, `select`.
+- **configuration**: Defines a schema for settings. The UI is automatically generated with validation. Supported types: `string`, `number`, `boolean`, `select`, `array`.
 - **`secret: true` settings are encrypted at rest.** String properties flagged `secret` (like the `apiKey` above) are stored AES-256-GCM encrypted, both in memory snapshots and in `plugin-config.json`, with a key kept in the OS keystore through Electron `safeStorage` (a machine-bound key where there is none). The plugin still reads/writes them transparently via `settings.get`/`set`; the settings UI masks them.
 
 ---
@@ -389,8 +380,8 @@ The `EventsAPI` provides a global event bus for the application.
 | `emit(event, ...args)`           | Emit a custom event (local to this plugin)              |
 | `broadcast(event, ...args)`      | Emit an event every enabled plugin can receive          |
 | `onBroadcast(event, handler)`    | Subscribe to broadcasts (`offBroadcast` to unsubscribe) |
-| `onClusterConnected(handler)`    | Called when cluster is connected                        |
-| `onClusterDisconnected(handler)` | Called when cluster is disconnected                     |
+| `onClusterConnected(handler)`    | Called when Shoal creates a cluster                     |
+| `onClusterDisconnected(handler)` | Called when Shoal deletes a cluster                     |
 | `onResourceCreated(handler)`     | Called when K8s resource is created                     |
 | `onResourceUpdated(handler)`     | Called when K8s resource is updated                     |
 | `onResourceDeleted(handler)`     | Called when K8s resource is deleted                     |
@@ -425,10 +416,11 @@ permissions:
 - `kubernetes.deleteResource`, `manifests.{apply, save}` — `kubernetes:write` permission
 - `helm.{install, upgrade, rollback, uninstall, repoAdd, repoList}` — `helm` permission
 - `settings.{get, set}` — own settings only; the host injects the plugin id
-- `ui.{openExternal, showNotification, setHeight, setTitle, showModal, closeModal}` — `ui` permission
+- `ui.{openExternal, showNotification, showModal}` — `ui` permission
+- `ui.{setHeight, setTitle, closeModal}` — no permission: they only change the plugin's own frame
 - `events.on(name, cb)`, `ready()`
 
-Every call returns a Promise; anything outside the table is rejected.
+Every call that reaches the main process returns a Promise; one outside the table is rejected. A page needs no permission to render; its sidebar item needs `ui`, through `context.ui.registerSidebarItem`.
 
 ## Publishing & Security
 
@@ -440,7 +432,7 @@ Every call returns a Promise; anything outside the table is rejected.
 
 ### Self-Distribution
 
-Package your plugin as a `.zip` archive containing `plugin.json`, `index.js`, and any other files. Users install it via **"Load Unpacked Plugin"** (directory picker) or by placing the unzipped folder in the plugins directory:
+Package your plugin as a `.zip` archive containing `plugin.json`, `index.js`, and any other files. In a development build, users install it via **"Load Unpacked Plugin"** (directory picker) or by placing the unzipped folder in the plugins directory:
 
 - **Windows**: `%APPDATA%\shoal\plugins\`
 - **Linux**: `~/.config/shoal/plugins/`

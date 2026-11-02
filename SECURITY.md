@@ -4,11 +4,11 @@
 
 The following versions of Shoal are currently supported with security updates:
 
-| Version                     | Supported                                 |
-| --------------------------- | ----------------------------------------- |
-| 0.9.x (latest release)      | :white_check_mark:                        |
-| 0.9.0 pre-releases (`rc.*`) | Until 0.9.0 ships; unsupported after that |
-| Older releases              | :x:                                       |
+| Version                | Supported                             |
+| ---------------------- | ------------------------------------- |
+| 0.9.x (latest release) | :white_check_mark:                    |
+| Pre-releases (`rc.*`)  | Until the stable release they lead to |
+| Older releases         | :x:                                   |
 
 ## Installers
 
