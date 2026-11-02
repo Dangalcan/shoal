@@ -11,9 +11,9 @@ import type { KubeconfigFile } from '../fixtures/kubeconfig';
  * Docker Compose migration: the page either explains that kompose is
  * missing or converts a real compose file with the real kompose, lets the
  * user review it and imports the result into the manifest library. Which of
- * the two runs depends on the machine (the CI runners have no kompose); the
- * other one is skipped. No cluster is needed: the import only needs a
- * current context to label the manifests with.
+ * the two runs depends on the machine (the Linux smoke job has kompose, the
+ * Windows one does not); the other one is skipped. No cluster is needed: the
+ * import only needs a current context to label the manifests with.
  *
  * The native file picker is replaced in the main process by one that answers
  * with the compose file written here.
