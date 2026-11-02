@@ -13,7 +13,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { pathToFileURL } from 'url';
-import { net } from 'electron';
+import { app, net } from 'electron';
 import log from '../../logger';
 import { isPathInside } from '../../utils/fs-utils';
 import { fromPluginFileUrl } from '../../shared/plugin-file-url';
@@ -52,7 +52,10 @@ export async function resolvePluginFile(
  * The policy of the plugin frames, sent with every plugin-file: response.
  * The host document (public/plugin-host/index.html) carries the same text in
  * a <meta>; the header makes sure any other document a frame could show
- * keeps it: no network, no plugins, no forms, no nested frames.
+ * keeps it: no network, no plugins, no forms, no nested frames. Two things
+ * are out of its reach: WebRTC, which the frame runtime removes, and DNS
+ * lookups through `<link rel="dns-prefetch">`, which nothing here can stop
+ * (see SECURITY.md).
  */
 export const PLUGIN_FILE_CSP = [
   "default-src 'none'",
@@ -67,9 +70,42 @@ export const PLUGIN_FILE_CSP = [
   "frame-src 'none'",
 ].join('; ');
 
-/** True for the plugin frames' host document (dev server or plugin-file:). */
-export function isPluginHostDocument(url: string): boolean {
-  return /\/plugin-host\/index\.html(?:[?#]|$)/.test(url);
+/**
+ * True for the plugin frames' host document: the one in the app's build, or the
+ * dev server's in development. The file name alone would not do: a plugin can
+ * ship a `plugin-host/index.html` of its own, and a frame that moved to it would
+ * leave behind what the real one sets up.
+ */
+export function isPluginHostDocument(
+  url: string,
+  platform: string = process.platform
+): boolean {
+  const requested = fromPluginFileUrl(url, platform);
+  if (requested) {
+    const actual = path.normalize(requested);
+    const hostDocument = path.join(
+      pathService.getAppDistDir(),
+      'plugin-host',
+      'index.html'
+    );
+    return platform === 'win32'
+      ? actual.toLowerCase() === hostDocument.toLowerCase()
+      : actual === hostDocument;
+  }
+  const devServer = app?.isPackaged
+    ? undefined
+    : process.env.VITE_DEV_SERVER_URL;
+  if (!devServer) return false;
+  try {
+    const parsed = new URL(url);
+    const hostDocument = new URL('plugin-host/index.html', devServer);
+    return (
+      parsed.origin === hostDocument.origin &&
+      parsed.pathname === hostDocument.pathname
+    );
+  } catch {
+    return false;
+  }
 }
 
 /** Returns the same response with the plugin frame policy attached. */

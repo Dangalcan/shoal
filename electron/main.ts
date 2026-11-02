@@ -92,6 +92,10 @@ if (!isPrimaryInstance) {
 // away from itself (reloads and hash routes are fine). http(s) links go to the
 // system browser.
 app.on('web-contents-created', (_event, contents) => {
+  // Nothing here uses WebRTC, and plugin frames lose it altogether (see
+  // frame-runtime.tsx). This is the second layer: no UDP, in case a frame ever
+  // gets hold of a peer connection.
+  contents.setWebRTCIPHandlingPolicy('disable_non_proxied_udp');
   contents.setWindowOpenHandler(({ url }) => {
     openExternalSafe(url).catch((error: unknown) =>
       log.warn('[Main] Blocked window.open:', getErrorMessage(error))

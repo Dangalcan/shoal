@@ -378,15 +378,17 @@ The sandbox under a hostile plugin (no cluster needed). Before launch, the
 spec copies `e2e/fixtures/plugins/escape-probe` into the user data
 directory as a user-installed plugin. The plugin declares no permissions;
 its page tries to reach the host DOM, navigate the top window, open a
-popup, use `fetch`, XHR and WebSocket, read the clipboard, find Node
+popup, use `fetch`, XHR, WebSocket and WebRTC, read the clipboard, find Node
 globals and call the bridge beyond its permissions (`k8sPlugin` and the
 legacy `window.electron` shim). It prints one `name=outcome` line per probe
 inside the frame; the spec reads them through `frameLocator` and expects
 every one to be `blocked`, the CSP to have reported `connect-src`
-violations and the host window to be the only window. A last test asks the
-frame, from outside, to navigate itself to an outside URL: the host
-document's CSP (`frame-src`) refuses it (the frame shows an error page,
-nothing from outside loads) and the host stays where it was.
+violations and the host window to be the only window. Two more tests ask the
+frame, from outside, to leave its document. Moving to a `plugin-host/index.html`
+in the plugin's own folder is refused by the main process, and the frame keeps
+its document. Navigating to an outside URL is refused by the host document's
+CSP (`frame-src`): the frame shows an error page, nothing from outside loads and
+the host stays where it was.
 
 Against a packaged build (`SHOAL_E2E_EXECUTABLE`) unsigned plugins never
 load, so the spec checks that instead: the bundled plugins are listed and

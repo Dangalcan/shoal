@@ -49,6 +49,38 @@ describe('withoutSecretData', () => {
     expect(JSON.stringify(secret)).toBe(before);
   });
 
+  it('redacts the Secrets inside a list, also a nested one', () => {
+    const secret = {
+      kind: 'Secret',
+      metadata: { name: 'db' },
+      data: { password: 'cGFzcw==' },
+    };
+    const configMap = { kind: 'ConfigMap', data: { key: 'value' } };
+    const list = {
+      kind: 'List',
+      items: [
+        secret,
+        configMap,
+        { kind: 'SecretList', items: [{ ...secret, stringData: { a: 'b' } }] },
+      ],
+    };
+
+    expect(withoutSecretData(list)).toEqual({
+      kind: 'List',
+      items: [
+        { kind: 'Secret', metadata: { name: 'db' } },
+        configMap,
+        {
+          kind: 'SecretList',
+          items: [{ kind: 'Secret', metadata: { name: 'db' } }],
+        },
+      ],
+    });
+    // The manifest other plugins still hold keeps its data.
+    expect(list.items[0]).toBe(secret);
+    expect(secret.data).toEqual({ password: 'cGFzcw==' });
+  });
+
   it('copes with a Secret without annotations or metadata', () => {
     expect(withoutSecretData({ kind: 'Secret', data: { a: 'b' } })).toEqual({
       kind: 'Secret',

@@ -4,7 +4,7 @@
  * Runs inside the sandboxed plugin frame (`sandbox="allow-scripts"`, opaque
  * origin, the frame CSP, no permissions granted) and tries every way out it
  * can think of: the host DOM, top-level navigation, popups, the network, the
- * clipboard, Node globals and the plugin bridge beyond its permissions. Each
+ * clipboard, WebRTC, Node globals and the plugin bridge beyond its permissions. Each
  * probe reports `blocked` or `open`; the e2e spec reads the lines from the
  * frame and expects every one to be `blocked`.
  *
@@ -135,6 +135,26 @@
           return result && result.success ? 'open' : 'blocked';
         })
       );
+    },
+    webrtc: function () {
+      // The CSP has no directive for WebRTC: a peer connection would reach any
+      // address over UDP and TCP.
+      if (
+        typeof RTCPeerConnection !== 'undefined' ||
+        typeof webkitRTCPeerConnection !== 'undefined'
+      ) {
+        return 'open';
+      }
+      // Nor can a nested frame hand the constructor back.
+      var nested = document.createElement('iframe');
+      document.body.appendChild(nested);
+      try {
+        return nested.contentWindow.RTCPeerConnection ? 'open' : 'blocked';
+      } catch {
+        return 'blocked';
+      } finally {
+        nested.remove();
+      }
     },
     'clipboard-read': function () {
       if (!navigator.clipboard || !navigator.clipboard.readText) {
