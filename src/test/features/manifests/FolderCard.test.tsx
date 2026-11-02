@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { FolderCard } from '../../../features/manifests/FolderCard';
 import {
   FOLDER_DRAG_TYPE,
@@ -190,5 +191,19 @@ describe('FolderCard', () => {
     });
     expect(onDropManifest).not.toHaveBeenCalled();
     expect(onDropFolder).not.toHaveBeenCalled();
+  });
+
+  it('lets Enter on an inner button run it without opening the folder', async () => {
+    // fireEvent.keyDown does not show #98: it never produces the click the
+    // browser would. user-event does, and the card's onKeyDown used to
+    // swallow the key and open the folder instead.
+    const user = userEvent.setup();
+    renderCard();
+    await user.click(screen.getByTitle('Rename Folder'));
+
+    await user.keyboard('{Enter}');
+
+    expect(onRename).toHaveBeenCalledWith(folder);
+    expect(onOpen).not.toHaveBeenCalled();
   });
 });
