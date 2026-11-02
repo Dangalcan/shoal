@@ -38,6 +38,12 @@ This guide covers building and distributing Shoal for production environments.
 npm install
 ```
 
+On Linux, also compile node-pty, which ships no prebuilt binary there (needs `make`, `g++` and `python3`). Without it the build's terminals run on pipes:
+
+```bash
+npm run rebuild:node-pty
+```
+
 ### 2. Build for Production
 
 This command compiles both the React frontend and the Electron main process, then bundles them into an installer.
@@ -139,11 +145,11 @@ to roll back, is in [RELEASE.md](RELEASE.md).
 ### Package managers
 
 Manifests for winget (`Dangalcan.Shoal`), Scoop (`shoal`, in our own bucket)
-and the AUR (`shoal-bin`, repackaging the `.deb`) live in
-[`packaging/`](../packaging/README.md), written for the first stable release
-with the hashes left to fill in on release day. That README has the steps per
-ecosystem: hashes, validation and submission (pull request to
-microsoft/winget-pkgs, push to the Scoop bucket, push to the AUR).
+and the AUR (`shoal-desktop-bin`, repackaging the `.deb`) live in
+[`packaging/`](../packaging/README.md), with the hashes of the release they
+name. That README has the steps per ecosystem: hashes, validation and submission
+(pull request to microsoft/winget-pkgs, push to the Scoop bucket, push to the
+AUR).
 
 ---
 

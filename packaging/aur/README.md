@@ -1,6 +1,8 @@
-# AUR package (`shoal-bin`)
+# AUR package (`shoal-desktop-bin`)
 
-For Arch Linux users (`paru -S shoal-bin`, `yay -S shoal-bin`). `shoal-bin` repackages the upstream `.deb` instead of building from source: the release workflow builds Electron once, and the `.deb` already has the right layout (`/opt/Shoal`, the `.desktop` file, the hicolor icons, the AppArmor profile).
+Not `shoal-bin`: that name belongs to [BT10011/shoal](https://github.com/BT10011/shoal), a LAN discovery tool that also installs `/usr/bin/shoal`. This package installs the command as `shoal-desktop`, so both can live on one machine.
+
+For Arch Linux users (`paru -S shoal-desktop-bin`, `yay -S shoal-desktop-bin`). `shoal-desktop-bin` repackages the upstream `.deb` instead of building from source: the release workflow builds Electron once, and the `.deb` already has the right layout (`/opt/Shoal`, the `.desktop` file, the hicolor icons, the AppArmor profile).
 
 ## What the PKGBUILD does
 
@@ -37,9 +39,9 @@ On Arch, in `packaging/aur`:
 updpkgsums                       # downloads the .deb and writes sha256sums (pacman-contrib)
 makepkg --printsrcinfo > .SRCINFO
 namcap PKGBUILD                  # static checks
-makepkg -sf                      # builds shoal-bin-0.9.1-1-x86_64.pkg.tar.zst
-namcap shoal-bin-*.pkg.tar.zst   # checks the built package, dependencies included
-sudo pacman -U shoal-bin-*.pkg.tar.zst && shoal --version
+makepkg -sf                      # builds shoal-desktop-bin-0.9.1-1-x86_64.pkg.tar.zst
+namcap shoal-desktop-bin-*.pkg.tar.zst   # checks the built package, dependencies included
+sudo pacman -U shoal-desktop-bin-*.pkg.tar.zst && shoal-desktop --version
 ```
 
 Without an Arch machine, the official container image does the same (Docker, from the repository root). `--printsrcinfo` and `namcap PKGBUILD` need no download beyond the packages; `makepkg` fetches the `.deb`:
@@ -50,7 +52,7 @@ docker run --rm -v "$PWD/packaging/aur:/pkg" archlinux:base-devel bash -c '
     gtk3 libnotify nss libxss libxtst xdg-utils at-spi2-core util-linux-libs libsecret alsa-lib mesa >/dev/null &&
   useradd -m build && cp /pkg/PKGBUILD /home/build/ && chown -R build:build /home/build && cd /home/build &&
   su build -c "updpkgsums && makepkg --printsrcinfo > .SRCINFO && namcap PKGBUILD && makepkg -f" &&
-  namcap shoal-bin-*.pkg.tar.zst && cp PKGBUILD .SRCINFO /pkg/'
+  namcap shoal-desktop-bin-*.pkg.tar.zst && cp PKGBUILD .SRCINFO /pkg/'
 ```
 
 On Git Bash under Windows prefix the command with `MSYS_NO_PATHCONV=1` so the `-v` path is not rewritten. The `chown` matters: `updpkgsums` rewrites the PKGBUILD, which `cp` leaves owned by root. The dependency packages must be installed in the container for `namcap` to name the package that owns each library (checked 2026-10-31: the package builds and `namcap` reports no error with this list).
@@ -62,9 +64,9 @@ On Git Bash under Windows prefix the command with `MSYS_NO_PATHCONV=1` so the `-
 Needs an AUR account with an SSH public key registered (aur.archlinux.org, My Account). The first push creates the package:
 
 ```bash
-git clone ssh://aur@aur.archlinux.org/shoal-bin.git
-cp packaging/aur/PKGBUILD packaging/aur/.SRCINFO shoal-bin/
-cd shoal-bin
+git clone ssh://aur@aur.archlinux.org/shoal-desktop-bin.git
+cp packaging/aur/PKGBUILD packaging/aur/.SRCINFO shoal-desktop-bin/
+cd shoal-desktop-bin
 git add PKGBUILD .SRCINFO
 git commit -m "Initial import: 0.9.1-1"
 git push origin master

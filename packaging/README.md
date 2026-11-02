@@ -6,11 +6,11 @@ Everything needed to put a Shoal release in the package managers, kept here so i
 | -------------------- | ------------------------------------------------------ | ---------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | [`winget/`](winget/) | Windows users of winget (built into Windows 10 and 11) | `Shoal-Setup-<version>.exe`, per user, silently      | [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs), through a pull request |
 | [`scoop/`](scoop/)   | Windows users of Scoop                                 | `Shoal-<version>-portable.exe`, saved as `Shoal.exe` | our bucket, `Dangalcan/scoop-shoal`                                                       |
-| [`aur/`](aur/)       | Arch Linux users (`paru`, `yay`)                       | `shoal_<version>_amd64.deb`, repackaged              | the AUR, package `shoal-bin`                                                              |
+| [`aur/`](aur/)       | Arch Linux users (`paru`, `yay`)                       | `shoal_<version>_amd64.deb`, repackaged              | the AUR, package `shoal-desktop-bin`                                                      |
 
 Not covered: the `.deb` and the AppImage are installed from the release page directly (README, Installation); Flatpak, Snap and Homebrew wait for 1.0 and the macOS build.
 
-All three are written for **0.9.1** (31 October 2026), the first version packaged: 0.9.0 went out the same day without the Linux package's dependencies, so the package managers start at 0.9.1. Only the hashes are missing until the release workflow builds the installers from the `v0.9.1` tag. Release candidates are not packaged (winget and the AUR would offer them as upgrades; Scoop's `checkver` only looks at the latest non-pre-release anyway).
+All three name a stable release, with its hashes, starting at **0.9.1** (31 October 2026): 0.9.0 went out the same day without the Linux package's dependencies. Release candidates are not packaged (winget and the AUR would offer them as upgrades; Scoop's `checkver` only looks at the latest non-pre-release anyway).
 
 ## Release day
 
@@ -24,19 +24,17 @@ After `v0.9.1` is published ([RELEASE.md](../docs/RELEASE.md)), in this order:
 
    Or download the files and hash them: `certutil -hashfile <file> SHA256`, `Get-FileHash <file>`, `sha256sum <file>`.
 
-2. **Fill the placeholders** (`0000…`, 64 zeros):
+2. **Update the hashes:**
    - `winget/0.9.1/Dangalcan.Shoal.installer.yaml`, `InstallerSha256`: digest of `Shoal-Setup-0.9.1.exe`
    - `scoop/shoal.json`, `architecture.64bit.hash`: digest of `Shoal-0.9.1-portable.exe`
    - `aur/PKGBUILD`, `sha256sums`: digest of `shoal_0.9.1_amd64.deb`, then regenerate `aur/.SRCINFO`
-
-   `grep -rn 0000000000000000 packaging/` must come back empty.
 
 3. **Validate** each one as its README says: `winget validate --manifest packaging/winget/0.9.1`, `scoop install .\packaging\scoop\shoal.json`, `makepkg` in `packaging/aur` (or the Docker command in its README).
 
 4. **Submit**:
    - winget: `wingetcreate submit packaging/winget/0.9.1` opens the pull request to microsoft/winget-pkgs; the pipeline installs the package in a sandbox and moderators review it.
    - Scoop: copy `scoop/shoal.json` to `bucket/shoal.json` in `Dangalcan/scoop-shoal`, run `.\bin\formatjson.ps1`, commit, push.
-   - AUR: copy `aur/PKGBUILD` and `aur/.SRCINFO` into a clone of `ssh://aur@aur.archlinux.org/shoal-bin.git`, commit, push.
+   - AUR: copy `aur/PKGBUILD` and `aur/.SRCINFO` into a clone of `ssh://aur@aur.archlinux.org/shoal-desktop-bin.git`, commit, push.
 
 5. Commit the filled-in files here too, so the repository matches what was published.
 

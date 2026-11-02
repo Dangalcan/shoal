@@ -108,8 +108,8 @@ For new lines as the pod writes them, see the [Log Streaming API](#log-streaming
 ### `getPodMetrics(args)`
 
 Returns CPU and memory usage for the pods in a namespace via the cluster's
-metrics server (`kubectl top pods`). Fails with a descriptive error when the
-metrics server is not installed.
+metrics server (`kubectl top pods`). Returns an empty list when the metrics
+server is not installed.
 
 - **Arguments**:
   - `contextName`: `string`
@@ -235,7 +235,7 @@ Deletes a saved manifest by ID.
 Applies a saved manifest with `kubectl apply --context <cluster_context>`, the context stored with the manifest (not necessarily the currently active one).
 
 - **Parameters**: `id`: `number`
-- **Returns**: `Promise<Result<void>>`
+- **Returns**: `Promise<Result<{ stdout: string; stderr: string }>>`
 
 ### Manifest Folders
 
@@ -288,7 +288,7 @@ Lists all installed plugins and their status.
 ### `enablePlugin(pluginId)` / `disablePlugin(pluginId)`
 
 - **Parameters**: `pluginId`: `string`
-- **Returns**: `Promise<Result<void>>`
+- **Returns**: `Promise<Result<string[]>>`: the ids of the plugins enabled as dependencies, or disabled as dependents, along with it
 
 ### `reloadPlugin(pluginId)`
 
@@ -348,7 +348,7 @@ Scaffolds a new plugin from a template in the plugins directory.
 
 Opens a directory picker dialog to load an unpacked plugin from any local path.
 
-- **Returns**: `Promise<Result<void>>`
+- **Returns**: `Promise<Result<string | null>>`: the plugin id, or null when the dialog is cancelled
 
 ### `checkForPluginUpdates()`
 
@@ -826,11 +826,13 @@ interface Plugin {
 
 ```typescript
 interface Manifest {
-  id?: number;
+  id: number;
   name: string;
+  cluster_context: string;
   content: string;
-  clusterContext?: string;
-  created_at?: string; // ISO datetime, set by SQLite on insert
+  folder_id: number | null;
+  created_at: string; // ISO datetime, set by SQLite
+  updated_at: string;
 }
 ```
 

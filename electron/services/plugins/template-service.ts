@@ -31,6 +31,7 @@ export class TemplateService {
     // User-supplied text only reaches the generated code as JSON string
     // literals or sanitized comments, never spliced into code or HTML.
     const nameLiteral = JSON.stringify(options.name);
+    const idLiteral = JSON.stringify(options.id);
     const nameComment = commentText(options.name);
 
     // 1. Create plugin.json
@@ -46,15 +47,6 @@ export class TemplateService {
       license: {
         type: 'free',
         spdx: 'MIT',
-      },
-      extensions: {
-        sidebar: [
-          {
-            id: `${options.id}-page`,
-            label: options.name,
-            route: `/plugin/${options.id}`,
-          },
-        ],
       },
       configuration: {
         title: 'Settings',
@@ -93,6 +85,13 @@ module.exports = {
   activate: (context) => {
     activeContext = context;
     context.logger.info(PLUGIN_NAME + ' activated');
+
+    // The plugin's entry in the sidebar, which opens its page
+    context.ui.registerSidebarItem({
+      id: ${idLiteral} + '-page',
+      label: PLUGIN_NAME,
+      route: '/plugin/' + ${idLiteral},
+    });
 
     // Register a notification
     context.ui.showNotification(PLUGIN_NAME + ' is ready!', 'info');

@@ -119,7 +119,7 @@ capability, add it there deliberately. Notable rules:
   (`electron/shared/secret-redaction.ts`), from the YAML text too.
 - `kubernetes.deleteResource` and `manifests.*` require `kubernetes:write`.
 - `helm.*` requires `helm`.
-- `ui.*` requires the `ui` permission.
+- `ui.openExternal`, `ui.showNotification` and opening a modal require the `ui` permission. `setHeight`, `setTitle` and `closeModal` only affect the plugin's own frame and need none.
 - `settings.get/set` need no permission but act ONLY on the plugin's own
   settings — the host injects the plugin id, so a plugin can never read or
   write another plugin's data.
@@ -197,9 +197,9 @@ a working `renderer.js`; the Plugins page has no button for it yet.
 
 ### TypeScript Types (`electron/types/`)
 
-| File              | Description                                                                                                                                            |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `plugin-types.ts` | `PluginManifest`, `Plugin`, `PluginContext`, `PluginExtensionPoint`, `PluginPermission`, `PluginLicense`, `PluginLicenseInfo`, `PluginMarketplaceInfo` |
+| File              | Description                                                                                                                    |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `plugin-types.ts` | `PluginManifest`, `Plugin`, `PluginContext`, `PluginPermission`, `PluginLicense`, `PluginLicenseInfo`, `PluginMarketplaceInfo` |
 
 ### Frontend (`src/features/plugins/`, `src/pages/`)
 
@@ -220,7 +220,7 @@ All plugin-related IPC methods are exposed on `window.electron`. See [API_REFERE
 ```
 1. PathService resolves plugin directories
 2. PluginLoader scans directories for plugin.json manifests
-3. Manifests validated against schema (id, name, version, main, permissions)
+3. Manifests validated against schema (id, name, version, description, author, main, permissions, license)
 4. SignatureService verifies the signature and that every plugin file still matches its signed hash (a failure only warns in dev with ALLOW_UNSIGNED_PLUGINS)
 5. DependencyResolver sorts plugins by dependency graph
 6. PluginRegistry checks enabled/disabled state from plugin-config.json
@@ -259,7 +259,7 @@ without executing the plugin; the plugin registers the matching component in its
 
 | Point             | Declared / Registered                                                          | Description                                                                    |
 | ----------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
-| Sidebar items     | manifest `extensions.sidebar`                                                  | Adds entries to the left navigation (from the manifest; no code run)           |
+| Sidebar items     | `context.ui.registerSidebarItem` in `activate()`                               | Adds entries to the left navigation (from the manifest; no code run)           |
 | Pages             | `pluginUIRegistry.registerPage({ id, component })`                             | The plugin's page, mounted in a `fill` sandbox frame at `/plugin/:id`          |
 | Dashboard widgets | manifest `extensions.widgets` + `registerWidget({ id, component })`            | Each widget mounts in its own `content`-sized sandbox frame on the Dashboard   |
 | Resource actions  | manifest `extensions.resourceActions` + `registerResourceAction({ id, comp })` | Button per matching resource row; opens the action component in a modal frame  |

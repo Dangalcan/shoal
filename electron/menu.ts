@@ -13,7 +13,12 @@ import { openExternalSafe } from './utils/url-utils';
 import { getErrorMessage } from './utils/error-utils';
 import { REPO_URL } from './constants';
 
-export const USER_GUIDE_URL = `${REPO_URL}/blob/master/docs/USER_GUIDE.md`;
+/**
+ * The guide as it was when this version was tagged: master may already describe
+ * things this version does not have.
+ */
+export const userGuideUrl = (version: string): string =>
+  `${REPO_URL}/blob/v${version}/docs/USER_GUIDE.md`;
 export const NEW_ISSUE_URL = `${REPO_URL}/issues/new/choose`;
 
 export interface MenuOptions {
@@ -60,7 +65,10 @@ export function buildMenuTemplate({
   ];
 
   const help: MenuItemConstructorOptions[] = [
-    { label: 'User Guide', click: () => openUrl(USER_GUIDE_URL) },
+    {
+      label: 'User Guide',
+      click: () => openUrl(userGuideUrl(app.getVersion())),
+    },
     { label: 'Report an Issue', click: () => openUrl(NEW_ISSUE_URL) },
     { label: 'Shoal on GitHub', click: () => openUrl(REPO_URL) },
     { type: 'separator' },

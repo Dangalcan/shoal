@@ -16,7 +16,7 @@ scoop install shoal
 ## Fields
 
 - `architecture.64bit.url` ends in `#/Shoal.exe`: Scoop saves the download under that name and does not try to extract it (the portable build is a self-extracting executable that unpacks itself into `%TEMP%` on each start).
-- `hash` is `0000…` (64 zeros) until v0.9.1 is published. Scoop takes the plain hex SHA-256.
+- `hash` is the plain hex SHA-256 of the portable build.
 - `bin` and `shortcuts` put `Shoal.exe` on PATH and in the Start menu.
 - `suggest` lists the Scoop packages of the tools Shoal drives; Scoop mentions them after the install.
 - `checkver.github` reads `/releases/latest`, which GitHub resolves to the newest non-pre-release, so release candidates are never picked up.

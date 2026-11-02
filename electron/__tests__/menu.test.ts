@@ -29,7 +29,7 @@ import {
   installApplicationMenu,
   openLogsFolder,
   NEW_ISSUE_URL,
-  USER_GUIDE_URL,
+  userGuideUrl,
 } from '../menu';
 import { REPO_URL } from '../constants';
 
@@ -90,7 +90,7 @@ describe('buildMenuTemplate', () => {
     click(help, 'Report an Issue');
     click(help, 'Shoal on GitHub');
     expect(vi.mocked(openExternalSafe).mock.calls.map((c) => c[0])).toEqual([
-      USER_GUIDE_URL,
+      userGuideUrl('1.2.3'),
       NEW_ISSUE_URL,
       REPO_URL,
     ]);
@@ -125,7 +125,7 @@ describe('buildMenuTemplate', () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(log.warn).toHaveBeenCalledWith(
-      `[Menu] Could not open ${USER_GUIDE_URL}:`,
+      `[Menu] Could not open ${userGuideUrl('1.2.3')}:`,
       'blocked'
     );
   });
