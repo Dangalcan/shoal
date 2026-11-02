@@ -93,6 +93,13 @@ All notable changes to Shoal are documented here. The format follows
 - Filtering the tab list of the Display Settings menu shows the matches
   inside a collapsed category (Storage, Configuration, Access Control and
   Advanced start collapsed), instead of leaving them hidden under it.
+- Clicking a column header sorts the table on every column. On 38 columns of 13
+  tabs, most of them visible by default (Service type and ports, PersistentVolume
+  capacity and claim, Ingress hosts, HPA targets, CronJob schedule...), the header
+  showed a sort arrow and the rows stayed where they were. Sizes sort by amount
+  (`500Mi` before `2Gi`), counts and durations as numbers, and a row with no
+  value goes last. The External IP of a Service and the Replicas of an HPA sorted
+  by a field those kinds do not have, and are fixed too.
 - The Status column says what `kubectl get` says. Pods only showed their
   phase, so a pod in CrashLoopBackOff or being deleted read "Running" and one
   in ImagePullBackOff read "Pending"; they now show the reason, as do init
