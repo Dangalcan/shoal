@@ -68,6 +68,8 @@ import { PluginManager } from '../services/plugins/plugin-manager';
 import { pluginLoader } from '../services/plugins/plugin-loader';
 import { pluginRegistry } from '../services/plugins/plugin-registry';
 import { storageService } from '../services/plugins/storage-service';
+import { pluginEventBus } from '../services/plugins/plugin-events';
+import { pluginHostManager } from '../services/plugins/host/plugin-host-manager';
 import { pathService } from '../services/plugins/path-service';
 import { kubernetesService } from '../services/kubernetes/kubernetes-service';
 
@@ -105,6 +107,9 @@ module.exports = {
     activeContext = context;
     localActivations += 1;
     await bump(context, 'activations');
+    context.events.onClusterConnected(() => {
+      bump(context, 'connections').catch(() => {});
+    });
     // The slow part of a real activation: a kubectl call.
     await context.kubernetes.getResources('namespaces', 'all');
     interval = setInterval(() => {
@@ -330,6 +335,68 @@ describe('PluginManager with the real PluginLoader (in-process plugin)', () => {
     expect(pluginLoader['localHandles'].has(PLUGIN_ID)).toBe(false);
     await vi.advanceTimersByTimeAsync(TICK_MS * 3);
     expect(probe('ticks')).toBe(0);
+  });
+
+  // deactivate() receives no context and the app events have no unsubscribe:
+  // a disabled plugin kept reacting, and every re-enable added another set.
+  it('stops the event handlers on disable and does not stack them on re-enable', async () => {
+    await manager.initialize();
+    const connections = async () => {
+      pluginEventBus.emit('cluster:connected', { name: 'c' });
+      await vi.advanceTimersByTimeAsync(0);
+      return probe('connections');
+    };
+
+    await manager.enablePlugin(PLUGIN_ID);
+    expect(await connections()).toBe(1);
+
+    await manager.disablePlugin(PLUGIN_ID);
+    expect(await connections()).toBe(1);
+
+    await manager.enablePlugin(PLUGIN_ID);
+    expect(await connections()).toBe(2);
+  });
+
+  // A crashed utility process changed no state: the card stayed on "Enabled",
+  // and the next action spawned a new process without running activate().
+  it('marks a plugin whose host process died as errored, and Enable restarts it', async () => {
+    await manager.initialize();
+    await manager.enablePlugin(PLUGIN_ID);
+    const hostExited = pluginHostManager['unexpectedExitListener']!;
+
+    hostExited(PLUGIN_ID, 3);
+
+    const plugin = manager.getPlugin(PLUGIN_ID);
+    expect(plugin?.state).toBe('error');
+    expect(plugin?.error).toContain('exit code 3');
+    expect(pluginRegistry.getPluginContext(PLUGIN_ID)).toBeUndefined();
+    pluginEventBus.emit('cluster:connected', { name: 'c' });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(probe('connections')).toBe(0);
+
+    await manager.enablePlugin(PLUGIN_ID);
+    expect(manager.getPlugin(PLUGIN_ID)?.state).toBe('enabled');
+    expect(probe('activations')).toBe(2);
+  });
+
+  it('ignores the exit of a host whose plugin is not enabled', async () => {
+    await manager.initialize();
+    const hostExited = pluginHostManager['unexpectedExitListener']!;
+
+    hostExited(PLUGIN_ID, 3);
+
+    expect(manager.getPlugin(PLUGIN_ID)?.state).toBe('disabled');
+  });
+
+  it('stops the event handlers of an activation that failed', async () => {
+    getResources.mockRejectedValueOnce(new Error('cluster unreachable'));
+    await manager.initialize();
+    await expect(manager.enablePlugin(PLUGIN_ID)).rejects.toThrow();
+
+    pluginEventBus.emit('cluster:connected', { name: 'c' });
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(probe('connections')).toBe(0);
   });
 
   // #78: disablePlugin() during an activation used to run deactivate() before

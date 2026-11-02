@@ -18,7 +18,6 @@ import type {
   PluginModuleHandle,
   PluginModuleInvokeOptions,
 } from './module-handle';
-import { pluginEventBus } from '../plugin-events';
 import { getErrorMessage } from '../../../utils/error-utils';
 import log from '../../../logger';
 import { hostEnvironment } from './host-environment';
@@ -71,15 +70,6 @@ const ALLOWED_CONTEXT_PATHS = new Set([
   'events.onResourceUpdated',
   'events.onResourceDeleted',
 ]);
-
-/** App-lifecycle subscription methods and the pluginEventBus event they map to. */
-const APP_EVENT_BY_METHOD: Record<string, string> = {
-  onClusterConnected: 'cluster:connected',
-  onClusterDisconnected: 'cluster:disconnected',
-  onResourceCreated: 'resource:created',
-  onResourceUpdated: 'resource:updated',
-  onResourceDeleted: 'resource:deleted',
-};
 
 function toCloneable(value: unknown): unknown {
   if (value === undefined || value === null) return null;
@@ -161,17 +151,20 @@ class PluginHostHandle {
   private subscriptionCleanups = new Map<number, () => void>();
   private disposed = false;
   private onGone: (pluginId: string) => void;
+  private onCrash: (pluginId: string, code: number) => void;
 
   constructor(
     pluginId: string,
     child: UtilityProcessLike,
     context: PluginContext,
-    onGone: (pluginId: string) => void
+    onGone: (pluginId: string) => void,
+    onCrash: (pluginId: string, code: number) => void
   ) {
     this.pluginId = pluginId;
     this.child = child;
     this.context = context;
     this.onGone = onGone;
+    this.onCrash = onCrash;
 
     child.on('message', (message) =>
       this.handleMessage(message as HostToMainMessage)
@@ -242,6 +235,7 @@ class PluginHostHandle {
       this.disposed = true;
       this.teardown();
       this.onGone(this.pluginId);
+      this.onCrash(this.pluginId, code);
     }
   }
 
@@ -367,45 +361,19 @@ class PluginHostHandle {
       finalArgs
     );
 
-    this.recordSubscriptionCleanup(
-      contextPath,
-      methodName,
-      args,
-      wrappedByCbId,
-      result
-    );
-    // A function result (watch cleanup) cannot cross the process boundary.
+    this.recordSubscriptionCleanup(wrappedByCbId, result);
+    // A function result (the cleanup) cannot cross the process boundary.
     return typeof result === 'function' ? null : result;
   }
 
+  /** A subscribing context method returns what undoes it. */
   private recordSubscriptionCleanup(
-    contextPath: string,
-    methodName: string,
-    args: unknown[],
     wrappedByCbId: Map<number, (...a: unknown[]) => void>,
     result: unknown
   ): void {
-    if (wrappedByCbId.size === 0) return;
-    const [cbId, wrapped] = [...wrappedByCbId.entries()][0];
-
-    if (contextPath === 'kubernetes.watchResources') {
-      if (typeof result === 'function') {
-        this.subscriptionCleanups.set(cbId, result as () => void);
-      }
-      return;
-    }
-    if (contextPath === 'events.onBroadcast') {
-      const event = args[0] as string;
-      this.subscriptionCleanups.set(cbId, () =>
-        this.context.events.offBroadcast(event, wrapped)
-      );
-      return;
-    }
-    const busEvent = APP_EVENT_BY_METHOD[methodName];
-    if (busEvent) {
-      this.subscriptionCleanups.set(cbId, () =>
-        pluginEventBus.off(busEvent, wrapped)
-      );
+    const [cbId] = wrappedByCbId.keys();
+    if (cbId !== undefined && typeof result === 'function') {
+      this.subscriptionCleanups.set(cbId, result as () => void);
     }
   }
 }
@@ -413,6 +381,7 @@ class PluginHostHandle {
 export class PluginHostManager {
   private fork: ForkFn;
   private hosts = new Map<string, PluginHostHandle>();
+  private unexpectedExitListener?: (pluginId: string, code: number) => void;
 
   constructor(fork: ForkFn = defaultFork) {
     this.fork = fork;
@@ -431,6 +400,11 @@ export class PluginHostManager {
 
   isRunning(pluginId: string): boolean {
     return this.hosts.has(pluginId);
+  }
+
+  /** Calls `listener` when a host process ends without being asked to. */
+  onUnexpectedExit(listener: (pluginId: string, code: number) => void): void {
+    this.unexpectedExitListener = listener;
   }
 
   /**
@@ -455,7 +429,8 @@ export class PluginHostManager {
       options.pluginId,
       child,
       options.context,
-      (pluginId) => this.hosts.delete(pluginId)
+      (pluginId) => this.hosts.delete(pluginId),
+      (pluginId, code) => this.unexpectedExitListener?.(pluginId, code)
     );
     this.hosts.set(options.pluginId, handle);
 
