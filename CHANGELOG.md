@@ -93,6 +93,13 @@ All notable changes to Shoal are documented here. The format follows
 - Filtering the tab list of the Display Settings menu shows the matches
   inside a collapsed category (Storage, Configuration, Access Control and
   Advanced start collapsed), instead of leaving them hidden under it.
+- A disabled plugin stops reacting to events. Handlers registered with
+  `onClusterConnected`, `onResourceCreated` and the other app events, and
+  resource watches, stayed active after Disable, because a plugin has no way to
+  take them off, and every re-enable added another set. Shoal now drops them
+  when the plugin stops, or when its activation fails.
+- A plugin whose utility process crashes shows **Error** with the reason instead
+  of staying on **Enabled**, and Enable starts it again.
 
 ## [0.9.1] - 2026-10-31
 

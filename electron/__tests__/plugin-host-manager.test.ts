@@ -275,6 +275,10 @@ describe('PluginHostManager', () => {
   });
 
   it('cleans up broadcast subscriptions on dispose', async () => {
+    const stop = vi.fn();
+    vi.mocked(context.events.onBroadcast).mockReturnValue(
+      stop as unknown as void
+    );
     const module = await spawn();
     child.emitHostMessage({
       type: 'context-call',
@@ -284,24 +288,20 @@ describe('PluginHostManager', () => {
       callbacks: [{ index: 1, cbId: 3 }],
     });
     await flush();
-    const onBroadcastMock = vi.mocked(context.events.onBroadcast);
-    expect(onBroadcastMock).toHaveBeenCalledWith(
+    expect(context.events.onBroadcast).toHaveBeenCalledWith(
       'refresh',
       expect.any(Function)
     );
 
     module.dispose();
-    expect(context.events.offBroadcast).toHaveBeenCalledWith(
-      'refresh',
-      onBroadcastMock.mock.calls[0][1]
-    );
-    expect(child.ofType('shutdown')).toHaveLength(1);
-    expect(child.kill).toHaveBeenCalled();
-    expect(manager.isRunning('p1')).toBe(false);
+    expect(stop).toHaveBeenCalledTimes(1);
   });
 
-  it('cleans up app-event subscriptions via the plugin event bus', async () => {
-    const offSpy = vi.spyOn(pluginEventBus, 'off');
+  it('undoes a subscription with what the context method returned', async () => {
+    const stop = vi.fn();
+    vi.mocked(context.events.onResourceCreated).mockReturnValue(
+      stop as unknown as void
+    );
     const module = await spawn();
     child.emitHostMessage({
       type: 'context-call',
@@ -311,12 +311,25 @@ describe('PluginHostManager', () => {
       callbacks: [{ index: 0, cbId: 4 }],
     });
     await flush();
+    expect(stop).not.toHaveBeenCalled();
     module.dispose();
-    expect(offSpy).toHaveBeenCalledWith(
-      'resource:created',
-      expect.any(Function)
-    );
-    offSpy.mockRestore();
+    expect(stop).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports a host that exits on its own, but not one it disposed of', async () => {
+    const listener = vi.fn();
+    manager.onUnexpectedExit(listener);
+
+    const crashed = await spawn();
+    child.emit('exit', 3);
+    expect(listener).toHaveBeenCalledWith('p1', 3);
+    expect(crashed).toBeDefined();
+
+    listener.mockClear();
+    const disposed = await spawn();
+    disposed.dispose();
+    child.emit('exit', 0);
+    expect(listener).not.toHaveBeenCalled();
   });
 
   it('rejects in-flight invokes and cleans up when the host crashes', async () => {

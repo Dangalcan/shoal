@@ -395,6 +395,8 @@ The `EventsAPI` provides a global event bus for the application.
 | `onResourceUpdated(handler)`     | Called when K8s resource is updated                     |
 | `onResourceDeleted(handler)`     | Called when K8s resource is deleted                     |
 
+Shoal drops these subscriptions and any running `watchResources` when the plugin is disabled, reloaded or fails to activate, so `deactivate` only has to clear what the plugin started itself, such as timers.
+
 The three resource events need the `kubernetes` permission; a Secret reaches the handler without its data unless the plugin also holds `secrets`.
 
 #### context.storage

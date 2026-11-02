@@ -21,7 +21,8 @@ import log from '../../logger';
 import { getErrorMessage } from '../../utils/error-utils';
 import { pluginLoader } from './plugin-loader';
 import { pluginRegistry } from './plugin-registry';
-import { createPluginContext } from './plugin-context';
+import { createPluginContext, disposePluginContext } from './plugin-context';
+import { pluginHostManager } from './host/plugin-host-manager';
 import {
   getAllPluginExtensions,
   clearPluginExtensions,
@@ -125,6 +126,10 @@ export class PluginManager {
     try {
       log.info('[PluginManager] Initializing plugin system...');
 
+      pluginHostManager.onUnexpectedExit((pluginId, code) =>
+        this.handleHostExit(pluginId, code)
+      );
+
       // Initialize registry
       await pluginRegistry.initialize();
 
@@ -178,6 +183,28 @@ export class PluginManager {
       );
       throw error;
     }
+  }
+
+  /**
+   * The utility process of an enabled plugin ended on its own. The plugin is
+   * not running any more, so its card says so instead of "Enabled", and Enable
+   * starts it again.
+   */
+  private handleHostExit(pluginId: string, code: number): void {
+    if (this.getPlugin(pluginId)?.state !== 'enabled') return;
+
+    disposePluginContext(
+      pluginRegistry.getPluginContext(pluginId) as PluginContext | undefined
+    );
+    pluginLoader.releaseModuleHandle(pluginId);
+    clearPluginExtensions(pluginId);
+    pluginRegistry.clearPluginContext(pluginId);
+    pluginLoader.updatePluginState(
+      pluginId,
+      'error',
+      `The plugin's process stopped unexpectedly (exit code ${code}). Enable it to start it again.`
+    );
+    pluginEventBus.emitPluginDeactivated(pluginId);
   }
 
   /**
@@ -558,6 +585,7 @@ export class PluginManager {
       } catch {
         // Best-effort rollback; the original activation error is rethrown below
       }
+      disposePluginContext(context);
       clearPluginExtensions(pluginId);
       pluginLoader.releaseModuleHandle(pluginId);
       throw error;
@@ -606,6 +634,9 @@ export class PluginManager {
           error
         );
       }
+
+      // Its handlers and watches stop with it, whatever its hooks did
+      disposePluginContext(context);
 
       // Tear down any isolated host process and unload plugin code
       pluginLoader.releaseModuleHandle(pluginId);
