@@ -93,6 +93,15 @@ All notable changes to Shoal are documented here. The format follows
 - Filtering the tab list of the Display Settings menu shows the matches
   inside a collapsed category (Storage, Configuration, Access Control and
   Advanced start collapsed), instead of leaving them hidden under it.
+- The Status column says what `kubectl get` says. Pods only showed their
+  phase, so a pod in CrashLoopBackOff or being deleted read "Running" and one
+  in ImagePullBackOff read "Pending"; they now show the reason, as do init
+  containers (`Init:0/1`, `Init:CrashLoopBackOff`). PersistentVolumes always
+  read "Unknown"; they show their phase. A running Job read "Unknown", a Job at
+  1 of 5 completions read "Complete" and one retrying after a failed pod read
+  "Failed"; Jobs now go by their conditions. Cordoned nodes read
+  `Ready,SchedulingDisabled`, and the badge colour and the sort order follow
+  the same text.
 - Quitting Shoal no longer forgets the saved kubeconfig path and window
   position. The window state is written when the window closes, right before
   the process exits, and that write could be cut off after emptying

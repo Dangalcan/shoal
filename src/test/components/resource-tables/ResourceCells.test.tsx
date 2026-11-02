@@ -3,7 +3,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '../../utils';
 import {
   NameCell,
-  StatusBadge,
   TextCell,
 } from '../../../components/resource-tables/ResourceCells';
 
@@ -25,22 +24,6 @@ describe('TextCell', () => {
     render(inRow(<TextCell content="value" variant={variant} />));
     const cell = screen.getByRole('cell', { name: 'value' });
     expect(cell).toHaveClass(`table-cell ${className}`, { exact: true });
-  });
-});
-
-describe('StatusBadge', () => {
-  it.each([
-    ['pods', 'Running', 'status-badge-success'],
-    ['pvc', 'Bound', 'status-badge-success'],
-    ['nodes', 'Ready', 'status-badge-success'],
-    ['nodes', 'NotReady', 'status-badge-error'],
-    ['pods', 'Pending', 'status-badge-other'],
-    ['other', 'Complete', 'status-badge-other'],
-  ] as const)('%s status %s uses %s', (type, status, className) => {
-    render(<StatusBadge status={status} type={type} />);
-    expect(screen.getByText(status)).toHaveClass(`status-badge ${className}`, {
-      exact: true,
-    });
   });
 });
 

@@ -126,25 +126,6 @@ export const NameCell: React.FC<
   );
 };
 
-export const StatusBadge: React.FC<{
-  status: string;
-  type: 'pods' | 'pvc' | 'nodes' | 'other';
-}> = ({ status, type }) => {
-  let className = 'status-badge-other';
-
-  if (
-    (type === 'pods' && status === 'Running') ||
-    (type === 'pvc' && status === 'Bound') ||
-    (type === 'nodes' && status === 'Ready')
-  ) {
-    className = 'status-badge-success';
-  } else if (type === 'nodes') {
-    className = 'status-badge-error';
-  }
-
-  return <span className={`status-badge ${className}`}>{status}</span>;
-};
-
 export const TextCell: React.FC<
   {
     content: React.ReactNode;
