@@ -50,6 +50,8 @@ All notable changes to Shoal are documented here. The format follows
 
 ### Fixed
 
+- The cluster back, log filter clear and plugin-array remove buttons have
+  action-specific accessible names for screen readers (#99).
 - Disabling a plugin while it is still activating (start-up waiting on
   kubectl, a Disable click during a slow first cluster call) now leaves it
   disabled: the activation stops the instance it started as soon as it
