@@ -1,4 +1,13 @@
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+} from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -217,20 +226,90 @@ describe('plugin frame policy', () => {
     expect(PLUGIN_FILE_CSP).toContain("connect-src 'none'");
   });
 
-  it('recognises the host document and nothing else', () => {
-    expect(
-      isPluginHostDocument(
-        'plugin-file://local/C%3A/Shoal/resources/app.asar/dist/plugin-host/index.html'
-      )
-    ).toBe(true);
-    expect(
-      isPluginHostDocument('http://localhost:5173/plugin-host/index.html?x=1')
-    ).toBe(true);
-    expect(
-      isPluginHostDocument(
-        'plugin-file://local/home/ana/plugins/evil/page.html'
-      )
-    ).toBe(false);
-    expect(isPluginHostDocument('https://example.com/')).toBe(false);
+  describe('isPluginHostDocument', () => {
+    const appPath = path.join(os.tmpdir(), 'shoal-host-document');
+    const inApp = (...segments: string[]) =>
+      toPluginFileUrl(path.join(appPath, ...segments));
+
+    beforeEach(() => {
+      vi.mocked(app.getAppPath).mockReturnValue(appPath);
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('accepts the host document of the build, query and hash included', () => {
+      const url = inApp('dist', 'plugin-host', 'index.html');
+      expect(isPluginHostDocument(url)).toBe(true);
+      expect(isPluginHostDocument(`${url}?x=1`)).toBe(true);
+      expect(isPluginHostDocument(`${url}#x`)).toBe(true);
+    });
+
+    it('ignores the case of the path on Windows only', () => {
+      const url = toPluginFileUrl(
+        path.join(appPath.toUpperCase(), 'dist', 'plugin-host', 'index.html')
+      );
+      expect(isPluginHostDocument(url)).toBe(process.platform === 'win32');
+    });
+
+    it('follows a junction or symlink in the install path', () => {
+      const real = fs.mkdtempSync(path.join(os.tmpdir(), 'shoal-host-real-'));
+      const link = `${real}-link`;
+      const inside = (root: string) =>
+        path.join(root, 'dist', 'plugin-host', 'index.html');
+      fs.mkdirSync(path.dirname(inside(real)), { recursive: true });
+      fs.writeFileSync(inside(real), '');
+      fs.symlinkSync(real, link, 'junction');
+      try {
+        vi.mocked(app.getAppPath).mockReturnValue(link);
+        expect(isPluginHostDocument(toPluginFileUrl(inside(real)))).toBe(true);
+        expect(isPluginHostDocument(toPluginFileUrl(inside(link)))).toBe(true);
+
+        vi.mocked(app.getAppPath).mockReturnValue(real);
+        expect(isPluginHostDocument(toPluginFileUrl(inside(link)))).toBe(true);
+      } finally {
+        fs.unlinkSync(link);
+        fs.rmSync(real, { recursive: true, force: true });
+      }
+    });
+
+    it('refuses a document of the same name anywhere else', () => {
+      for (const url of [
+        inApp('plugins', 'evil', 'plugin-host', 'index.html'),
+        inApp('dist', 'other', 'plugin-host', 'index.html'),
+        inApp('dist', 'plugin-host', 'other.html'),
+        inApp('dist', 'index.html'),
+        'https://example.com/plugin-host/index.html',
+        'http://127.0.0.1:9000/plugin-host/index.html?leak=1',
+        'not a url',
+      ]) {
+        expect(isPluginHostDocument(url), url).toBe(false);
+      }
+    });
+
+    it('accepts the dev server only when one is configured', () => {
+      const url = 'http://localhost:5173/plugin-host/index.html?x=1';
+      expect(isPluginHostDocument(url)).toBe(false);
+
+      vi.stubEnv('VITE_DEV_SERVER_URL', 'http://localhost:5173/');
+      expect(isPluginHostDocument(url)).toBe(true);
+      expect(isPluginHostDocument('http://localhost:5173/other.html')).toBe(
+        false
+      );
+      expect(
+        isPluginHostDocument('http://localhost:9000/plugin-host/index.html')
+      ).toBe(false);
+    });
+
+    it('never trusts the dev server in a packaged build', () => {
+      vi.stubEnv('VITE_DEV_SERVER_URL', 'https://example.com/');
+      const mockedApp = app as { isPackaged: boolean };
+      mockedApp.isPackaged = true;
+      expect(
+        isPluginHostDocument('https://example.com/plugin-host/index.html')
+      ).toBe(false);
+      mockedApp.isPackaged = false;
+    });
   });
 });

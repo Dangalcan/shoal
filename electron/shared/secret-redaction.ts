@@ -8,7 +8,9 @@
  *
  * Removed from a Secret: `data`, `stringData` and the
  * `kubectl.kubernetes.io/last-applied-configuration` annotation, which holds
- * the whole object as it was applied, data included.
+ * the whole object as it was applied, data included. The Secrets inside a list
+ * get the same: `kubectl apply` takes a `List`, and a manifest reaches the
+ * resource events as it was written.
  */
 
 const LAST_APPLIED = 'kubectl.kubernetes.io/last-applied-configuration';
@@ -21,7 +23,23 @@ function isDict(value: unknown): value is Dict {
 
 /** A copy of `resource` without its Secret payload; other kinds pass through. */
 export function withoutSecretData(resource: unknown): unknown {
-  if (!isDict(resource) || resource.kind !== 'Secret') return resource;
+  return redact(resource);
+}
+
+/** `listItemKind`: kubectl fills in the kind of the items of a typed list. */
+function redact(resource: unknown, listItemKind?: string): unknown {
+  if (!isDict(resource)) return resource;
+  if (Array.isArray(resource.items)) {
+    const itemKind =
+      typeof resource.kind === 'string'
+        ? resource.kind.replace(/List$/, '')
+        : undefined;
+    return {
+      ...resource,
+      items: resource.items.map((item) => redact(item, itemKind)),
+    };
+  }
+  if ((resource.kind ?? listItemKind) !== 'Secret') return resource;
   const copy: Dict = { ...resource };
   delete copy.data;
   delete copy.stringData;
