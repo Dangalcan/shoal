@@ -50,6 +50,8 @@ All notable changes to Shoal are documented here. The format follows
 
 ### Fixed
 
+- HPA Targets shows each configured metric's current/target (up to two,
+  then a remainder count) and sorts by the first current value (#100).
 - Resource tables pause auto-refresh while the window is hidden and refresh
   once when it becomes visible again (#97).
 - The cluster back, log filter clear and plugin-array remove buttons have

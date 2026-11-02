@@ -44,12 +44,18 @@ function cellText(
 }
 
 const metric = (name: string, value: number) => ({
+  type: 'Resource',
   resource: { name, current: { averageUtilization: value } },
 });
 const hpa = (current: number) =>
   object({
     spec: {
-      metrics: [{ resource: { target: { averageUtilization: 80 } } }],
+      metrics: [
+        {
+          type: 'Resource',
+          resource: { name: 'cpu', target: { averageUtilization: 80 } },
+        },
+      ],
     },
     status: { currentMetrics: [metric('cpu', current)] },
   });
@@ -184,7 +190,7 @@ const COLUMNS: [
     spec({ scaleTargetRef: { kind: 'Deployment', name: 'b' } }),
     'Deployment/b',
   ],
-  ['hpa', 'targets', hpa(9), '9% / 80%', hpa(50), '50% / 80%'],
+  ['hpa', 'targets', hpa(9), 'cpu: 9%/80%', hpa(50), 'cpu: 50%/80%'],
   [
     'hpa',
     'minpods',
@@ -438,10 +444,54 @@ describe('sorting the resource tables', () => {
     expect(sorter(newer, older)).toBeLessThan(0);
   });
 
-  it('leaves an HPA without a target metric among the unknown', () => {
+  it('leaves an HPA without a current target value among the unknown', () => {
     const sorter = getSorterForColumn('targets', 'hpa');
-    const noTarget = status({ currentMetrics: [metric('cpu', 1)] });
-    expect(cellText('hpa', 'targets', noTarget)).toBe('<unknown>');
-    expect(sorter(hpa(99), noTarget)).toBeLessThan(0);
+    const noCurrent = object({
+      spec: {
+        metrics: [
+          {
+            type: 'Resource',
+            resource: { name: 'cpu', target: { averageUtilization: 80 } },
+          },
+        ],
+      },
+      status: { currentMetrics: [] },
+    });
+    expect(cellText('hpa', 'targets', noCurrent)).toBe('cpu: <unknown>/80%');
+    expect(sorter(hpa(99), noCurrent)).toBeLessThan(0);
+  });
+
+  it('sorts HPA targets by the first metric current value', () => {
+    const sorter = getSorterForColumn('targets', 'hpa');
+    const lower = object({
+      spec: {
+        metrics: [
+          { type: 'Pods', pods: { target: { averageValue: '1' } } },
+          { type: 'External', external: { target: { value: '1' } } },
+        ],
+      },
+      status: {
+        currentMetrics: [
+          { type: 'Pods', pods: { current: { averageValue: '500m' } } },
+          { type: 'External', external: { current: { value: '99' } } },
+        ],
+      },
+    });
+    const higher = object({
+      spec: {
+        metrics: [
+          { type: 'Pods', pods: { target: { averageValue: '2' } } },
+          { type: 'External', external: { target: { value: '100' } } },
+        ],
+      },
+      status: {
+        currentMetrics: [
+          { type: 'Pods', pods: { current: { averageValue: '2' } } },
+          { type: 'External', external: { current: { value: '1' } } },
+        ],
+      },
+    });
+
+    expect(sorter(lower, higher)).toBeLessThan(0);
   });
 });

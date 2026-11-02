@@ -14,6 +14,24 @@ import {
 describe('OtherCells', () => {
   const style = { width: '100px' };
 
+  const renderTargets = (metrics?: object[], currentMetrics?: object[]) => {
+    const resource = {
+      metadata: {},
+      spec: { metrics },
+      status: { currentMetrics },
+    } as any;
+    render(
+      <table>
+        <tbody>
+          <tr>
+            <HPATargetsCell resource={resource} style={style} />
+          </tr>
+        </tbody>
+      </table>
+    );
+    return screen.getByRole('cell').textContent;
+  };
+
   it('HPAReferenceCell renders target ref', () => {
     const resource = {
       metadata: { name: 'hpa', creationTimestamp: '' },
@@ -112,36 +130,106 @@ describe('OtherCells', () => {
     expect(screen.getByText('Never')).toBeInTheDocument();
   });
 
-  it('HPATargetsCell shows <unknown> when metrics missing, value otherwise', () => {
-    const bare = { metadata: {}, spec: {}, status: {} } as any;
-    const { unmount } = render(
-      <table>
-        <tbody>
-          <tr>
-            <HPATargetsCell resource={bare} style={style} />
-          </tr>
-        </tbody>
-      </table>
-    );
-    expect(screen.getByText('<unknown>')).toBeInTheDocument();
-    unmount();
-    const full = {
-      metadata: {},
-      spec: { metrics: [{ resource: { target: { averageUtilization: 80 } } }] },
-      status: {
-        currentMetrics: [{ resource: { current: { averageUtilization: 40 } } }],
-      },
-    } as any;
-    render(
-      <table>
-        <tbody>
-          <tr>
-            <HPATargetsCell resource={full} style={style} />
-          </tr>
-        </tbody>
-      </table>
-    );
-    expect(screen.getByText('40% / 80%')).toBeInTheDocument();
+  it('HPATargetsCell shows <none> when no metrics are configured', () => {
+    expect(renderTargets()).toBe('<none>');
+  });
+
+  it.each([
+    [
+      'resource utilization',
+      [
+        {
+          type: 'Resource',
+          resource: { name: 'cpu', target: { averageUtilization: 80 } },
+        },
+      ],
+      [{ type: 'Resource', resource: { current: { averageUtilization: 40 } } }],
+      'cpu: 40%/80%',
+    ],
+    [
+      'resource average value',
+      [
+        {
+          type: 'Resource',
+          resource: { name: 'memory', target: { averageValue: '200Mi' } },
+        },
+      ],
+      [{ type: 'Resource', resource: { current: { averageValue: '100Mi' } } }],
+      'memory: 100Mi/200Mi',
+    ],
+    [
+      'container resource utilization',
+      [
+        {
+          type: 'ContainerResource',
+          containerResource: {
+            name: 'cpu',
+            target: { averageUtilization: 80 },
+          },
+        },
+      ],
+      [
+        {
+          type: 'ContainerResource',
+          containerResource: { current: { averageUtilization: 40 } },
+        },
+      ],
+      'cpu: 40%/80%',
+    ],
+    [
+      'pods average value',
+      [{ type: 'Pods', pods: { target: { averageValue: '100' } } }],
+      [{ type: 'Pods', pods: { current: { averageValue: '80' } } }],
+      '80/100',
+    ],
+    [
+      'object value',
+      [{ type: 'Object', object: { target: { value: '10' } } }],
+      [{ type: 'Object', object: { current: { value: '3' } } }],
+      '3/10',
+    ],
+    [
+      'external average value',
+      [{ type: 'External', external: { target: { averageValue: '25' } } }],
+      [{ type: 'External', external: { current: { averageValue: '12' } } }],
+      '12/25 (avg)',
+    ],
+    [
+      'external value',
+      [{ type: 'External', external: { target: { value: '15' } } }],
+      [{ type: 'External', external: { current: { value: '9' } } }],
+      '9/15',
+    ],
+  ] as [string, object[], object[], string][])(
+    'formats %s metrics like kubectl',
+    (_name, metrics, currentMetrics, expected) => {
+      expect(renderTargets(metrics, currentMetrics)).toBe(expected);
+    }
+  );
+
+  it('HPATargetsCell keeps missing current values visible and truncates after two metrics', () => {
+    expect(
+      renderTargets(
+        [
+          {
+            type: 'Resource',
+            resource: { name: 'cpu', target: { averageUtilization: 80 } },
+          },
+          { type: 'Pods', pods: { target: { averageValue: '100' } } },
+          { type: 'External', external: { target: { value: '20' } } },
+        ],
+        []
+      )
+    ).toBe('cpu: <unknown>/80%, <unknown>/100 + 1 more...');
+  });
+
+  it('HPATargetsCell prints auto targets when utilization is not set', () => {
+    expect(
+      renderTargets(
+        [{ type: 'Resource', resource: { name: 'cpu', target: {} } }],
+        []
+      )
+    ).toBe('cpu: <unknown>/<auto>');
   });
 
   it('MinPods/MaxPods/Replicas render values and "-" fallback', () => {

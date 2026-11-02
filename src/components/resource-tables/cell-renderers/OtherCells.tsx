@@ -5,6 +5,7 @@
 import React from 'react';
 import { TextCell } from '../ResourceCells';
 import type { K8sResource } from '../../../types/k8s-types';
+import { hpaTargetsText } from '../../../lib/resources/hpa-targets';
 
 interface CellProps {
   resource: K8sResource;
@@ -30,26 +31,12 @@ export const HPATargetsCell: React.FC<CellProps> = ({ resource, style }) => {
   const spec = resource.spec as unknown as Record<string, unknown> | undefined;
   const status = resource.status as unknown as
     Record<string, unknown> | undefined;
-  const metrics = status?.currentMetrics as unknown as
-    Record<string, unknown>[] | undefined;
-  const specMetrics = spec?.metrics as unknown as
-    Record<string, unknown>[] | undefined;
-  const firstSpecMetric = specMetrics?.[0] as unknown as
-    Record<string, unknown> | undefined;
-  const target = (
-    (firstSpecMetric?.resource as unknown as Record<string, unknown>)
-      ?.target as unknown as Record<string, unknown>
-  )?.averageUtilization as number | undefined;
-  const firstMetric = metrics?.[0] as unknown as
-    Record<string, unknown> | undefined;
-  const current = (
-    (firstMetric?.resource as unknown as Record<string, unknown>)
-      ?.current as unknown as Record<string, unknown>
-  )?.averageUtilization as number | undefined;
-
-  if (current === undefined || target === undefined)
-    return <TextCell content="<unknown>" style={style} />;
-  return <TextCell content={`${current}% / ${target}%`} style={style} />;
+  return (
+    <TextCell
+      content={hpaTargetsText(spec?.metrics, status?.currentMetrics)}
+      style={style}
+    />
+  );
 };
 
 /**
