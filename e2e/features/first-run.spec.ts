@@ -65,6 +65,35 @@ test.describe('empty kubeconfig', () => {
   });
 });
 
+test.describe('broken kubeconfig', () => {
+  let app: ElectronApplication;
+  let window: Page;
+  let dir: string;
+
+  test.beforeAll(async () => {
+    const kubeconfig = writeKubeconfig('broken', 'apiVersion: [not yaml\n');
+    dir = kubeconfig.dir;
+    app = await launchApp({ env: { KUBECONFIG: kubeconfig.file } });
+    window = await mainWindow(app);
+  });
+
+  test.afterAll(async () => {
+    await app.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test('the cluster list says it could not read them, not that there are none', async () => {
+    await window.getByRole('link', { name: 'Clusters' }).click();
+    await expect(window.locator('.clusters-empty-title')).toHaveText(
+      'Could not read your clusters',
+      { timeout: 30_000 }
+    );
+    await expect(
+      window.getByRole('button', { name: 'Try Again' })
+    ).toBeVisible();
+  });
+});
+
 test.describe('unreachable current context', () => {
   let app: ElectronApplication;
   let window: Page;

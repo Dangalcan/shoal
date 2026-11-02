@@ -21,11 +21,16 @@ export function NamespaceSelector({
         onChange={(e) => onNamespaceChange(e.target.value)}
         className="namespace-selector"
       >
-        {Array.from(new Set(['all', ...namespaces])).map((ns) => (
-          <option key={ns} value={ns}>
-            {ns === 'all' ? 'All Namespaces' : ns}
-          </option>
-        ))}
+        {/* The selected one may not be listed (a Default Namespace that does
+            not exist here, a list that failed); without its option the select
+            would claim "All Namespaces" over a filtered table. */}
+        {Array.from(new Set(['all', selectedNamespace, ...namespaces])).map(
+          (ns) => (
+            <option key={ns} value={ns}>
+              {ns === 'all' ? 'All Namespaces' : ns}
+            </option>
+          )
+        )}
       </select>
     </div>
   );

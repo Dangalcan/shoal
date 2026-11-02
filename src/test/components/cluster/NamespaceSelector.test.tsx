@@ -47,4 +47,35 @@ describe('NamespaceSelector', () => {
     });
     expect(onNamespaceChange).toHaveBeenCalledWith('default');
   });
+
+  it('shows the selected namespace when the list does not have it', () => {
+    const onChange = vi.fn();
+    render(
+      <NamespaceSelector
+        namespaces={['default']}
+        selectedNamespace="missing"
+        onNamespaceChange={onChange}
+      />
+    );
+    const select = screen.getByRole<HTMLSelectElement>('combobox');
+    expect(select.value).toBe('missing');
+
+    fireEvent.change(select, { target: { value: 'all' } });
+    expect(onChange).toHaveBeenCalledWith('all');
+  });
+
+  it('lists each namespace once', () => {
+    render(
+      <NamespaceSelector
+        namespaces={['default', 'kube-system']}
+        selectedNamespace="default"
+        onNamespaceChange={vi.fn()}
+      />
+    );
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual([
+      'All Namespaces',
+      'default',
+      'kube-system',
+    ]);
+  });
 });
