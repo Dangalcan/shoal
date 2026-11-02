@@ -1,0 +1,83 @@
+name: E2E
+
+# A slice of the end-to-end suite on pull requests, against the dev build. The
+# full suite runs on the packaged app after a merge (build.yml), which is late
+# for a change that breaks a role or a name the specs query. It is also the
+# only place the hostile-plugin probes of sandbox-escape.spec.ts run: they need
+# an unsigned plugin, which a packaged build refuses to load.
+
+on:
+  push:
+    branches:
+      - ci/e2e-on-pull-requests
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+# Nothing here writes to the repository, and it runs code from pull requests.
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: E2E (dev build)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out git repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Install scripts are off (.npmrc), so the Electron binary comes by hand.
+      - name: Install Electron
+        run: node node_modules/electron/install.js
+
+      - name: Build node-pty (Linux)
+        run: npm run rebuild:node-pty
+
+      - name: Build renderer and main process
+        run: npm run build:react && npm run build:electron
+
+      - name: Install kind
+        # Third-party action: pinned to a commit (Dependabot bumps the pin).
+        uses: helm/kind-action@1544676c07bb3570fcb70166beaa07c4528fd4aa # v1.15.1
+        with:
+          install_only: true
+
+      # Ubuntu 24.04 restricts the unprivileged user namespaces Chromium's
+      # sandbox needs. A dev build has no AppArmor profile or SUID helper, and
+      # the sandbox specs must not run with the sandbox turned off.
+      - name: Allow Chromium's sandbox
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: Run the specs
+        run: >-
+          xvfb-run -a npx playwright test
+          e2e/features/navigation.spec.ts
+          e2e/features/sandbox-escape.spec.ts
+          e2e/features/cluster-details.spec.ts
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-report-pr
+          path: e2e-report
+          retention-days: 7

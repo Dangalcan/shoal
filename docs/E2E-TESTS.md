@@ -122,13 +122,19 @@ Against a packaged app instead of the dev build (Git Bash; build it first with
 SHOAL_E2E_EXECUTABLE="$PWD/release/win-unpacked/Shoal.exe" npx playwright test
 ```
 
+Pull requests run a slice of the suite on the dev build (`e2e.yml`):
+`navigation`, `cluster-details` and `sandbox-escape`, whose hostile-plugin probes
+need an unsigned plugin and so cannot run against a packaged build. It allows
+Chromium's sandbox through a sysctl instead of turning the sandbox off.
+
 On Linux CI the AppImage runs under `xvfb-run -a` with
 `APPIMAGE_EXTRACT_AND_RUN=1` (no libfuse2 on the runners) and runs every
 spec. The Windows smoke job lists the specs it runs (`build.yml`) and leaves
 out `cluster-lifecycle`, `cluster-details` and `cluster-workloads`: the
 runner cannot run Linux containers for kind. A new spec that needs no
 cluster must be added to that list. It installs `kubectl` (setup-kubectl) for the first-run
-spec.
+spec. The Linux smoke job installs kompose, so the migration spec converts a
+real compose file there; the Windows one covers the "kompose not found" case.
 
 ### Screenshots
 
