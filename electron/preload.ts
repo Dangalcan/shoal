@@ -9,7 +9,20 @@ import type {
 import type { MigrationImportArgs } from './types/migration-types';
 import type { RendererErrorReport } from './types/app-types';
 
-contextBridge.exposeInMainWorld('electron', {
+// Plugin frames have no network, and their CSP cannot say so for WebRTC: it has
+// no directive for it, so a peer connection reaches any address over UDP and
+// TCP. Nothing in the app uses WebRTC. This preload runs in every frame, nested
+// ones included (nodeIntegrationInSubFrames in main.ts), before any of the
+// frame's scripts, so no realm a plugin can reach still has the constructors.
+contextBridge.executeInMainWorld({
+  func: () => {
+    for (const name of Object.getOwnPropertyNames(window)) {
+      if (name.includes('RTC')) Reflect.deleteProperty(window, name);
+    }
+  },
+});
+
+const electronApi = {
   getToolStatus: (tool: string) => ipcRenderer.invoke('get-tool-status', tool),
   openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
   createCluster: (name: string, provider: string) =>
@@ -298,4 +311,9 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.on('update-status', handler);
     return () => ipcRenderer.off('update-status', handler);
   },
-});
+};
+
+// The bridge is for the app's own document, never for a plugin frame.
+if (process.isMainFrame) {
+  contextBridge.exposeInMainWorld('electron', electronApi);
+}

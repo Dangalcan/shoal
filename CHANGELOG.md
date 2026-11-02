@@ -150,6 +150,22 @@ All notable changes to Shoal are documented here. The format follows
 
 ### Security
 
+- A plugin frame can no longer use WebRTC. The frame's Content Security Policy
+  has no way to cover it, so a plugin page could send traffic to any address
+  over UDP and TCP even though the frame has no network otherwise. The preload
+  now removes the WebRTC constructors from every frame, nested ones included,
+  before its scripts run, and the app turns off non-proxied WebRTC UDP as a
+  second layer. One channel stays
+  open and is documented in `SECURITY.md`: a frame can still make DNS lookups
+  through `<link rel="dns-prefetch">`, which has to be closed before
+  third-party plugins (1.0).
+- A plugin frame can no longer move to a `plugin-host/index.html` of the
+  plugin's own. The main process recognised the host document by the end of its
+  URL; it now compares the whole path.
+- Secrets inside a list no longer reach a plugin without the `secrets`
+  permission. Resource events carry a manifest as it was written, and a `List`
+  applied by another plugin kept the data of the Secrets in it, also when its
+  items left out their kind.
 - A plugin that fails its signature check no longer runs. Installed builds
   listed such a plugin as an error, but its card kept the Enable button and
   clicking it ran the plugin's code; a plugin saved as enabled whose files
