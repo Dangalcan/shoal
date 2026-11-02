@@ -292,7 +292,11 @@ function LogViewerDialog({
           className="log-search-input"
         />
         {searchQuery && (
-          <button onClick={() => setSearchQuery('')} className="search-clear">
+          <button
+            aria-label="Clear filter"
+            onClick={() => setSearchQuery('')}
+            className="search-clear"
+          >
             <X size={14} />
           </button>
         )}
