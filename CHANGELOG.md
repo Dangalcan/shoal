@@ -50,6 +50,10 @@ All notable changes to Shoal are documented here. The format follows
 
 ### Fixed
 
+- The Containers and Images columns of the CronJobs table show the
+  containers and images of the job template instead of `<none>`, and
+  sorting by either column orders the rows (#95). Deployments, StatefulSets,
+  DaemonSets, Jobs and bare Pods keep their existing columns.
 - Disabling a plugin while it is still activating (start-up waiting on
   kubectl, a Disable click during a slow first cluster call) now leaves it
   disabled: the activation stops the instance it started as soon as it
