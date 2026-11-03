@@ -59,6 +59,98 @@ describe('renderCell', () => {
     expect(screen.getByText('5')).toBeInTheDocument();
   });
 
+  it('renders a CronJob containers from its job template', () => {
+    const cronJob = {
+      apiVersion: 'batch/v1',
+      kind: 'CronJob',
+      metadata: {
+        name: 'report',
+        namespace: 'default',
+        creationTimestamp: '2024-01-01T00:00:00Z',
+        uid: 'cronjob',
+        resourceVersion: '1',
+      },
+      spec: {
+        schedule: '0 3 * * *',
+        jobTemplate: {
+          spec: {
+            template: {
+              spec: {
+                containers: [
+                  { name: 'report', image: 'busybox:1.36' },
+                  { name: 'uploader', image: 'alpine:3.20' },
+                ],
+              },
+            },
+          },
+        },
+      },
+      status: {},
+    } as unknown as K8sResource;
+
+    render(
+      <table>
+        <tbody>
+          <tr>
+            {renderCell({
+              colId: 'containers',
+              resource: cronJob,
+              resourceType: 'cronjobs',
+              style,
+            })}
+          </tr>
+        </tbody>
+      </table>
+    );
+    expect(screen.getByText('report, uploader')).toBeInTheDocument();
+  });
+
+  it('renders a CronJob images from its job template', () => {
+    const cronJob = {
+      apiVersion: 'batch/v1',
+      kind: 'CronJob',
+      metadata: {
+        name: 'report',
+        namespace: 'default',
+        creationTimestamp: '2024-01-01T00:00:00Z',
+        uid: 'cronjob',
+        resourceVersion: '1',
+      },
+      spec: {
+        schedule: '0 3 * * *',
+        jobTemplate: {
+          spec: {
+            template: {
+              spec: {
+                containers: [
+                  { name: 'report', image: 'busybox:1.36' },
+                  { name: 'uploader', image: 'alpine:3.20' },
+                ],
+              },
+            },
+          },
+        },
+      },
+      status: {},
+    } as unknown as K8sResource;
+
+    render(
+      <table>
+        <tbody>
+          <tr>
+            {renderCell({
+              colId: 'images',
+              resource: cronJob,
+              resourceType: 'cronjobs',
+              style,
+            })}
+          </tr>
+        </tbody>
+      </table>
+    );
+    expect(screen.getByText('busybox:1.36, alpine:3.20')).toBeInTheDocument();
+  });
+
   it('renders node specific cells', () => {
     // roles
     render(
