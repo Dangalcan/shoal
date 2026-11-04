@@ -19,6 +19,7 @@ import type { ResourceType } from '../resources/resource-definitions';
 import type { SorterFunction } from './types';
 import { sortByString, sortByNumber, sortByDate } from './sortStrategies';
 import { getResourceStatus } from '../resources/resource-status';
+import { podSpecOf } from '../resources/pod-spec';
 import { isPod, isRecord } from '../type-guards';
 
 /**
@@ -158,11 +159,7 @@ export const sortByExternalIP = sortByString((r) => {
 
 // Containers & Images
 export const sortByContainers = sortByString((r) => {
-  const spec = (r as unknown as Record<string, unknown>).spec as
-    Record<string, unknown> | undefined;
-  const podSpec =
-    ((spec?.template as unknown as Record<string, unknown> | undefined)
-      ?.spec as Record<string, unknown> | undefined) || spec;
+  const podSpec = podSpecOf(r);
   const containers = podSpec?.containers as
     Record<string, unknown>[] | undefined;
   if (Array.isArray(containers)) {
@@ -172,11 +169,7 @@ export const sortByContainers = sortByString((r) => {
 });
 
 export const sortByImages = sortByString((r) => {
-  const spec = (r as unknown as Record<string, unknown>).spec as
-    Record<string, unknown> | undefined;
-  const podSpec =
-    ((spec?.template as unknown as Record<string, unknown> | undefined)
-      ?.spec as Record<string, unknown> | undefined) || spec;
+  const podSpec = podSpecOf(r);
   const containers = podSpec?.containers as
     Record<string, unknown>[] | undefined;
   if (Array.isArray(containers)) {
