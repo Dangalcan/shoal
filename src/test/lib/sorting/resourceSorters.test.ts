@@ -328,6 +328,46 @@ describe('resourceSorters', () => {
       expect(sortByContainers(d1, d2)).toBeLessThan(0);
     });
 
+    it('sortByContainers checks jobTemplate.spec.template.spec for CronJobs', () => {
+      const c1 = {
+        spec: {
+          jobTemplate: {
+            spec: { template: { spec: { containers: [{ name: 'alpha' }] } } },
+          },
+        },
+      } as any;
+      const c2 = {
+        spec: {
+          jobTemplate: {
+            spec: { template: { spec: { containers: [{ name: 'zeta' }] } } },
+          },
+        },
+      } as any;
+      expect(sortByContainers(c1, c2)).toBeLessThan(0);
+    });
+
+    it('sortByImages checks jobTemplate.spec.template.spec for CronJobs', () => {
+      const c1 = {
+        spec: {
+          jobTemplate: {
+            spec: {
+              template: { spec: { containers: [{ image: 'alpine:3.20' }] } },
+            },
+          },
+        },
+      } as any;
+      const c2 = {
+        spec: {
+          jobTemplate: {
+            spec: {
+              template: { spec: { containers: [{ image: 'busybox:1.36' }] } },
+            },
+          },
+        },
+      } as any;
+      expect(sortByImages(c1, c2)).toBeLessThan(0);
+    });
+
     it('sortByContainers returns empty string when no containers', () => {
       const d1 = { spec: {} } as any;
       const d2 = { spec: {} } as any;

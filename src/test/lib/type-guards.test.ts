@@ -33,4 +33,14 @@ describe('Type Guards', () => {
     expect(guards.stringField(null, 'type')).toBeUndefined();
     expect(guards.stringField(['type'], 'type')).toBeUndefined();
   });
+
+  it('at follows a path and stops at the first gap', () => {
+    const value = { a: { b: { c: 1 } } };
+    expect(guards.at(value, 'a', 'b', 'c')).toBe(1);
+    expect(guards.at(value)).toBe(value);
+    expect(guards.at(value, 'a', 'missing', 'c')).toBeUndefined();
+    expect(guards.at({ a: 'text' }, 'a', 'b')).toBeUndefined();
+    expect(guards.at({ a: [{ b: 1 }] }, 'a', 'b')).toBeUndefined();
+    expect(guards.at(null, 'a')).toBeUndefined();
+  });
 });

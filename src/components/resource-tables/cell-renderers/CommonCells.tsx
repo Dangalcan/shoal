@@ -5,6 +5,7 @@
 import React from 'react';
 import type { K8sResource } from '../../../types/k8s-types';
 import { TextCell } from '../ResourceCells';
+import { podSpecOf } from '../../../lib/resources/pod-spec';
 
 interface CellProps {
   resource: K8sResource;
@@ -72,16 +73,9 @@ export const SelectorCell: React.FC<CellProps> = ({ resource, style }) => {
  * Renders container names from pod spec
  */
 export const ContainersCell: React.FC<CellProps> = ({ resource, style }) => {
-  const spec =
-    ((resource as unknown as Record<string, unknown>).spec as unknown as Record<
-      string,
-      unknown
-    >) || {};
-  const podSpec =
-    ((spec.template as unknown as Record<string, unknown>)
-      ?.spec as unknown as Record<string, unknown>) || spec;
+  const podSpec = podSpecOf(resource);
   const containers =
-    (podSpec?.containers as unknown as Record<string, unknown>[] | undefined)
+    (podSpec.containers as unknown as Record<string, unknown>[] | undefined)
       ?.map((c) => c.name)
       .join(', ') || '<none>';
   return <TextCell key="containers" content={containers} style={style} />;
@@ -91,16 +85,9 @@ export const ContainersCell: React.FC<CellProps> = ({ resource, style }) => {
  * Renders container images from pod spec
  */
 export const ImagesCell: React.FC<CellProps> = ({ resource, style }) => {
-  const spec =
-    ((resource as unknown as Record<string, unknown>).spec as unknown as Record<
-      string,
-      unknown
-    >) || {};
-  const podSpec =
-    ((spec.template as unknown as Record<string, unknown>)
-      ?.spec as unknown as Record<string, unknown>) || spec;
+  const podSpec = podSpecOf(resource);
   const images =
-    (podSpec?.containers as unknown as Record<string, unknown>[] | undefined)
+    (podSpec.containers as unknown as Record<string, unknown>[] | undefined)
       ?.map((c) => c.image)
       .join(', ') || '<none>';
   return <TextCell key="images" content={images} style={style} />;

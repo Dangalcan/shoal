@@ -10,7 +10,7 @@
  */
 
 import type { K8sResource } from '../../types/k8s-types';
-import { isRecord } from '../type-guards';
+import { at, isRecord } from '../type-guards';
 import { hpaFirstCurrentValue } from './hpa-targets';
 import type { ResourceType } from './resource-types';
 
@@ -34,16 +34,6 @@ const NONE_TEXT = '<none>';
 const LIST_LIMIT = 3;
 
 // Reading fields of unknown shape -------------------------------------------
-
-/** Follows `path` through nested objects; undefined at the first gap. */
-function at(value: unknown, ...path: string[]): unknown {
-  let current = value;
-  for (const key of path) {
-    if (!isRecord(current)) return undefined;
-    current = current[key];
-  }
-  return current;
-}
 
 /** A non-empty string, else undefined. */
 const str = (value: unknown): string | undefined =>

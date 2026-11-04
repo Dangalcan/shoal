@@ -50,6 +50,10 @@ All notable changes to Shoal are documented here. The format follows
 
 ### Fixed
 
+- The Containers and Images columns of the CronJobs table show the
+  containers and images of the job template instead of `<none>`, and
+  sorting by either column orders the rows (#95). Deployments, StatefulSets,
+  DaemonSets, Jobs and bare Pods keep their existing columns.
 - HPA Targets shows each configured metric's current/target (up to two,
   then a remainder count) and sorts by the first current value (#100).
 - Enter and Space on the Rename, Move and Delete buttons of a folder card run
