@@ -54,6 +54,15 @@ All notable changes to Shoal are documented here. The format follows
   containers and images of the job template instead of `<none>`, and
   sorting by either column orders the rows (#95). Deployments, StatefulSets,
   DaemonSets, Jobs and bare Pods keep their existing columns.
+- HPA Targets shows each configured metric's current/target (up to two,
+  then a remainder count) and sorts by the first current value (#100).
+- Enter and Space on the Rename, Move and Delete buttons of a folder card run
+  that button. They opened the folder instead, so a folder could not be
+  renamed, moved or deleted from the keyboard (#98).
+- Resource tables pause auto-refresh while the window is hidden and refresh
+  once when it becomes visible again (#97).
+- The cluster back, log filter clear and plugin-array remove buttons have
+  action-specific accessible names for screen readers (#99).
 - Disabling a plugin while it is still activating (start-up waiting on
   kubectl, a Disable click during a slow first cluster call) now leaves it
   disabled: the activation stops the instance it started as soon as it
@@ -152,6 +161,22 @@ All notable changes to Shoal are documented here. The format follows
 
 ### Security
 
+- A plugin frame can no longer use WebRTC. The frame's Content Security Policy
+  has no way to cover it, so a plugin page could send traffic to any address
+  over UDP and TCP even though the frame has no network otherwise. The preload
+  now removes the WebRTC constructors from every frame, nested ones included,
+  before its scripts run, and the app turns off non-proxied WebRTC UDP as a
+  second layer. One channel stays
+  open and is documented in `SECURITY.md`: a frame can still make DNS lookups
+  through `<link rel="dns-prefetch">`, which has to be closed before
+  third-party plugins (1.0).
+- A plugin frame can no longer move to a `plugin-host/index.html` of the
+  plugin's own. The main process recognised the host document by the end of its
+  URL; it now compares the whole path.
+- Secrets inside a list no longer reach a plugin without the `secrets`
+  permission. Resource events carry a manifest as it was written, and a `List`
+  applied by another plugin kept the data of the Secrets in it, also when its
+  items left out their kind.
 - A plugin that fails its signature check no longer runs. Installed builds
   listed such a plugin as an error, but its card kept the Enable button and
   clicking it ran the plugin's code; a plugin saved as enabled whose files

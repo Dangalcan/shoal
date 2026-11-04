@@ -11,6 +11,7 @@
 
 import type { K8sResource } from '../../types/k8s-types';
 import { isRecord } from '../type-guards';
+import { hpaFirstCurrentValue } from './hpa-targets';
 import type { ResourceType } from './resource-types';
 
 /** A comparable cell value; undefined when the field is missing. */
@@ -565,14 +566,13 @@ const CELL_COLUMNS: Partial<Record<ResourceType, ColumnMap>> = {
         str(at(r, 'spec', 'scaleTargetRef', 'name'))
       )
     ),
-    // Current use of the first metric, while its cell has both numbers to show.
     targets: computed((r) => {
-      const [metric] = records(at(r, 'status', 'currentMetrics'));
-      const [target] = records(at(r, 'spec', 'metrics'));
-      return num(at(target, 'resource', 'target', 'averageUtilization')) ===
-        undefined
-        ? undefined
-        : num(at(metric, 'resource', 'current', 'averageUtilization'));
+      return quantity(
+        hpaFirstCurrentValue(
+          at(r, 'spec', 'metrics'),
+          at(r, 'status', 'currentMetrics')
+        )
+      );
     }),
     minpods: numberAt('spec', 'minReplicas'),
     maxpods: numberAt('spec', 'maxReplicas'),

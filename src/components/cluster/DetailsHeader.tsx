@@ -10,7 +10,11 @@ export function DetailsHeader({ name }: DetailsHeaderProps) {
 
   return (
     <div className="header-top">
-      <button onClick={() => navigate(-1)} className="back-button">
+      <button
+        aria-label="Go back"
+        onClick={() => navigate(-1)}
+        className="back-button"
+      >
         <ArrowLeft size={20} />
       </button>
       <div className="header-title-section">

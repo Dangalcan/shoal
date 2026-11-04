@@ -335,7 +335,7 @@ describe('ClusterDetails Page - Exhaustive Coverage', () => {
         expect(screen.getByText('hpa-1')).toBeInTheDocument()
       );
       expect(screen.getByText('Deployment/dep-1')).toBeInTheDocument();
-      expect(screen.getByText('50% / 80%')).toBeInTheDocument();
+      expect(screen.getByText('cpu: 50%/80%')).toBeInTheDocument();
       expect(screen.getByText('1')).toBeInTheDocument(); // min
       expect(screen.getByText('10')).toBeInTheDocument(); // max
       expect(screen.getByText('2')).toBeInTheDocument(); // replicas

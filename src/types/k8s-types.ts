@@ -623,6 +623,7 @@ export interface MetricSpec {
   object?: ObjectMetricSource;
   pods?: PodsMetricSource;
   resource?: ResourceMetricSource;
+  containerResource?: ContainerResourceMetricSource;
   external?: ExternalMetricSource;
 }
 
@@ -639,6 +640,12 @@ export interface PodsMetricSource {
 
 export interface ResourceMetricSource {
   name: string;
+  target: MetricTarget;
+}
+
+export interface ContainerResourceMetricSource {
+  name: string;
+  container: string;
   target: MetricTarget;
 }
 
@@ -674,6 +681,7 @@ export interface MetricStatus {
   object?: ObjectMetricStatus;
   pods?: PodsMetricStatus;
   resource?: ResourceMetricStatus;
+  containerResource?: ContainerResourceMetricStatus;
   external?: ExternalMetricStatus;
 }
 
@@ -690,6 +698,12 @@ export interface PodsMetricStatus {
 
 export interface ResourceMetricStatus {
   name: string;
+  current: MetricValueStatus;
+}
+
+export interface ContainerResourceMetricStatus {
+  name: string;
+  container: string;
   current: MetricValueStatus;
 }
 
