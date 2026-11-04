@@ -44,3 +44,13 @@ export function stringField(value: unknown, key: string): string | undefined {
   const field = value[key];
   return typeof field === 'string' ? field : undefined;
 }
+
+/** Follows `path` through nested objects; undefined at the first gap. */
+export function at(value: unknown, ...path: string[]): unknown {
+  let current = value;
+  for (const key of path) {
+    if (!isRecord(current)) return undefined;
+    current = current[key];
+  }
+  return current;
+}
