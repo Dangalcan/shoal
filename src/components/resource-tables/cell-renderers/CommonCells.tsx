@@ -75,7 +75,7 @@ export const SelectorCell: React.FC<CellProps> = ({ resource, style }) => {
 export const ContainersCell: React.FC<CellProps> = ({ resource, style }) => {
   const podSpec = podSpecOf(resource);
   const containers =
-    (podSpec?.containers as unknown as Record<string, unknown>[] | undefined)
+    (podSpec.containers as unknown as Record<string, unknown>[] | undefined)
       ?.map((c) => c.name)
       .join(', ') || '<none>';
   return <TextCell key="containers" content={containers} style={style} />;
@@ -87,7 +87,7 @@ export const ContainersCell: React.FC<CellProps> = ({ resource, style }) => {
 export const ImagesCell: React.FC<CellProps> = ({ resource, style }) => {
   const podSpec = podSpecOf(resource);
   const images =
-    (podSpec?.containers as unknown as Record<string, unknown>[] | undefined)
+    (podSpec.containers as unknown as Record<string, unknown>[] | undefined)
       ?.map((c) => c.image)
       .join(', ') || '<none>';
   return <TextCell key="images" content={images} style={style} />;

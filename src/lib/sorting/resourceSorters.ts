@@ -160,7 +160,7 @@ export const sortByExternalIP = sortByString((r) => {
 // Containers & Images
 export const sortByContainers = sortByString((r) => {
   const podSpec = podSpecOf(r);
-  const containers = podSpec?.containers as
+  const containers = podSpec.containers as
     Record<string, unknown>[] | undefined;
   if (Array.isArray(containers)) {
     return containers.map((c) => c.name).join(', ');
@@ -170,7 +170,7 @@ export const sortByContainers = sortByString((r) => {
 
 export const sortByImages = sortByString((r) => {
   const podSpec = podSpecOf(r);
-  const containers = podSpec?.containers as
+  const containers = podSpec.containers as
     Record<string, unknown>[] | undefined;
   if (Array.isArray(containers)) {
     return containers.map((c) => c.image as string).join(', ');
