@@ -393,6 +393,26 @@ const COLUMNS: [
   ],
 ];
 
+const inTemplate = (podSpec: object) => spec({ template: { spec: podSpec } });
+
+/**
+ * Every kind with Containers and Images columns, and where it keeps the pod
+ * spec those columns read.
+ */
+const POD_SPEC_KINDS: [ResourceType, (podSpec: object) => K8sResource][] = [
+  ['pods', spec],
+  ['deployments', inTemplate],
+  ['replicasets', inTemplate],
+  ['daemonsets', inTemplate],
+  ['statefulsets', inTemplate],
+  ['jobs', inTemplate],
+  [
+    'cronjobs',
+    (podSpec) =>
+      spec({ jobTemplate: { spec: { template: { spec: podSpec } } } }),
+  ],
+];
+
 describe('sorting the resource tables', () => {
   it('has a sorter for every column of every kind', () => {
     const missing = RESOURCE_CONFIGS.flatMap((config) =>
@@ -418,6 +438,41 @@ describe('sorting the resource tables', () => {
       const sorter = getSorterForColumn(colId, resourceType);
       expect(sorter(low, high)).toBeLessThan(0);
       expect(sorter(high, low)).toBeGreaterThan(0);
+    }
+  );
+
+  it('covers every kind with Containers and Images columns', () => {
+    const declared = RESOURCE_CONFIGS.filter((config) =>
+      config.columns.some(
+        (col) => col.id === 'containers' || col.id === 'images'
+      )
+    ).map((config) => config.id);
+    expect(POD_SPEC_KINDS.map(([kind]) => kind).sort()).toEqual(
+      declared.sort()
+    );
+  });
+
+  it.each(POD_SPEC_KINDS)(
+    '%s shows and sorts containers and images from its pod spec',
+    (resourceType, withPodSpec) => {
+      const low = withPodSpec({
+        containers: [
+          { name: 'a', image: 'a:1' },
+          { name: 'b', image: 'b:1' },
+        ],
+      });
+      const high = withPodSpec({ containers: [{ name: 'z', image: 'z:1' }] });
+
+      expect(cellText(resourceType, 'containers', low)).toBe('a, b');
+      expect(cellText(resourceType, 'images', low)).toBe('a:1, b:1');
+      expect(cellText(resourceType, 'containers', high)).toBe('z');
+      expect(cellText(resourceType, 'images', high)).toBe('z:1');
+
+      for (const colId of ['containers', 'images']) {
+        const sorter = getSorterForColumn(colId, resourceType);
+        expect(sorter(low, high)).toBeLessThan(0);
+        expect(sorter(high, low)).toBeGreaterThan(0);
+      }
     }
   );
 
