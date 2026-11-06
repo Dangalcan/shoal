@@ -50,6 +50,8 @@ All notable changes to Shoal are documented here. The format follows
 
 ### Fixed
 
+- Descending sort on resource tables keeps rows with empty or missing
+  field values at the bottom instead of flipping them to the top (#96).
 - The Containers and Images columns of the CronJobs table show the
   containers and images of the job template instead of `<none>`, and
   sorting by either column orders the rows (#95). Deployments, StatefulSets,

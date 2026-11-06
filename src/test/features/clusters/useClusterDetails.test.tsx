@@ -96,4 +96,41 @@ describe('useClusterDetails', () => {
       'age',
     ]);
   });
+
+  it('keeps CronJobs without a last schedule last in both sort directions', async () => {
+    window.localStorage.setItem(
+      'k8s_desktop_visible_resources',
+      JSON.stringify(['cronjobs'])
+    );
+    window.localStorage.setItem(
+      'cluster-tab-kind-dev',
+      JSON.stringify('cronjobs')
+    );
+    const row = (name: string, lastScheduleTime?: string) => ({
+      metadata: {
+        name,
+        namespace: 'default',
+        creationTimestamp: '2026-11-01T00:00:00Z',
+      },
+      status: lastScheduleTime ? { lastScheduleTime } : {},
+    });
+    api.getResources.mockResolvedValue({
+      success: true,
+      data: [
+        row('early', '2026-11-02T10:00:00Z'),
+        row('never'),
+        row('late', '2026-11-02T17:40:00Z'),
+      ],
+    });
+    const { result } = renderDetails();
+    await waitFor(() => expect(result.current.items).toHaveLength(3));
+    expect(result.current.activeTab).toBe('cronjobs');
+    const names = () => result.current.sortedItems.map((r) => r.metadata.name);
+
+    act(() => result.current.table.handleSort('last-schedule'));
+    expect(names()).toEqual(['early', 'late', 'never']);
+
+    act(() => result.current.table.handleSort('last-schedule'));
+    expect(names()).toEqual(['late', 'early', 'never']);
+  });
 });
