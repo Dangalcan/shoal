@@ -29,9 +29,10 @@ const sortByFieldColumn =
   };
 
 /** Flip a classic sorter for descending; empty-string missing values stay last. */
-const withDirection =
-  (sorter: SorterFunction, direction: SortDirection): SorterFunction =>
-  direction === 'asc' ? sorter : (a, b) => -sorter(a, b);
+const withDirection = (
+  sorter: SorterFunction,
+  direction: SortDirection
+): SorterFunction => (direction === 'asc' ? sorter : (a, b) => -sorter(a, b));
 
 /**
  * The sorter of a column, if it has one. A column listed for the kind wins
@@ -68,8 +69,7 @@ export const getSorterForColumn = (
   columnId: string,
   resourceType: ResourceType,
   direction: SortDirection = 'asc'
-): SorterFunction =>
-  findSorter(columnId, resourceType, direction) ?? (() => 0);
+): SorterFunction => findSorter(columnId, resourceType, direction) ?? (() => 0);
 
 /** The sorter of a column that is not a field column. */
 const getColumnSorter = (
