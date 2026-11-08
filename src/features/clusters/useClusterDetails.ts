@@ -67,9 +67,12 @@ export function useClusterDetails(name: string | undefined) {
 
   const sortedItems = useMemo(() => {
     if (!table.sortConfig) return items;
-    const sorter = getSorterForColumn(table.sortConfig.key, activeTab);
-    const sorted = [...items].sort(sorter);
-    return table.sortConfig.direction === 'asc' ? sorted : sorted.reverse();
+    const sorter = getSorterForColumn(
+      table.sortConfig.key,
+      activeTab,
+      table.sortConfig.direction
+    );
+    return [...items].sort(sorter);
   }, [items, table.sortConfig, activeTab]);
 
   // Row actions take the row; the resource kind is the active tab's.
