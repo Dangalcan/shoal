@@ -111,7 +111,7 @@
     "happy-dom": "^21.0.4",
     "husky": "^9.1.7",
     "jsdom": "^27.4.0",
-    "lucide-react": "^1.65.0",
+    "lucide-react": "^1.70.0",
     "postcss": "^8.5.32",
     "prettier": "^3.9.10",
     "react": "^19.3.1",
