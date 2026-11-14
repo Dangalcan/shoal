@@ -30,7 +30,7 @@ newest **non** pre-release.
    the top of `package-lock.json`), update `CHANGELOG.md`, open a PR and
    merge it. Changes accumulate under the `## [Unreleased]` heading. For a
    stable release, retitle that heading with the version and the date, as in
-   `## [0.9.2] - 2026-11-09`, add an empty `## [Unreleased]` above it and
+   `## [0.9.2] - 2026-11-14`, add an empty `## [Unreleased]` above it and
    update the compare links at the bottom of the file
    (`[0.9.2]: .../compare/v0.9.1...v0.9.2`).
 3. Tag the merge commit and push the tag:
@@ -118,8 +118,8 @@ Playwright needs `--inspect` for the smoke tests.
 ## Verifying auto-update
 
 Install the previous version, publish the new one, start the old app and wait
-for the "Update ready" toast, then restart. The sidebar must show the new
-version. This only works once the repository is public: electron-updater
+for the "Update v<version> is ready" toast, then restart. The sidebar must show
+the new version. This only works once the repository is public: electron-updater
 cannot read the releases of a private repository without a token. The beta
 rehearsed it on 2026-10-28, the day the repository went public: an
 installed rc.4 did not offer rc.5, because the service did not recognise
@@ -128,6 +128,21 @@ and never looked at pre-releases. rc.6 fixed that, and an installed rc.6
 confirmed it by logging "No stable release published yet; checking
 pre-releases" and then that no newer version exists. `rc.6 → 0.9.0` on
 2026-10-31 confirmed that a pre-release moves to the stable channel.
+
+`0.9.1 → 0.9.2` on 2026-11-14 covered both platforms. On Windows the installed
+0.9.1 found 0.9.2 on its first check, downloaded it, showed the toast, installed
+it on quit and started as 0.9.2 with no further offer. The download was
+differential but saved little, 105.8 of 121.3 MB, because that release changed
+Electron and the native modules. On Linux a `Shoal-0.9.1.AppImage`, started
+through its own FUSE mount, did the same and on quit was replaced by
+`Shoal-x86_64.AppImage` in the same folder, with the checksum of the release
+asset: the first real run of the one-time rename that 0.9.2 introduced.
+
+A release candidate installed while a stable release exists (`0.9.2-rc.1` over
+0.9.1) asks the stable channel, finds the older version and stays where it is
+("downgrade is disallowed") until the next stable version is published. So a
+candidate cut after the first stable release reaches nobody by auto-update:
+whoever tests it installs it by hand.
 
 ## When Actions cannot run
 
