@@ -7,6 +7,13 @@ All notable changes to Shoal are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-11-14
+
+Two weeks of beta fixes and a real terminal: local and pod shells run in a
+pseudo-terminal, the Status column says what `kubectl get` says, every column
+sorts, saved settings survive a quit, and a plugin that fails the signature
+check no longer runs.
+
 ### Added
 
 - The column resize handles of the resource tables work from the keyboard.
@@ -523,6 +530,7 @@ yet, so Windows SmartScreen shows a warning on first launch.
   `sudo apt install libasound2t64` (`libasound2` before Ubuntu 24.04). The
   `.deb` will declare the dependency in 0.9.1.
 
-[Unreleased]: https://github.com/Dangalcan/shoal/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/Dangalcan/shoal/compare/v0.9.2...HEAD
+[0.9.2]: https://github.com/Dangalcan/shoal/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/Dangalcan/shoal/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/Dangalcan/shoal/compare/v0.9.0-rc.6...v0.9.0
