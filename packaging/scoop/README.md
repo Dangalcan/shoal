@@ -32,7 +32,7 @@ In the bucket repository, after copying the file:
 .\bin\test.ps1                # the template's Pester tests: schema, hash format, URL
 ```
 
-Without the bucket, the hash is the release asset digest (see `packaging/README.md`) or `(Get-FileHash Shoal-0.9.1-portable.exe).Hash`, and a local install tests the manifest directly:
+Without the bucket, the hash is the release asset digest (see `packaging/README.md`) or `(Get-FileHash Shoal-0.9.2-portable.exe).Hash`, and a local install tests the manifest directly:
 
 ```powershell
 scoop install .\packaging\scoop\shoal.json

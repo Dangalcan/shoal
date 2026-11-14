@@ -1,6 +1,6 @@
 pkgbase = shoal-desktop-bin
 	pkgdesc = Desktop app for managing Kubernetes clusters
-	pkgver = 0.9.1
+	pkgver = 0.9.2
 	pkgrel = 1
 	url = https://shoal.dangalcan.com
 	arch = x86_64
@@ -21,12 +21,12 @@ pkgbase = shoal-desktop-bin
 	optdepends = k3d: create and delete local clusters with k3d (needs Docker)
 	optdepends = docker: container runtime that kind and k3d clusters run on
 	optdepends = kompose: migrate Docker Compose projects to Kubernetes manifests
-	provides = shoal-desktop=0.9.1
+	provides = shoal-desktop=0.9.2
 	conflicts = shoal-desktop
 	options = !strip
 	options = !debug
 	backup = etc/apparmor.d/shoal-desktop
-	source = https://github.com/Dangalcan/shoal/releases/download/v0.9.1/shoal_0.9.1_amd64.deb
-	sha256sums = 0edaaf67c0ef412c158e9b67e7f88ffe357855fd89ba45b918f9fce83d182e2f
+	source = https://github.com/Dangalcan/shoal/releases/download/v0.9.2/shoal_0.9.2_amd64.deb
+	sha256sums = e8b2fd374220944b680965a8353269975c6ba6ec147836c461cb506c744a7e14
 
 pkgname = shoal-desktop-bin

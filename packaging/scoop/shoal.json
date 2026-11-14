@@ -1,5 +1,5 @@
 {
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "Desktop app for managing Kubernetes clusters",
   "homepage": "https://shoal.dangalcan.com",
   "license": {
@@ -12,8 +12,8 @@
   ],
   "architecture": {
     "64bit": {
-      "url": "https://github.com/Dangalcan/shoal/releases/download/v0.9.1/Shoal-0.9.1-portable.exe#/Shoal.exe",
-      "hash": "124318bdd985dbd5796f6fa859d0deb755c8ff196689b2130640ba214a2eebfa"
+      "url": "https://github.com/Dangalcan/shoal/releases/download/v0.9.2/Shoal-0.9.2-portable.exe#/Shoal.exe",
+      "hash": "a0eb2cc87d6f43170bccc372f052c885ffa72897365d4f01f50fb8cce78e093c"
     }
   },
   "bin": "Shoal.exe",
