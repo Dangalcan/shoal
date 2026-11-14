@@ -29,7 +29,7 @@ For Arch Linux users (`paru -S shoal-desktop-bin`, `yay -S shoal-desktop-bin`). 
 - What the `.deb` postinst would do happens at package time: the `/usr/bin/shoal` symlink, `chrome-sandbox` as a plain `0755` executable (the SUID bit is only for kernels without user namespaces) and the AppArmor profile in `/etc/apparmor.d/shoal` (in `backup`; only read where AppArmor is enabled).
 - The `.desktop` file (`/usr/share/applications/shoal.desktop`, `Exec=/opt/Shoal/shoal %U`, `StartupWMClass=shoal`) and the icons (`/usr/share/icons/hicolor/<size>/apps/shoal.png`) come straight from the `.deb`.
 - `provides=(shoal)` and `conflicts=(shoal)`, so a future source package can replace it.
-- `sha256sums` carries the sha256 digest GitHub reports for the v0.9.1 `.deb` (`packaging/README.md` says how to read it); `updpkgsums` recomputes the same value.
+- `sha256sums` carries the sha256 digest GitHub reports for the v0.9.2 `.deb` (`packaging/README.md` says how to read it); `updpkgsums` recomputes the same value.
 
 ## Fill the checksum and validate
 
@@ -39,7 +39,7 @@ On Arch, in `packaging/aur`:
 updpkgsums                       # downloads the .deb and writes sha256sums (pacman-contrib)
 makepkg --printsrcinfo > .SRCINFO
 namcap PKGBUILD                  # static checks
-makepkg -sf                      # builds shoal-desktop-bin-0.9.1-1-x86_64.pkg.tar.zst
+makepkg -sf                      # builds shoal-desktop-bin-0.9.2-1-x86_64.pkg.tar.zst
 namcap shoal-desktop-bin-*.pkg.tar.zst   # checks the built package, dependencies included
 sudo pacman -U shoal-desktop-bin-*.pkg.tar.zst && shoal-desktop --version
 ```
@@ -68,8 +68,8 @@ git clone ssh://aur@aur.archlinux.org/shoal-desktop-bin.git
 cp packaging/aur/PKGBUILD packaging/aur/.SRCINFO shoal-desktop-bin/
 cd shoal-desktop-bin
 git add PKGBUILD .SRCINFO
-git commit -m "Initial import: 0.9.1-1"
+git commit -m "Initial import: 0.9.2-1"
 git push origin master
 ```
 
-The AUR takes `PKGBUILD`, `.SRCINFO` and small helper files only; never commit the `.deb` or a built package. Later versions: bump `pkgver`, reset `pkgrel=1`, `updpkgsums`, `makepkg --printsrcinfo > .SRCINFO`, commit (`Update to 0.9.1`) and push. If only the PKGBUILD changes for the same upstream version, bump `pkgrel` instead.
+The AUR takes `PKGBUILD`, `.SRCINFO` and small helper files only; never commit the `.deb` or a built package. Later versions: bump `pkgver`, reset `pkgrel=1`, `updpkgsums`, `makepkg --printsrcinfo > .SRCINFO`, commit (`Update to 0.9.2`) and push. If only the PKGBUILD changes for the same upstream version, bump `pkgrel` instead.
