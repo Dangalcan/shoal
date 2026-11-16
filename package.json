@@ -74,7 +74,7 @@
   "homepage": "https://github.com/Dangalcan/shoal#readme",
   "dependencies": {
     "adm-zip": "^0.6.1",
-    "better-sqlite3": "^13.0.3",
+    "better-sqlite3": "^13.1.1",
     "electron-log": "^5.4.4",
     "electron-updater": "^6.8.11",
     "js-yaml": "^5.5.0",
