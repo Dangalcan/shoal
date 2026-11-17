@@ -32,16 +32,19 @@ function requestedHosts(netLog: string): string[] {
 
 test.describe('network on a first run', () => {
   let log = '';
+  let mainLog = '';
   let dir = '';
 
   test.beforeAll(async () => {
     const kubeconfig = writeKubeconfig('network', EMPTY_KUBECONFIG);
     dir = kubeconfig.dir;
     const netLog = path.join(dir, 'net-log.json');
+    const userDataDir = path.join(dir, 'profile');
     // Polish stands for any display language the system cannot spell-check:
     // that is when Chromium went looking for a dictionary on Windows. On
     // Linux it did so for every language.
     const app = await launchApp({
+      userDataDir,
       env: { KUBECONFIG: kubeconfig.file },
       args: [`--log-net-log=${netLog}`, '--lang=pl'],
     });
@@ -67,6 +70,10 @@ test.describe('network on a first run', () => {
       await app.close();
     }
     log = fs.readFileSync(netLog, 'utf8');
+    mainLog = fs.readFileSync(
+      path.join(userDataDir, 'logs', 'main.log'),
+      'utf8'
+    );
   });
 
   test.afterAll(() => {
@@ -82,14 +89,19 @@ test.describe('network on a first run', () => {
   });
 
   test('the update check does not identify the install', () => {
-    test.skip(
-      !process.env.SHOAL_E2E_EXECUTABLE,
-      'a dev build never checks for updates'
-    );
+    // The app says in its log why it does not check: a dev build, the
+    // portable build and a Linux package never do.
+    const skipped = /Skipping update check \(([^)]+)\)/.exec(mainLog);
+    test.skip(skipped !== null, `no update check: ${skipped?.[1]}`);
+
+    // Anything else checks, and then its requests must be in the net log:
+    // without them this test would pass with nothing to look at.
+    expect(mainLog).toContain('Checking for update');
     // electron-updater's own value is a random UUID kept in the profile.
     const ids = [...log.matchAll(/x-user-staging-id: ([^"\\]+)/gi)].map(
       (match) => match[1]
     );
+    expect(ids.length).toBeGreaterThan(0);
     expect([...new Set(ids)].filter((id) => id !== NIL_UUID)).toEqual([]);
   });
 });
