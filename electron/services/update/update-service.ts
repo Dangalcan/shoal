@@ -39,6 +39,8 @@ export interface UpdaterLike {
     readonly prerelease: ReadonlyArray<string | number>;
   };
   logger: unknown;
+  /** Headers added to every updater request; they win over its own. */
+  requestHeaders: Record<string, string> | null;
   on(event: string, listener: (...args: unknown[]) => void): unknown;
   checkForUpdates(): Promise<unknown>;
   quitAndInstall(): void;
@@ -70,6 +72,18 @@ const NO_STABLE_RELEASE_CODES = new Set([
 const WRAPPING_CODE = 'ERR_UPDATER_INVALID_RELEASE_FEED';
 const NO_STABLE_RELEASE_MESSAGE =
   /Unable to find latest version on GitHub|please ensure a production release exists|No published versions on GitHub/;
+
+/**
+ * electron-updater sends `x-user-staging-id` with every request: a random
+ * UUID it keeps in `<userData>/.updaterId`, meant for update servers that
+ * roll a release out to a percentage of installs. GitHub Releases does not,
+ * so the header would only tell GitHub, on every start, that the same
+ * install is asking again. `requestHeaders` is merged over the updater's own
+ * headers (AppUpdater.computeFinalHeaders), and a header cannot be removed
+ * that way, only replaced: every install sends the nil UUID instead.
+ */
+export const STAGING_ID_HEADER = 'x-user-staging-id';
+export const NO_STAGING_ID = '00000000-0000-0000-0000-000000000000';
 
 function isNoStableRelease(err: unknown): boolean {
   const e = err as { code?: unknown; message?: unknown } | null;
@@ -109,6 +123,10 @@ export class UpdateService {
     this.updater.autoDownload = true;
     this.updater.autoInstallOnAppQuit = true;
     this.updater.logger = log;
+    this.updater.requestHeaders = {
+      ...this.updater.requestHeaders,
+      [STAGING_ID_HEADER]: NO_STAGING_ID,
+    };
 
     this.updater.on('checking-for-update', () =>
       this.emit({ state: 'checking' })
