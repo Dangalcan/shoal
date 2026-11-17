@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
 
 PackageIdentifier: Dangalcan.Shoal
-PackageVersion: 0.9.2
+PackageVersion: 0.9.3
 InstallerType: nullsoft
 Scope: user
 InstallerSwitches:
@@ -10,15 +10,15 @@ InstallerSwitches:
 UpgradeBehavior: install
 ProductCode: 90e015ac-3412-5092-8824-ab2c56388eb8
 AppsAndFeaturesEntries:
-- DisplayName: Shoal 0.9.2
+- DisplayName: Shoal 0.9.3
   Publisher: Daniel Galván Cancio
-  DisplayVersion: 0.9.2
+  DisplayVersion: 0.9.3
   ProductCode: 90e015ac-3412-5092-8824-ab2c56388eb8
   InstallerType: nullsoft
-ReleaseDate: 2026-11-14
+ReleaseDate: 2026-11-17
 Installers:
 - Architecture: x64
-  InstallerUrl: https://github.com/Dangalcan/shoal/releases/download/v0.9.2/Shoal-Setup-0.9.2.exe
-  InstallerSha256: 8784EBE8224804FF8DA28F6CC76478322D2FA680AC0164FFC34277CF67C6014F
+  InstallerUrl: https://github.com/Dangalcan/shoal/releases/download/v0.9.3/Shoal-Setup-0.9.3.exe
+  InstallerSha256: 24093A5DA129F7FB0888F5BFF059D63F33B0D722B26FC97E1572FC4C6C4D098F
 ManifestType: installer
 ManifestVersion: 1.12.0

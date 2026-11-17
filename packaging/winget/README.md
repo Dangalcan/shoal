@@ -1,6 +1,6 @@
 # winget manifests (`Dangalcan.Shoal`)
 
-For Windows users who install with `winget install Dangalcan.Shoal`. `0.9.2/` holds the manifest set of one version, in the layout [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs) keeps under `manifests/d/Dangalcan/Shoal/<version>/`. The manifests sit in their own folder because `winget validate` and `wingetcreate submit` read every file in the folder they are given, this README included.
+For Windows users who install with `winget install Dangalcan.Shoal`. `0.9.3/` holds the manifest set of one version, in the layout [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs) keeps under `manifests/d/Dangalcan/Shoal/<version>/`. The manifests sit in their own folder because `winget validate` and `wingetcreate submit` read every file in the folder they are given, this README included.
 
 | File                                | Purpose                                                          |
 | ----------------------------------- | ---------------------------------------------------------------- |
@@ -13,9 +13,9 @@ Manifest schema 1.12.0, the version wingetcreate 1.12 writes and the manifests m
 ## What is fixed and what is filled in on release day
 
 - **`InstallerSha256`** comes from the published release, by any of:
-  - the digest GitHub shows next to the asset on the release page, also available as `gh api repos/Dangalcan/shoal/releases/tags/v0.9.2 --jq '.assets[] | "\(.name) \(.digest)"'`;
-  - `certutil -hashfile Shoal-Setup-0.9.2.exe SHA256` or `(Get-FileHash Shoal-Setup-0.9.2.exe).Hash` on a downloaded copy;
-  - `wingetcreate update Dangalcan.Shoal --version 0.9.2 --urls <installer url>`, once the package exists in winget-pkgs: it downloads the installer and writes the hash itself.
+  - the digest GitHub shows next to the asset on the release page, also available as `gh api repos/Dangalcan/shoal/releases/tags/v0.9.3 --jq '.assets[] | "\(.name) \(.digest)"'`;
+  - `certutil -hashfile Shoal-Setup-0.9.3.exe SHA256` or `(Get-FileHash Shoal-Setup-0.9.3.exe).Hash` on a downloaded copy;
+  - `wingetcreate update Dangalcan.Shoal --version 0.9.3 --urls <installer url>`, once the package exists in winget-pkgs: it downloads the installer and writes the hash itself.
 
   winget-pkgs stores hashes in upper case; either case validates.
 
@@ -38,25 +38,25 @@ Manifest schema 1.12.0, the version wingetcreate 1.12 writes and the manifests m
 ## Validate
 
 ```powershell
-winget validate --manifest packaging/winget/0.9.2
+winget validate --manifest packaging/winget/0.9.3
 ```
 
 That is schema validation only; it does not check the hash. To install from the local manifests, enable local manifests once from an elevated shell (`winget settings --enable LocalManifestFiles`), then:
 
 ```powershell
-winget install --manifest packaging/winget/0.9.2
+winget install --manifest packaging/winget/0.9.3
 ```
 
 ## Submit
 
-First version: `wingetcreate submit --token <github token> packaging/winget/0.9.2` opens the pull request against microsoft/winget-pkgs with the files in the right folder (`winget install wingetcreate`; a hand-made PR adding `manifests/d/Dangalcan/Shoal/0.9.2/` works too). The pipeline downloads the installer, checks the hash, installs it in a sandbox and compares the ARP entry; moderators may ask for changes on the PR.
+First version: `wingetcreate submit --token <github token> packaging/winget/0.9.3` opens the pull request against microsoft/winget-pkgs with the files in the right folder (`winget install wingetcreate`; a hand-made PR adding `manifests/d/Dangalcan/Shoal/0.9.3/` works too). The pipeline downloads the installer, checks the hash, installs it in a sandbox and compares the ARP entry; moderators may ask for changes on the PR.
 
 The first submission is [microsoft/winget-pkgs#467315](https://github.com/microsoft/winget-pkgs/pull/467315), for 0.9.1: validated by the pipeline on 31 October 2026 and waiting for a moderator since. Versions released meanwhile wait for it and then go in with the update command below; the installed app updates itself in any case.
 
 Later versions, once `Dangalcan.Shoal` exists in the repository:
 
 ```powershell
-wingetcreate update Dangalcan.Shoal --version 0.9.2 --urls https://github.com/Dangalcan/shoal/releases/download/v0.9.2/Shoal-Setup-0.9.2.exe --submit
+wingetcreate update Dangalcan.Shoal --version 0.9.3 --urls https://github.com/Dangalcan/shoal/releases/download/v0.9.3/Shoal-Setup-0.9.3.exe --submit
 ```
 
 It copies the previous manifests, updates version, URL and hash and opens the PR. Keep the copy here in sync: `PackageVersion`, `InstallerUrl`, `InstallerSha256`, `ReleaseDate`, `ReleaseNotesUrl`, and `DisplayName`/`DisplayVersion` in `AppsAndFeaturesEntries`.

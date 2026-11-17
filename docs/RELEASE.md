@@ -138,6 +138,27 @@ through its own FUSE mount, did the same and on quit was replaced by
 `Shoal-x86_64.AppImage` in the same folder, with the checksum of the release
 asset: the first real run of the one-time rename that 0.9.2 introduced.
 
+`0.9.2 → 0.9.3` on 2026-11-17 passed on both again, with differential
+downloads of 94.9 of 121.5 MB on Windows and 101.4 of 126.3 MB on Linux
+(Electron changed once more). On Linux it was the first update to replace
+`Shoal-x86_64.AppImage` in place, under the same name, with the checksum of
+the release asset.
+
+That rehearsal runs the updater of the **old** version. When a change touches
+the updater itself (its request headers, its channels, its download code), the
+new code first runs for real one release later, when every install already
+depends on it. 0.9.3 changed the headers of the update requests, so before the
+tag the new code was made to download an update: the AppImage built by
+Build/Release on `master` was extracted, the version inside its `app.asar`
+lowered to 0.9.1, and the app started with `APPIMAGE` pointing at a throwaway
+copy of the file. It found 0.9.2, downloaded it and replaced the copy, whose
+checksum matched the release asset, and Chromium's net log (`--log-net-log`)
+showed what every request carried. This works on Linux only: on Windows the
+asar integrity fuse refuses a repacked `app.asar`. A packaged Windows build can
+still be run without installing it, by unpacking the installer from that
+workflow's artifact with 7-Zip (the inner `app-64.7z` holds the app); that is
+how the net log of the Windows build was read before the tag.
+
 A release candidate installed while a stable release exists (`0.9.2-rc.1` over
 0.9.1) asks the stable channel, finds the older version and stays where it is
 ("downgrade is disallowed") until the next stable version is published. So a
