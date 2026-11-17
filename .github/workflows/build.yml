@@ -243,6 +243,7 @@ jobs:
           npx playwright test
           e2e/features/navigation.spec.ts
           e2e/features/first-run.spec.ts
+          e2e/features/network.spec.ts
           e2e/features/settings.spec.ts
           e2e/features/terminal.spec.ts
           e2e/features/manifests.spec.ts

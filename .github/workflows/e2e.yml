@@ -68,6 +68,7 @@ jobs:
         run: >-
           xvfb-run -a npx playwright test
           e2e/features/navigation.spec.ts
+          e2e/features/network.spec.ts
           e2e/features/sandbox-escape.spec.ts
           e2e/features/cluster-details.spec.ts
 
