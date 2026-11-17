@@ -7,6 +7,17 @@ All notable changes to Shoal are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.9.3] - 2026-11-17
+
+A privacy release: Shoal no longer downloads a spelling dictionary from a
+Google server, and the update check no longer carries a per-install id.
+Electron and SQLite are up to date.
+
+### Changed
+
+- Electron 44.11.3 (from 44.10.2), with the Chromium and V8 fixes backported
+  since, and better-sqlite3 13.1.1, which brings SQLite 3.54.1.
+
 ### Fixed
 
 - Shoal no longer downloads a spelling dictionary from a Google server.
@@ -552,7 +563,8 @@ yet, so Windows SmartScreen shows a warning on first launch.
   `sudo apt install libasound2t64` (`libasound2` before Ubuntu 24.04). The
   `.deb` will declare the dependency in 0.9.1.
 
-[Unreleased]: https://github.com/Dangalcan/shoal/compare/v0.9.2...HEAD
+[Unreleased]: https://github.com/Dangalcan/shoal/compare/v0.9.3...HEAD
+[0.9.3]: https://github.com/Dangalcan/shoal/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/Dangalcan/shoal/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/Dangalcan/shoal/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/Dangalcan/shoal/compare/v0.9.0-rc.6...v0.9.0
