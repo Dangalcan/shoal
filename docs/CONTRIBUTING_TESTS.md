@@ -37,12 +37,21 @@ e2e/                  # Playwright End-to-End tests
 ```
 
 `vitest.config.ts` runs the unit tests as two projects: `electron` covers
-`electron/**` on plain Node with no setup file, and `src` covers `src/**` on
-jsdom with `src/test/setup.ts` (the jest-dom matchers, the `sonner` mock,
-`window.electron` from `createMockElectronAPI()`, cleanup after each test).
-A main-process test never boots a DOM; a renderer-side test that needs plain
-Node opts out per file with a `// @vitest-environment node` docblock.
-`npx vitest --run --project electron` (or `src`) runs one project alone.
+`electron/**` on plain Node with `electron/__tests__/setup.ts`, and `src`
+covers `src/**` on jsdom with `src/test/setup.ts` (the jest-dom matchers, the
+`sonner` mock, `window.electron` from `createMockElectronAPI()`, cleanup after
+each test). A main-process test never boots a DOM; a renderer-side test that
+needs plain Node opts out per file with a `// @vitest-environment node`
+docblock. `npx vitest --run --project electron` (or `src`) runs one project
+alone.
+
+The main-process setup file keeps the real `electron` package out of the test
+workers. On plain Node that package is not the Electron API: its entry point
+locates the Electron binary and downloads it when it is missing. The setup
+file puts an empty module in its place, so the unit tests never need the
+binary, including for a plain `require('electron')` that `vi.mock` cannot
+reach (electron-log does one). A test that uses part of the Electron API
+still declares it with `vi.mock('electron', () => ({ ... }))`.
 
 ---
 
