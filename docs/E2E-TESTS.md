@@ -338,8 +338,11 @@ net log: every host a request went to must belong to GitHub Releases
 (`github.com`, `*.githubusercontent.com`). A dev build makes no request at
 all; the installed app and the AppImage make the update check, and there a
 second test checks that its `x-user-staging-id` header holds the all-zero
-value and not electron-updater's per-install id (skipped on a dev build,
-which never checks for updates). The launch passes `--lang=pl`, a display
+value and not electron-updater's per-install id. It reads the app's own log
+to know whether an update check ran: a build that says it skips the check (a
+dev build, the portable build, a Linux package) skips the test, and any other
+must have logged the check and left its requests in the net log, so the test
+cannot pass with nothing to look at. The launch passes `--lang=pl`, a display
 language Windows has no spell checker for, because that is when Chromium
 used to download a spelling dictionary from a Google server (on Linux it did
 for every language). Every session starts a spell checker of its own, so the
