@@ -11,6 +11,8 @@ export interface LaunchOptions {
   userDataDir?: string;
   /** Extra environment for the app (for example KUBECONFIG). */
   env?: NodeJS.ProcessEnv;
+  /** Extra command-line switches for the app (for example --log-net-log). */
+  args?: string[];
 }
 
 /**
@@ -32,6 +34,7 @@ export async function launchApp(
   const userDataDir =
     options.userDataDir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'shoal-e2e-'));
   const executablePath = process.env.SHOAL_E2E_EXECUTABLE;
+  const extraArgs = options.args ?? [];
   const env = {
     ...process.env,
     ALLOW_UNSIGNED_PLUGINS: 'true',
@@ -45,13 +48,13 @@ export async function launchApp(
     const sandboxArgs = process.platform === 'linux' ? ['--no-sandbox'] : [];
     return electron.launch({
       executablePath,
-      args: [...sandboxArgs, `--user-data-dir=${userDataDir}`],
+      args: [...sandboxArgs, `--user-data-dir=${userDataDir}`, ...extraArgs],
       env,
     });
   }
 
   return electron.launch({
-    args: [`--user-data-dir=${userDataDir}`, REPO_ROOT],
+    args: [`--user-data-dir=${userDataDir}`, ...extraArgs, REPO_ROOT],
     env,
   });
 }

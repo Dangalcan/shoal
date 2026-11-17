@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
+  NO_STAGING_ID,
   UpdateService,
   type UpdaterLike,
 } from '../services/update/update-service';
@@ -21,6 +22,7 @@ function makeUpdater(prerelease: ReadonlyArray<string | number> = []) {
     allowPrerelease: true,
     currentVersion: { prerelease },
     logger: null,
+    requestHeaders: null,
     on: vi.fn((event: string, cb: (...a: unknown[]) => void) => {
       listeners.set(event, cb);
       return updater;
@@ -67,6 +69,24 @@ describe('UpdateService', () => {
       { state: 'not-available' },
       { state: 'error', message: 'boom' },
     ]);
+  });
+
+  it('replaces the per-install staging id the updater would send', () => {
+    const updater = makeUpdater();
+    new UpdateService(updater).init(() => {});
+    expect(updater.requestHeaders).toEqual({
+      'x-user-staging-id': NO_STAGING_ID,
+    });
+  });
+
+  it('keeps request headers that were already set', () => {
+    const updater = makeUpdater();
+    updater.requestHeaders = { 'x-extra': '1' };
+    new UpdateService(updater).init(() => {});
+    expect(updater.requestHeaders).toEqual({
+      'x-extra': '1',
+      'x-user-staging-id': NO_STAGING_ID,
+    });
   });
 
   it('is idempotent — init twice does not double-register', () => {

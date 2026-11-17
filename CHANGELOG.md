@@ -7,6 +7,28 @@ All notable changes to Shoal are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Shoal no longer downloads a spelling dictionary from a Google server.
+  Chromium's spell checker fetched one (`*.bdic`, from `redirector.gvt1.com`)
+  the first time a profile started: always on Linux, and on Windows when the
+  system has no spell checker for the display language. The request carried
+  nothing of yours beyond what any download shows, your IP address and the
+  language of the dictionary, but it was a request the README said Shoal does
+  not make. Spell checking is now off in every text field, and nothing leaves
+  the app besides the update check against GitHub Releases.
+- The update check no longer tells GitHub which install is asking. The
+  updater library added a header, `x-user-staging-id`, with a random id it
+  keeps in the profile (`.updaterId`), the same on every start, although
+  `SECURITY.md` said the request carried no identifier. Every install now
+  sends the same all-zero value. GitHub Releases never used the header; it
+  exists for update servers that roll a release out in stages.
+
+Both were found by reading Chromium's net log of the installed 0.9.2, and a
+new end-to-end test does the same on pull requests and on the packaged
+builds: it fails on a request to any host other than GitHub Releases and on
+an update check that carries an id (`e2e/features/network.spec.ts`).
+
 ## [0.9.2] - 2026-11-14
 
 Two weeks of beta fixes and a real terminal: local and pod shells run in a
