@@ -16,9 +16,11 @@ export default defineConfig({
     globals: true,
     // One project per process. The main-process tests need only Node, so
     // they skip the jsdom boot (the largest cost of a run) and the renderer
-    // setup file; the renderer tests keep jsdom and the shared setup. Both
-    // inherit everything else from this config (`extends: true`); coverage
-    // is read from the root only and spans both projects.
+    // setup file; their own setup file keeps the real `electron` package
+    // (and its binary download) out of the workers. The renderer tests keep
+    // jsdom and the shared setup. Both inherit everything else from this
+    // config (`extends: true`); coverage is read from the root only and
+    // spans both projects.
     projects: [
       {
         extends: true,
@@ -26,6 +28,7 @@ export default defineConfig({
           name: 'electron',
           include: ['electron/**/*.test.ts'],
           environment: 'node',
+          setupFiles: ['./electron/__tests__/setup.ts'],
         },
       },
       {
