@@ -14,25 +14,25 @@ All three name a stable release, with its hashes, starting at **0.9.1** (31 Octo
 
 ## Release day
 
-After `v0.9.2` is published ([RELEASE.md](../docs/RELEASE.md)), in this order:
+After `v0.9.3` is published ([RELEASE.md](../docs/RELEASE.md)), in this order:
 
 1. **Get the SHA-256 of the three assets.** GitHub shows a digest next to each asset on the release page; from a shell:
 
    ```bash
-   gh api repos/Dangalcan/shoal/releases/tags/v0.9.2 --jq '.assets[] | "\(.name) \(.digest)"'
+   gh api repos/Dangalcan/shoal/releases/tags/v0.9.3 --jq '.assets[] | "\(.name) \(.digest)"'
    ```
 
    Or download the files and hash them: `certutil -hashfile <file> SHA256`, `Get-FileHash <file>`, `sha256sum <file>`.
 
 2. **Update the hashes:**
-   - `winget/0.9.2/Dangalcan.Shoal.installer.yaml`, `InstallerSha256`: digest of `Shoal-Setup-0.9.2.exe`
-   - `scoop/shoal.json`, `architecture.64bit.hash`: digest of `Shoal-0.9.2-portable.exe`
-   - `aur/PKGBUILD`, `sha256sums`: digest of `shoal_0.9.2_amd64.deb`, then regenerate `aur/.SRCINFO`
+   - `winget/0.9.3/Dangalcan.Shoal.installer.yaml`, `InstallerSha256`: digest of `Shoal-Setup-0.9.3.exe`
+   - `scoop/shoal.json`, `architecture.64bit.hash`: digest of `Shoal-0.9.3-portable.exe`
+   - `aur/PKGBUILD`, `sha256sums`: digest of `shoal_0.9.3_amd64.deb`, then regenerate `aur/.SRCINFO`
 
-3. **Validate** each one as its README says: `winget validate --manifest packaging/winget/0.9.2`, `scoop install .\packaging\scoop\shoal.json`, `makepkg` in `packaging/aur` (or the Docker command in its README).
+3. **Validate** each one as its README says: `winget validate --manifest packaging/winget/0.9.3`, `scoop install .\packaging\scoop\shoal.json`, `makepkg` in `packaging/aur` (or the Docker command in its README).
 
 4. **Submit**:
-   - winget: `wingetcreate submit packaging/winget/0.9.2` opens the pull request to microsoft/winget-pkgs; the pipeline installs the package in a sandbox and moderators review it.
+   - winget: `wingetcreate submit packaging/winget/0.9.3` opens the pull request to microsoft/winget-pkgs; the pipeline installs the package in a sandbox and moderators review it.
    - Scoop: copy `scoop/shoal.json` to `bucket/shoal.json` in `Dangalcan/scoop-shoal`, run `.\bin\formatjson.ps1`, commit, push.
    - AUR: copy `aur/PKGBUILD` and `aur/.SRCINFO` into a clone of `ssh://aur@aur.archlinux.org/shoal-desktop-bin.git`, commit, push.
 
