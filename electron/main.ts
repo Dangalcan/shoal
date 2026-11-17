@@ -136,6 +136,20 @@ function restrictPermissions(): void {
   );
 }
 
+// Chromium's spell checker fetches a Hunspell dictionary from a Google
+// download server (redirector.gvt1.com) for every language it has no system
+// spell checker for: always on Linux, and on Windows when the display language
+// has none. Shoal's fields hold resource names, YAML and commands, so the
+// checker goes, and with it the only request the app made besides the update
+// check. Every session starts its own checker with the display language, the
+// one electron-updater creates for its requests included, so the language
+// list is emptied as each session is created, before the lookup it has just
+// queued gets to run. Measured in the net log: `webPreferences.spellcheck:
+// false` and `setSpellCheckerEnabled(false)` both leave the download in place.
+app.on('session-created', (created) => {
+  created.setSpellCheckerLanguages([]);
+});
+
 // Register custom protocol as privileged — must be called before app.whenReady()
 protocol.registerSchemesAsPrivileged([
   {

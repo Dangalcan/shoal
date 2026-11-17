@@ -24,6 +24,7 @@ e2e/
 ├── features/
 │   ├── navigation.spec.ts        # Sidebar navigation, theme toggle, window guards
 │   ├── first-run.spec.ts         # Empty kubeconfig, unreachable context, kubectl missing
+│   ├── network.spec.ts           # Net log of a first run: only GitHub Releases, no install id
 │   ├── settings.spec.ts          # About & Support, kubeconfig path, preferences across a restart
 │   ├── cluster-lifecycle.spec.ts # Create and delete a cluster end-to-end
 │   ├── cluster-details.spec.ts   # Cluster details UI: tabs, sorting, filters, logs, settings
@@ -47,11 +48,12 @@ e2e/
 
 Contains shared test setup. Always launch the app through `launch.ts`:
 
-- **`launchApp({ userDataDir? })`** starts the dev build, or the executable in
-  `SHOAL_E2E_EXECUTABLE`. Every launch gets a fresh temporary user data
+- **`launchApp({ userDataDir?, env?, args? })`** starts the dev build, or the
+  executable in `SHOAL_E2E_EXECUTABLE`. Every launch gets a fresh temporary user data
   directory unless one is passed, so each test starts from a clean first run
   (bundled example plugins enabled, empty databases). On Linux the packaged app
-  gets `--no-sandbox` (Ubuntu 24.04 blocks Chromium's sandbox in CI).
+  gets `--no-sandbox` (Ubuntu 24.04 blocks Chromium's sandbox in CI). `args`
+  adds command-line switches (`network.spec.ts` passes `--log-net-log`).
 - **`mainWindow(app)`** returns the main window once the app shell
   (`aside.sidebar`) is visible. Do not stop at `domcontentloaded`: the window
   commits a second navigation right after the first load, and a
@@ -123,7 +125,7 @@ SHOAL_E2E_EXECUTABLE="$PWD/release/win-unpacked/Shoal.exe" npx playwright test
 ```
 
 Pull requests run a slice of the suite on the dev build (`e2e.yml`):
-`navigation`, `cluster-details` and `sandbox-escape`, whose hostile-plugin probes
+`navigation`, `network`, `cluster-details` and `sandbox-escape`, whose hostile-plugin probes
 need an unsigned plugin and so cannot run against a packaged build. It allows
 Chromium's sandbox through a sysctl instead of turning the sandbox off.
 
@@ -326,6 +328,26 @@ PATH before each probe and finds the installed kubectl again), skips the
 last step on a machine without kubectl, and skips entirely when kubectl
 lives in a folder Shoal appends to the PATH by itself
 (`electron/utils/path-env.ts`), because that one cannot be hidden.
+
+### `network.spec.ts`
+
+One launch with `--log-net-log`, no cluster and no kubectl needed; it runs on
+pull requests and on both smoke runners. It opens Settings, types in a text
+field, visits the Terminal and the Plugins page, quits, and reads Chromium's
+net log: every host a request went to must belong to GitHub Releases
+(`github.com`, `*.githubusercontent.com`). A dev build makes no request at
+all; the installed app and the AppImage make the update check, and there a
+second test checks that its `x-user-staging-id` header holds the all-zero
+value and not electron-updater's per-install id (skipped on a dev build,
+which never checks for updates). The launch passes `--lang=pl`, a display
+language Windows has no spell checker for, because that is when Chromium
+used to download a spelling dictionary from a Google server (on Linux it did
+for every language). Every session starts a spell checker of its own, so the
+spec also creates one after start-up, as electron-updater does for its
+requests. The log covers the app's own network stack (renderer, plugin
+frames, updater), not kubectl or the other tools Shoal runs. The app has to
+quit normally before the log is read: Chromium writes the events out when it
+closes the file, and a killed process leaves only the header.
 
 ### `plugins.spec.ts`
 
